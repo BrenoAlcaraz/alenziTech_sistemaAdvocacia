@@ -1,0 +1,42 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Processos — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Processos</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Todos os processos do escritório</p>
+  </div>
+  <a href="{% url 'processos:novo' %}" class="btn-primary">+ Novo processo</a>
+</div>
+
+{# Barra de busca visual — sem lógica real nesta fase #}
+{% include "components/search_bar.html" with placeholder="Buscar por título ou número..." %}
+
+{# Lista de processos #}
+<div class="flex flex-col gap-3">
+  {% for p in processos %}
+    <a href="{% url 'processos:detalhe' p.id %}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
+      <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate">{{ p.titulo }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ p.numero }} &bull; {{ p.cliente }}</p>
+      </div>
+      <div class="flex items-center gap-3 flex-shrink-0">
+        {% if p.prazo_urgente %}
+          {% include "components/badge.html" with tipo="urgente" texto=p.prazo_label %}
+        {% elif p.prazo_label != "sem prazo" %}
+          {% include "components/badge.html" with tipo="prazo" texto=p.prazo_label %}
+        {% else %}
+          <span class="text-xs text-gray-400">sem prazo</span>
+        {% endif %}
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+    </a>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum processo cadastrado." acao_label="Novo processo" acao_url=novo_url %}
+  {% endfor %}
+</div>
+{% endblock %}

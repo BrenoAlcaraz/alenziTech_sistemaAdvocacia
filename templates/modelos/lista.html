@@ -1,0 +1,76 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Modelos de Peças — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Modelos de Peças</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Banco de modelos que a IA usa como exemplo, e a identidade visual do escritório</p>
+  </div>
+  <a href="{% url 'modelos:novo' %}" class="btn-primary">+ Novo modelo</a>
+</div>
+
+{# Abas internas #}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="?aba=modelos"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'modelos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Modelos ({{ modelos|length }})
+    </a>
+    <a href="?aba=estilo"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'estilo' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+      </svg>
+      Meu estilo
+    </a>
+  </nav>
+</div>
+
+{% if aba_ativa == "modelos" %}
+  <div class="flex flex-col gap-3">
+    {% for m in modelos %}
+      <a href="{% url 'modelos:detalhe' m.id %}" class="card px-5 py-4 flex items-start gap-4 hover:shadow-md transition-shadow group">
+        <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ m.titulo }}</p>
+          <p class="text-xs text-juridico-ouro font-medium mt-0.5">{{ m.categoria }} &bull; {{ m.area_direito }}</p>
+          <p class="text-xs text-gray-400 mt-1 line-clamp-2">{{ m.preview }}</p>
+        </div>
+        <button class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </a>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum modelo cadastrado." %}
+    {% endfor %}
+  </div>
+{% else %}
+  {# Aba "Meu estilo" — placeholder para IA futura #}
+  <div class="card p-6 max-w-2xl">
+    <h2 class="font-semibold text-gray-900 mb-1">Tom de voz do escritório</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      Descreva como o escritório prefere escrever. A IA usará essas informações para gerar peças no seu estilo.
+    </p>
+    <div class="mb-4">
+      <label class="label">Tom de voz</label>
+      <textarea class="input h-24 resize-none" placeholder="Ex: Formal, objetivo, direto ao ponto. Evitar linguagem rebuscada..."></textarea>
+    </div>
+    <div class="mb-5">
+      <label class="label">Instruções gerais</label>
+      <textarea class="input h-24 resize-none" placeholder="Ex: Sempre incluir qualificação completa das partes no cabeçalho..."></textarea>
+    </div>
+    <button class="btn-primary">Salvar estilo</button>
+  </div>
+{% endif %}
+{% endblock %}

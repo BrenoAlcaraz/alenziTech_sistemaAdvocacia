@@ -1,0 +1,65 @@
+{% extends "base/base_public.html" %}
+
+{% block title %}Entrar — Jurídico SaaS{% endblock %}
+
+{% block public_content %}
+<div class="w-full max-w-sm mx-auto px-4">
+
+  {# Logo e nome do escritório — dinâmico por tenant #}
+  <div class="text-center mb-8">
+    <div class="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-semibold text-gray-900">
+      {% if config_visual.nome_exibicao %}
+        {{ config_visual.nome_exibicao }}
+      {% elif tenant %}
+        {{ tenant.nome }}
+      {% else %}
+        Jurídico SaaS
+      {% endif %}
+    </h1>
+    <p class="text-sm text-gray-500 mt-1">Acesse sua conta</p>
+  </div>
+
+  {# Card de login #}
+  <div class="card p-6">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-4 px-3 py-2 rounded-lg text-sm
+          {% if message.tags == 'error' %}bg-juridico-vermelho-bg text-juridico-vermelho{% else %}bg-juridico-verde-bg text-juridico-verde{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" action="{% url 'accounts:login' %}">
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label for="username" class="label">Usuário</label>
+        <input type="text" id="username" name="username" required
+               class="input" placeholder="seu.usuario">
+      </div>
+
+      <div class="mb-6">
+        <label for="password" class="label">Senha</label>
+        <input type="password" id="password" name="password" required
+               class="input" placeholder="••••••••">
+      </div>
+
+      <button type="submit" class="btn-primary w-full justify-center py-2.5">
+        Entrar
+      </button>
+    </form>
+  </div>
+
+  <p class="text-center text-xs text-gray-400 mt-6">
+    Jurídico SaaS &copy; 2026
+  </p>
+
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Jurídico SaaS{% endblock %}</title>
+
+  {# Favicon dinâmico por tenant — futuramente carregar config_visual.favicon #}
+  <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+
+  {# Tailwind compilado #}
+  <link rel="stylesheet" href="/static/css/output.css">
+
+  {# Google Fonts — Inter para tipografia elegante #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  {# Cores dinâmicas do tenant via CSS custom properties #}
+  <style>
+    :root {
+      --cor-primaria: {{ config_visual.cor_primaria|default:"#1a1a1a" }};
+      --cor-secundaria: {{ config_visual.cor_secundaria|default:"#8B7355" }};
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="font-sans antialiased">
+  {% block body %}{% endblock %}
+
+  <script src="/static/js/main.js"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

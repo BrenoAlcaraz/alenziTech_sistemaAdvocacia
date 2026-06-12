@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class SaasTenantsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.saas_tenants"
+    verbose_name = "SaaS — Tenants"

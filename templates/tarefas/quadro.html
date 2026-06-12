@@ -1,0 +1,83 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Tarefas — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Tarefas</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Organize e delegue tarefas da equipe</p>
+  </div>
+  <a href="{% url 'tarefas:nova' %}" class="btn-primary">+ Nova tarefa</a>
+</div>
+
+{# Alternância Quadro / Lista #}
+<div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-6">
+  <a href="{% url 'tarefas:quadro' %}"
+     class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-900 shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-3a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z"/>
+    </svg>
+    Quadro
+  </a>
+  <a href="{% url 'tarefas:lista' %}"
+     class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"/>
+    </svg>
+    Lista
+  </a>
+</div>
+
+{# Colunas do quadro Kanban #}
+<div class="flex gap-4 overflow-x-auto pb-4">
+
+  {# Coluna: A fazer #}
+  <div class="flex-shrink-0 w-80">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-5 h-5 rounded-full border-2 border-gray-400"></div>
+      <span class="font-medium text-gray-700">A fazer</span>
+      <span class="ml-auto text-sm text-gray-400 font-medium">{{ tarefas_por_status.a_fazer|length }}</span>
+    </div>
+    <div class="flex flex-col gap-3">
+      {% for t in tarefas_por_status.a_fazer %}
+        {% include "tarefas/_card_tarefa.html" with tarefa=t %}
+      {% empty %}
+        <div class="card px-4 py-6 text-center text-sm text-gray-400">Nenhuma tarefa</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Coluna: Em andamento #}
+  <div class="flex-shrink-0 w-80">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-5 h-5 rounded-full border-2 border-juridico-ouro bg-juridico-ouro-claro opacity-60"></div>
+      <span class="font-medium text-gray-700">Em andamento</span>
+      <span class="ml-auto text-sm text-gray-400 font-medium">{{ tarefas_por_status.em_andamento|length }}</span>
+    </div>
+    <div class="flex flex-col gap-3">
+      {% for t in tarefas_por_status.em_andamento %}
+        {% include "tarefas/_card_tarefa.html" with tarefa=t %}
+      {% empty %}
+        <div class="card px-4 py-6 text-center text-sm text-gray-400">Nenhuma tarefa</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Coluna: Concluída #}
+  <div class="flex-shrink-0 w-80">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-5 h-5 rounded-full bg-juridico-verde-bg border-2 border-juridico-verde"></div>
+      <span class="font-medium text-gray-700">Concluída</span>
+      <span class="ml-auto text-sm text-gray-400 font-medium">{{ tarefas_por_status.concluida|length }}</span>
+    </div>
+    <div class="flex flex-col gap-3">
+      {% for t in tarefas_por_status.concluida %}
+        {% include "tarefas/_card_tarefa.html" with tarefa=t %}
+      {% empty %}
+        <div class="card px-4 py-6 text-center text-sm text-gray-400">Nenhuma tarefa</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

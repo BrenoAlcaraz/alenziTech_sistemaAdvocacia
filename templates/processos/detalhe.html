@@ -1,0 +1,115 @@
+{% extends "base/base_auth.html" %}
+{% block title %}{{ processo.titulo }} — Processos{% endblock %}
+
+{% block content %}
+
+{# ── Cabeçalho do processo ──────────────────────────────────────────────────── #}
+<div class="card p-6 mb-4">
+  <div class="flex items-center gap-2 mb-3">
+    <span class="badge-area">{{ processo.area_direito }}</span>
+    <span class="text-sm text-gray-400">{{ processo.instancia }}</span>
+  </div>
+  <h1 class="text-xl font-bold text-gray-900 mb-1">{{ processo.titulo }}</h1>
+  <p class="text-sm text-gray-400 mb-5">{{ processo.numero }}</p>
+
+  <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Vara/Juízo</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.vara_juizo }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Valor da Causa</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.valor_causa }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cliente</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.cliente }}</p>
+    </div>
+  </div>
+</div>
+
+{# ── Abas internas ──────────────────────────────────────────────────────────── #}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="?aba=andamentos"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'andamentos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"/>
+      </svg>
+      Andamentos <span class="text-gray-400">({{ movimentacoes|length }})</span>
+    </a>
+    <a href="?aba=prazos"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'prazos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Prazos <span class="text-gray-400">(1)</span>
+    </a>
+    <a href="?aba=documentos"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
+      </svg>
+      Documentos <span class="text-gray-400">(1)</span>
+    </a>
+    <a href="?aba=partes"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'partes' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      Partes <span class="text-gray-400">({{ partes|length }})</span>
+    </a>
+  </nav>
+</div>
+
+{# ── Conteúdo da aba ativa ──────────────────────────────────────────────────── #}
+{% if aba_ativa == "andamentos" %}
+
+  {# Campo visual para registrar movimentação — sem lógica nesta fase #}
+  <div class="flex gap-3 mb-6">
+    <input type="text" class="input flex-1" placeholder="Registrar nova movimentação...">
+    <button class="btn-primary px-5">+ Registrar</button>
+  </div>
+
+  {# Timeline de movimentações #}
+  <div class="flex flex-col gap-4">
+    {% for mov in movimentacoes %}
+      <div class="flex gap-3">
+        <div class="flex flex-col items-center">
+          <div class="w-2.5 h-2.5 rounded-full bg-juridico-verde mt-1.5 flex-shrink-0"></div>
+          {% if not forloop.last %}<div class="w-px flex-1 bg-gray-200 mt-1"></div>{% endif %}
+        </div>
+        <div class="pb-4">
+          <p class="text-xs text-gray-400 mb-0.5">{{ mov.data }}</p>
+          <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
+        </div>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum andamento registrado." %}
+    {% endfor %}
+  </div>
+
+{% elif aba_ativa == "partes" %}
+
+  <div class="flex flex-col gap-3">
+    {% for parte in partes %}
+      <div class="card px-5 py-4 flex items-center justify-between">
+        <div>
+          <p class="font-medium text-gray-900">{{ parte.nome }}</p>
+          {% if parte.cpf_cnpj %}<p class="text-xs text-gray-400">{{ parte.cpf_cnpj }}</p>{% endif %}
+        </div>
+        <span class="badge-area">{{ parte.tipo|title }}</span>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhuma parte cadastrada." %}
+    {% endfor %}
+  </div>
+
+{% elif aba_ativa == "documentos" %}
+  {% include "components/empty_state.html" with mensagem="Nenhum documento anexado." %}
+
+{% elif aba_ativa == "prazos" %}
+  {% include "components/empty_state.html" with mensagem="Nenhum prazo cadastrado." %}
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,124 @@
+{# ─── Sidebar fixa — navegação principal ──────────────────────────────────── #}
+{# item_ativo deve ser passado pelo context de cada view (ex: "processos") #}
+
+{% load static %}
+
+<nav id="sidebar"
+     class="w-16 bg-gray-950 flex flex-col items-center py-4 gap-1 flex-shrink-0 h-screen overflow-y-auto">
+
+  {# Logo / ícone do sistema #}
+  <a href="{% url 'dashboard:painel' %}" class="mb-4 p-2">
+    <div class="w-8 h-8 rounded-lg bg-juridico-ouro flex items-center justify-center">
+      <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+      </svg>
+    </div>
+  </a>
+
+  {# ── Itens de navegação ──────────────────────────────────────────────── #}
+
+  <a href="{% url 'dashboard:painel' %}"
+     class="{% if item_ativo == 'painel' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10-3a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z"/>
+    </svg>
+    <span>Painel</span>
+  </a>
+
+  <a href="{% url 'processos:lista' %}"
+     class="{% if item_ativo == 'processos' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+    </svg>
+    <span>Processos</span>
+  </a>
+
+  <a href="{% url 'laboratorio:index' %}"
+     class="{% if item_ativo == 'laboratorio' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 3v11.5a3.5 3.5 0 007 0V3M6 21h12M8 3h8"/>
+    </svg>
+    <span class="text-center leading-tight">Labora&shy;tório</span>
+  </a>
+
+  <a href="{% url 'modelos:lista' %}"
+     class="{% if item_ativo == 'modelos' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <span>Modelos</span>
+  </a>
+
+  <a href="{% url 'tarefas:quadro' %}"
+     class="{% if item_ativo == 'tarefas' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+    </svg>
+    <span>Tarefas</span>
+  </a>
+
+  <a href="{% url 'financeiro:index' %}"
+     class="{% if item_ativo == 'financeiro' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span class="text-center leading-tight">Finan&shy;ceiro</span>
+  </a>
+
+  <a href="{% url 'chat:lista' %}"
+     class="{% if item_ativo == 'chat' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+    </svg>
+    <span>Chat</span>
+  </a>
+
+  <a href="{% url 'agenda:index' %}"
+     class="{% if item_ativo == 'agenda' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+    <span>Agenda</span>
+  </a>
+
+  <a href="{% url 'clientes:lista' %}"
+     class="{% if item_ativo == 'clientes' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    <span>Clientes</span>
+  </a>
+
+  <a href="{% url 'configuracoes:index' %}"
+     class="{% if item_ativo == 'configuracoes' %}sidebar-item-active{% else %}sidebar-item{% endif %}">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    <span>Config.</span>
+  </a>
+
+  {# Espaçador antes do Sair #}
+  <div class="flex-1"></div>
+
+  <a href="{% url 'accounts:logout' %}"
+     class="sidebar-item mb-2">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+    </svg>
+    <span>Sair</span>
+  </a>
+
+</nav>

@@ -1,0 +1,70 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Novo compromisso — Agenda{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'agenda:index' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Novo compromisso</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label">Título</label>
+        <input type="text" class="input" placeholder="Ex: Audiência de instrução – Construtora Horizonte">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label">Tipo</label>
+          <select class="select">
+            <option>Audiência</option>
+            <option>Prazo</option>
+            <option>Reunião</option>
+            <option>Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Processo vinculado</label>
+          <select class="select">
+            <option value="">Nenhum</option>
+            <option>Construtora Horizonte vs. Município</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Data e hora de início</label>
+          <input type="datetime-local" class="input">
+        </div>
+        <div>
+          <label class="label">Data e hora de fim</label>
+          <input type="datetime-local" class="input">
+        </div>
+        <div class="col-span-2">
+          <label class="label">Local</label>
+          <input type="text" class="input" placeholder="Ex: Fórum Central, Sala 3">
+        </div>
+        <div>
+          <label class="label">Responsável</label>
+          <select class="select">
+            <option>Dr. João Souza</option>
+            <option>Dra. Maria Lenzi</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label">Descrição</label>
+        <textarea class="input h-20 resize-none" placeholder="Detalhes adicionais..."></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Criar compromisso</button>
+      <a href="{% url 'agenda:index' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

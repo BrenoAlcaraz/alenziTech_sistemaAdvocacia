@@ -1,0 +1,117 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Financeiro — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Financeiro</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
+</div>
+
+{# Abas #}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="{% url 'financeiro:index' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'lancamentos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Lançamentos
+    </a>
+    <a href="{% url 'financeiro:custas' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'custas' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+      </svg>
+      Custas Judiciais
+    </a>
+  </nav>
+</div>
+
+{# Cards de resumo financeiro — dados mockados #}
+<div class="grid grid-cols-2 gap-3 mb-6">
+  <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+      <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.a_receber }}</p>
+      <p class="text-xs text-gray-500">A receber</p>
+    </div>
+  </div>
+  <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+      <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.recebido }}</p>
+      <p class="text-xs text-gray-500">Recebido</p>
+    </div>
+  </div>
+  <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+      <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.despesas }}</p>
+      <p class="text-xs text-gray-500">Despesas</p>
+    </div>
+  </div>
+  <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center">
+      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.saldo }}</p>
+      <p class="text-xs text-gray-500">Saldo</p>
+    </div>
+  </div>
+</div>
+
+{# Filtros visuais + botão novo lançamento #}
+<div class="flex items-center justify-between mb-4">
+  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl">
+    <button class="px-3 py-1.5 text-sm font-medium bg-white rounded-lg shadow-sm text-gray-900">Todos</button>
+    <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Entradas</button>
+    <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Saídas</button>
+  </div>
+  <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary">+ Novo lançamento</a>
+</div>
+
+{# Lista de lançamentos #}
+<div class="flex flex-col gap-2">
+  {% for l in lancamentos %}
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+                  {% if l.tipo == 'receita' %}bg-green-50{% else %}bg-red-50{% endif %}">
+        {% if l.tipo == "receita" %}
+          <svg class="w-4 h-4 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        {% else %}
+          <svg class="w-4 h-4 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+          </svg>
+        {% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-gray-900">{{ l.descricao }}</p>
+        <p class="text-xs text-gray-400">{{ l.categoria }} &bull; {{ l.data }}</p>
+      </div>
+      <p class="font-semibold flex-shrink-0
+                {% if l.tipo == 'receita' %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
+        {% if l.tipo == "despesa" %}&minus; {% endif %}{{ l.valor }}
+      </p>
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum lançamento registrado." %}
+  {% endfor %}
+</div>
+{% endblock %}

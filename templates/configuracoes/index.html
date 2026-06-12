@@ -1,0 +1,111 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Configurações — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-1">Configurações</h1>
+<p class="text-sm text-gray-500 mb-6">Gestão de usuários do escritório e da sua conta</p>
+
+{# Card de conta do usuário logado #}
+<div class="card p-5 mb-4">
+
+  {# Perfil #}
+  <div class="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
+    <div class="w-12 h-12 rounded-full bg-stone-600 flex items-center justify-center text-white font-semibold text-sm">
+      {% if request.user.perfil.iniciais %}
+        {{ request.user.perfil.iniciais }}
+      {% else %}
+        {{ request.user.username|upper|slice:":2" }}
+      {% endif %}
+    </div>
+    <div>
+      <p class="font-semibold text-gray-900">
+        {% if request.user.perfil.nome_completo %}{{ request.user.perfil.nome_completo }}
+        {% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}
+      </p>
+      <p class="text-sm text-gray-400">{{ request.user.username }}</p>
+    </div>
+  </div>
+
+  {# Alterar senha #}
+  <div class="flex items-center justify-between py-3 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center">
+        <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Senha de acesso</p>
+        <p class="text-xs text-gray-400">Exige confirmar a senha atual</p>
+      </div>
+    </div>
+    <button class="btn-secondary text-sm">Alterar senha</button>
+  </div>
+
+  {# Sair #}
+  <div class="flex items-center justify-between py-3">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center">
+        <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Sair do sistema</p>
+        <p class="text-xs text-gray-400">Encerra sua sessão neste dispositivo</p>
+      </div>
+    </div>
+    <a href="{% url 'accounts:logout' %}" class="btn-danger text-sm">Sair</a>
+  </div>
+
+</div>
+
+{# Card de plano e usuários #}
+<div class="card p-5">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <p class="text-xs text-gray-400 mb-0.5">{{ plano_nome }}</p>
+      <p class="font-bold text-gray-900">{{ usuarios_ativos }} de {{ limite_usuarios }} usuários ativos</p>
+    </div>
+    <a href="#" class="btn-primary">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+      </svg>
+      Novo usuário
+    </a>
+  </div>
+
+  {# Barra de progresso de uso #}
+  <div class="w-full bg-gray-100 rounded-full h-2 mb-6">
+    <div class="bg-gray-900 h-2 rounded-full"
+         style="width: {% widthratio usuarios_ativos limite_usuarios 100 %}%"></div>
+  </div>
+
+  {# Lista de usuários #}
+  <div class="flex flex-col divide-y divide-gray-100">
+    {% for u in usuarios %}
+      <div class="flex items-center gap-3 py-3">
+        <div class="w-10 h-10 rounded-full bg-stone-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+          {{ u.iniciais }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900">
+            {{ u.nome }} {% if u.voce %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
+          </p>
+          <p class="text-xs text-gray-400">{{ u.username }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="badge-plano">{{ u.badge }}</span>
+          {% if not u.voce %}
+            <button class="text-gray-300 hover:text-red-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Custas Judiciais — Financeiro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Financeiro</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
+</div>
+
+{# Abas #}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="{% url 'financeiro:index' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Lançamentos
+    </a>
+    <a href="{% url 'financeiro:custas' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-active">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+      </svg>
+      Custas Judiciais
+    </a>
+  </nav>
+</div>
+
+{# Card explicativo #}
+<div class="card px-5 py-4 mb-6 flex items-start gap-3 border-l-4 border-juridico-ouro-claro">
+  <svg class="w-5 h-5 text-juridico-ouro flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  </svg>
+  <p class="text-sm text-gray-700">
+    Quando o escritório <strong>adianta</strong> uma custa, ela vira valor <strong>a cobrar</strong> do cliente.
+    Quando o cliente <strong>deposita</strong> antecipadamente, fica como <strong>crédito</strong>, abatido conforme o escritório paga as custas dele.
+  </p>
+</div>
+
+{# Saldo por cliente — dados mockados #}
+<div class="card p-5 mb-6">
+  <h2 class="font-semibold text-gray-900 mb-4">Saldo por cliente</h2>
+  <div class="flex flex-col divide-y divide-gray-100">
+    {% for s in saldo_clientes %}
+      <div class="flex items-center justify-between py-3">
+        <span class="text-sm font-medium text-gray-800">{{ s.cliente }}</span>
+        <span class="text-sm font-semibold {% if s.credito %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
+          {{ s.saldo }}
+        </span>
+      </div>
+    {% empty %}
+      <p class="text-sm text-gray-400 py-3">Nenhum saldo registrado.</p>
+    {% endfor %}
+  </div>
+</div>
+
+{# Movimentações #}
+<div class="flex items-center justify-between mb-4">
+  <h2 class="font-semibold text-gray-900">Movimentações</h2>
+  <a href="{% url 'financeiro:form_custa' %}" class="btn-primary">+ Nova custa</a>
+</div>
+
+<div class="flex flex-col gap-2">
+  {% for c in custas %}
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-4 h-4 {% if c.negativo %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {% if c.negativo %}
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+          {% else %}
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          {% endif %}
+        </svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-gray-900">{{ c.descricao }}</p>
+        <p class="text-xs text-gray-400">{{ c.detalhe }} &bull; {{ c.data }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <p class="font-semibold {% if c.negativo %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}">
+          {% if c.negativo %}&minus; {% endif %}{{ c.valor }}
+        </p>
+        <button class="text-gray-300 hover:text-red-400">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhuma custa registrada." %}
+  {% endfor %}
+</div>
+{% endblock %}

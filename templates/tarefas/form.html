@@ -1,0 +1,64 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Nova tarefa — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'tarefas:quadro' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Nova tarefa</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label">Título</label>
+        <input type="text" class="input" placeholder="Descreva a tarefa...">
+      </div>
+      <div>
+        <label class="label">Descrição</label>
+        <textarea class="input h-20 resize-none" placeholder="Detalhes adicionais..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label">Responsável</label>
+          <select class="select">
+            <option value="">Selecionar...</option>
+            <option>Dr. João Souza</option>
+            <option>Dra. Maria Lenzi</option>
+            <option>Lucas Martins</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Prazo</label>
+          <input type="date" class="input">
+        </div>
+        <div>
+          <label class="label">Prioridade</label>
+          <select class="select">
+            <option>Baixa</option>
+            <option selected>Média</option>
+            <option>Alta</option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Processo vinculado</label>
+          <select class="select">
+            <option value="">Nenhum</option>
+            <option>Inventário Família Andrade</option>
+            <option>Unimed – Contencioso de Massa</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Criar tarefa</button>
+      <a href="{% url 'tarefas:quadro' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

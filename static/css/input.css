@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-juridico-bg text-gray-900 font-sans;
+  }
+}
+
+@layer components {
+  /* ── Botão primário (preto, como nas imagens) ─────────────── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors cursor-pointer;
+  }
+
+  /* ── Botão secundário (outline) ───────────────────────────── */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors cursor-pointer;
+  }
+
+  /* ── Botão de perigo (outline vermelho) ───────────────────── */
+  .btn-danger {
+    @apply inline-flex items-center gap-2 px-4 py-2 border border-red-300 text-red-700 text-sm font-medium rounded-xl hover:bg-red-50 transition-colors cursor-pointer;
+  }
+
+  /* ── Card padrão ──────────────────────────────────────────── */
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+  }
+
+  /* ── Badge de área do direito ─────────────────────────────── */
+  .badge-area {
+    @apply inline-block px-2 py-0.5 text-xs font-semibold tracking-wide rounded bg-juridico-bege text-gray-700;
+  }
+
+  /* ── Badge de status/plano (dourado) ──────────────────────── */
+  .badge-plano {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border border-juridico-ouro-claro text-juridico-ouro bg-amber-50;
+  }
+
+  /* ── Badge urgente ────────────────────────────────────────── */
+  .badge-urgente {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-juridico-urgente-bg text-juridico-urgente;
+  }
+
+  /* ── Badge normal (prazo ok) ──────────────────────────────── */
+  .badge-prazo {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600;
+  }
+
+  /* ── Input padrão ─────────────────────────────────────────── */
+  .input {
+    @apply w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition;
+  }
+
+  /* ── Select padrão ────────────────────────────────────────── */
+  .select {
+    @apply w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition appearance-none;
+  }
+
+  /* ── Label de formulário ──────────────────────────────────── */
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  /* ── Aba ativa ────────────────────────────────────────────── */
+  .tab-active {
+    @apply border-b-2 border-gray-900 text-gray-900 font-medium;
+  }
+
+  /* ── Aba inativa ──────────────────────────────────────────── */
+  .tab-inactive {
+    @apply border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium;
+  }
+
+  /* ── Sidebar item ─────────────────────────────────────────── */
+  .sidebar-item {
+    @apply flex flex-col items-center gap-1 px-2 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors cursor-pointer text-xs w-full;
+  }
+
+  /* ── Sidebar item ativo ───────────────────────────────────── */
+  .sidebar-item-active {
+    @apply flex flex-col items-center gap-1 px-2 py-3 rounded-lg bg-juridico-bg text-gray-900 text-xs font-medium w-full;
+  }
+
+  /* ── Barra de busca visual ────────────────────────────────── */
+  .search-bar {
+    @apply flex items-center gap-2 w-full px-3 py-2 bg-juridico-bege border border-transparent rounded-xl text-sm text-gray-400 cursor-text;
+  }
+}

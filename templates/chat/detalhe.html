@@ -1,0 +1,52 @@
+{% extends "base/base_auth.html" %}
+{% block title %}{{ conversa.nome }} — Chat{% endblock %}
+
+{% block content %}
+<div class="flex flex-col h-full max-h-[calc(100vh-8rem)]">
+
+  {# Cabeçalho da conversa #}
+  <div class="flex items-center gap-3 mb-5">
+    <a href="{% url 'chat:lista' %}" class="text-gray-400 hover:text-gray-700">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div class="w-9 h-9 rounded-full {{ conversa.cor_avatar }} flex items-center justify-center text-white text-sm font-semibold">
+      {{ conversa.iniciais }}
+    </div>
+    <h1 class="font-bold text-gray-900">{{ conversa.nome }}</h1>
+  </div>
+
+  {# Área de mensagens #}
+  <div class="flex-1 overflow-y-auto flex flex-col gap-4 mb-4">
+    {% for m in mensagens %}
+      <div class="flex {% if m.minha %}justify-end{% endif %} gap-2">
+        {% if not m.minha %}
+          <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            {{ m.iniciais }}
+          </div>
+        {% endif %}
+        <div class="max-w-xs">
+          <div class="px-4 py-2.5 rounded-2xl text-sm
+                      {% if m.minha %}bg-gray-900 text-white rounded-tr-sm{% else %}bg-white border border-gray-100 text-gray-900 rounded-tl-sm{% endif %}">
+            {{ m.conteudo }}
+          </div>
+          <p class="text-xs text-gray-400 mt-1 {% if m.minha %}text-right{% endif %}">{{ m.horario }}</p>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Campo de mensagem — visual apenas, sem envio real nesta fase #}
+  <div class="flex gap-3">
+    <input type="text" class="input flex-1" placeholder="Digite uma mensagem...">
+    <button class="btn-primary px-4">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+{# Futuramente: implementar WebSocket via Django Channels para mensagens em tempo real #}
+{% endblock %}

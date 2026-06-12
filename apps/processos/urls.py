@@ -1,0 +1,11 @@
+from django.urls import path
+from . import views
+
+app_name = "processos"
+
+urlpatterns = [
+    path("processos/", views.lista, name="lista"),
+    path("processos/novo/", views.novo, name="novo"),
+    path("processos/<int:pk>/", views.detalhe, name="detalhe"),
+    path("processos/<int:pk>/editar/", views.editar, name="editar"),
+]

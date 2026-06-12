@@ -1,0 +1,37 @@
+{% extends "base/base.html" %}
+
+{% block body %}
+<div class="flex h-screen overflow-hidden bg-juridico-bg">
+
+  {# ── Sidebar fixa à esquerda ───────────────────────────────────────────── #}
+  {% include "components/sidebar.html" %}
+
+  {# ── Área principal ────────────────────────────────────────────────────── #}
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    {# ── Header superior ───────────────────────────────────────────────── #}
+    {% include "components/header.html" %}
+
+    {# ── Conteúdo da página ────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto">
+      <div class="px-8 py-6 max-w-5xl">
+        {# Mensagens Django (alerts) #}
+        {% if messages %}
+          {% for message in messages %}
+            <div data-alert class="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl text-sm
+              {% if message.tags == 'error' %}bg-juridico-vermelho-bg text-juridico-vermelho
+              {% elif message.tags == 'success' %}bg-juridico-verde-bg text-juridico-verde
+              {% else %}bg-amber-50 text-amber-800{% endif %}">
+              <span>{{ message }}</span>
+              <button data-dismiss-alert class="text-current opacity-60 hover:opacity-100">&times;</button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+  </div>
+</div>
+{% endblock %}

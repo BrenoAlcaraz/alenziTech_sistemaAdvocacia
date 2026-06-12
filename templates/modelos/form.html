@@ -1,0 +1,54 @@
+{% extends "base/base_auth.html" %}
+{% block title %}{% if modo == "novo" %}Novo modelo{% else %}Editar modelo{% endif %} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'modelos:lista' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">
+    {% if modo == "novo" %}Novo modelo de peça{% else %}Editar modelo{% endif %}
+  </h1>
+</div>
+
+<div class="card p-6 max-w-3xl">
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label">Título do modelo</label>
+        <input type="text" class="input" placeholder="Ex: Petição inicial – Ação de cobrança"
+               value="{{ modelo.titulo|default:'' }}">
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label">Categoria</label>
+          <input type="text" class="input" placeholder="Ex: Petição inicial, Contestação"
+                 value="{{ modelo.categoria|default:'' }}">
+        </div>
+        <div>
+          <label class="label">Área do direito</label>
+          <select class="select">
+            <option>Cível</option>
+            <option>Consumidor</option>
+            <option>Trabalhista</option>
+            <option>Tributário</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label">Conteúdo do modelo</label>
+        <textarea class="input h-64 resize-y font-mono text-xs" placeholder="EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO...">{{ modelo.conteudo|default:'' }}</textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">
+        {% if modo == "novo" %}Criar modelo{% else %}Salvar alterações{% endif %}
+      </button>
+      <a href="{% url 'modelos:lista' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
