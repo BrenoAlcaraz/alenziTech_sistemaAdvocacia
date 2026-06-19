@@ -1,123 +1,109 @@
 # Próximos Passos
 
-## Fluxo de bootstrap — ordem obrigatória
+## Status da Fase 1 — Concluída
 
-O bootstrap inicial segue esta sequência e não deve ser alterada sem entendimento prévio.
-Cada etapa depende da anterior. Não executar `migrate_schemas` completo (sem `--shared`)
-fora deste fluxo sem aprovação explícita.
+✅ Bloco 1 — Verificar PostgreSQL  
+✅ Bloco 2 — Criar banco juridico_db  
+✅ Bloco 3 — Criar .env  
+✅ Bloco 4 — makemigrations  
+✅ Bloco 5 — migrate_schemas --shared  
+✅ Bloco 6 — Criar tenants public e demo  
+✅ Bloco 7 — Criar superusuário no schema demo  
+✅ Bloco 8 — Hosts Windows  
+✅ Bloco 9 — Compilar Tailwind  
+✅ Bloco 10 — Rodar servidor  
+✅ Bloco 11 — Validar no navegador  
 
-```
-1. migrate_schemas --shared       ← cria tabelas no schema público
-2. Criar tenant public via shell  ← registra o schema público no django-tenants
-3. Criar tenant demo via shell    ← cria schema demo + roda migrations de tenant automaticamente
-4. Criar superusuário no demo     ← cria o primeiro usuário de acesso
-5. Configurar hosts do Windows    ← permite resolver demo.localhost
-6. Compilar Tailwind              ← gera output.css
-7. Rodar servidor                 ← python manage.py runserver
-8. Validar no navegador           ← http://demo.localhost:8000/login/
-```
+**Fase 1 — Estrutura Visual** finalizada com sucesso.
 
 ---
 
-## Bloco 5 — migrate_schemas --shared
+## Fase 2 — CRUD Real e Funcionalidades
+
+### Checkpoint Git recomendado
+
+Antes de começar a Fase 2, criar um checkpoint da Fase 1:
 
 ```bash
-python manage.py migrate_schemas --shared
-```
+git add .
+git commit -m "Fase 1: estrutura visual multi-tenant funcional
 
-Cria todas as tabelas no schema `public`:
-`django_tenants_*`, `saas_tenants_*`, `saas_billing_*`, `auth_*`, `django_session`, etc.
-
-**Pré-condição:** `.env` configurado e banco `juridico_db` acessível. ✅
-
-> Não rodar `migrate_schemas` sem `--shared` neste momento.
-> O comando sem flag migraria todos os tenants existentes — nenhum existe ainda,
-> tornando-o desnecessário e potencialmente confuso nesta etapa.
-
----
-
-## Bloco 6 — Criar tenants via shell
-
-```bash
-python manage.py shell
-```
-
-```python
-from apps.saas_tenants.models import Escritorio, Dominio
-
-# Tenant público — obrigatório para django-tenants funcionar
-public = Escritorio(schema_name='public', slug='public', nome='Público')
-public.save(verbosity=0)
-Dominio.objects.create(domain='localhost', tenant=public, is_primary=True)
-
-# Tenant demo — auto_create_schema=True cria o schema 'demo' e
-# roda automaticamente as migrations de todos os TENANT_APPS
-demo = Escritorio(schema_name='demo', slug='demo', nome='Escritório Demo')
-demo.save(verbosity=0)
-Dominio.objects.create(domain='demo.localhost', tenant=demo, is_primary=True)
-
-print(list(Escritorio.objects.values_list('schema_name', flat=True)))
+- PostgreSQL 16 e django-tenants configurados
+- Schemas public e demo criados e funcionando
+- Todos os 11 apps estruturados com models de negócio
+- Templates responsivos com Tailwind validados
+- Multi-tenancy isolada por schema
+- Dados mockados em todas as views
+- Ready para implementar CRUD real em Fase 2"
 ```
 
 ---
 
-## Bloco 7 — Criar superusuário no tenant demo
+## Fase 2.1 — Começando por Clientes (CRUD Real)
 
-```bash
-python manage.py tenant_command createsuperuser --schema=demo
-```
+### Objetivo
 
-Você digita username, email e senha diretamente no terminal.
-Nenhuma credencial passa pelo chat.
+Implementar a primeira funcionalidade real: gestão de clientes com CRUD completo.
+Manter layout e estrutura visual atual. Substituir mocks gradualmente.
+
+### Escopo do módulo `clientes`
+
+**Criar:**
+1. Form de novo cliente (reutilizar template `clientes/form.html`)
+2. View `criar` com POST
+3. Migration para adicionar campos faltantes (se necessário)
+
+**Listar:**
+1. View `lista()` com query real de `Cliente.objects.all()`
+2. Exibir na tabela de `templates/clientes/lista.html`
+3. Manter mock apenas como fallback se não houver clientes
+
+**Detalhar:**
+1. View `detalhe()` com `get_object_or_404(Cliente, pk=pk)`
+2. Exibir dados reais em `templates/clientes/detalhe.html`
+3. Abas de processos relacionados (mock ou real)
+
+**Editar:**
+1. View `editar()` com `POST` para atualizar cliente
+2. Form pré-preenchido com dados do cliente
+3. Reutilizar `templates/clientes/form.html`
+
+**Excluir/Inativar:**
+1. Adicionar campo `ativo` (BooleanField) ao model `Cliente` se não existir
+2. View `deletar()` que marca como inativo (soft delete) ou remove fisicamente
+3. Button na tela de detalhe
+
+### Sequência de implementação recomendada
+
+1. **Revisar o model `Cliente`** — campos já definidos, identificar se faltam campos
+2. **Adicionar campos faltantes se necessário** — criar migration
+3. **Implementar a view `lista()`** — query real + fallback mock
+4. **Implementar a view `detalhe()`** — get_object_or_404 + contexto
+5. **Implementar a view `criar()`** — POST handler + redirect
+6. **Implementar a view `editar()`** — GET para form, POST para update
+7. **Implementar a view `deletar()`** — soft delete ou remove
+8. **Atualizar `apps/clientes/urls.py`** — incluir novas rotas se necessário
+9. **Testar via navegador** — CRUD completo no browser
+10. **Refatorar os templates** — remover mocks, usar dados reais
+
+### Não fazer nesta etapa
+
+- Permissões granulares (apenas @login_required)
+- Busca/filtros complexos
+- Paginação (se houver muitos clientes, adicionar depois)
+- Testes automatizados (podem vir em fase posterior)
+- Validação complexa de CPF/CNPJ (formato básico OK)
 
 ---
 
-## Bloco 8 — Hosts do Windows
+## Após Clientes estar funcional
 
-Abra o Notepad como Administrador e edite:
+Replicar o padrão para os demais módulos:
+- Processos
+- Tarefas
+- Financeiro
+- Agenda
+- Chat
+- Modelos
 
-```
-C:\Windows\System32\drivers\etc\hosts
-```
-
-Adicione a linha:
-
-```
-127.0.0.1  demo.localhost
-```
-
-Sem isso, o navegador não resolverá `demo.localhost` e retornará ERR_NAME_NOT_RESOLVED.
-
----
-
-## Bloco 9 — Compilar Tailwind
-
-```bash
-npm run build
-```
-
-Gera `static/css/output.css` a partir de `static/css/input.css`.
-Recompilar sempre que houver alteração nos templates.
-
----
-
-## Bloco 10 — Rodar o servidor
-
-```bash
-python manage.py runserver
-```
-
----
-
-## Bloco 11 — Validar no navegador
-
-URL de acesso: `http://demo.localhost:8000/login/`
-
-- [ ] Página de login carrega com visual correto
-- [ ] Login com superusuário funciona
-- [ ] Sidebar exibe todos os itens
-- [ ] Navegação entre módulos funciona
-- [ ] `item_ativo` destaca o item correto na sidebar
-- [ ] Header exibe iniciais ou nome do usuário
-- [ ] Dados mockados aparecem nas listagens
-- [ ] Tailwind aplicado corretamente (cores, tipografia, cards)
+Cada um seguirá o mesmo padrão: listar → detalhar → criar → editar → deletar/inativar.
