@@ -1,6 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from .models import Cliente
+from .forms import ClienteForm
 # Dados temporários apenas para layout — substituir futuramente por queries reais
 CLIENTES_MOCK = [
     {"id": 1, "tipo": "PF", "nome_razao_social": "Roberto Andrade", "cpf_cnpj": "123.456.789-00", "email": "roberto.andrade@email.com", "telefone": "(21) 99988-7766", "num_processos": 1},
@@ -34,7 +35,14 @@ def detalhe(request, pk):
 
 @login_required
 def novo(request):
-    return render(request, "clientes/form.html", {"modo": "novo", "item_ativo": "clientes"})
+    if request.method == "POST":
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("clientes:lista")
+    else:
+        form = ClienteForm()
+    return render(request, "clientes/form.html", {"modo": "novo", "form": form, "item_ativo": "clientes"})
 
 
 @login_required
