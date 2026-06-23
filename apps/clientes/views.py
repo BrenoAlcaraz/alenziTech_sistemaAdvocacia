@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-
+from .models import Cliente
 # Dados temporários apenas para layout — substituir futuramente por queries reais
 CLIENTES_MOCK = [
     {"id": 1, "tipo": "PF", "nome_razao_social": "Roberto Andrade", "cpf_cnpj": "123.456.789-00", "email": "roberto.andrade@email.com", "telefone": "(21) 99988-7766", "num_processos": 1},
@@ -17,8 +17,8 @@ PROCESSOS_MOCK_CLIENTE = [
 
 @login_required
 def lista(request):
-    # Futuramente: Cliente.objects.all()
-    return render(request, "clientes/lista.html", {"clientes": CLIENTES_MOCK, "item_ativo": "clientes"})
+    clientes = Cliente.objects.all()
+    return render(request, "clientes/lista.html", {"clientes": clientes, "item_ativo": "clientes"})
 
 
 @login_required
