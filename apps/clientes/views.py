@@ -48,5 +48,16 @@ def novo(request):
 
 @login_required
 def editar(request, pk):
-    cliente = next((c for c in CLIENTES_MOCK if c["id"] == pk), CLIENTES_MOCK[0])
-    return render(request, "clientes/form.html", {"modo": "editar", "cliente": cliente, "item_ativo": "clientes"})
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == "POST":
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            return redirect("clientes:detalhe", pk=pk)
+    else:
+        form = ClienteForm(instance=cliente)
+    return render(request, "clientes/form.html", {
+        "modo": "editar",
+        "form": form,
+        "item_ativo": "clientes",
+    })
