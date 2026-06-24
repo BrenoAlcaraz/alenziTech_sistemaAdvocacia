@@ -24,12 +24,13 @@ def lista(request):
 
 @login_required
 def detalhe(request, pk):
-    # Futuramente: get_object_or_404(Cliente, pk=pk)
-    cliente = next((c for c in CLIENTES_MOCK if c["id"] == pk), CLIENTES_MOCK[0])
+    cliente = get_object_or_404(Cliente, pk=pk)
+    processos = cliente.processos.all()
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
-        "processos": PROCESSOS_MOCK_CLIENTE,
-        "aba_ativa": request.GET.get("aba", "processos"), "item_ativo": "clientes",
+        "processos": processos,
+        "aba_ativa": request.GET.get("aba", "processos"),
+        "item_ativo": "clientes",
     })
 
 
