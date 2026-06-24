@@ -27,7 +27,7 @@
         </svg>
       {% endif %}
     </div>
-    <div>
+    <div class="flex-1">
       <h1 class="text-xl font-bold text-gray-900">{{ cliente.nome_razao_social }}</h1>
       <p class="text-sm text-gray-500 mt-0.5">
         {% if cliente.tipo == "PF" %}Pessoa Física &bull; CPF {% else %}Pessoa Jurídica &bull; CNPJ {% endif %}
@@ -52,6 +52,7 @@
         {% endif %}
       </div>
     </div>
+    <a href="{% url 'clientes:editar' cliente.id %}" class="btn-secondary self-start">Editar</a>
   </div>
 </div>
 
