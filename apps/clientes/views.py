@@ -18,13 +18,13 @@ PROCESSOS_MOCK_CLIENTE = [
 
 @login_required
 def lista(request):
-    clientes = Cliente.objects.all()
+    clientes = Cliente.objects.filter(ativo=True)
     return render(request, "clientes/lista.html", {"clientes": clientes, "item_ativo": "clientes"})
 
 
 @login_required
 def detalhe(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+    cliente = get_object_or_404(Cliente, pk=pk, ativo=True)
     processos = cliente.processos.all()
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
@@ -48,7 +48,7 @@ def novo(request):
 
 @login_required
 def editar(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+    cliente = get_object_or_404(Cliente, pk=pk, ativo=True)
     if request.method == "POST":
         form = ClienteForm(request.POST, instance=cliente)
         if form.is_valid():
@@ -61,3 +61,13 @@ def editar(request, pk):
         "form": form,
         "item_ativo": "clientes",
     })
+
+
+@login_required
+def desativar(request, pk):
+    if request.method == "POST":
+        cliente = get_object_or_404(Cliente, pk=pk, ativo=True)
+        cliente.ativo = False
+        cliente.save()
+        return redirect("clientes:lista")
+    return redirect("clientes:detalhe", pk=pk)

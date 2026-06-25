@@ -14,6 +14,7 @@ class Cliente(models.Model):
     telefone = models.CharField(max_length=20, blank=True)
     endereco = models.TextField(blank=True)
     observacoes = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

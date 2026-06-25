@@ -52,7 +52,17 @@
         {% endif %}
       </div>
     </div>
-    <a href="{% url 'clientes:editar' cliente.id %}" class="btn-secondary self-start">Editar</a>
+    <div class="flex items-center gap-2 self-start">
+      <a href="{% url 'clientes:editar' cliente.id %}" class="btn-secondary">Editar</a>
+      <form method="post" action="{% url 'clientes:desativar' cliente.id %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
+                onclick="return confirm('Desativar este cliente? Ele deixará de aparecer na lista.')">
+          Desativar
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 
