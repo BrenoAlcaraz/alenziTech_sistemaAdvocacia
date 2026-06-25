@@ -18,92 +18,78 @@
 
 ---
 
-## Fase 2 — CRUD Real e Funcionalidades
+## Fase 2.1 — Clientes (CRUD Real) — Concluída ✅
 
-### Checkpoint Git recomendado
+Todas as funcionalidades implementadas, testadas e commitadas:
 
-Antes de começar a Fase 2, criar um checkpoint da Fase 1:
+✅ Listagem real (`Cliente.objects.filter(ativo=True)`)  
+✅ Criação real (`ClienteForm` + POST)  
+✅ Detalhe real (`get_object_or_404` com `ativo=True`)  
+✅ Edição real (`ClienteForm(instance=cliente)`)  
+✅ Soft delete / desativação (`ativo=False`)  
+✅ Tela de clientes inativos  
+✅ Reativação (`ativo=True`)  
+✅ Mocks removidos de `views.py`  
 
-```bash
-git add .
-git commit -m "Fase 1: estrutura visual multi-tenant funcional
+### Pendências futuras de Clientes (não bloqueantes)
 
-- PostgreSQL 16 e django-tenants configurados
-- Schemas public e demo criados e funcionando
-- Todos os 11 apps estruturados com models de negócio
-- Templates responsivos com Tailwind validados
-- Multi-tenancy isolada por schema
-- Dados mockados em todas as views
-- Ready para implementar CRUD real em Fase 2"
-```
+Estas funcionalidades serão implementadas em etapa posterior, após os demais módulos terem CRUD real:
+
+- Busca/filtros reais (a barra de busca visual já existe no template)
+- Paginação (quando o volume de clientes justificar)
+- Validação avançada de CPF/CNPJ (formato e dígito verificador)
+- Permissões por grupo/cargo (usuários comuns vs. gerente/dono)
+- Hard delete restrito a gerente/dono (com aviso de perda de histórico)
+- Auditoria/logs de ações sobre clientes
+- Contagem real de processos por cliente no card da lista
 
 ---
 
-## Fase 2.1 — Começando por Clientes (CRUD Real)
+## Fase 2.2 — Processos (próximo módulo)
 
 ### Objetivo
 
-Implementar a primeira funcionalidade real: gestão de clientes com CRUD completo.
-Manter layout e estrutura visual atual. Substituir mocks gradualmente.
+Implementar CRUD real do módulo Processos, seguindo o mesmo padrão estabelecido em Clientes.
 
-### Escopo do módulo `clientes`
+### O que o model `Processo` já tem
 
-**Criar:**
-1. Form de novo cliente (reutilizar template `clientes/form.html`)
-2. View `criar` com POST
-3. Migration para adicionar campos faltantes (se necessário)
+- `titulo`, `numero`, `area_direito`, `instancia`, `vara_juizo`
+- `valor_causa`, `status`, `prazo_proximo`
+- `cliente` (ForeignKey → Cliente)
+- `responsavel` (ForeignKey → User)
+- `criado_em`
+- Relacionamentos: `MovimentacaoProcessual`, `ParteProcesso`
 
-**Listar:**
-1. View `lista()` com query real de `Cliente.objects.all()`
-2. Exibir na tabela de `templates/clientes/lista.html`
-3. Manter mock apenas como fallback se não houver clientes
+### Escopo da Fase 2.2
 
-**Detalhar:**
-1. View `detalhe()` com `get_object_or_404(Cliente, pk=pk)`
-2. Exibir dados reais em `templates/clientes/detalhe.html`
-3. Abas de processos relacionados (mock ou real)
+**Funcionalidades a implementar (na sequência):**
 
-**Editar:**
-1. View `editar()` com `POST` para atualizar cliente
-2. Form pré-preenchido com dados do cliente
-3. Reutilizar `templates/clientes/form.html`
+1. **Listagem real** — `Processo.objects.filter(ativo=True)` ou todos (sem soft delete ainda)
+2. **Criação real** — `ProcessoForm` + POST handler
+3. **Detalhe real** — dados do processo + movimentações + partes
+4. **Edição real** — `ProcessoForm(instance=processo)`
+5. **Soft delete / desativação** — campo `ativo` se não existir (verificar model)
+6. **Vínculo com Cliente** — na tela de detalhe do cliente, processos reais aparecem
 
-**Excluir/Inativar:**
-1. Adicionar campo `ativo` (BooleanField) ao model `Cliente` se não existir
-2. View `deletar()` que marca como inativo (soft delete) ou remove fisicamente
-3. Button na tela de detalhe
+### Não fazer na Fase 2.2
 
-### Sequência de implementação recomendada
-
-1. **Revisar o model `Cliente`** — campos já definidos, identificar se faltam campos
-2. **Adicionar campos faltantes se necessário** — criar migration
-3. **Implementar a view `lista()`** — query real + fallback mock
-4. **Implementar a view `detalhe()`** — get_object_or_404 + contexto
-5. **Implementar a view `criar()`** — POST handler + redirect
-6. **Implementar a view `editar()`** — GET para form, POST para update
-7. **Implementar a view `deletar()`** — soft delete ou remove
-8. **Atualizar `apps/clientes/urls.py`** — incluir novas rotas se necessário
-9. **Testar via navegador** — CRUD completo no browser
-10. **Refatorar os templates** — remover mocks, usar dados reais
-
-### Não fazer nesta etapa
-
-- Permissões granulares (apenas @login_required)
-- Busca/filtros complexos
-- Paginação (se houver muitos clientes, adicionar depois)
-- Testes automatizados (podem vir em fase posterior)
-- Validação complexa de CPF/CNPJ (formato básico OK)
+- Busca/filtros reais
+- Permissões granulares
+- Integração com APIs de tribunais
+- Upload de documentos processuais
+- Automações jurídicas
 
 ---
 
-## Após Clientes estar funcional
+## Após Processos estar funcional
 
-Replicar o padrão para os demais módulos:
-- Processos
-- Tarefas
-- Financeiro
-- Agenda
-- Chat
-- Modelos
+Replicar o padrão para os demais módulos na ordem de prioridade de negócio:
 
-Cada um seguirá o mesmo padrão: listar → detalhar → criar → editar → deletar/inativar.
+1. **Tarefas** — vinculadas a processos e clientes
+2. **Agenda** — compromissos e prazos
+3. **Financeiro** — lançamentos e custas por processo
+4. **Modelos** — templates de peças jurídicas
+5. **Chat** — conversas internas por processo ou geral
+6. **Configurações** — usuários do escritório por tenant
+
+Cada módulo seguirá o mesmo padrão: listar → detalhar → criar → editar → desativar/reativar.
