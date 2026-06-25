@@ -5,7 +5,11 @@
 <div class="flex items-center justify-between mb-6">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Clientes</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Todos os clientes do escritório</p>
+    <p class="text-sm text-gray-500 mt-0.5">
+      Todos os clientes do escritório
+      &nbsp;·&nbsp;
+      <a href="{% url 'clientes:inativos' %}" class="text-gray-400 hover:text-gray-600 underline">Ver inativos</a>
+    </p>
   </div>
   <a href="{% url 'clientes:novo' %}" class="btn-primary">+ Novo cliente</a>
 </div>

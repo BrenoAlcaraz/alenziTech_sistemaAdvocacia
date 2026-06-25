@@ -71,3 +71,19 @@ def desativar(request, pk):
         cliente.save()
         return redirect("clientes:lista")
     return redirect("clientes:detalhe", pk=pk)
+
+
+@login_required
+def inativos(request):
+    clientes = Cliente.objects.filter(ativo=False)
+    return render(request, "clientes/inativos.html", {"clientes": clientes, "item_ativo": "clientes"})
+
+
+@login_required
+def reativar(request, pk):
+    if request.method == "POST":
+        cliente = get_object_or_404(Cliente, pk=pk, ativo=False)
+        cliente.ativo = True
+        cliente.save()
+        return redirect("clientes:inativos")
+    return redirect("clientes:inativos")
