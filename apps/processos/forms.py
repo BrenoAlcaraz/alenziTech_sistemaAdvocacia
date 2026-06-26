@@ -1,5 +1,5 @@
 from django import forms
-from .models import Processo
+from .models import Processo, ParteProcesso
 from apps.clientes.models import Cliente
 
 
@@ -61,4 +61,21 @@ class ProcessoForm(forms.ModelForm):
                 "class": "input",
                 "type": "date",
             }, format="%Y-%m-%d"),
+        }
+
+
+class ParteProcessoForm(forms.ModelForm):
+    class Meta:
+        model = ParteProcesso
+        fields = ["nome", "tipo", "cpf_cnpj"]
+        widgets = {
+            "nome": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Nome completo ou razão social",
+            }),
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "cpf_cnpj": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "CPF ou CNPJ (opcional)",
+            }),
         }

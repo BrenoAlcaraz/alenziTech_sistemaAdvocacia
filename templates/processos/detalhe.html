@@ -91,6 +91,16 @@
 
 {% elif aba_ativa == "partes" %}
 
+  <form method="post" action="{% url 'processos:adicionar_parte' processo.pk %}" class="card px-5 py-4 mb-4">
+    {% csrf_token %}
+    <div class="grid grid-cols-3 gap-3 mb-3">
+      <div>{{ form_parte.tipo }}</div>
+      <div>{{ form_parte.nome }}</div>
+      <div>{{ form_parte.cpf_cnpj }}</div>
+    </div>
+    <button type="submit" class="btn-primary text-sm">+ Adicionar parte</button>
+  </form>
+
   <div class="flex flex-col gap-3">
     {% for parte in partes %}
       <div class="card px-5 py-4 flex items-center justify-between">
