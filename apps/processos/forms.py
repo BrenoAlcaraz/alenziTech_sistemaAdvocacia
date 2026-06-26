@@ -55,10 +55,10 @@ class ProcessoForm(forms.ModelForm):
             "data_distribuicao": forms.DateInput(attrs={
                 "class": "input",
                 "type": "date",
-            }),
+            }, format="%Y-%m-%d"),
             "gratuidade_justica_status": forms.Select(attrs={"class": "select"}),
             "prazo_proximo": forms.DateInput(attrs={
                 "class": "input",
                 "type": "date",
-            }),
+            }, format="%Y-%m-%d"),
         }

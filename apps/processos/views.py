@@ -119,5 +119,16 @@ def novo(request):
 
 @login_required
 def editar(request, pk):
-    processo = next((p for p in PROCESSOS_MOCK if p["id"] == pk), PROCESSOS_MOCK[0])
-    return render(request, "processos/form.html", {"modo": "editar", "processo": processo, "item_ativo": "processos"})
+    processo = get_object_or_404(Processo, pk=pk)
+    if request.method == "POST":
+        form = ProcessoForm(request.POST, instance=processo)
+        if form.is_valid():
+            form.save()
+            return redirect("processos:detalhe", pk=processo.pk)
+    else:
+        form = ProcessoForm(instance=processo)
+    return render(request, "processos/form.html", {
+        "modo": "editar",
+        "form": form,
+        "item_ativo": "processos",
+    })
