@@ -61,6 +61,25 @@ class Processo(models.Model):
         verbose_name_plural = "Processos"
         ordering = ["-criado_em"]
 
+    @property
+    def prazo_urgente(self):
+        if not self.prazo_proximo:
+            return False
+        return (self.prazo_proximo - timezone.localdate()).days <= 3
+
+    @property
+    def prazo_label(self):
+        if not self.prazo_proximo:
+            return "sem prazo"
+        dias = (self.prazo_proximo - timezone.localdate()).days
+        if dias < 0:
+            return "prazo vencido"
+        if dias == 0:
+            return "hoje"
+        if dias == 1:
+            return "amanhã"
+        return f"em {dias} dias"
+
     def __str__(self):
         return self.titulo
 

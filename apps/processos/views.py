@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from .models import Processo
 
 # Dados temporários apenas para layout — substituir futuramente por queries reais
 PROCESSOS_MOCK = [
@@ -71,8 +73,12 @@ PARTES_MOCK = [
 
 @login_required
 def lista(request):
-    # Futuramente: Processo.objects.select_related("cliente", "responsavel").all()
-    return render(request, "processos/lista.html", {"processos": PROCESSOS_MOCK, "item_ativo": "processos"})
+    processos = Processo.objects.select_related("cliente", "responsavel").all()
+    return render(request, "processos/lista.html", {
+        "processos": processos,
+        "item_ativo": "processos",
+        "novo_url": reverse("processos:novo"),
+    })
 
 
 @login_required
