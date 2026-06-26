@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from .models import Processo
@@ -83,12 +83,15 @@ def lista(request):
 
 @login_required
 def detalhe(request, pk):
-    # Futuramente: get_object_or_404(Processo, pk=pk)
-    processo = next((p for p in PROCESSOS_MOCK if p["id"] == pk), PROCESSOS_MOCK[0])
+    processo = get_object_or_404(
+        Processo.objects.select_related("cliente", "responsavel")
+                        .prefetch_related("partes", "movimentacoes"),
+        pk=pk
+    )
     return render(request, "processos/detalhe.html", {
         "processo": processo,
-        "movimentacoes": MOVIMENTACOES_MOCK,
-        "partes": PARTES_MOCK,
+        "movimentacoes": processo.movimentacoes.order_by("-data"),
+        "partes": processo.partes.all(),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
     })
