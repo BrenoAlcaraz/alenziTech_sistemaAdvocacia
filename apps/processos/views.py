@@ -1,7 +1,8 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from .models import Processo
+from .forms import ProcessoForm
 
 # Dados temporários apenas para layout — substituir futuramente por queries reais
 PROCESSOS_MOCK = [
@@ -99,7 +100,21 @@ def detalhe(request, pk):
 
 @login_required
 def novo(request):
-    return render(request, "processos/form.html", {"modo": "novo", "item_ativo": "processos"})
+    if request.method == "POST":
+        form = ProcessoForm(request.POST)
+        if form.is_valid():
+            processo = form.save(commit=False)
+            processo.responsavel = request.user
+            processo.status = "ativo"
+            processo.save()
+            return redirect("processos:detalhe", pk=processo.pk)
+    else:
+        form = ProcessoForm()
+    return render(request, "processos/form.html", {
+        "modo": "novo",
+        "form": form,
+        "item_ativo": "processos",
+    })
 
 
 @login_required

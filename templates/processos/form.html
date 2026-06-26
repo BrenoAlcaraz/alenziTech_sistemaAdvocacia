@@ -20,64 +20,65 @@
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="col-span-2">
         <label class="label">Título do processo</label>
-        <input type="text" class="input" placeholder="Ex: Construtora Horizonte vs. Município"
-               value="{{ processo.titulo|default:'' }}">
+        {{ form.titulo }}
       </div>
 
       <div>
         <label class="label">Número do processo</label>
-        <input type="text" class="input" placeholder="0000000-00.0000.0.00.0000"
-               value="{{ processo.numero|default:'' }}">
+        {{ form.numero }}
       </div>
 
       <div>
         <label class="label">Área do direito</label>
-        <select class="select">
-          <option>Cível</option>
-          <option>Consumidor</option>
-          <option>Trabalhista</option>
-          <option>Sucessões</option>
-          <option>Criminal</option>
-          <option>Tributário</option>
-        </select>
+        {{ form.area_direito }}
+      </div>
+
+      <div>
+        <label class="label">Fase processual</label>
+        {{ form.fase }}
+      </div>
+
+      <div>
+        <label class="label">Gratuidade de justiça</label>
+        {{ form.gratuidade_justica_status }}
       </div>
 
       <div>
         <label class="label">Instância</label>
-        <select class="select">
-          <option>1ª Instância</option>
-          <option>2ª Instância</option>
-          <option>STJ</option>
-          <option>STF</option>
-        </select>
+        {{ form.instancia }}
       </div>
 
       <div>
         <label class="label">Vara / Juízo</label>
-        <input type="text" class="input" placeholder="Ex: 11ª Vara Cível"
-               value="{{ processo.vara_juizo|default:'' }}">
+        {{ form.vara_juizo }}
       </div>
 
       <div>
         <label class="label">Valor da causa</label>
-        <input type="text" class="input" placeholder="R$ 0,00">
+        {{ form.valor_causa }}
       </div>
 
       <div>
         <label class="label">Cliente</label>
-        <select class="select">
-          <option value="">Selecionar cliente...</option>
-          {# Futuramente: populado com queryset de clientes reais #}
-          <option>Construtora Horizonte Ltda.</option>
-          <option>Roberto Andrade</option>
-        </select>
+        {{ form.cliente }}
+      </div>
+
+      <div>
+        <label class="label">Data de distribuição</label>
+        {{ form.data_distribuicao }}
       </div>
 
       <div>
         <label class="label">Próximo prazo</label>
-        <input type="date" class="input">
+        {{ form.prazo_proximo }}
       </div>
     </div>
+
+    {% if form.errors %}
+    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+      Verifique os campos obrigatórios antes de salvar.
+    </div>
+    {% endif %}
 
     <div class="flex gap-3 pt-4 border-t border-gray-100">
       <button type="submit" class="btn-primary">
