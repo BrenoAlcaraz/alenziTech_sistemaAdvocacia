@@ -31,6 +31,7 @@ Permitir que advogados e equipe do escritório criem, organizem e acompanhem tar
 | Ação rápida: Reabrir | `concluida` → `a_fazer` via POST |
 | Redirecionamento seguro | `next` validado com `url_has_allowed_host_and_scheme`; preserva `?ordem=` |
 | Botão de edição | Ícone de lápis no card do quadro e na linha da lista |
+| Exclusão real | `tarefa.delete()` via POST; GET não remove; lixeira no quadro e na lista; confirm nativo do browser |
 | Remoção de mocks | Todos os dados temporários removidos de `views.py` |
 
 ---
@@ -43,6 +44,7 @@ Permitir que advogados e equipe do escritório criem, organizem e acompanhem tar
 - **`ORDENS_VALIDAS` + `_normalizar_ordem()`** para whitelist de query params antes de usar em `.order_by()` e antes de passar ao template.
 - **`_redirect_seguro(request)`** centraliza toda lógica de redirect pós-ação: lê `request.POST.get("next")`, valida com `url_has_allowed_host_and_scheme`, cai em `tarefas:quadro` se inválido.
 - **`update_fields=["status"]`** nas ações rápidas para fazer `UPDATE` de coluna única, sem risco de sobrescrever outros campos.
+- **`tarefa.delete()`** na view `excluir()`: hard delete direto, POST-only; soft delete adiado para etapa futura.
 - **Cores de prioridade por `style=""` inline** (não classes Tailwind) para evitar problemas de purge/compilação: Alta `#ef4444`/`#b91c1c`, Média `#D6D300`/`#78700a`, Baixa `#3b82f6`/`#1d4ed8`.
 - **`next_url` no contexto** das views `quadro()` e `lista()` via `request.get_full_path()`, incluindo `?ordem=` se presente.
 
@@ -58,7 +60,9 @@ Permitir que advogados e equipe do escritório criem, organizem e acompanhem tar
 - Processos arquivados não aparecem no select do formulário.
 - Clientes inativos não aparecem no select do formulário.
 - Ações rápidas são POST-only; GET não altera status.
-- Exclusão não implementada; lixeira continua apenas visual.
+- Exclusão implementada como hard delete (`tarefa.delete()`); soft delete/arquivamento adiado para etapa futura.
+- Botão de lixeira disponível para qualquer status (inclusive concluída).
+- Confirmação de exclusão via `confirm()` nativo do browser; modal customizado adiado.
 - Ordenação por status não foi implementada (removida do escopo após diagnóstico).
 - Transição `em_andamento` → `a_fazer` não implementada (reservada para etapa futura).
 
@@ -113,6 +117,7 @@ Overrides:
 | `concluir` | `/tarefas/<pk>/concluir/` | POST | `status = "concluida"` |
 | `reabrir` | `/tarefas/<pk>/reabrir/` | POST | `status = "a_fazer"` |
 | `iniciar` | `/tarefas/<pk>/iniciar/` | POST | `status = "em_andamento"` |
+| `excluir` | `/tarefas/<pk>/excluir/` | POST | `tarefa.delete()` |
 
 **Auxiliares privadas:**
 
@@ -132,6 +137,7 @@ path("tarefas/<int:pk>/editar/", views.editar, name="editar"),
 path("tarefas/<int:pk>/concluir/", views.concluir, name="concluir"),
 path("tarefas/<int:pk>/reabrir/", views.reabrir, name="reabrir"),
 path("tarefas/<int:pk>/iniciar/", views.iniciar, name="iniciar"),
+path("tarefas/<int:pk>/excluir/", views.excluir, name="excluir"),
 ```
 
 ---
@@ -184,13 +190,16 @@ GET direto nas rotas de ação não altera status — apenas redireciona via `_r
 - **Tarefa com cliente inativo já vinculado**: mesma situação — cliente não aparece no select ao editar.
 - **`prazo_label` sempre truthy**: a property retorna `"sem prazo"` mesmo quando `prazo is None`. Templates não devem usar `{% if tarefa.prazo_label %}` para checar existência de prazo — usar `{% if tarefa.prazo %}`.
 - **Responsável não selecionável**: definido como o usuário logado na criação e preservado na edição. Não há UI para reatribuição.
-- **Exclusão ausente**: lixeira é visual; não há endpoint de exclusão.
+- **Soft delete ausente**: exclusão remove permanentemente; arquivamento reversível não foi implementado.
 
 ---
 
 ## Pendências futuras
 
-- Exclusão/arquivamento de tarefa
+- Soft delete/arquivamento de tarefa (exclusão permanente foi implementada)
+- Modal de confirmação de exclusão customizado (atualmente usa `confirm()` nativo do browser)
+- Permissões de exclusão por cargo/grupo
+- Auditoria de exclusão (log de quem excluiu e quando)
 - Detalhe de tarefa com histórico
 - Responsável selecionável
 - Transição `em_andamento` → `a_fazer`

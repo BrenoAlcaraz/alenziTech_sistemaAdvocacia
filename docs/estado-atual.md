@@ -139,11 +139,12 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas no nave
 | Ação rápida: Reabrir | `concluida` → `a_fazer` via POST |
 | Redirecionamento seguro | `next` validado com `url_has_allowed_host_and_scheme`; preserva `?ordem=` |
 | Botão de edição | ícone de lápis no card do quadro e na lista |
+| Exclusão real | `tarefa.delete()` via POST; GET não remove; lixeira no quadro e na lista |
 | Remoção de mocks | todos os dados temporários removidos de `views.py` |
 
 Não implementado nesta fase (não bloqueante):
 
-- Exclusão de tarefa (lixeira é apenas visual)
+- Soft delete/arquivamento de tarefa (exclusão permanente foi implementada)
 - Detalhe de tarefa
 - Responsável selecionável (definido automaticamente como usuário logado)
 - Transição `em_andamento` → `a_fazer`

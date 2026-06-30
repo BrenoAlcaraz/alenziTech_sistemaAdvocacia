@@ -96,11 +96,15 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 ✅ Ações rápidas POST-only: Iniciar, Concluir, Reabrir
 ✅ Redirecionamento seguro com preservação de `next` e `?ordem=`
 ✅ Botão de edição (ícone de lápis) no quadro e na lista
+✅ Exclusão real (`tarefa.delete()` via POST; lixeira funcional no quadro e na lista)
 ✅ Mocks removidos de `views.py`
 
 ### Pendências futuras de Tarefas (não bloqueantes)
 
-- **Exclusão/arquivamento de tarefa** — lixeira atualmente é apenas visual
+- **Soft delete/arquivamento de tarefa** — exclusão permanente foi implementada; arquivamento reversível fica para etapa futura
+- **Modal de confirmação de exclusão customizado** — atualmente usa `confirm()` nativo do browser
+- **Permissões de exclusão** — qualquer usuário logado pode excluir; restringir por cargo/grupo futuramente
+- **Auditoria de exclusão** — log de quem excluiu e quando
 - **Detalhe de tarefa** — página dedicada com histórico e metadados completos
 - **Responsável selecionável** — atualmente definido como o usuário logado
 - **Transição `em_andamento` → `a_fazer`** — "desfazer início" não implementado
