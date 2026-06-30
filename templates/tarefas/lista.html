@@ -28,6 +28,21 @@
   </a>
 </div>
 
+{# Seletor de ordenação #}
+<form method="get" class="flex justify-end mb-4">
+  <div class="flex items-center gap-2 text-sm">
+    <span class="text-gray-500">Ordenar por:</span>
+    <select name="ordem" class="select py-1" onchange="this.form.submit()">
+      <option value="prazo_proximo" {% if ordem == "prazo_proximo" %}selected{% endif %}>Prazo mais próximo</option>
+      <option value="prazo_distante" {% if ordem == "prazo_distante" %}selected{% endif %}>Prazo mais distante</option>
+      <option value="prioridade_alta" {% if ordem == "prioridade_alta" %}selected{% endif %}>Prioridade mais alta</option>
+      <option value="prioridade_baixa" {% if ordem == "prioridade_baixa" %}selected{% endif %}>Prioridade mais baixa</option>
+      <option value="mais_recentes" {% if ordem == "mais_recentes" %}selected{% endif %}>Mais recentes</option>
+      <option value="mais_antigas" {% if ordem == "mais_antigas" %}selected{% endif %}>Mais antigas</option>
+    </select>
+  </div>
+</form>
+
 <div class="flex flex-col gap-2">
   {% for t in tarefas %}
     <div class="card px-5 py-4 flex items-center gap-4">
@@ -44,6 +59,10 @@
           {% elif t.cliente %}
             <span><span class="font-semibold text-gray-900">Cliente:</span> {{ t.cliente }}</span>
           {% endif %}
+          <span>
+            <span class="font-semibold text-gray-900">Prazo:</span>
+            {% if t.prazo %}{{ t.prazo|date:"d/m/Y" }}{% else %}prazo não informado{% endif %}
+          </span>
         </div>
       </div>
 
