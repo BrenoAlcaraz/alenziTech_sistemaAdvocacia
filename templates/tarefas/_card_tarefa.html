@@ -26,26 +26,51 @@
     {# Responsável #}
     {% if tarefa.responsavel %}
       <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-3 h-3 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
         {{ tarefa.responsavel }}
       </span>
     {% endif %}
 
-    {# Processo #}
+    {# Processo ou Cliente — ícone escuro, label em negrito, valor normal #}
     {% if tarefa.processo %}
-      <span class="inline-flex items-center gap-1 text-xs text-gray-500">
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <span class="inline-flex items-center gap-1 text-xs text-gray-600">
+        <svg class="w-3 h-3 flex-shrink-0 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
         </svg>
-        {{ tarefa.processo }}
+        <span class="font-semibold text-gray-900">Processo:</span>
+        <span>{{ tarefa.processo }}</span>
+      </span>
+    {% elif tarefa.cliente %}
+      <span class="inline-flex items-center gap-1 text-xs text-gray-600">
+        <svg class="w-3 h-3 flex-shrink-0 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+        <span class="font-semibold text-gray-900">Cliente:</span>
+        <span>{{ tarefa.cliente }}</span>
       </span>
     {% endif %}
   </div>
 
+  {# Rodapé: apenas prioridade + lixeira (status omitido — a coluna do quadro já informa) #}
   <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-    <span class="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{{ tarefa.get_status_display }}</span>
+    {% if tarefa.prioridade == "alta" %}
+      <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #b91c1c;">
+        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #ef4444;"></span>
+        Alta
+      </span>
+    {% elif tarefa.prioridade == "media" %}
+      <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #78700a;">
+        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #D6D300;"></span>
+        Média
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #1d4ed8;">
+        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #3b82f6;"></span>
+        Baixa
+      </span>
+    {% endif %}
     <button class="text-gray-400 hover:text-red-400 transition-colors">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

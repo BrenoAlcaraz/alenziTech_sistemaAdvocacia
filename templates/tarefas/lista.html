@@ -31,11 +31,25 @@
 <div class="flex flex-col gap-2">
   {% for t in tarefas %}
     <div class="card px-5 py-4 flex items-center gap-4">
+
+      {# Título + processo/cliente com rótulo em negrito #}
       <div class="flex-1 min-w-0">
         <p class="font-medium text-gray-900">{{ t.titulo }}</p>
-        <p class="text-xs text-gray-400 mt-0.5">{{ t.descricao }}</p>
+        <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
+          {% if t.descricao %}
+            <span>{{ t.descricao }}</span>
+          {% endif %}
+          {% if t.processo %}
+            <span><span class="font-semibold text-gray-900">Processo:</span> {{ t.processo }}</span>
+          {% elif t.cliente %}
+            <span><span class="font-semibold text-gray-900">Cliente:</span> {{ t.cliente }}</span>
+          {% endif %}
+        </div>
       </div>
-      <div class="flex items-center gap-3 flex-shrink-0">
+
+      {# Metadados à direita: prazo urgente, criado por, prioridade, status — rótulos em negrito #}
+      <div class="flex items-center gap-4 flex-shrink-0 text-xs text-gray-500">
+
         {% if t.prazo_urgente %}
           <span class="badge-urgente">
             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -44,8 +58,37 @@
             {{ t.prazo_label }}
           </span>
         {% endif %}
-        <span class="text-xs text-gray-500">{{ t.responsavel }}</span>
-        <span class="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600">{{ t.get_status_display }}</span>
+
+        <span>
+          <span class="font-semibold text-gray-900">Criado por:</span>
+          {% if t.responsavel %}{{ t.responsavel }}{% else %}—{% endif %}
+        </span>
+
+        <span class="inline-flex items-center gap-1">
+          <span class="font-semibold text-gray-900">Prioridade:</span>
+          {% if t.prioridade == "alta" %}
+            <span class="inline-flex items-center gap-1 font-medium" style="color: #b91c1c;">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #ef4444;"></span>
+              Alta
+            </span>
+          {% elif t.prioridade == "media" %}
+            <span class="inline-flex items-center gap-1 font-medium" style="color: #78700a;">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #D6D300;"></span>
+              Média
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1 font-medium" style="color: #1d4ed8;">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: #3b82f6;"></span>
+              Baixa
+            </span>
+          {% endif %}
+        </span>
+
+        <span>
+          <span class="font-semibold text-gray-900">Status:</span>
+          <span class="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600">{{ t.get_status_display }}</span>
+        </span>
+
       </div>
     </div>
   {% empty %}
