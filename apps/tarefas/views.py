@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Case, When, Value, IntegerField, F
+from django.utils.http import url_has_allowed_host_and_scheme
 from .models import Tarefa
 from .forms import TarefaForm
 
@@ -19,6 +20,17 @@ def _normalizar_ordem(ordem):
     if ordem in ORDENS_VALIDAS:
         return ordem
     return "prazo_proximo"
+
+
+def _redirect_seguro(request):
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("tarefas:quadro")
 
 
 def _get_order_args(ordem):
@@ -64,6 +76,7 @@ def quadro(request):
     return render(request, "tarefas/quadro.html", {
         "tarefas_por_status": tarefas_por_status,
         "ordem": ordem,
+        "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
     })
 
@@ -75,6 +88,7 @@ def lista(request):
     return render(request, "tarefas/lista.html", {
         "tarefas": tarefas,
         "ordem": ordem,
+        "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
     })
 
@@ -119,3 +133,30 @@ def editar(request, pk):
         "tarefa": tarefa,
         "item_ativo": "tarefas",
     })
+
+
+@login_required
+def concluir(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        tarefa.status = "concluida"
+        tarefa.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def reabrir(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        tarefa.status = "a_fazer"
+        tarefa.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def iniciar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        tarefa.status = "em_andamento"
+        tarefa.save(update_fields=["status"])
+    return _redirect_seguro(request)
