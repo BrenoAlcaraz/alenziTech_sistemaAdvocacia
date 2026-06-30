@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Nova tarefa — Jurídico SaaS{% endblock %}
+{% block title %}{% if modo == "editar" %}Editar tarefa{% else %}Nova tarefa{% endif %} — Jurídico SaaS{% endblock %}
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
@@ -8,7 +8,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold text-gray-900">Nova tarefa</h1>
+  <h1 class="text-xl font-bold text-gray-900">{% if modo == "editar" %}Editar tarefa{% else %}Nova tarefa{% endif %}</h1>
 </div>
 
 <div class="card p-6 max-w-2xl">
@@ -50,7 +50,7 @@
     {% endif %}
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
-      <button type="submit" class="btn-primary">Criar tarefa</button>
+      <button type="submit" class="btn-primary">{% if modo == "editar" %}Salvar alterações{% else %}Criar tarefa{% endif %}</button>
       <a href="{% url 'tarefas:quadro' %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>

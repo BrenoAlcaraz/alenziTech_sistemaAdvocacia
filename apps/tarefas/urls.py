@@ -7,4 +7,5 @@ urlpatterns = [
     path("tarefas/", views.quadro, name="quadro"),
     path("tarefas/lista/", views.lista, name="lista"),
     path("tarefas/nova/", views.nova, name="nova"),
+    path("tarefas/<int:pk>/editar/", views.editar, name="editar"),
 ]

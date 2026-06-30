@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Case, When, Value, IntegerField, F
 from .models import Tarefa
@@ -94,3 +94,28 @@ def nova(request):
     else:
         form = TarefaForm()
     return render(request, "tarefas/form.html", {"form": form, "modo": "novo", "item_ativo": "tarefas"})
+
+
+@login_required
+def editar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        form = TarefaForm(request.POST, instance=tarefa)
+        if form.is_valid():
+            responsavel_original = tarefa.responsavel
+            status_original = tarefa.status
+            tarefa = form.save(commit=False)
+            tarefa.responsavel = responsavel_original
+            tarefa.status = status_original
+            if not tarefa.cliente and tarefa.processo and tarefa.processo.cliente:
+                tarefa.cliente = tarefa.processo.cliente
+            tarefa.save()
+            return redirect("tarefas:quadro")
+    else:
+        form = TarefaForm(instance=tarefa)
+    return render(request, "tarefas/form.html", {
+        "form": form,
+        "modo": "editar",
+        "tarefa": tarefa,
+        "item_ativo": "tarefas",
+    })
