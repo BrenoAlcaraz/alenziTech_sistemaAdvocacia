@@ -17,44 +17,38 @@
     <div class="flex flex-col gap-4">
       <div>
         <label class="label">Título</label>
-        <input type="text" class="input" placeholder="Descreva a tarefa...">
+        {{ form.titulo }}
       </div>
       <div>
         <label class="label">Descrição</label>
-        <textarea class="input h-20 resize-none" placeholder="Detalhes adicionais..."></textarea>
+        {{ form.descricao }}
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="label">Responsável</label>
-          <select class="select">
-            <option value="">Selecionar...</option>
-            <option>Dr. João Souza</option>
-            <option>Dra. Maria Lenzi</option>
-            <option>Lucas Martins</option>
-          </select>
+          <label class="label">Prioridade</label>
+          {{ form.prioridade }}
         </div>
         <div>
           <label class="label">Prazo</label>
-          <input type="date" class="input">
+          {{ form.prazo }}
         </div>
         <div>
-          <label class="label">Prioridade</label>
-          <select class="select">
-            <option>Baixa</option>
-            <option selected>Média</option>
-            <option>Alta</option>
-          </select>
+          <label class="label">Cliente</label>
+          {{ form.cliente }}
         </div>
         <div>
           <label class="label">Processo vinculado</label>
-          <select class="select">
-            <option value="">Nenhum</option>
-            <option>Inventário Família Andrade</option>
-            <option>Unimed – Contencioso de Massa</option>
-          </select>
+          {{ form.processo }}
         </div>
       </div>
     </div>
+
+    {% if form.errors %}
+    <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+      Verifique os campos obrigatórios antes de salvar.
+    </div>
+    {% endif %}
+
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
       <button type="submit" class="btn-primary">Criar tarefa</button>
       <a href="{% url 'tarefas:quadro' %}" class="btn-secondary">Cancelar</a>
