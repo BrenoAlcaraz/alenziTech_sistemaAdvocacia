@@ -7,7 +7,7 @@ from .forms import ProcessoForm, ParteProcessoForm, MovimentacaoProcessualForm
 
 @login_required
 def lista(request):
-    processos = Processo.objects.select_related("cliente", "responsavel").all()
+    processos = Processo.objects.select_related("cliente", "responsavel").exclude(status="arquivado")
     return render(request, "processos/lista.html", {
         "processos": processos,
         "item_ativo": "processos",
@@ -67,6 +67,24 @@ def editar(request, pk):
         "form": form,
         "item_ativo": "processos",
     })
+
+
+@login_required
+def arquivar(request, pk):
+    processo = get_object_or_404(Processo, pk=pk)
+    if request.method == "POST":
+        processo.status = "arquivado"
+        processo.save()
+    return redirect("processos:detalhe", pk=pk)
+
+
+@login_required
+def reabrir(request, pk):
+    processo = get_object_or_404(Processo, pk=pk)
+    if request.method == "POST":
+        processo.status = "ativo"
+        processo.save()
+    return redirect("processos:detalhe", pk=pk)
 
 
 @login_required
