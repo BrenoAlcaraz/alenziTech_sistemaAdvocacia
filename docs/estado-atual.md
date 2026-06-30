@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-06-30
+Última atualização: 2026-06-30 (Fase 2.3 — Tarefas concluída)
 
 ## Stack instalada e configurada
 
@@ -32,7 +32,7 @@
 | `dashboard` | Painel principal | mock |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
-| `tarefas` | Gestão de tarefas — quadro kanban | mock |
+| `tarefas` | Gestão de tarefas — quadro kanban | ✅ **Básico operacional completo** |
 | `financeiro` | Lançamentos e custas | mock |
 | `agenda` | Compromissos e calendário | mock |
 | `chat` | Conversas internas | mock |
@@ -115,6 +115,47 @@ Pendências futuras (não bloqueantes):
 - Auditoria/logs de ações
 - Importação de movimentações de tribunais
 - Integração com IA
+
+## Módulo Tarefas — funcional em nível básico (Fase 2.3 concluída)
+
+Todas as funcionalidades do escopo básico foram implementadas, testadas no navegador e commitadas:
+
+| Funcionalidade | Implementação |
+|---|---|
+| Listagem real | `Tarefa.objects.select_related(...)` com ordenação por query param |
+| Quadro kanban real | tarefas agrupadas por status em colunas |
+| Visualização em lista | `/tarefas/lista/` com metadados inline |
+| Criação real | `TarefaForm` + POST; `responsavel=request.user`, `status="a_fazer"` |
+| Edição real | `TarefaForm(instance=tarefa)`; `responsavel` e `status` preservados |
+| Vínculo com cliente | opcional, `ForeignKey(Cliente)` |
+| Vínculo com processo | opcional, `ForeignKey(Processo)` |
+| Auto-fill de cliente | se processo escolhido e cliente vazio, preenche com `processo.cliente` |
+| Prazo opcional | `DateField(null=True, blank=True)` com widget `type="date"` |
+| Exibição de prazo | badge urgente / badge normal / "Prazo não informado" |
+| Ordenação | 6 opções via `?ordem=`: prazo próximo/distante, prioridade alta/baixa, mais recentes/antigas |
+| Normalização de ordem | query param inválido normalizado para `prazo_proximo` |
+| Ação rápida: Iniciar | `a_fazer` → `em_andamento` via POST |
+| Ação rápida: Concluir | qualquer status → `concluida` via POST |
+| Ação rápida: Reabrir | `concluida` → `a_fazer` via POST |
+| Redirecionamento seguro | `next` validado com `url_has_allowed_host_and_scheme`; preserva `?ordem=` |
+| Botão de edição | ícone de lápis no card do quadro e na lista |
+| Remoção de mocks | todos os dados temporários removidos de `views.py` |
+
+Não implementado nesta fase (não bloqueante):
+
+- Exclusão de tarefa (lixeira é apenas visual)
+- Detalhe de tarefa
+- Responsável selecionável (definido automaticamente como usuário logado)
+- Transição `em_andamento` → `a_fazer`
+- Tratamento de tarefa com processo arquivado ou cliente inativo já vinculado
+- Comentários e anexos
+- Recorrência de tarefas
+- Notificações de vencimento
+- Integração com agenda/calendário
+- Permissões por cargo/grupo
+- Auditoria/logs
+- Filtros avançados e busca
+- Paginação
 
 ## Templates
 

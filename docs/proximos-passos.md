@@ -82,35 +82,71 @@ Estas funcionalidades foram intencionalmente deixadas para etapa posterior:
 
 ---
 
-## Fase 2.3 — Tarefas (próximo módulo recomendado)
+## Fase 2.3 — Tarefas — Concluída em nível básico ✅
 
-### Por que Tarefas primeiro
+Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-Tarefas é a funcionalidade de maior impacto imediato para o usuário de escritório. Criar e acompanhar tarefas vinculadas a processos ou clientes é workflow cotidiano — pesquisar jurisprudência, revisar petição, protocolar documento, ligar para cliente. Sem isso, o usuário precisa de um sistema externo para controle de atividades.
+✅ Listagem real (quadro kanban e visualização em lista)
+✅ Criação real (`TarefaForm`, `responsavel` e `status` definidos na view)
+✅ Edição real (`TarefaForm(instance=tarefa)`, `responsavel` e `status` preservados)
+✅ Auto-fill de cliente a partir do processo
+✅ Prazo opcional com exibição visual (badge urgente / normal / "Prazo não informado")
+✅ Ordenação por 6 critérios via query param `?ordem=`
+✅ Normalização de ordem inválida
+✅ Ações rápidas POST-only: Iniciar, Concluir, Reabrir
+✅ Redirecionamento seguro com preservação de `next` e `?ordem=`
+✅ Botão de edição (ícone de lápis) no quadro e na lista
+✅ Mocks removidos de `views.py`
 
-### Escopo esperado da Fase 2.3
+### Pendências futuras de Tarefas (não bloqueantes)
 
-1. **Listagem real** — tarefas do usuário logado, ordenadas por prazo
-2. **Criação real** — título, descrição, prazo, vínculo opcional com processo e/ou cliente
-3. **Detalhe/edição** — marcar como concluída, editar campos
-4. **Quadro kanban ou lista simples** — a definir conforme complexidade
-5. **Soft delete** — arquivar tarefa sem excluir
-
-### Não fazer na Fase 2.3
-
-- Chat em tempo real
-- Notificações reais (e-mail, push)
-- Integração com calendário externo
-- Automações de criação de tarefas
+- **Exclusão/arquivamento de tarefa** — lixeira atualmente é apenas visual
+- **Detalhe de tarefa** — página dedicada com histórico e metadados completos
+- **Responsável selecionável** — atualmente definido como o usuário logado
+- **Transição `em_andamento` → `a_fazer`** — "desfazer início" não implementado
+- **Tratamento de cliente inativo / processo arquivado já vinculado** — edição pode perder o vínculo silenciosamente
+- **Busca por título/descrição**
+- **Filtros** — por status, prioridade, responsável, cliente, processo e prazo
+- **Paginação**
+- **Calendário ou agenda de tarefas**
+- **Notificações de vencimento** — e-mail ou push quando prazo se aproxima
+- **Tarefas recorrentes**
+- **Anexos**
+- **Comentários internos**
+- **Histórico de alterações / auditoria**
+- **Permissões por grupo/cargo**
+- **Logs de ações**
 
 ---
 
-## Sequência recomendada após Tarefas
+## Fase 2.4 — Próximo módulo recomendado
 
-1. **Agenda** — compromissos e prazos com visualização de calendário
-2. **Financeiro** — lançamentos e custas por processo
-3. **Modelos** — templates de peças jurídicas
-4. **Configurações** — usuários do escritório por tenant
-5. **Chat** — conversas internas por processo ou geral
+### Opções disponíveis
 
-Cada módulo seguirá o mesmo padrão: listar → detalhar → criar → editar → arquivar/reativar.
+**Opção A — Agenda/Prazos**
+Compromissos, audiências e prazos processuais com visualização de calendário.
+Prioridade: operação diária do escritório — advogado nunca perde prazo, sabe o que tem na semana.
+
+**Opção B — Financeiro**
+Lançamentos, custas e receitas por processo/cliente. Controle de honorários.
+Prioridade: gestão administrativa — sócio/gerente acompanha fluxo de caixa e inadimplência.
+
+### Recomendação técnica
+
+**Recomendado: Fase 2.4 — Agenda/Prazos.**
+
+Razão: tarefas e agenda são complementares no workflow diário do advogado. O módulo Tarefas cobre atividades internas; a Agenda cobre compromissos externos (audiências, perícias, reuniões) e prazos processuais (que têm data limite legal). O risco de perder um prazo processual é muito maior do que o risco financeiro de curto prazo. Além disso, o model de Processo já tem um slot implícito de "Prazos" (aba em detalhe com empty state) que aguarda implementação real.
+
+Se a prioridade do escritório for **gestão administrativa e fluxo de caixa**, escolher Financeiro.
+Se a prioridade for **operação diária e controle de prazos legais**, escolher Agenda/Prazos.
+
+---
+
+## Sequência recomendada após Fase 2.4
+
+1. **Financeiro** — lançamentos, custas e honorários
+2. **Modelos** — templates de peças jurídicas
+3. **Configurações** — usuários e perfis do escritório por tenant
+4. **Chat** — conversas internas por processo ou geral
+
+Cada módulo seguirá o mesmo padrão: listar → criar → editar → arquivar/reativar.
