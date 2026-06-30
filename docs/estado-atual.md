@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-06-25
+Última atualização: 2026-06-30
 
 ## Stack instalada e configurada
 
@@ -31,7 +31,7 @@
 | `accounts` | PerfilUsuario, signal de criação automática | ✅ Estruturado |
 | `dashboard` | Painel principal | mock |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
-| `processos` | Processos jurídicos | mock |
+| `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
 | `tarefas` | Gestão de tarefas — quadro kanban | mock |
 | `financeiro` | Lançamentos e custas | mock |
 | `agenda` | Compromissos e calendário | mock |
@@ -81,6 +81,40 @@ Pendências futuras (não bloqueantes para Processos):
 - Permissões por grupo/cargo
 - Hard delete restrito a gerente/dono
 - Auditoria/logs de ações
+
+## Módulo Processos — funcional em nível básico (Fase 2.2 concluída)
+
+Todas as funcionalidades planejadas foram implementadas, testadas no navegador e commitadas:
+
+| Funcionalidade | Implementação |
+|---|---|
+| Listagem real | `Processo.objects.exclude(status="arquivado")` |
+| Criação real | `ProcessoForm` + POST handler; `responsavel=request.user`, `status="ativo"` |
+| Detalhe real | `get_object_or_404` com `select_related` + `prefetch_related` |
+| Edição real | `ProcessoForm(instance=processo)`, 11 campos editáveis |
+| Partes reais | Formulário inline na aba Partes, rota POST-only |
+| Movimentações reais | Formulário inline na aba Andamentos, `DateTimeField`, tipo exibido na timeline |
+| Arquivamento | `status="arquivado"` via POST, banner visual no detalhe, sai da listagem |
+| Reabertura | `status="ativo"` via POST, redireciona para detalhe |
+| Lista de arquivados | `/processos/arquivados/` com reabrir inline e empty state |
+| Remoção de mocks | Todos os dados temporários removidos de `views.py` |
+| Saneamento visual | Contadores falsos `(1)` removidos das abas Prazos e Documentos |
+
+Abas do detalhe com implementação futura (empty state por enquanto):
+- **Prazos** — sem model real; exibe "Nenhum prazo cadastrado."
+- **Documentos** — sem model real; exibe "Nenhum documento anexado."
+
+Pendências futuras (não bloqueantes):
+- Edição/exclusão de partes e movimentações
+- Campos adicionais de partes (OAB, e-mail, telefone, endereço)
+- Documentos processuais e upload real
+- Prazos processuais estruturados com cálculo de prazos úteis
+- Busca/filtros reais
+- Paginação
+- Permissões por grupo/cargo
+- Auditoria/logs de ações
+- Importação de movimentações de tribunais
+- Integração com IA
 
 ## Templates
 

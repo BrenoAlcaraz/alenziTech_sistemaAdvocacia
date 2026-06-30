@@ -45,51 +45,72 @@ Estas funcionalidades serão implementadas em etapa posterior, após os demais m
 
 ---
 
-## Fase 2.2 — Processos (próximo módulo)
+## Fase 2.2 — Processos (Pasta Jurídica Básica) — Concluída ✅
 
-### Objetivo
+Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-Implementar CRUD real do módulo Processos, seguindo o mesmo padrão estabelecido em Clientes.
+✅ Listagem real (`exclude(status="arquivado")`)
+✅ Criação real (`ProcessoForm` + POST; `responsavel` e `status` definidos na view)
+✅ Detalhe real (dados, partes, movimentações, status visual)
+✅ Edição real (`ProcessoForm(instance=processo)`)
+✅ Partes reais (formulário inline, rota POST-only)
+✅ Movimentações reais (formulário inline, `DateTimeField`, tipo na timeline)
+✅ Arquivamento (soft state `status="arquivado"`, sai da listagem, banner no detalhe)
+✅ Reabertura (`status="ativo"` via POST)
+✅ Lista de arquivados (`/processos/arquivados/`)
+✅ Mocks removidos de `views.py`
+✅ Contadores falsos removidos das abas Prazos/Documentos
 
-### O que o model `Processo` já tem
+### Pendências futuras de Processos (não bloqueantes)
 
-- `titulo`, `numero`, `area_direito`, `instancia`, `vara_juizo`
-- `valor_causa`, `status`, `prazo_proximo`
-- `cliente` (ForeignKey → Cliente)
-- `responsavel` (ForeignKey → User)
-- `criado_em`
-- Relacionamentos: `MovimentacaoProcessual`, `ParteProcesso`
+Estas funcionalidades foram intencionalmente deixadas para etapa posterior:
 
-### Escopo da Fase 2.2
-
-**Funcionalidades a implementar (na sequência):**
-
-1. **Listagem real** — `Processo.objects.filter(ativo=True)` ou todos (sem soft delete ainda)
-2. **Criação real** — `ProcessoForm` + POST handler
-3. **Detalhe real** — dados do processo + movimentações + partes
-4. **Edição real** — `ProcessoForm(instance=processo)`
-5. **Soft delete / desativação** — campo `ativo` se não existir (verificar model)
-6. **Vínculo com Cliente** — na tela de detalhe do cliente, processos reais aparecem
-
-### Não fazer na Fase 2.2
-
-- Busca/filtros reais
-- Permissões granulares
-- Integração com APIs de tribunais
-- Upload de documentos processuais
-- Automações jurídicas
+- **Edição/exclusão de partes** — atualmente só é possível adicionar
+- **Campos adicionais de partes** — OAB, e-mail, telefone, qualificação completa, endereço
+- **Edição/exclusão de movimentações** — atualmente só é possível adicionar
+- **Documentos processuais** — upload real, categorização, versionamento, download
+- **Prazos processuais estruturados** — model `PrazoProcessual`, `data_limite`, `cumprido`, alerta
+- **Cálculo de prazos úteis** — excluindo feriados e fins de semana
+- **Busca/filtros reais** — barra de busca visual já existe no template, sem lógica real
+- **Paginação** — quando o volume de processos justificar
+- **Permissões por grupo/cargo** — usuários comuns vs. gerente/dono do tenant
+- **Auditoria/logs** — registro de quem arquivou, reabriu, editou e quando
+- **Lista/filtros avançados por status/fase** — processos suspensos, encerrados, em recursal, etc.
+- **Apensos** — processos relacionados/vinculados
+- **Importação de movimentações de tribunais** — e-SAJ, PJe, TJSP
+- **Integração com IA** — análise de petição inicial, contestação, sentença, recursos e execução
 
 ---
 
-## Após Processos estar funcional
+## Fase 2.3 — Tarefas (próximo módulo recomendado)
 
-Replicar o padrão para os demais módulos na ordem de prioridade de negócio:
+### Por que Tarefas primeiro
 
-1. **Tarefas** — vinculadas a processos e clientes
-2. **Agenda** — compromissos e prazos
-3. **Financeiro** — lançamentos e custas por processo
-4. **Modelos** — templates de peças jurídicas
+Tarefas é a funcionalidade de maior impacto imediato para o usuário de escritório. Criar e acompanhar tarefas vinculadas a processos ou clientes é workflow cotidiano — pesquisar jurisprudência, revisar petição, protocolar documento, ligar para cliente. Sem isso, o usuário precisa de um sistema externo para controle de atividades.
+
+### Escopo esperado da Fase 2.3
+
+1. **Listagem real** — tarefas do usuário logado, ordenadas por prazo
+2. **Criação real** — título, descrição, prazo, vínculo opcional com processo e/ou cliente
+3. **Detalhe/edição** — marcar como concluída, editar campos
+4. **Quadro kanban ou lista simples** — a definir conforme complexidade
+5. **Soft delete** — arquivar tarefa sem excluir
+
+### Não fazer na Fase 2.3
+
+- Chat em tempo real
+- Notificações reais (e-mail, push)
+- Integração com calendário externo
+- Automações de criação de tarefas
+
+---
+
+## Sequência recomendada após Tarefas
+
+1. **Agenda** — compromissos e prazos com visualização de calendário
+2. **Financeiro** — lançamentos e custas por processo
+3. **Modelos** — templates de peças jurídicas
+4. **Configurações** — usuários do escritório por tenant
 5. **Chat** — conversas internas por processo ou geral
-6. **Configurações** — usuários do escritório por tenant
 
-Cada módulo seguirá o mesmo padrão: listar → detalhar → criar → editar → desativar/reativar.
+Cada módulo seguirá o mesmo padrão: listar → detalhar → criar → editar → arquivar/reativar.
