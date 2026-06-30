@@ -160,3 +160,11 @@ def iniciar(request, pk):
         tarefa.status = "em_andamento"
         tarefa.save(update_fields=["status"])
     return _redirect_seguro(request)
+
+
+@login_required
+def excluir(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        tarefa.delete()
+    return _redirect_seguro(request)
