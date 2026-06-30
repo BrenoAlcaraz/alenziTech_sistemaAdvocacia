@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from .models import Processo
-from .forms import ProcessoForm, ParteProcessoForm
+from .forms import ProcessoForm, ParteProcessoForm, MovimentacaoProcessualForm
 
 
 @login_required
@@ -27,6 +27,7 @@ def detalhe(request, pk):
         "movimentacoes": processo.movimentacoes.order_by("-data"),
         "partes": processo.partes.all(),
         "form_parte": ParteProcessoForm(),
+        "form_movimentacao": MovimentacaoProcessualForm(),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
     })
@@ -66,6 +67,19 @@ def editar(request, pk):
         "form": form,
         "item_ativo": "processos",
     })
+
+
+@login_required
+def adicionar_movimentacao(request, pk):
+    processo = get_object_or_404(Processo, pk=pk)
+    if request.method == "POST":
+        form = MovimentacaoProcessualForm(request.POST)
+        if form.is_valid():
+            movimentacao = form.save(commit=False)
+            movimentacao.processo = processo
+            movimentacao.autor = request.user
+            movimentacao.save()
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos")
 
 
 @login_required

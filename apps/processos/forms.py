@@ -1,5 +1,6 @@
 from django import forms
-from .models import Processo, ParteProcesso
+from django.utils import timezone
+from .models import Processo, ParteProcesso, MovimentacaoProcessual
 from apps.clientes.models import Cliente
 
 
@@ -77,5 +78,27 @@ class ParteProcessoForm(forms.ModelForm):
             "cpf_cnpj": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "CPF ou CNPJ (opcional)",
+            }),
+        }
+
+
+class MovimentacaoProcessualForm(forms.ModelForm):
+    data = forms.DateTimeField(
+        initial=timezone.now,
+        input_formats=["%Y-%m-%dT%H:%M"],
+        widget=forms.DateTimeInput(
+            attrs={"class": "input", "type": "datetime-local"},
+            format="%Y-%m-%dT%H:%M",
+        ),
+    )
+
+    class Meta:
+        model = MovimentacaoProcessual
+        fields = ["tipo", "data", "descricao"]
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "descricao": forms.Textarea(attrs={
+                "class": "input h-20 resize-none",
+                "placeholder": "Descreva o andamento, decisão ou prazo...",
             }),
         }

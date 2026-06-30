@@ -65,11 +65,15 @@
 {# ── Conteúdo da aba ativa ──────────────────────────────────────────────────── #}
 {% if aba_ativa == "andamentos" %}
 
-  {# Campo visual para registrar movimentação — sem lógica nesta fase #}
-  <div class="flex gap-3 mb-6">
-    <input type="text" class="input flex-1" placeholder="Registrar nova movimentação...">
-    <button class="btn-primary px-5">+ Registrar</button>
-  </div>
+  <form method="post" action="{% url 'processos:adicionar_movimentacao' processo.pk %}" class="card px-5 py-4 mb-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div>{{ form_movimentacao.tipo }}</div>
+      <div>{{ form_movimentacao.data }}</div>
+      <div class="col-span-2">{{ form_movimentacao.descricao }}</div>
+    </div>
+    <button type="submit" class="btn-primary text-sm">+ Adicionar andamento</button>
+  </form>
 
   {# Timeline de movimentações #}
   <div class="flex flex-col gap-4">
@@ -80,6 +84,7 @@
           {% if not forloop.last %}<div class="w-px flex-1 bg-gray-200 mt-1"></div>{% endif %}
         </div>
         <div class="pb-4">
+          <span class="badge-area mb-1 inline-block">{{ mov.get_tipo_display }}</span>
           <p class="text-xs text-gray-400 mb-0.5">{{ mov.data|date:"d/m/Y" }}</p>
           <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
         </div>
