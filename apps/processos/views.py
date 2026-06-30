@@ -70,6 +70,15 @@ def editar(request, pk):
 
 
 @login_required
+def arquivados(request):
+    processos = Processo.objects.select_related("cliente", "responsavel").filter(status="arquivado")
+    return render(request, "processos/arquivados.html", {
+        "processos": processos,
+        "item_ativo": "processos",
+    })
+
+
+@login_required
 def arquivar(request, pk):
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":

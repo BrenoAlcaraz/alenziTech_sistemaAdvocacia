@@ -1,0 +1,34 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Processos arquivados — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Processos arquivados</h1>
+    <p class="text-sm text-gray-500 mt-0.5">
+      Processos fora da listagem principal &bull;
+      <a href="{% url 'processos:lista' %}" class="text-gray-400 hover:text-gray-600 underline">← Voltar aos processos ativos</a>
+    </p>
+  </div>
+</div>
+
+<div class="flex flex-col gap-3">
+  {% for p in processos %}
+    <div class="card px-5 py-4 flex items-center gap-4">
+      <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
+      <div class="flex-1 min-w-0">
+        <a href="{% url 'processos:detalhe' p.pk %}" class="font-semibold text-gray-500 hover:text-gray-700">{{ p.titulo }}</a>
+        <p class="text-xs text-gray-400 mt-0.5">{{ p.numero }} &bull; {{ p.cliente }} &bull; {{ p.instancia }}</p>
+      </div>
+      <form method="post" action="{% url 'processos:reabrir' p.pk %}" class="flex-shrink-0">
+        {% csrf_token %}
+        <button type="submit" class="px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+          Reabrir processo
+        </button>
+      </form>
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum processo arquivado." %}
+  {% endfor %}
+</div>
+{% endblock %}

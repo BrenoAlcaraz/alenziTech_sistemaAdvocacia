@@ -6,6 +6,7 @@ app_name = "processos"
 urlpatterns = [
     path("processos/", views.lista, name="lista"),
     path("processos/novo/", views.novo, name="novo"),
+    path("processos/arquivados/", views.arquivados, name="arquivados"),
     path("processos/<int:pk>/", views.detalhe, name="detalhe"),
     path("processos/<int:pk>/editar/", views.editar, name="editar"),
     path("processos/<int:pk>/arquivar/", views.arquivar, name="arquivar"),
