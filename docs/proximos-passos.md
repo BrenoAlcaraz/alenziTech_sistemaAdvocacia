@@ -123,34 +123,63 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 
 ---
 
-## Fase 2.4 — Próximo módulo recomendado
+## Fase 2.4 — Agenda/Prazos — Concluída em nível básico ✅
 
-### Opções disponíveis
+Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-**Opção A — Agenda/Prazos**
-Compromissos, audiências e prazos processuais com visualização de calendário.
-Prioridade: operação diária do escritório — advogado nunca perde prazo, sabe o que tem na semana.
+✅ Model `Compromisso` estruturado (tipo, status, dia_inteiro, responsavel, processo, cliente)  
+✅ Listagem real com filtros por período (próximos 7 dias, hoje, vencidos, todos)  
+✅ Normalização de filtro inválido para `proximos_7`  
+✅ Vencidos: apenas compromissos com `status="agendado"` no passado  
+✅ Criação real (`CompromissoForm`, `status="agendado"` definido na view)  
+✅ Edição real (`CompromissoForm(instance=compromisso)`, `status` preservado)  
+✅ Auto-fill de cliente a partir do processo  
+✅ Responsável selecionável com fallback para usuário logado  
+✅ Ação rápida: Concluir (`agendado` → `concluido` via POST)  
+✅ Ação rápida: Cancelar (`agendado` → `cancelado` via POST)  
+✅ Ação rápida: Reabrir (`concluido`/`cancelado` → `agendado` via POST)  
+✅ Exclusão real (`compromisso.delete()` via POST; GET não remove)  
+✅ Redirecionamento seguro com preservação de `next` e `?filtro=`  
+✅ Ícone de edição (lápis) e exclusão (lixeira) por card na lista  
+✅ Mocks removidos; `/agenda/` renderiza lista real  
 
-**Opção B — Financeiro**
-Lançamentos, custas e receitas por processo/cliente. Controle de honorários.
-Prioridade: gestão administrativa — sócio/gerente acompanha fluxo de caixa e inadimplência.
+### Pendências futuras de Agenda/Prazos (não bloqueantes)
 
-### Recomendação técnica
-
-**Recomendado: Fase 2.4 — Agenda/Prazos.**
-
-Razão: tarefas e agenda são complementares no workflow diário do advogado. O módulo Tarefas cobre atividades internas; a Agenda cobre compromissos externos (audiências, perícias, reuniões) e prazos processuais (que têm data limite legal). O risco de perder um prazo processual é muito maior do que o risco financeiro de curto prazo. Além disso, o model de Processo já tem um slot implícito de "Prazos" (aba em detalhe com empty state) que aguarda implementação real.
-
-Se a prioridade do escritório for **gestão administrativa e fluxo de caixa**, escolher Financeiro.
-Se a prioridade for **operação diária e controle de prazos legais**, escolher Agenda/Prazos.
+- **Calendário mensal dinâmico** — template `index.html` mantido como referência visual para implementação futura
+- **Navegação por mês** — anterior/próximo no calendário
+- **Visão semanal e diária** — grid por hora
+- **Cálculo de prazos úteis** — excluindo feriados e fins de semana
+- **Integração de prazos com processos** — vincular prazo a movimentação processual
+- **Criação automática de prazo a partir de movimentação processual**
+- **Notificações de vencimento** — e-mail ou push quando prazo se aproxima
+- **Compromissos recorrentes** — audiências semanais, reuniões mensais
+- **Integração com Google Calendar**
+- **Participantes no formulário** — campo `ManyToManyField` já existe no model
+- **Permissões por grupo/cargo**
+- **Auditoria/logs** — quem criou, editou, concluiu, cancelou e quando
+- **Soft delete/arquivamento** — exclusão permanente foi implementada; arquivamento reversível fica para etapa futura
+- **Busca e filtros avançados** — por tipo, responsável, processo, cliente
+- **Vínculo futuro com tarefas** — se fizer sentido operacional
+- **Tratamento de cliente inativo/processo arquivado em edição** — vínculo pode ser perdido silenciosamente ao salvar
 
 ---
 
-## Sequência recomendada após Fase 2.4
+## Fase 2.5 — Próximo módulo recomendado: Financeiro
 
-1. **Financeiro** — lançamentos, custas e honorários
-2. **Modelos** — templates de peças jurídicas
-3. **Configurações** — usuários e perfis do escritório por tenant
-4. **Chat** — conversas internas por processo ou geral
+**Fase 2.5 — Financeiro** é o próximo bloco operacional natural.
+
+Após Clientes, Processos, Tarefas e Agenda/Prazos, o escritório já tem os módulos de operação jurídica diária cobertos no nível básico. O próximo passo relevante é o controle financeiro básico:
+
+- Receitas e despesas por processo/cliente
+- Honorários (fixo, por êxito, por hora)
+- Vencimentos e contas a receber/pagar
+- Status de pagamento (pendente, pago, inadimplente)
+- Custo de processo (custas judiciais, perícias, diligências)
+
+### Sequência recomendada após Fase 2.5
+
+1. **Modelos** — templates de peças jurídicas
+2. **Configurações** — usuários e perfis do escritório por tenant
+3. **Chat** — conversas internas por processo ou geral
 
 Cada módulo seguirá o mesmo padrão: listar → criar → editar → arquivar/reativar.
