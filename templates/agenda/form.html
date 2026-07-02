@@ -12,55 +12,111 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
+
+  {% if form.errors %}
+    <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 text-red-600 text-sm">
+      Verifique os campos obrigatórios antes de salvar.
+    </div>
+  {% endif %}
+
   <form method="post">
     {% csrf_token %}
     <div class="flex flex-col gap-4">
+
+      {# Título #}
       <div>
         <label class="label">Título</label>
-        <input type="text" class="input" placeholder="Ex: Audiência de instrução – Construtora Horizonte">
+        {{ form.titulo }}
+        {% if form.titulo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
+        {% endif %}
       </div>
+
+      {# Tipo | Responsável #}
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="label">Tipo</label>
-          <select class="select">
-            <option>Audiência</option>
-            <option>Prazo</option>
-            <option>Reunião</option>
-            <option>Outro</option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Processo vinculado</label>
-          <select class="select">
-            <option value="">Nenhum</option>
-            <option>Construtora Horizonte vs. Município</option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Data e hora de início</label>
-          <input type="datetime-local" class="input">
-        </div>
-        <div>
-          <label class="label">Data e hora de fim</label>
-          <input type="datetime-local" class="input">
-        </div>
-        <div class="col-span-2">
-          <label class="label">Local</label>
-          <input type="text" class="input" placeholder="Ex: Fórum Central, Sala 3">
+          {{ form.tipo }}
+          {% if form.tipo.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Responsável</label>
-          <select class="select">
-            <option>Dr. João Souza</option>
-            <option>Dra. Maria Lenzi</option>
-          </select>
+          {{ form.responsavel }}
+          {% if form.responsavel.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+          {% endif %}
         </div>
       </div>
-      <div>
-        <label class="label">Descrição</label>
-        <textarea class="input h-20 resize-none" placeholder="Detalhes adicionais..."></textarea>
+
+      {# Data/hora início | Data/hora fim #}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label">Data e hora de início</label>
+          {{ form.data_hora_inicio }}
+          {% if form.data_hora_inicio.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.data_hora_inicio.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label">Data e hora de fim <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.data_hora_fim }}
+          {% if form.data_hora_fim.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.data_hora_fim.errors|join:", " }}</p>
+          {% endif %}
+        </div>
       </div>
+
+      {# Local #}
+      <div>
+        <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.local }}
+        {% if form.local.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Dia inteiro #}
+      <div class="flex items-center gap-2">
+        {{ form.dia_inteiro }}
+        <label for="{{ form.dia_inteiro.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
+          Dia inteiro (sem horário específico)
+        </label>
+        {% if form.dia_inteiro.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.dia_inteiro.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Processo | Cliente #}
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label">Processo vinculado <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Descrição #}
+      <div>
+        <label class="label">Descrição <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
     </div>
+
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
       <button type="submit" class="btn-primary">Criar compromisso</button>
       <a href="{% url 'agenda:index' %}" class="btn-secondary">Cancelar</a>

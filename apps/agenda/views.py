@@ -1,10 +1,11 @@
 from datetime import timedelta
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
 from .models import Compromisso
+from .forms import CompromissoForm
 
 
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
@@ -51,4 +52,20 @@ def index(request):
 
 @login_required
 def form_compromisso(request):
-    return render(request, "agenda/form.html", {"item_ativo": "agenda"})
+    if request.method == "POST":
+        form = CompromissoForm(request.POST)
+        if form.is_valid():
+            compromisso = form.save(commit=False)
+            compromisso.status = "agendado"
+            if not compromisso.responsavel:
+                compromisso.responsavel = request.user
+            if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
+                compromisso.cliente = compromisso.processo.cliente
+            compromisso.save()
+            return redirect("agenda:index")
+    else:
+        form = CompromissoForm(initial={"responsavel": request.user})
+    return render(request, "agenda/form.html", {
+        "form": form,
+        "item_ativo": "agenda",
+    })
