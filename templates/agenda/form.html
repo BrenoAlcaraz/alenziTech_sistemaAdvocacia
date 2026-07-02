@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Novo compromisso — Agenda{% endblock %}
+{% block title %}{% if modo == "editar" %}Editar compromisso{% else %}Novo compromisso{% endif %} — Agenda{% endblock %}
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
@@ -8,7 +8,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold text-gray-900">Novo compromisso</h1>
+  <h1 class="text-xl font-bold text-gray-900">{% if modo == "editar" %}Editar compromisso{% else %}Novo compromisso{% endif %}</h1>
 </div>
 
 <div class="card p-6 max-w-2xl">
@@ -118,7 +118,7 @@
     </div>
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
-      <button type="submit" class="btn-primary">Criar compromisso</button>
+      <button type="submit" class="btn-primary">{% if modo == "editar" %}Salvar alterações{% else %}Criar compromisso{% endif %}</button>
       <a href="{% url 'agenda:index' %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>

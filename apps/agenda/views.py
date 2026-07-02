@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
@@ -46,6 +46,29 @@ def index(request):
     return render(request, "agenda/lista.html", {
         "compromissos": compromissos,
         "filtro": filtro,
+        "item_ativo": "agenda",
+    })
+
+
+@login_required
+def editar(request, pk):
+    compromisso = get_object_or_404(Compromisso, pk=pk)
+    if request.method == "POST":
+        form = CompromissoForm(request.POST, instance=compromisso)
+        if form.is_valid():
+            status_original = compromisso.status
+            compromisso = form.save(commit=False)
+            compromisso.status = status_original
+            if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
+                compromisso.cliente = compromisso.processo.cliente
+            compromisso.save()
+            return redirect("agenda:index")
+    else:
+        form = CompromissoForm(instance=compromisso)
+    return render(request, "agenda/form.html", {
+        "form": form,
+        "modo": "editar",
+        "compromisso": compromisso,
         "item_ativo": "agenda",
     })
 
