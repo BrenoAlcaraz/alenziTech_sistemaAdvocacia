@@ -1,0 +1,130 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Agenda — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Agenda</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Compromissos, audiências e prazos do escritório</p>
+  </div>
+  <a href="{% url 'agenda:novo' %}" class="btn-primary">+ Novo compromisso</a>
+</div>
+
+{# Filtros por período #}
+<div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-6">
+  <a href="{% url 'agenda:index' %}?filtro=proximos_7"
+     class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'proximos_7' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Próximos 7 dias
+  </a>
+  <a href="{% url 'agenda:index' %}?filtro=hoje"
+     class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'hoje' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Hoje
+  </a>
+  <a href="{% url 'agenda:index' %}?filtro=vencidos"
+     class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'vencidos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Vencidos
+  </a>
+  <a href="{% url 'agenda:index' %}?filtro=todos"
+     class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Todos
+  </a>
+</div>
+
+<div class="flex flex-col gap-2">
+  {% for c in compromissos %}
+    <div class="card px-5 py-4">
+
+      {# Linha superior: título + badges #}
+      <div class="flex items-start justify-between gap-4 mb-2">
+        <p class="font-semibold text-gray-900">{{ c.titulo }}</p>
+        <div class="flex items-center gap-2 flex-shrink-0">
+
+          {# Badge de tipo — cores inline para evitar purge Tailwind #}
+          {% if c.tipo == "audiencia" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fee2e2;color:#7f1d1d;">Audiência</span>
+          {% elif c.tipo == "prazo" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fef3c7;color:#78350f;">Prazo</span>
+          {% elif c.tipo == "reuniao" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#dcfce7;color:#14532d;">Reunião</span>
+          {% elif c.tipo == "protocolo" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">Protocolo</span>
+          {% elif c.tipo == "pericia" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fdf4ff;color:#701a75;">Perícia</span>
+          {% elif c.tipo == "julgamento" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f5f5f4;color:#1c1917;">Julgamento</span>
+          {% elif c.tipo == "retorno" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f0fdfa;color:#134e4a;">Retorno</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">{{ c.get_tipo_display }}</span>
+          {% endif %}
+
+          {# Badge de status — classes Tailwind completas são seguras contra purge #}
+          {% if c.status == "agendado" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600">Agendado</span>
+          {% elif c.status == "concluido" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Concluído</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Cancelado</span>
+          {% endif %}
+
+        </div>
+      </div>
+
+      {# Descrição, se existir #}
+      {% if c.descricao %}
+        <p class="text-xs text-gray-500 mb-2">{{ c.descricao }}</p>
+      {% endif %}
+
+      {# Metadados: data, vínculos, local — rótulos em negrito #}
+      <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+
+        <span>
+          <span class="font-semibold text-gray-900">Início:</span>
+          {% if c.dia_inteiro %}
+            {{ c.data_hora_inicio|date:"d/m/Y" }}
+            <span class="ml-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Dia inteiro</span>
+          {% else %}
+            {{ c.data_hora_inicio|date:"d/m/Y H:i" }}
+          {% endif %}
+        </span>
+
+        {% if c.data_hora_fim and not c.dia_inteiro %}
+          <span>
+            <span class="font-semibold text-gray-900">Fim:</span>
+            {{ c.data_hora_fim|date:"d/m/Y H:i" }}
+          </span>
+        {% endif %}
+
+        {% if c.responsavel %}
+          <span>
+            <span class="font-semibold text-gray-900">Responsável:</span>
+            {{ c.responsavel }}
+          </span>
+        {% endif %}
+
+        {% if c.processo %}
+          <span>
+            <span class="font-semibold text-gray-900">Processo:</span>
+            {{ c.processo }}
+          </span>
+        {% elif c.cliente %}
+          <span>
+            <span class="font-semibold text-gray-900">Cliente:</span>
+            {{ c.cliente }}
+          </span>
+        {% endif %}
+
+        {% if c.local %}
+          <span>
+            <span class="font-semibold text-gray-900">Local:</span>
+            {{ c.local }}
+          </span>
+        {% endif %}
+
+      </div>
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum compromisso para este período." %}
+  {% endfor %}
+</div>
+{% endblock %}
