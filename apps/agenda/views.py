@@ -3,12 +3,24 @@ from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import Compromisso
 from .forms import CompromissoForm
 
 
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
+
+
+def _redirect_seguro(request):
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("agenda:index")
 
 
 def _normalizar_filtro(filtro):
@@ -47,6 +59,7 @@ def index(request):
         "compromissos": compromissos,
         "filtro": filtro,
         "item_ativo": "agenda",
+        "next_url": request.get_full_path(),
     })
 
 
@@ -92,3 +105,38 @@ def form_compromisso(request):
         "form": form,
         "item_ativo": "agenda",
     })
+
+
+@login_required
+def concluir(request, pk):
+    compromisso = get_object_or_404(Compromisso, pk=pk)
+    if request.method == "POST":
+        compromisso.status = "concluido"
+        compromisso.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def cancelar(request, pk):
+    compromisso = get_object_or_404(Compromisso, pk=pk)
+    if request.method == "POST":
+        compromisso.status = "cancelado"
+        compromisso.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def reabrir(request, pk):
+    compromisso = get_object_or_404(Compromisso, pk=pk)
+    if request.method == "POST":
+        compromisso.status = "agendado"
+        compromisso.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def excluir(request, pk):
+    compromisso = get_object_or_404(Compromisso, pk=pk)
+    if request.method == "POST":
+        compromisso.delete()
+    return _redirect_seguro(request)
