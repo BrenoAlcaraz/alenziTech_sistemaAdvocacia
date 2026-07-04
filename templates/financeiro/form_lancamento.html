@@ -14,56 +14,133 @@
 <div class="card p-6 max-w-2xl">
   <form method="post">
     {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div class="flex flex-col gap-4">
+
+      {# Tipo #}
       <div>
-        <label class="label">Tipo</label>
-        <div class="flex gap-3">
-          <button type="button" class="flex-1 py-2.5 border-2 border-gray-900 rounded-xl text-sm font-medium text-gray-900 bg-white">Receita</button>
-          <button type="button" class="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 bg-white">Despesa</button>
-        </div>
+        <label class="label">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
+        {% endif %}
       </div>
+
+      {# Descrição #}
       <div>
-        <label class="label">Descrição</label>
-        <input type="text" class="input" placeholder="Ex: Honorários – Construtora Horizonte">
+        <label class="label">{{ form.descricao.label }}</label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
+        {% endif %}
       </div>
+
       <div class="grid grid-cols-2 gap-4">
+
+        {# Valor #}
         <div>
-          <label class="label">Valor</label>
-          <input type="text" class="input" placeholder="R$ 0,00">
+          <label class="label">Valor (R$)</label>
+          {{ form.valor }}
+          {% if form.valor.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.valor.errors|join:", " }}</p>
+          {% endif %}
         </div>
+
+        {# Categoria #}
         <div>
-          <label class="label">Data</label>
-          <input type="date" class="input">
+          <label class="label">{{ form.categoria.label }}</label>
+          {{ form.categoria }}
+          {% if form.categoria.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.categoria.errors|join:", " }}</p>
+          {% endif %}
         </div>
+
+        {# Status #}
         <div>
-          <label class="label">Categoria</label>
-          <select class="select">
-            <option>Honorário</option>
-            <option>Honorário de Êxito</option>
-            <option>Despesa do Escritório</option>
-            <option>Reembolso</option>
-            <option>Outro</option>
-          </select>
+          <label class="label">{{ form.status.label }}</label>
+          {{ form.status }}
+          {% if form.status.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.status.errors|join:", " }}</p>
+          {% endif %}
         </div>
+
+        {# Data de vencimento #}
         <div>
-          <label class="label">Cliente</label>
-          <select class="select">
-            <option value="">Nenhum</option>
-            <option>Construtora Horizonte Ltda.</option>
-            <option>Roberto Andrade</option>
-          </select>
+          <label class="label">Data de vencimento</label>
+          {{ form.data_vencimento }}
+          {% if form.data_vencimento.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.data_vencimento.errors|join:", " }}</p>
+          {% endif %}
         </div>
+
+        {# Data de pagamento #}
+        <div>
+          <label class="label">Data de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.data_pagamento }}
+          {% if form.data_pagamento.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.data_pagamento.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Forma de pagamento #}
+        <div>
+          <label class="label">Forma de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.forma_pagamento }}
+          {% if form.forma_pagamento.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.forma_pagamento.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Cliente #}
+        <div>
+          <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Processo #}
+        <div>
+          <label class="label">Processo <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Responsável #}
         <div class="col-span-2">
-          <label class="label">Processo vinculado</label>
-          <select class="select">
-            <option value="">Nenhum</option>
-            <option>Construtora Horizonte vs. Município</option>
-          </select>
+          <label class="label">Responsável <span class="text-gray-400 font-normal">(padrão: usuário logado)</span></label>
+          {{ form.responsavel }}
+          {% if form.responsavel.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+          {% endif %}
         </div>
+
       </div>
+
+      {# Observações #}
+      <div>
+        <label class="label">Observações <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.observacoes }}
+        {% if form.observacoes.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
     </div>
+
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
-      <button type="submit" class="btn-primary">Registrar lançamento</button>
+      <button type="submit" class="btn-primary">Criar lançamento</button>
       <a href="{% url 'financeiro:index' %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>
