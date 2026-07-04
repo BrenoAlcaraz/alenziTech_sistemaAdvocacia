@@ -1,13 +1,14 @@
+from decimal import Decimal
+
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.utils import timezone
 
-# Dados temporários apenas para layout — substituir futuramente por queries reais
-LANCAMENTOS_MOCK = [
-    {"id": 1, "tipo": "receita", "descricao": "Honorários – Construtora Horizonte", "valor": "R$ 25.000,00", "data": "01/06/2026", "categoria": "Honorário", "cliente": "Construtora Horizonte Ltda."},
-    {"id": 2, "tipo": "despesa", "descricao": "Custas processuais – Unimed", "valor": "R$ 1.500,00", "data": "02/06/2026", "categoria": "Reembolso", "cliente": "Unimed Regional"},
-    {"id": 3, "tipo": "despesa", "descricao": "Honorários periciais", "valor": "R$ 10.000,00", "data": "28/05/2026", "categoria": "Despesa do Escritório", "cliente": ""},
-]
+from .models import LancamentoFinanceiro
 
+
+# Dados temporários — custas ainda não implementadas com dados reais
 CUSTAS_MOCK = [
     {
         "id": 1,
@@ -33,14 +34,103 @@ RESUMO_MOCK = {
     "saldo": "R$ 13.500,00",
 }
 
+FILTROS_LANCAMENTOS_VALIDOS = {
+    "todos",
+    "pendentes",
+    "pagos",
+    "atrasados",
+    "receitas",
+    "despesas",
+    "mes_atual",
+}
+
+
+def _normalizar_filtro_lancamentos(filtro):
+    if filtro in FILTROS_LANCAMENTOS_VALIDOS:
+        return filtro
+    return "todos"
+
+
+def _formatar_moeda(valor):
+    valor = valor or Decimal("0")
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 @login_required
 def index(request):
-    # Futuramente: calcular totais reais e listar lançamentos com filtros
+    hoje = timezone.localdate()
+    filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
+
+    lancamentos = LancamentoFinanceiro.objects.select_related(
+        "cliente",
+        "processo",
+        "responsavel",
+    )
+
+    if filtro == "pendentes":
+        lancamentos = lancamentos.filter(status="pendente")
+    elif filtro == "pagos":
+        lancamentos = lancamentos.filter(status="pago")
+    elif filtro == "atrasados":
+        lancamentos = lancamentos.filter(
+            status="pendente",
+            data_vencimento__lt=hoje,
+        )
+    elif filtro == "receitas":
+        lancamentos = lancamentos.filter(tipo="receita")
+    elif filtro == "despesas":
+        lancamentos = lancamentos.filter(tipo="despesa")
+    elif filtro == "mes_atual":
+        lancamentos = lancamentos.filter(
+            data_vencimento__year=hoje.year,
+            data_vencimento__month=hoje.month,
+        )
+
+    a_receber = (
+        LancamentoFinanceiro.objects.filter(tipo="receita", status="pendente")
+        .aggregate(total=Sum("valor"))["total"]
+        or Decimal("0")
+    )
+    a_pagar = (
+        LancamentoFinanceiro.objects.filter(tipo="despesa", status="pendente")
+        .aggregate(total=Sum("valor"))["total"]
+        or Decimal("0")
+    )
+    recebido_mes = (
+        LancamentoFinanceiro.objects.filter(
+            tipo="receita",
+            status="pago",
+            data_pagamento__year=hoje.year,
+            data_pagamento__month=hoje.month,
+        )
+        .aggregate(total=Sum("valor"))["total"]
+        or Decimal("0")
+    )
+    pago_mes = (
+        LancamentoFinanceiro.objects.filter(
+            tipo="despesa",
+            status="pago",
+            data_pagamento__year=hoje.year,
+            data_pagamento__month=hoje.month,
+        )
+        .aggregate(total=Sum("valor"))["total"]
+        or Decimal("0")
+    )
+
+    resumo = {
+        "a_receber": _formatar_moeda(a_receber),
+        "a_pagar": _formatar_moeda(a_pagar),
+        "recebido_mes": _formatar_moeda(recebido_mes),
+        "pago_mes": _formatar_moeda(pago_mes),
+        "saldo_previsto": _formatar_moeda(a_receber - a_pagar),
+    }
+
     return render(request, "financeiro/index.html", {
-        "resumo": RESUMO_MOCK,
-        "lancamentos": LANCAMENTOS_MOCK,
-        "aba_ativa": "lancamentos", "item_ativo": "financeiro",
+        "resumo": resumo,
+        "lancamentos": lancamentos,
+        "filtro": filtro,
+        "aba_ativa": "lancamentos",
+        "item_ativo": "financeiro",
     })
 
 
@@ -50,7 +140,8 @@ def custas(request):
         "resumo": RESUMO_MOCK,
         "custas": CUSTAS_MOCK,
         "saldo_clientes": SALDO_CLIENTES_MOCK,
-        "aba_ativa": "custas", "item_ativo": "financeiro",
+        "aba_ativa": "custas",
+        "item_ativo": "financeiro",
     })
 
 

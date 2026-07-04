@@ -27,8 +27,9 @@
   </nav>
 </div>
 
-{# Cards de resumo financeiro — dados mockados #}
+{# Cards de resumo financeiro — dados reais #}
 <div class="grid grid-cols-2 gap-3 mb-6">
+
   <div class="card p-5 flex items-center gap-4">
     <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
       <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,17 +41,7 @@
       <p class="text-xs text-gray-500">A receber</p>
     </div>
   </div>
-  <div class="card p-5 flex items-center gap-4">
-    <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-      <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
-      </svg>
-    </div>
-    <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.recebido }}</p>
-      <p class="text-xs text-gray-500">Recebido</p>
-    </div>
-  </div>
+
   <div class="card p-5 flex items-center gap-4">
     <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
       <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -58,57 +49,154 @@
       </svg>
     </div>
     <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.despesas }}</p>
-      <p class="text-xs text-gray-500">Despesas</p>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
+      <p class="text-xs text-gray-500">A pagar</p>
     </div>
   </div>
+
   <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+      <svg class="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.recebido_mes }}</p>
+      <p class="text-xs text-gray-500">Recebido no mês</p>
+    </div>
+  </div>
+
+  <div class="card p-5 flex items-center gap-4">
+    <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+      <svg class="w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.pago_mes }}</p>
+      <p class="text-xs text-gray-500">Pago no mês</p>
+    </div>
+  </div>
+
+  <div class="card p-5 flex items-center gap-4 col-span-2">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center">
       <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
       </svg>
     </div>
     <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.saldo }}</p>
-      <p class="text-xs text-gray-500">Saldo</p>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.saldo_previsto }}</p>
+      <p class="text-xs text-gray-500">Saldo previsto (a receber − a pagar)</p>
     </div>
   </div>
+
 </div>
 
-{# Filtros visuais + botão novo lançamento #}
-<div class="flex items-center justify-between mb-4">
-  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl">
-    <button class="px-3 py-1.5 text-sm font-medium bg-white rounded-lg shadow-sm text-gray-900">Todos</button>
-    <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Entradas</button>
-    <button class="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Saídas</button>
+{# Filtros reais + botão novo lançamento #}
+<div class="flex items-start justify-between gap-4 mb-4">
+  <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+    <a href="{% url 'financeiro:index' %}?filtro=todos"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Todos
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=pendentes"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pendentes' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Pendentes
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=pagos"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pagos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Pagos
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=atrasados"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Atrasados
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=receitas"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'receitas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Receitas
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=despesas"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'despesas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Despesas
+    </a>
+    <a href="{% url 'financeiro:index' %}?filtro=mes_atual"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'mes_atual' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Mês atual
+    </a>
   </div>
-  <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary">+ Novo lançamento</a>
+  <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary flex-shrink-0">+ Novo lançamento</a>
 </div>
 
 {# Lista de lançamentos #}
 <div class="flex flex-col gap-2">
   {% for l in lancamentos %}
-    <div class="card px-5 py-4 flex items-center gap-4">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
-                  {% if l.tipo == 'receita' %}bg-green-50{% else %}bg-red-50{% endif %}">
-        {% if l.tipo == "receita" %}
-          <svg class="w-4 h-4 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-          </svg>
-        {% else %}
-          <svg class="w-4 h-4 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
-          </svg>
-        {% endif %}
+    <div class="card px-5 py-4">
+
+      <div class="flex items-start gap-3">
+
+        {# Ícone de tipo #}
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5
+                    {% if l.tipo == 'receita' %}bg-green-50{% else %}bg-red-50{% endif %}">
+          {% if l.tipo == "receita" %}
+            <svg class="w-4 h-4 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+          {% else %}
+            <svg class="w-4 h-4 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+            </svg>
+          {% endif %}
+        </div>
+
+        <div class="flex-1 min-w-0">
+
+          {# Linha 1: descrição + badge de status + valor #}
+          <div class="flex items-start justify-between gap-4 mb-1">
+            <p class="font-medium text-gray-900">{{ l.descricao }}</p>
+            <div class="flex items-center gap-2 flex-shrink-0">
+
+              {# Badge de status — atrasado tem prioridade sobre pendente #}
+              {% if l.atrasado %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-600">Atrasado</span>
+              {% elif l.status == "pendente" %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Pendente</span>
+              {% elif l.status == "pago" %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Pago</span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
+              {% endif %}
+
+              {# Valor: verde para receita, vermelho para despesa #}
+              <p class="font-semibold {% if l.tipo == 'receita' %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
+                {% if l.tipo == "despesa" %}&minus; {% endif %}R$ {{ l.valor|floatformat:2 }}
+              </p>
+
+            </div>
+          </div>
+
+          {# Linha 2: metadados #}
+          <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            <span>{{ l.get_categoria_display }}</span>
+            <span>Venc. {{ l.data_vencimento|date:"d/m/Y" }}</span>
+            {% if l.data_pagamento %}
+              <span>Pago em {{ l.data_pagamento|date:"d/m/Y" }}</span>
+            {% endif %}
+            {% if l.responsavel %}
+              <span>{{ l.responsavel }}</span>
+            {% endif %}
+            {% if l.processo %}
+              <span>{{ l.processo }}</span>
+            {% elif l.cliente %}
+              <span>{{ l.cliente }}</span>
+            {% endif %}
+            {% if l.forma_pagamento %}
+              <span>{{ l.get_forma_pagamento_display }}</span>
+            {% endif %}
+          </div>
+
+        </div>
       </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-medium text-gray-900">{{ l.descricao }}</p>
-        <p class="text-xs text-gray-400">{{ l.categoria }} &bull; {{ l.data }}</p>
-      </div>
-      <p class="font-semibold flex-shrink-0
-                {% if l.tipo == 'receita' %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
-        {% if l.tipo == "despesa" %}&minus; {% endif %}{{ l.valor }}
-      </p>
+
     </div>
   {% empty %}
     {% include "components/empty_state.html" with mensagem="Nenhum lançamento registrado." %}
