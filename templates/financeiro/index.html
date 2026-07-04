@@ -203,6 +203,29 @@
             {% endif %}
           </div>
 
+          {# Linha 3: ações rápidas #}
+          <div class="flex flex-wrap items-center gap-3 mt-2">
+            {% if l.status == "pendente" %}
+              <form method="post" action="{% url 'financeiro:marcar_pago' l.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <button type="submit" class="text-xs text-green-700 hover:text-green-900 hover:underline">Marcar como pago</button>
+              </form>
+              <span class="text-gray-200 text-xs">|</span>
+              <form method="post" action="{% url 'financeiro:cancelar_lancamento' l.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
+              </form>
+            {% elif l.status == "pago" or l.status == "cancelado" %}
+              <form method="post" action="{% url 'financeiro:reabrir_lancamento' l.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 hover:underline">Reabrir</button>
+              </form>
+            {% endif %}
+          </div>
+
         </div>
       </div>
 

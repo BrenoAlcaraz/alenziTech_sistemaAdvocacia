@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import LancamentoFinanceiroForm
 from .models import LancamentoFinanceiro
@@ -34,6 +35,17 @@ RESUMO_MOCK = {
     "despesas": "R$ 11.500,00",
     "saldo": "R$ 13.500,00",
 }
+
+def _redirect_seguro(request):
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("financeiro:index")
+
 
 FILTROS_LANCAMENTOS_VALIDOS = {
     "todos",
@@ -130,6 +142,7 @@ def index(request):
         "resumo": resumo,
         "lancamentos": lancamentos,
         "filtro": filtro,
+        "next_url": request.get_full_path(),
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
     })
@@ -193,6 +206,35 @@ def editar_lancamento(request, pk):
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
     })
+
+
+@login_required
+def marcar_pago(request, pk):
+    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if request.method == "POST":
+        lancamento.status = "pago"
+        lancamento.data_pagamento = timezone.localdate()
+        lancamento.save(update_fields=["status", "data_pagamento"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def cancelar_lancamento(request, pk):
+    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if request.method == "POST":
+        lancamento.status = "cancelado"
+        lancamento.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def reabrir_lancamento(request, pk):
+    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if request.method == "POST":
+        lancamento.status = "pendente"
+        lancamento.data_pagamento = None
+        lancamento.save(update_fields=["status", "data_pagamento"])
+    return _redirect_seguro(request)
 
 
 @login_required
