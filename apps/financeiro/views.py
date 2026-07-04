@@ -238,5 +238,13 @@ def reabrir_lancamento(request, pk):
 
 
 @login_required
+def excluir_lancamento(request, pk):
+    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if request.method == "POST":
+        lancamento.delete()
+    return _redirect_seguro(request)
+
+
+@login_required
 def form_custa(request):
     return render(request, "financeiro/form_custa.html", {"item_ativo": "financeiro"})

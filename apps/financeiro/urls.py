@@ -11,5 +11,6 @@ urlpatterns = [
     path("financeiro/lancamentos/<int:pk>/marcar-pago/", views.marcar_pago, name="marcar_pago"),
     path("financeiro/lancamentos/<int:pk>/cancelar/", views.cancelar_lancamento, name="cancelar_lancamento"),
     path("financeiro/lancamentos/<int:pk>/reabrir/", views.reabrir_lancamento, name="reabrir_lancamento"),
+    path("financeiro/lancamentos/<int:pk>/excluir/", views.excluir_lancamento, name="excluir_lancamento"),
     path("financeiro/custas/nova/", views.form_custa, name="form_custa"),
 ]
