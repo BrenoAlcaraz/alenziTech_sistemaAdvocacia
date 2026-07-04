@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-02 (Fase 2.4 — Agenda/Prazos concluída em nível básico)
+Última atualização: 2026-07-04 (Fase 2.5 — Financeiro concluída em nível básico)
 
 ## Stack instalada e configurada
 
@@ -33,7 +33,7 @@
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
 | `tarefas` | Gestão de tarefas — quadro kanban | ✅ **Básico operacional completo** |
-| `financeiro` | Lançamentos e custas | mock |
+| `financeiro` | Lançamentos e custas | ✅ **Básico operacional (lançamentos)** |
 | `agenda` | Compromissos e calendário | ✅ **Básico operacional completo** |
 | `chat` | Conversas internas | mock |
 | `modelos` | Modelos de peças jurídicas | mock |
@@ -203,6 +203,60 @@ Não implementado nesta fase (não bloqueante):
 - Permissões específicas por cargo/grupo
 - Tratamento de cliente inativo ou processo arquivado já vinculado em edição
 - Visão de agenda por dia/semana/mês
+
+## Módulo Financeiro — funcional em nível básico (Fase 2.5 concluída)
+
+Todas as funcionalidades do escopo básico de lançamentos foram implementadas, testadas no navegador e commitadas:
+
+| Funcionalidade | Implementação |
+|---|---|
+| Model `LancamentoFinanceiro` estruturado | `tipo`, `status`, `categoria`, `forma_pagamento`, `data_vencimento`, `data_pagamento`, `observacoes`, `cliente`, `processo`, `responsavel` |
+| Model `CustaJudicial` mantido | existe no banco, sem fluxo real completo ainda |
+| Tipos | `receita` / `despesa` |
+| Status | `pendente` / `pago` / `cancelado` |
+| Property `atrasado` | calculada dinamicamente: `status="pendente"` + `data_vencimento < hoje` |
+| 13 categorias | honorário, êxito, reembolso, custa judicial, diligência, perícia, taxa, salário, aluguel, software, imposto, despesa do escritório, outro |
+| 6 formas de pagamento | Pix, boleto, transferência, dinheiro, cartão, outro |
+| Listagem real | `LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel")` |
+| Filtros | todos, pendentes, pagos, atrasados, receitas, despesas, mês atual |
+| Normalização de filtro | valor inválido normalizado para `todos` |
+| Cards de resumo | A receber, A pagar, Recebido no mês, Pago no mês, Saldo previsto |
+| Formatação de moeda | helper `_formatar_moeda` na view; `floatformat:2` na lista |
+| Criação real | `LancamentoFinanceiroForm` + POST; validação de `data_pagamento` se `status="pago"` |
+| Edição real | `LancamentoFinanceiroForm(instance=lancamento)` |
+| Auto-fill de cliente | se processo escolhido e cliente vazio → `processo.cliente` |
+| Responsável selecionável | select de usuários ativos; fallback para `request.user` |
+| Clientes inativos excluídos do select | `Cliente.objects.filter(ativo=True)` |
+| Processos arquivados excluídos do select | `Processo.objects.exclude(status="arquivado")` |
+| Ação rápida: Marcar como pago | `pendente` → `pago`; `data_pagamento = timezone.localdate()` via POST |
+| Ação rápida: Cancelar | `pendente` → `cancelado` via POST |
+| Ação rápida: Reabrir | `pago`/`cancelado` → `pendente`; `data_pagamento = None` via POST |
+| POST-only em ações rápidas | GET direto não altera dados |
+| Exclusão real | `lancamento.delete()` via POST; GET não remove; confirm nativo do browser |
+| Redirecionamento seguro | `next` validado com `url_has_allowed_host_and_scheme`; preserva `?filtro=` |
+| Ícone de edição na lista | lápis por card, redireciona para formulário de edição |
+| Ícone de exclusão na lista | lixeira por card, POST com confirm |
+
+Não implementado nesta fase (não bloqueante):
+
+- Fluxo real completo de Custas Judiciais (UI de custas ainda usa mocks)
+- Emissão de boleto
+- Integração bancária
+- Nota fiscal
+- Conciliação
+- Recorrência de lançamentos
+- Relatórios avançados (por cliente, por processo, mensais)
+- DRE (Demonstrativo de Resultados)
+- Permissões financeiras específicas por cargo/grupo
+- Auditoria/logs financeiros
+- Soft delete/arquivamento de lançamentos (exclusão permanente foi implementada)
+- Exportação Excel/PDF
+- Gráficos
+- Anexos/comprovantes de pagamento
+- Busca textual
+- Filtros avançados por cliente, processo, período e categoria
+- Tratamento de cliente inativo/processo arquivado já vinculado em edição
+- Revisão de UX do formulário e listagem com o sócio
 
 ---
 

@@ -164,22 +164,65 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 
 ---
 
-## Fase 2.5 — Próximo módulo recomendado: Financeiro
+## Fase 2.5 — Financeiro — Concluída em nível básico ✅
 
-**Fase 2.5 — Financeiro** é o próximo bloco operacional natural.
+Todas as funcionalidades do escopo básico de lançamentos foram implementadas, testadas e commitadas:
 
-Após Clientes, Processos, Tarefas e Agenda/Prazos, o escritório já tem os módulos de operação jurídica diária cobertos no nível básico. O próximo passo relevante é o controle financeiro básico:
+✅ Model `LancamentoFinanceiro` estruturado (tipo, status, categoria, forma de pagamento, datas, vínculos)
+✅ Listagem real com 7 filtros (todos, pendentes, pagos, atrasados, receitas, despesas, mês atual)
+✅ Normalização de filtro inválido para `todos`
+✅ 5 cards de resumo (A receber, A pagar, Recebido no mês, Pago no mês, Saldo previsto)
+✅ Criação real (`LancamentoFinanceiroForm` + POST; validação de `data_pagamento` se `status="pago"`)
+✅ Edição real (`LancamentoFinanceiroForm(instance=lancamento)`)
+✅ Auto-fill de cliente a partir do processo
+✅ Responsável selecionável com fallback para `request.user`
+✅ Ação rápida: Marcar como pago (`pendente` → `pago`; `data_pagamento` preenchida automaticamente)
+✅ Ação rápida: Cancelar (`pendente` → `cancelado`)
+✅ Ação rápida: Reabrir (`pago`/`cancelado` → `pendente`; `data_pagamento` limpa)
+✅ Ações rápidas POST-only; GET direto não altera dados
+✅ Exclusão real (`lancamento.delete()` via POST; GET não remove; confirm nativo)
+✅ Redirecionamento seguro com preservação de `next` e `?filtro=`
+✅ Ícone de edição (lápis) e exclusão (lixeira) por card na lista
 
-- Receitas e despesas por processo/cliente
-- Honorários (fixo, por êxito, por hora)
-- Vencimentos e contas a receber/pagar
-- Status de pagamento (pendente, pago, inadimplente)
-- Custo de processo (custas judiciais, perícias, diligências)
+### Pendências futuras de Financeiro (não bloqueantes)
 
-### Sequência recomendada após Fase 2.5
+- **Custas Judiciais** — fluxo real completo; UI ainda usa mocks
+- **Filtros avançados** — por cliente, processo, período, categoria
+- **Busca textual** — por descrição
+- **Relatórios por cliente** — extrato de honorários
+- **Relatórios por processo** — custo total do processo
+- **Relatórios mensais** — visão por competência
+- **Gráficos** — receitas vs. despesas por período
+- **DRE** — Demonstrativo de Resultados do Exercício
+- **Recorrência** — lançamentos mensais automáticos
+- **Anexos/comprovantes** — PDF de comprovante de pagamento
+- **Exportação** — Excel/PDF de extratos
+- **Integração bancária** — importação de extrato OFX
+- **Boletos** — emissão via API bancária
+- **Notas fiscais** — NFS-e, vinculada ao lançamento
+- **Conciliação** — cruzar extrato bancário com lançamentos
+- **Permissões financeiras** — restringir por cargo/grupo
+- **Auditoria/logs** — quem lançou, editou, cancelou e quando
+- **Soft delete/arquivamento** — exclusão permanente foi implementada; arquivamento fica para etapa futura
+- **Revisão de UX** — formulário e listagem com o sócio
 
-1. **Modelos** — templates de peças jurídicas
-2. **Configurações** — usuários e perfis do escritório por tenant
+---
+
+## Fase 2.6 — Próximo módulo recomendado: Dashboard real
+
+**Fase 2.6 — Dashboard real** é o próximo passo lógico.
+
+Com Clientes, Processos, Tarefas, Agenda/Prazos e Financeiro funcionais em nível básico, o Dashboard pode ser alimentado por dados reais de todos os módulos:
+
+- Total de clientes ativos (`Cliente.objects.filter(ativo=True).count()`)
+- Processos ativos (`Processo.objects.exclude(status="arquivado").count()`)
+- Tarefas pendentes (`Tarefa.objects.filter(status__in=["a_fazer","em_andamento"]).count()`)
+- Compromissos próximos (próximos 7 dias com `status="agendado"`)
+- Lançamentos financeiros pendentes (valor total a receber e a pagar)
+- Receitas e despesas do mês atual
+
+### Sequência recomendada após Fase 2.6
+
+1. **Configurações** — usuários e perfis do escritório por tenant
+2. **Modelos** — templates de peças jurídicas
 3. **Chat** — conversas internas por processo ou geral
-
-Cada módulo seguirá o mesmo padrão: listar → criar → editar → arquivar/reativar.
