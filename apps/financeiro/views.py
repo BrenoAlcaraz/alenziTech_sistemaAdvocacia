@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.utils import timezone
@@ -164,6 +164,32 @@ def form_lancamento(request):
     return render(request, "financeiro/form_lancamento.html", {
         "form": form,
         "modo": "novo",
+        "aba_ativa": "lancamentos",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def editar_lancamento(request, pk):
+    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+
+    if request.method == "POST":
+        form = LancamentoFinanceiroForm(request.POST, instance=lancamento)
+        if form.is_valid():
+            lancamento = form.save(commit=False)
+            if not lancamento.responsavel:
+                lancamento.responsavel = request.user
+            if lancamento.processo and not lancamento.cliente:
+                lancamento.cliente = lancamento.processo.cliente
+            lancamento.save()
+            return redirect("financeiro:index")
+    else:
+        form = LancamentoFinanceiroForm(instance=lancamento)
+
+    return render(request, "financeiro/form_lancamento.html", {
+        "form": form,
+        "modo": "editar",
+        "lancamento": lancamento,
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
     })

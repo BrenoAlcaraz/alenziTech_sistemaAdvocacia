@@ -7,5 +7,6 @@ urlpatterns = [
     path("financeiro/", views.index, name="index"),
     path("financeiro/custas/", views.custas, name="custas"),
     path("financeiro/lancamentos/novo/", views.form_lancamento, name="form_lancamento"),
+    path("financeiro/lancamentos/<int:pk>/editar/", views.editar_lancamento, name="editar_lancamento"),
     path("financeiro/custas/nova/", views.form_custa, name="form_custa"),
 ]
