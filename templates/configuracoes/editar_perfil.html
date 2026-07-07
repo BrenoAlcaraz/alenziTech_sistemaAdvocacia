@@ -1,0 +1,48 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Editar perfil — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Editar perfil</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Dados de exibição no sistema</p>
+  </div>
+</div>
+
+<div class="card p-5 max-w-lg">
+
+  {% if form.non_field_errors %}
+    <div class="mb-4 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="mb-4">
+      <label for="{{ form.nome_completo.id_for_label }}" class="label">Nome completo</label>
+      {{ form.nome_completo }}
+      {% if form.nome_completo.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-6">
+      <label for="{{ form.cargo.id_for_label }}" class="label">Cargo</label>
+      {{ form.cargo }}
+      {% if form.cargo.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="btn-primary">Salvar alterações</button>
+      <a href="{% url 'configuracoes:index' %}" class="btn-secondary">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
