@@ -11,15 +11,11 @@
   {# Perfil #}
   <div class="flex items-center gap-3 mb-5 pb-5 border-b border-gray-100">
     <div class="w-12 h-12 rounded-full bg-stone-600 flex items-center justify-center text-white font-semibold text-sm">
-      {% if request.user.perfil.iniciais %}
-        {{ request.user.perfil.iniciais }}
-      {% else %}
-        {{ request.user.username|upper|slice:":2" }}
-      {% endif %}
+      {% if perfil_usuario %}{{ perfil_usuario.iniciais }}{% else %}{{ request.user.username|upper|slice:":2" }}{% endif %}
     </div>
     <div>
       <p class="font-semibold text-gray-900">
-        {% if request.user.perfil.nome_completo %}{{ request.user.perfil.nome_completo }}
+        {% if perfil_usuario and perfil_usuario.nome_completo %}{{ perfil_usuario.nome_completo }}
         {% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}
       </p>
       <p class="text-sm text-gray-400">{{ request.user.username }}</p>
@@ -86,17 +82,21 @@
     {% for u in usuarios %}
       <div class="flex items-center gap-3 py-3">
         <div class="w-10 h-10 rounded-full bg-stone-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-          {{ u.iniciais }}
+          {% if u.perfil %}{{ u.perfil.iniciais }}{% else %}{{ u.username|upper|slice:":2" }}{% endif %}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-900">
-            {{ u.nome }} {% if u.voce %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
+            {% if u.perfil and u.perfil.nome_completo %}{{ u.perfil.nome_completo }}
+            {% else %}{{ u.get_full_name|default:u.username }}{% endif %}
+            {% if u == request.user %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
           </p>
           <p class="text-xs text-gray-400">{{ u.username }}</p>
         </div>
         <div class="flex items-center gap-2">
-          <span class="badge-plano">{{ u.badge }}</span>
-          {% if not u.voce %}
+          {% if u.perfil and u.perfil.cargo %}
+            <span class="badge-plano">{{ u.perfil.cargo }}</span>
+          {% endif %}
+          {% if u != request.user %}
             <button class="text-gray-300 hover:text-red-400 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

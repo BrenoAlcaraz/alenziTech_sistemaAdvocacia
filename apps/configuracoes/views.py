@@ -1,20 +1,22 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-
-# Dados temporários apenas para layout — substituir futuramente por queries reais
-USUARIOS_MOCK = [
-    {"nome": "Dr. João Souza", "username": "joao.souza", "iniciais": "JS", "badge": "Mestre", "voce": True},
-    {"nome": "Dra. Maria Lenzi", "username": "maria.lenzi", "iniciais": "ML", "badge": "Advogado", "voce": False},
-    {"nome": "Lucas Martins", "username": "lucas.martins", "iniciais": "LM", "badge": "Funcionário", "voce": False},
-]
+from django.contrib.auth.models import User
 
 
 @login_required
 def index(request):
-    # Futuramente: listar usuários reais, exibir dados reais do plano e do escritório
+    perfil_usuario = getattr(request.user, 'perfil', None)
+
+    usuarios = User.objects.filter(is_active=True).select_related("perfil").order_by(
+        "first_name", "last_name", "username"
+    )
+    usuarios_ativos = usuarios.count()
+
     return render(request, "configuracoes/index.html", {
-        "usuarios": USUARIOS_MOCK,
-        "plano_nome": "Plano Profissional",
-        "usuarios_ativos": 6,
-        "limite_usuarios": 10, "item_ativo": "configuracoes",
+        "perfil_usuario": perfil_usuario,
+        "usuarios": usuarios,
+        "plano_nome": "Mestre",
+        "usuarios_ativos": usuarios_ativos,
+        "limite_usuarios": 10,
+        "item_ativo": "configuracoes",
     })
