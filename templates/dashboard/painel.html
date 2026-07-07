@@ -21,7 +21,7 @@
 <div class="grid grid-cols-2 gap-3 mb-8">
 
   {# Clientes ativos #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'clientes:lista' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -31,10 +31,10 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.clientes_ativos }}</p>
       <p class="text-sm text-gray-500">Clientes ativos</p>
     </div>
-  </div>
+  </a>
 
   {# Processos ativos #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'processos:lista' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
@@ -44,10 +44,10 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.processos_ativos }}</p>
       <p class="text-sm text-gray-500">Processos ativos</p>
     </div>
-  </div>
+  </a>
 
   {# Tarefas pendentes #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'tarefas:quadro' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -57,10 +57,10 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.tarefas_pendentes }}</p>
       <p class="text-sm text-gray-500">Tarefas pendentes</p>
     </div>
-  </div>
+  </a>
 
   {# Compromissos próximos #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'agenda:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -70,10 +70,10 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.compromissos_proximos }}</p>
       <p class="text-sm text-gray-500">Compromissos próximos</p>
     </div>
-  </div>
+  </a>
 
   {# A receber #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'financeiro:index' %}?filtro=receitas" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -83,10 +83,10 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.a_receber }}</p>
       <p class="text-sm text-gray-500">A receber</p>
     </div>
-  </div>
+  </a>
 
   {# A pagar #}
-  <div class="card p-5 flex items-center gap-4">
+  <a href="{% url 'financeiro:index' %}?filtro=despesas" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
@@ -96,7 +96,7 @@
       <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
       <p class="text-sm text-gray-500">A pagar</p>
     </div>
-  </div>
+  </a>
 
 </div>
 
