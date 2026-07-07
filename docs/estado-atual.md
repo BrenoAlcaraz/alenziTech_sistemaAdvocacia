@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-04 (Fase 2.5 — Financeiro concluída em nível básico)
+Última atualização: 2026-07-07 (Fase 2.6 — Dashboard real concluído em nível básico)
 
 ## Stack instalada e configurada
 
@@ -29,7 +29,7 @@
 | App | Descrição | Status |
 |-----|-----------|--------|
 | `accounts` | PerfilUsuario, signal de criação automática | ✅ Estruturado |
-| `dashboard` | Painel principal | mock |
+| `dashboard` | Painel principal | ✅ **Básico operacional (dados reais)** |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
 | `tarefas` | Gestão de tarefas — quadro kanban | ✅ **Básico operacional completo** |
@@ -257,6 +257,47 @@ Não implementado nesta fase (não bloqueante):
 - Filtros avançados por cliente, processo, período e categoria
 - Tratamento de cliente inativo/processo arquivado já vinculado em edição
 - Revisão de UX do formulário e listagem com o sócio
+
+## Módulo Dashboard — funcional em nível básico (Fase 2.6 concluída)
+
+Dashboard sem model próprio — consome dados reais dos módulos já funcionais:
+
+| Funcionalidade | Implementação |
+|---|---|
+| Sem model próprio | Dashboard lê dados de outros apps; sem migrations |
+| Card: Clientes ativos | `Cliente.objects.filter(ativo=True).count()` |
+| Card: Processos ativos | `Processo.objects.filter(status="ativo").count()` |
+| Card: Tarefas pendentes | `Tarefa.objects.exclude(status="concluida").count()` |
+| Card: Compromissos próximos | `status="agendado"`, `data_hora_inicio__date` entre hoje e hoje+7 |
+| Card: A receber | `Sum("valor")` onde `tipo="receita"` e `status="pendente"` |
+| Card: A pagar | `Sum("valor")` onde `tipo="despesa"` e `status="pendente"` |
+| Formatação de moeda | helper `_formatar_moeda` na view (R$ 1.234,56) |
+| Cards clicáveis | cada card navega para o módulo correspondente |
+| Card A receber → link | `financeiro/?filtro=receitas` |
+| Card A pagar → link | `financeiro/?filtro=despesas` |
+| Hover nos cards | `hover:shadow-md transition-shadow duration-150` |
+| Lista: Tarefas pendentes | `exclude(status="concluida")`, ordenado por prazo, até 5 itens |
+| Lista: Agenda próxima | `status="agendado"`, `data_hora_inicio__date` hoje a hoje+7, até 5 itens |
+| Lista: Financeiro pendente | `status="pendente"`, ordenado por `data_vencimento`, até 5 itens |
+| Agenda próxima — regra de data | usa `__date__gte=hoje` (não `__gte=agora`) — consistente com card e com Agenda |
+| Links inferiores | "Ver todas" → tarefas, "Ver agenda" → agenda, "Ver financeiro" → financeiro pendente |
+| Mocks removidos | `RESUMO_MOCK` e `CASOS_MOCK` completamente eliminados |
+| `plano_nome` | hardcoded `"Mestre"` — billing/SaaS ainda não implementado |
+
+Não implementado nesta fase (não bloqueante):
+
+- Gráficos de receitas/despesas ou de carga de trabalho
+- Filtros internos no Dashboard por período, responsável ou área
+- Links individuais em cada item das listas (tarefa → detalhe, etc.)
+- Processos com prazo próximo na lista do Dashboard
+- Calendário embutido
+- Relatórios avançados
+- Indicadores por responsável, por área do direito ou por cliente
+- Alertas inteligentes (tarefas vencidas, compromissos do dia, financeiro vencido)
+- Widgets configuráveis por usuário
+- Plano real vindo do billing/SaaS (exibe badge fixo "Mestre")
+- Permissões específicas por perfil no Dashboard
+- Auditoria/logs de acesso ao painel
 
 ---
 

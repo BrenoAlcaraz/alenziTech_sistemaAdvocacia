@@ -208,21 +208,56 @@ Todas as funcionalidades do escopo básico de lançamentos foram implementadas, 
 
 ---
 
-## Fase 2.6 — Próximo módulo recomendado: Dashboard real
+## Fase 2.6 — Dashboard real — Concluída em nível básico ✅
 
-**Fase 2.6 — Dashboard real** é o próximo passo lógico.
+Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-Com Clientes, Processos, Tarefas, Agenda/Prazos e Financeiro funcionais em nível básico, o Dashboard pode ser alimentado por dados reais de todos os módulos:
+✅ Cards reais: Clientes ativos, Processos ativos, Tarefas pendentes, Compromissos próximos, A receber, A pagar
+✅ Formatação de moeda brasileira nos cards financeiros
+✅ Cards superiores clicáveis como atalhos para os módulos correspondentes
+✅ Hover visual discreto nos cards (`hover:shadow-md transition-shadow`)
+✅ Lista real: Tarefas pendentes (até 5, ordenadas por prazo)
+✅ Lista real: Agenda próxima (até 5, próximos 7 dias por data)
+✅ Lista real: Financeiro pendente (até 5, ordenadas por data de vencimento)
+✅ Agenda próxima usa regra por data (`__date__gte=hoje`), consistente com card e com Agenda
+✅ Links inferiores: "Ver todas", "Ver agenda", "Ver financeiro"
+✅ `RESUMO_MOCK` e `CASOS_MOCK` completamente removidos
+✅ Diagnóstico e correção de inconsistência entre card e lista da Agenda
 
-- Total de clientes ativos (`Cliente.objects.filter(ativo=True).count()`)
-- Processos ativos (`Processo.objects.exclude(status="arquivado").count()`)
-- Tarefas pendentes (`Tarefa.objects.filter(status__in=["a_fazer","em_andamento"]).count()`)
-- Compromissos próximos (próximos 7 dias com `status="agendado"`)
-- Lançamentos financeiros pendentes (valor total a receber e a pagar)
-- Receitas e despesas do mês atual
+### Pendências futuras de Dashboard (não bloqueantes)
 
-### Sequência recomendada após Fase 2.6
+- **Processos com prazo próximo** — lista do Dashboard; field `prazo_proximo` existe no model
+- **Links individuais nos itens das listas** — tarefa → detalhe, compromisso → edição, lançamento → edição
+- **Gráficos simples** — receitas vs. despesas por período, carga de tarefas
+- **Filtros por período** — dashboard customizável por semana/mês
+- **Indicadores por responsável** — quantas tarefas/processos por usuário
+- **Indicadores por cliente** — processos, lançamentos pendentes por cliente
+- **Indicadores por área do direito** — distribuição de processos por área
+- **Indicadores financeiros mais completos** — DRE, saldo previsto, mês a mês
+- **Alertas de tarefas vencidas** — badge ou banner se há tarefas com prazo vencido
+- **Alertas de compromissos do dia** — destaque para eventos de hoje
+- **Alertas de financeiro vencido** — badge se há lançamentos atrasados
+- **Widgets configuráveis** — cada usuário escolhe o que exibir
+- **Plano real vindo do billing** — `plano_nome` hardcoded, substituir por `Assinatura` real
+- **Revisão visual com o sócio**
 
-1. **Configurações** — usuários e perfis do escritório por tenant
-2. **Modelos** — templates de peças jurídicas
-3. **Chat** — conversas internas por processo ou geral
+---
+
+## Fase 2.7 — Próximo módulo recomendado: Configurações/Perfil
+
+**Fase 2.7 — Configurações** é o próximo passo lógico.
+
+Com Clientes, Processos, Tarefas, Agenda/Prazos, Financeiro e Dashboard funcionais em nível básico, o próximo passo é organizar a estrutura administrativa do escritório:
+
+- **Dados do escritório** — nome, logo, endereço, contatos (por tenant)
+- **Usuários do escritório** — listar, convidar, ativar/desativar usuários do tenant
+- **Perfil do usuário** — nome, cargo, avatar, e-mail
+- **Grupos/cargos** — sócio, advogado, estagiário, administrativo
+- **Permissões iniciais** — restrições básicas por grupo (visualizar, criar, editar, excluir)
+- **Ajustes gerais do sistema** — fuso horário, formato de data, preferências
+- **Base para controle de acesso futuro** — estrutura que permita proteger views por cargo
+
+### Sequência recomendada após Fase 2.7
+
+1. **Modelos** — templates de peças jurídicas
+2. **Chat** — conversas internas por processo ou geral
