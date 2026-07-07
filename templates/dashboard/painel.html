@@ -100,34 +100,112 @@
 
 </div>
 
-{# ── Lista de casos — dados temporários apenas para layout ────────────────── #}
-<div class="flex flex-col gap-3">
-  {% for caso in casos %}
-    <div class="card px-5 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3 min-w-0">
-        <span class="badge-area flex-shrink-0">{{ caso.area }}</span>
-        <div class="min-w-0">
-          <p class="font-medium text-gray-900 truncate">{{ caso.titulo }}</p>
-          <p class="text-xs text-gray-400">{{ caso.numero }}</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-        {% if caso.adm_count > 0 %}
-          <span class="text-xs text-gray-500 flex items-center gap-1">
-            <svg class="w-3.5 h-3.5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            {{ caso.adm_count }} adm.
-          </span>
-        {% endif %}
-        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      </div>
+{# ── Listas reais — tarefas, agenda, financeiro ───────────────────────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+  {# Bloco 1 — Tarefas pendentes #}
+  <div class="card p-4 flex flex-col gap-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-gray-700">Tarefas pendentes</h2>
+      <a href="{% url 'tarefas:quadro' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver todas →</a>
     </div>
-  {% empty %}
-    {% include "components/empty_state.html" with mensagem="Nenhum caso disponível." %}
-  {% endfor %}
+    <div class="flex flex-col">
+      {% for t in tarefas_dashboard %}
+        <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900 truncate">{{ t.titulo }}</p>
+            {% if t.prazo_urgente %}
+              <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{{ t.prazo_label }}</span>
+            {% elif t.prazo %}
+              <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ t.prazo_label }}</span>
+            {% else %}
+              <span class="flex-shrink-0 text-xs text-gray-400">sem prazo</span>
+            {% endif %}
+          </div>
+          {% if t.cliente %}
+            <p class="text-xs text-gray-400 truncate">{{ t.cliente.nome_razao_social }}</p>
+          {% elif t.processo %}
+            <p class="text-xs text-gray-400 truncate">{{ t.processo.titulo }}</p>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-sm text-gray-400 py-2">Nenhuma tarefa pendente.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Bloco 2 — Agenda próxima #}
+  <div class="card p-4 flex flex-col gap-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-gray-700">Agenda próxima</h2>
+      <a href="{% url 'agenda:index' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver agenda →</a>
+    </div>
+    <div class="flex flex-col">
+      {% for c in compromissos_dashboard %}
+        <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900 truncate">{{ c.titulo }}</p>
+            <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ c.get_tipo_display }}</span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            {% if c.dia_inteiro %}
+              <p class="text-xs text-gray-400">{{ c.data_hora_inicio|date:"d/m/Y" }} — Dia inteiro</p>
+            {% else %}
+              <p class="text-xs text-gray-400">{{ c.data_hora_inicio|date:"d/m/Y H:i" }}</p>
+            {% endif %}
+            {% if c.cliente %}
+              <span class="text-xs text-gray-300">·</span>
+              <p class="text-xs text-gray-400 truncate">{{ c.cliente.nome_razao_social }}</p>
+            {% elif c.processo %}
+              <span class="text-xs text-gray-300">·</span>
+              <p class="text-xs text-gray-400 truncate">{{ c.processo.titulo }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-sm text-gray-400 py-2">Nenhum compromisso agendado.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Bloco 3 — Financeiro pendente #}
+  <div class="card p-4 flex flex-col gap-3">
+    <div class="flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-gray-700">Financeiro pendente</h2>
+      <a href="{% url 'financeiro:index' %}?filtro=pendentes" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver financeiro →</a>
+    </div>
+    <div class="flex flex-col">
+      {% for l in financeiro_dashboard %}
+        <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900 truncate">{{ l.descricao }}</p>
+            {% if l.atrasado %}
+              <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Atrasado</span>
+            {% elif l.tipo == "receita" %}
+              <span class="flex-shrink-0 text-xs text-juridico-verde">{{ l.get_tipo_display }}</span>
+            {% else %}
+              <span class="flex-shrink-0 text-xs text-red-500">{{ l.get_tipo_display }}</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <p class="text-xs font-medium text-gray-600">R$ {{ l.valor|floatformat:2 }}</p>
+            <span class="text-xs text-gray-300">·</span>
+            <p class="text-xs text-gray-400">{{ l.data_vencimento|date:"d/m/Y" }}</p>
+            {% if l.cliente %}
+              <span class="text-xs text-gray-300">·</span>
+              <p class="text-xs text-gray-400 truncate">{{ l.cliente.nome_razao_social }}</p>
+            {% elif l.processo %}
+              <span class="text-xs text-gray-300">·</span>
+              <p class="text-xs text-gray-400 truncate">{{ l.processo.titulo }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-sm text-gray-400 py-2">Nenhum lançamento pendente.</p>
+      {% endfor %}
+    </div>
+  </div>
+
 </div>
 
 {% endblock %}
