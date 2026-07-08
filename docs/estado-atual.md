@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-07 (Fase 2.6 — Dashboard real concluído em nível básico)
+Última atualização: 2026-07-08 (Fase 2.7 — Configurações/Perfil concluído em nível básico)
 
 ## Stack instalada e configurada
 
@@ -38,7 +38,7 @@
 | `chat` | Conversas internas | mock |
 | `modelos` | Modelos de peças jurídicas | mock |
 | `laboratorio` | Laboratório Jurídico — placeholder IA | mock |
-| `configuracoes` | Usuários do escritório | mock |
+| `configuracoes` | Usuários, perfil, dados do escritório | ✅ **Básico operacional** |
 
 ## Status do banco de dados
 
@@ -301,6 +301,41 @@ Não implementado nesta fase (não bloqueante):
 
 ---
 
+## Módulo Configurações — funcional em nível básico (Fase 2.7 concluída)
+
+| Funcionalidade | Implementação |
+|---|---|
+| Listagem real de usuários | `User.objects.filter(is_active=True).select_related("perfil")` |
+| Contador real de usuários ativos | `usuarios.count()` |
+| Proteção contra perfil inexistente | `getattr(request.user, "perfil", None)` |
+| Edição de perfil — nome completo | `PerfilUsuarioForm` + `PerfilUsuario.objects.get_or_create(user=request.user)` |
+| Edição de perfil — cargo | campo descritivo, sem controle de permissão |
+| Model `ConfiguracaoEscritorio` | tenant-specific, sem FK para `Escritorio` público |
+| Migration `configuracoes.0001_initial` | aplicada em todos os schemas |
+| Admin do escritório | `ConfiguracaoEscritorioAdmin` com `list_display`, `search_fields`, `readonly_fields` |
+| Edição de dados do escritório | tela `/configuracoes/escritorio/` com `ConfiguracaoEscritorioForm` |
+| Singleton por tenant | `ConfiguracaoEscritorio.objects.get_or_create(pk=1)` |
+| Card "Dados do escritório" | exibe nome, email, telefone, site; empty state quando vazio |
+| Campo `site` com UX melhorada | `forms.CharField` + `clean_site()` normaliza `google.com` → `https://google.com` |
+| `plano_nome` | hardcoded `"Mestre"` — billing/SaaS ainda não implementado |
+| `limite_usuarios` | hardcoded `10` — billing/SaaS ainda não implementado |
+
+Não implementado nesta fase (não bloqueante):
+
+- Permissões reais com `auth.Group` / `Permission`
+- Criação/convite de usuários
+- Alteração de senha
+- Edição de e-mail
+- Avatar do usuário (`ImageField` — aguarda definição de media em produção)
+- Logo do escritório (mesma razão do avatar)
+- Validação/máscara de CNPJ e telefone
+- Limite real de usuários via billing
+- Auditoria/logs de ações em Configurações
+- Controle de acesso por cargo/perfil nos demais módulos
+- Dados fiscais mais completos (IE, regime tributário, etc.)
+
+---
+
 ## Templates
 
 - ✅ Todas as páginas existem e são navegáveis
@@ -314,9 +349,10 @@ Não implementado nesta fase (não bloqueante):
 
 - `manage.py check`: ✅ 0 erros
 - Conexão com PostgreSQL: ✅ OK
-- Migrations: ✅ OK (incluindo `0002_cliente_ativo`)
+- Migrations: ✅ OK (incluindo `configuracoes.0001_initial`)
 - `migrate_schemas`: ✅ aplicado em todos os schemas de tenants
 - Multi-tenancy: ✅ Schemas isolados confirmados
 - Visual/UX: ✅ Navegação básica e layout validados
 - Login: ✅ Funcionando em schema demo
 - CRUD Clientes: ✅ Validado no navegador (criação, edição, detalhe, desativação, reativação)
+- Configurações: ✅ Usuários reais, edição de perfil e dados do escritório validados no navegador

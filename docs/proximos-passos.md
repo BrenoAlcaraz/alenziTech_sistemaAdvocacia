@@ -243,21 +243,52 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 
 ---
 
-## Fase 2.7 — Próximo módulo recomendado: Configurações/Perfil
+## Fase 2.7 — Configurações/Perfil — Concluída em nível básico ✅
 
-**Fase 2.7 — Configurações** é o próximo passo lógico.
+Todas as funcionalidades do escopo básico foram implementadas, testadas no navegador e commitadas:
 
-Com Clientes, Processos, Tarefas, Agenda/Prazos, Financeiro e Dashboard funcionais em nível básico, o próximo passo é organizar a estrutura administrativa do escritório:
+✅ Listagem real de usuários do tenant (mocks removidos)  
+✅ Contador real de usuários ativos  
+✅ Proteção contra `PerfilUsuario` inexistente  
+✅ Edição de perfil do usuário logado (`nome_completo`, `cargo`)  
+✅ `PerfilUsuario.objects.get_or_create(user=request.user)` garante perfil sempre existente  
+✅ Model `ConfiguracaoEscritorio` tenant-specific (sem FK para `Escritorio` público)  
+✅ Migration `configuracoes.0001_initial` aplicada em todos os schemas  
+✅ Admin de `ConfiguracaoEscritorio` registrado  
+✅ Edição de dados do escritório (`nome_escritorio`, `nome_fantasia`, `cnpj`, `email`, `telefone`, `endereco`, `site`, `observacoes`)  
+✅ Singleton por tenant via `get_or_create(pk=1)`  
+✅ Card "Dados do escritório" em `/configuracoes/` com empty state  
+✅ Campo `site` aceita `google.com` e normaliza para `https://google.com`  
 
-- **Dados do escritório** — nome, logo, endereço, contatos (por tenant)
-- **Usuários do escritório** — listar, convidar, ativar/desativar usuários do tenant
-- **Perfil do usuário** — nome, cargo, avatar, e-mail
-- **Grupos/cargos** — sócio, advogado, estagiário, administrativo
-- **Permissões iniciais** — restrições básicas por grupo (visualizar, criar, editar, excluir)
-- **Ajustes gerais do sistema** — fuso horário, formato de data, preferências
-- **Base para controle de acesso futuro** — estrutura que permita proteger views por cargo
+### Pendências futuras de Configurações (não bloqueantes)
 
-### Sequência recomendada após Fase 2.7
+- Permissões reais com `auth.Group` e `Permission`
+- Criação/convite de usuários
+- Alteração de senha
+- Edição de e-mail
+- Avatar do usuário
+- Logo do escritório
+- Validação/máscara de CNPJ e telefone
+- Limite real de usuários via billing
+- Auditoria/logs de ações
+- Controle de acesso por cargo nos módulos
+
+---
+
+## Fase 2.8 — Próximo módulo recomendado: Permissões iniciais e controle de acesso
+
+**Fase 2.8 — Permissões básicas** é o próximo passo lógico.
+
+Com Configurações funcionais em nível básico, o próximo passo é começar a restringir acesso por perfil/cargo:
+
+- Usar `auth.Group` para categorizar usuários (sócio, advogado, estagiário, administrativo)
+- Proteger views sensíveis por grupo (ex.: excluir clientes, acessar financeiro)
+- Decorator ou mixin customizado para verificar grupo do usuário
+- Base estrutural que permita escalar permissões em todos os módulos
+
+**Importante:** iniciar com diagnóstico completo antes de implementar.
+
+### Sequência recomendada após Fase 2.8
 
 1. **Modelos** — templates de peças jurídicas
 2. **Chat** — conversas internas por processo ou geral
