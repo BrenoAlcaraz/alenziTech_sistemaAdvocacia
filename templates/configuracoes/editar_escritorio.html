@@ -1,0 +1,96 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Dados do escritório — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Dados do escritório</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Atualize as informações básicas exibidas no sistema.</p>
+  </div>
+</div>
+
+<div class="card p-5 max-w-lg">
+
+  {% if form.non_field_errors %}
+    <div class="mb-4 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="mb-4">
+      <label for="{{ form.nome_escritorio.id_for_label }}" class="label">Nome do escritório</label>
+      {{ form.nome_escritorio }}
+      {% if form.nome_escritorio.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.nome_escritorio.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.nome_fantasia.id_for_label }}" class="label">Nome fantasia</label>
+      {{ form.nome_fantasia }}
+      {% if form.nome_fantasia.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.nome_fantasia.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.cnpj.id_for_label }}" class="label">CNPJ</label>
+      {{ form.cnpj }}
+      {% if form.cnpj.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.cnpj.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.email.id_for_label }}" class="label">E-mail</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.telefone.id_for_label }}" class="label">Telefone</label>
+      {{ form.telefone }}
+      {% if form.telefone.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.telefone.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.endereco.id_for_label }}" class="label">Endereço</label>
+      {{ form.endereco }}
+      {% if form.endereco.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.endereco.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.site.id_for_label }}" class="label">Site</label>
+      {{ form.site }}
+      {% if form.site.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.site.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-6">
+      <label for="{{ form.observacoes.id_for_label }}" class="label">Observações</label>
+      {{ form.observacoes }}
+      {% if form.observacoes.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.observacoes.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="btn-primary">Salvar alterações</button>
+      <a href="{% url 'configuracoes:index' %}" class="btn-secondary">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

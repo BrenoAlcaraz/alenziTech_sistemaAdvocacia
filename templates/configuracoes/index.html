@@ -113,4 +113,52 @@
     {% endfor %}
   </div>
 </div>
+
+{# Card de dados do escritório #}
+<div class="card p-5 mt-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-gray-700">Dados do escritório</h2>
+    <a href="{% url 'configuracoes:editar_escritorio' %}" class="btn-secondary text-sm flex-shrink-0">
+      Editar dados do escritório
+    </a>
+  </div>
+
+  {% if configuracao_escritorio.nome_escritorio or configuracao_escritorio.email or configuracao_escritorio.telefone %}
+    <dl class="flex flex-col gap-2">
+      {% if configuracao_escritorio.nome_escritorio %}
+        <div class="flex gap-2">
+          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Nome</dt>
+          <dd class="text-sm text-gray-700">{{ configuracao_escritorio.nome_escritorio }}</dd>
+        </div>
+      {% endif %}
+      {% if configuracao_escritorio.nome_fantasia %}
+        <div class="flex gap-2">
+          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Nome fantasia</dt>
+          <dd class="text-sm text-gray-700">{{ configuracao_escritorio.nome_fantasia }}</dd>
+        </div>
+      {% endif %}
+      {% if configuracao_escritorio.email %}
+        <div class="flex gap-2">
+          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">E-mail</dt>
+          <dd class="text-sm text-gray-700">{{ configuracao_escritorio.email }}</dd>
+        </div>
+      {% endif %}
+      {% if configuracao_escritorio.telefone %}
+        <div class="flex gap-2">
+          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Telefone</dt>
+          <dd class="text-sm text-gray-700">{{ configuracao_escritorio.telefone }}</dd>
+        </div>
+      {% endif %}
+      {% if configuracao_escritorio.site %}
+        <div class="flex gap-2">
+          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Site</dt>
+          <dd class="text-sm text-gray-700">{{ configuracao_escritorio.site }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+  {% else %}
+    <p class="text-sm text-gray-400">Dados do escritório ainda não preenchidos.</p>
+  {% endif %}
+</div>
+
 {% endblock %}
