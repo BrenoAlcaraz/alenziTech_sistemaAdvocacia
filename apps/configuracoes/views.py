@@ -6,6 +6,7 @@ from apps.accounts.decorators import (
     nome_legivel_grupo,
     obter_papel_principal_usuario,
     requer_admin_escritorio,
+    usuario_admin_escritorio,
 )
 from apps.accounts.forms import CriarUsuarioEscritorioForm, PerfilUsuarioForm
 from apps.accounts.models import PerfilUsuario
@@ -40,6 +41,7 @@ def index(request):
         })
 
     configuracao_escritorio = _obter_configuracao_escritorio()
+    usuario_e_admin_escritorio = usuario_admin_escritorio(request.user)
 
     return render(request, "configuracoes/index.html", {
         "perfil_usuario": perfil_usuario,
@@ -48,6 +50,7 @@ def index(request):
         "usuarios_ativos": usuarios_ativos,
         "limite_usuarios": 10,
         "configuracao_escritorio": configuracao_escritorio,
+        "usuario_e_admin_escritorio": usuario_e_admin_escritorio,
         "item_ativo": "configuracoes",
     })
 
