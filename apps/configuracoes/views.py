@@ -2,8 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
+from apps.accounts.decorators import requer_admin_escritorio
+from apps.accounts.forms import CriarUsuarioEscritorioForm, PerfilUsuarioForm
 from apps.accounts.models import PerfilUsuario
-from apps.accounts.forms import PerfilUsuarioForm
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -57,7 +58,27 @@ def editar_perfil(request):
     )
 
 
-@login_required
+@requer_admin_escritorio
+def novo_usuario(request):
+    if request.method == "POST":
+        form = CriarUsuarioEscritorioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracoes:index")
+    else:
+        form = CriarUsuarioEscritorioForm()
+
+    return render(
+        request,
+        "configuracoes/novo_usuario.html",
+        {
+            "form": form,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@requer_admin_escritorio
 def editar_escritorio(request):
     configuracao = _obter_configuracao_escritorio()
 

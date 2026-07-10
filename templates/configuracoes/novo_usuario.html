@@ -1,0 +1,123 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Novo usuário — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Novo usuário</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Crie uma conta para alguém do escritório.</p>
+  </div>
+</div>
+
+<div class="card p-5 max-w-lg">
+
+  {% if form.non_field_errors %}
+    <div class="mb-4 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="mb-4">
+      <label for="{{ form.username.id_for_label }}" class="label">Nome de usuário</label>
+      {{ form.username }}
+      {% if form.username.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.email.id_for_label }}" class="label">E-mail</label>
+      {{ form.email }}
+      {% if form.email.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.nome_completo.id_for_label }}" class="label">Nome completo</label>
+      {{ form.nome_completo }}
+      {% if form.nome_completo.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.cargo.id_for_label }}" class="label">Cargo <span class="text-gray-400 font-normal">(descritivo)</span></label>
+      {{ form.cargo }}
+      {% if form.cargo.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.grupo.id_for_label }}" class="label">Papel no escritório</label>
+      {{ form.grupo }}
+      {% if form.grupo.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.grupo.errors.0 }}</p>
+      {% endif %}
+      <p class="mt-1 text-xs text-gray-400">
+        A criação comum permite apenas Gerente, Advogado ou Financeiro.
+        Administradores do Escritório devem ser definidos por fluxo administrativo separado.
+      </p>
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.password1.id_for_label }}" class="label">Senha inicial</label>
+      {{ form.password1 }}
+      {% if form.password1.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.password2.id_for_label }}" class="label">Confirme a senha</label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <div class="mb-6 flex flex-col gap-2">
+      <button type="button" id="btn-toggle-senha" class="text-xs text-gray-500 hover:text-gray-700 self-start underline underline-offset-2">
+        Mostrar senha
+      </button>
+      <p class="text-xs text-gray-400">
+        Use uma senha segura. Evite usar nome, username ou informações óbvias.
+        Prefira uma combinação de letras maiúsculas, minúsculas, números e caracteres especiais.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" class="btn-primary">Criar usuário</button>
+      <a href="{% url 'configuracoes:index' %}" class="btn-secondary">Cancelar</a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var btn = document.getElementById('btn-toggle-senha');
+    var campos = [
+      document.getElementById('{{ form.password1.id_for_label }}'),
+      document.getElementById('{{ form.password2.id_for_label }}'),
+    ];
+    var visivel = false;
+
+    btn.addEventListener('click', function () {
+      visivel = !visivel;
+      campos.forEach(function (campo) {
+        if (campo) campo.type = visivel ? 'text' : 'password';
+      });
+      btn.textContent = visivel ? 'Ocultar senha' : 'Mostrar senha';
+    });
+  })();
+</script>
+{% endblock %}
