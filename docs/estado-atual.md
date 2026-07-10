@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-08 (Fase 2.7 — Configurações/Perfil concluído em nível básico)
+Última atualização: 2026-07-10 (Fase 2.8 — Permissões iniciais concluída em nível básico)
 
 ## Stack instalada e configurada
 
@@ -28,7 +28,7 @@
 
 | App | Descrição | Status |
 |-----|-----------|--------|
-| `accounts` | PerfilUsuario, signal de criação automática | ✅ Estruturado |
+| `accounts` | PerfilUsuario, signal de criação automática, helpers de permissão, grupos padrão | ✅ **Permissões básicas** |
 | `dashboard` | Painel principal | ✅ **Básico operacional (dados reais)** |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
@@ -38,7 +38,7 @@
 | `chat` | Conversas internas | mock |
 | `modelos` | Modelos de peças jurídicas | mock |
 | `laboratorio` | Laboratório Jurídico — placeholder IA | mock |
-| `configuracoes` | Usuários, perfil, dados do escritório | ✅ **Básico operacional** |
+| `configuracoes` | Usuários, perfil, dados do escritório, criação de usuários, papéis | ✅ **Permissões básicas** |
 
 ## Status do banco de dados
 
@@ -336,6 +336,41 @@ Não implementado nesta fase (não bloqueante):
 
 ---
 
+## Permissões iniciais e controle de acesso — Fase 2.8 concluída
+
+| Funcionalidade | Implementação |
+|---|---|
+| Grupos padrão via migration | `accounts.0002_criar_grupos_padroes` com `get_or_create` idempotente |
+| Grupos criados | `administrador_escritorio`, `gerente`, `advogado`, `financeiro` via `auth.Group` |
+| Helpers de permissão | `apps/accounts/decorators.py` |
+| `usuario_admin_escritorio(user)` | is_superuser / is_admin_escritorio / grupo — três caminhos independentes |
+| `requer_admin_escritorio` | decorator para proteger views administrativas |
+| `obter_papel_principal_usuario(user)` | retorna primeiro grupo padrão do usuário |
+| `nome_legivel_grupo(nome)` | slug → nome humanizado |
+| Criação de usuários pelo admin | `/configuracoes/usuarios/novo/` protegida por `@requer_admin_escritorio` |
+| Papéis disponíveis na criação | apenas `gerente`, `advogado`, `financeiro` — não cria outro admin |
+| Usuário criado com segurança | `is_staff=False`, `is_superuser=False`, `PerfilUsuario` criado automaticamente |
+| Validação de email único | `User.objects.filter(email__iexact=email).exists()` |
+| Papel real exibido na lista | nome humanizado baseado em `auth.Group` via `usuarios_contexto` |
+| Botão "Novo usuário" condicional | visível apenas para admins (`usuario_e_admin_escritorio`) |
+| Botão "Editar dados do escritório" condicional | visível apenas para admins |
+| Proteção backend de `/configuracoes/escritorio/` | `@requer_admin_escritorio` |
+| `/configuracoes/` mantido para todos | `@login_required` — não bloqueado inteiro |
+| Edição de perfil mantida para todos | `@login_required` |
+
+Não implementado nesta fase (não bloqueante):
+
+- Bloqueio por papel nos módulos operacionais (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard)
+- `auth.Permission` granular por model/ação
+- Edição do papel de usuário existente
+- Exclusão/desativação de usuários pela interface
+- Redefinição de senha pela interface
+- Convite por e-mail / confirmação real de e-mail
+- Departamentos e escopo de dados
+- Auditoria de ações administrativas
+
+---
+
 ## Templates
 
 - ✅ Todas as páginas existem e são navegáveis
@@ -349,10 +384,11 @@ Não implementado nesta fase (não bloqueante):
 
 - `manage.py check`: ✅ 0 erros
 - Conexão com PostgreSQL: ✅ OK
-- Migrations: ✅ OK (incluindo `configuracoes.0001_initial`)
+- Migrations: ✅ OK (incluindo `configuracoes.0001_initial`, `accounts.0002_criar_grupos_padroes`)
 - `migrate_schemas`: ✅ aplicado em todos os schemas de tenants
 - Multi-tenancy: ✅ Schemas isolados confirmados
 - Visual/UX: ✅ Navegação básica e layout validados
 - Login: ✅ Funcionando em schema demo
 - CRUD Clientes: ✅ Validado no navegador (criação, edição, detalhe, desativação, reativação)
 - Configurações: ✅ Usuários reais, edição de perfil e dados do escritório validados no navegador
+- Permissões: ✅ Grupos criados, admin inicial formalizado, criação de usuário pelo admin validada no navegador

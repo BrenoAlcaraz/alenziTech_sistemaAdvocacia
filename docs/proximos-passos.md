@@ -275,20 +275,60 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas no nave
 
 ---
 
-## Fase 2.8 — Próximo módulo recomendado: Permissões iniciais e controle de acesso
+## Fase 2.8 — Permissões iniciais e controle de acesso — Concluída ✅
 
-**Fase 2.8 — Permissões básicas** é o próximo passo lógico.
+Todas as funcionalidades do escopo básico foram implementadas, testadas no navegador e commitadas:
 
-Com Configurações funcionais em nível básico, o próximo passo é começar a restringir acesso por perfil/cargo:
+✅ Migration `accounts.0002_criar_grupos_padroes` — grupos criados de forma idempotente  
+✅ `apps/accounts/decorators.py` — helpers e constantes de permissão  
+✅ `usuario_admin_escritorio(user)` — três caminhos: is_superuser / is_admin_escritorio / grupo  
+✅ `requer_admin_escritorio` — decorator aplicado em views administrativas  
+✅ Administrador inicial do tenant `demo` formalizado (is_admin_escritorio + grupo)  
+✅ `/configuracoes/usuarios/novo/` — criação de usuários pelo Administrador do Escritório  
+✅ Papéis exibidos na lista de usuários com nome humanizado  
+✅ Botões administrativos ocultos para não-admins  
+✅ `/configuracoes/escritorio/` protegida no backend  
+✅ `/configuracoes/` e edição de perfil mantidos acessíveis para todos os usuários logados  
 
-- Usar `auth.Group` para categorizar usuários (sócio, advogado, estagiário, administrativo)
-- Proteger views sensíveis por grupo (ex.: excluir clientes, acessar financeiro)
-- Decorator ou mixin customizado para verificar grupo do usuário
-- Base estrutural que permita escalar permissões em todos os módulos
+### Pendências futuras de Permissões (não bloqueantes)
+
+- Bloqueio por papel nos módulos operacionais (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard)
+- `auth.Permission` granular por model/ação
+- Edição do papel de usuário existente
+- Exclusão/desativação de usuários pela interface
+- Redefinição de senha pela interface
+- Convite por e-mail / confirmação real de e-mail
+- Departamentos e escopo de dados por departamento
+- Auditoria de ações administrativas
+
+---
+
+## Fase 2.9 — Próxima fase recomendada: Departamentos e escopo de dados
+
+**Fase 2.9 — Departamentos** é o próximo passo lógico para escalar as permissões.
+
+Com grupos/papéis criados e os papéis base funcionando, o próximo passo é organizar os usuários em departamentos e aplicar filtros de visibilidade de dados:
+
+- Criar model `Departamento` (tenant-scoped)
+- Associar usuários a departamentos (ManyToMany)
+- Definir gerente/responsável por departamento
+- Definir escopo de dados por usuário: tudo / departamento / departamentos gerenciados / próprios itens / nenhum
+- Preparar filtros por escopo nos módulos operacionais
 
 **Importante:** iniciar com diagnóstico completo antes de implementar.
 
-### Sequência recomendada após Fase 2.8
+### Alternativa: Fase 2.10 — Segurança de usuários e onboarding
+
+Se departamentos forem considerados complexos demais para agora, a alternativa é:
+
+- Redefinição de senha pela interface (`PasswordChangeForm`)
+- Convite por e-mail
+- Confirmação real de e-mail
+- Desativação/reativação de usuários
+- Edição do papel de usuário existente
+- Auditoria de ações administrativas
+
+### Sequência recomendada após Fase 2.9
 
 1. **Modelos** — templates de peças jurídicas
 2. **Chat** — conversas internas por processo ou geral
