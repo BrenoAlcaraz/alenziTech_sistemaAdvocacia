@@ -84,7 +84,8 @@
 
   {# Lista de usuários #}
   <div class="flex flex-col divide-y divide-gray-100">
-    {% for u in usuarios %}
+    {% for item in usuarios_contexto %}
+      {% with u=item.usuario %}
       <div class="flex items-center gap-3 py-3">
         <div class="w-10 h-10 rounded-full bg-stone-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
           {% if u.perfil %}{{ u.perfil.iniciais }}{% else %}{{ u.username|upper|slice:":2" }}{% endif %}
@@ -95,12 +96,16 @@
             {% else %}{{ u.get_full_name|default:u.username }}{% endif %}
             {% if u == request.user %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
           </p>
-          <p class="text-xs text-gray-400">{{ u.username }}</p>
+          <p class="text-xs text-gray-400">@{{ u.username }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Papel: <span class="font-medium">{{ item.papel_nome }}</span>
+          </p>
+          <p class="text-xs text-gray-400">
+            Cargo:
+            {% if u.perfil and u.perfil.cargo %}{{ u.perfil.cargo }}{% else %}Não informado{% endif %}
+          </p>
         </div>
         <div class="flex items-center gap-2">
-          {% if u.perfil and u.perfil.cargo %}
-            <span class="badge-plano">{{ u.perfil.cargo }}</span>
-          {% endif %}
           {% if u != request.user %}
             <button class="text-gray-300 hover:text-red-400 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,6 +115,7 @@
           {% endif %}
         </div>
       </div>
+      {% endwith %}
     {% endfor %}
   </div>
 </div>

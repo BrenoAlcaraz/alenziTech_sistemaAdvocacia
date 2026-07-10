@@ -2,7 +2,11 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
-from apps.accounts.decorators import requer_admin_escritorio
+from apps.accounts.decorators import (
+    nome_legivel_grupo,
+    obter_papel_principal_usuario,
+    requer_admin_escritorio,
+)
 from apps.accounts.forms import CriarUsuarioEscritorioForm, PerfilUsuarioForm
 from apps.accounts.models import PerfilUsuario
 from .models import ConfiguracaoEscritorio
@@ -18,15 +22,28 @@ def _obter_configuracao_escritorio():
 def index(request):
     perfil_usuario = getattr(request.user, 'perfil', None)
 
-    usuarios = User.objects.filter(is_active=True).select_related("perfil").order_by(
-        "first_name", "last_name", "username"
+    usuarios = (
+        User.objects.filter(is_active=True)
+        .select_related("perfil")
+        .prefetch_related("groups")
+        .order_by("first_name", "last_name", "username")
     )
     usuarios_ativos = usuarios.count()
+
+    usuarios_contexto = []
+    for usuario in usuarios:
+        grupo = obter_papel_principal_usuario(usuario)
+        usuarios_contexto.append({
+            "usuario": usuario,
+            "papel": grupo.name if grupo else "",
+            "papel_nome": nome_legivel_grupo(grupo.name) if grupo else "Sem papel definido",
+        })
+
     configuracao_escritorio = _obter_configuracao_escritorio()
 
     return render(request, "configuracoes/index.html", {
         "perfil_usuario": perfil_usuario,
-        "usuarios": usuarios,
+        "usuarios_contexto": usuarios_contexto,
         "plano_nome": "Mestre",
         "usuarios_ativos": usuarios_ativos,
         "limite_usuarios": 10,
