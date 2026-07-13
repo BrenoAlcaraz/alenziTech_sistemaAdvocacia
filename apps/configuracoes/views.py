@@ -26,7 +26,11 @@ def index(request):
     usuarios = (
         User.objects.filter(is_active=True)
         .select_related("perfil")
-        .prefetch_related("groups")
+        .prefetch_related(
+            "groups",
+            "membros_departamento",
+            "membros_departamento__departamento",
+        )
         .order_by("first_name", "last_name", "username")
     )
     usuarios_ativos = usuarios.count()
@@ -34,10 +38,16 @@ def index(request):
     usuarios_contexto = []
     for usuario in usuarios:
         grupo = obter_papel_principal_usuario(usuario)
+        membros_departamento = [
+            membro
+            for membro in usuario.membros_departamento.all()
+            if membro.ativo and membro.departamento.ativo
+        ]
         usuarios_contexto.append({
             "usuario": usuario,
             "papel": grupo.name if grupo else "",
             "papel_nome": nome_legivel_grupo(grupo.name) if grupo else "Sem papel definido",
+            "membros_departamento": membros_departamento,
         })
 
     configuracao_escritorio = _obter_configuracao_escritorio()

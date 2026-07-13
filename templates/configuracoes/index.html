@@ -106,6 +106,16 @@
             Cargo:
             {% if u.perfil and u.perfil.cargo %}{{ u.perfil.cargo }}{% else %}Não informado{% endif %}
           </p>
+          <p class="text-xs text-gray-400">
+            Departamentos:
+            {% if item.membros_departamento %}
+              {% for membro in item.membros_departamento %}
+                {{ membro.departamento.nome }}{% if membro.eh_gerente %} <span class="text-amber-600">(gerente)</span>{% endif %}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            {% else %}
+              <span class="italic">Nenhum departamento vinculado</span>
+            {% endif %}
+          </p>
         </div>
         <div class="flex items-center gap-2">
           {% if u != request.user %}
