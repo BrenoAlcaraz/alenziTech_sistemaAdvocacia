@@ -10,6 +10,11 @@ from apps.accounts.decorators import (
 )
 from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, MembroDepartamentoForm, PerfilUsuarioForm
 from apps.accounts.models import Departamento, MembroDepartamento, PerfilUsuario
+from apps.clientes.models import Cliente
+from apps.processos.models import Processo
+from apps.tarefas.models import Tarefa
+from apps.agenda.models import Compromisso
+from apps.financeiro.models import LancamentoFinanceiro
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -246,6 +251,36 @@ def alternar_gerente_departamento(request, pk, membro_pk):
         membro.save(update_fields=["eh_gerente"])
 
     return redirect("configuracoes:departamento_membros", pk=departamento.pk)
+
+
+@requer_admin_escritorio
+def diagnostico_escopo(request):
+    diagnostico = {
+        "clientes": {
+            "total_ativos": Cliente.objects.filter(ativo=True).count(),
+            "tem_responsavel": False,
+        },
+        "processos": {
+            "total": Processo.objects.count(),
+            "sem_responsavel": Processo.objects.filter(responsavel__isnull=True).count(),
+        },
+        "tarefas": {
+            "total": Tarefa.objects.count(),
+            "sem_responsavel": Tarefa.objects.filter(responsavel__isnull=True).count(),
+        },
+        "compromissos": {
+            "total": Compromisso.objects.count(),
+            "sem_responsavel": Compromisso.objects.filter(responsavel__isnull=True).count(),
+        },
+        "financeiro": {
+            "total": LancamentoFinanceiro.objects.count(),
+            "sem_responsavel": LancamentoFinanceiro.objects.filter(responsavel__isnull=True).count(),
+        },
+    }
+    return render(request, "configuracoes/diagnostico_escopo.html", {
+        "diagnostico": diagnostico,
+        "item_ativo": "configuracoes",
+    })
 
 
 @requer_admin_escritorio

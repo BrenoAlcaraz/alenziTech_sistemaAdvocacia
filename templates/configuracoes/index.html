@@ -133,15 +133,27 @@
 </div>
 
 {% if usuario_e_admin_escritorio %}
-{# Card de departamentos — visível apenas para admin #}
+{# Card de ações administrativas — visível apenas para admin #}
 <div class="card p-5 mt-4">
-  <div class="flex items-center justify-between">
+  <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Administração</h2>
+
+  <div class="flex items-center justify-between py-2 border-b border-gray-100">
     <div>
-      <h2 class="text-sm font-semibold text-gray-700">Departamentos</h2>
+      <p class="text-sm font-medium text-gray-700">Departamentos</p>
       <p class="text-xs text-gray-400 mt-0.5">Organize a estrutura interna do escritório</p>
     </div>
     <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary text-sm flex-shrink-0">
-      Gerenciar departamentos
+      Gerenciar
+    </a>
+  </div>
+
+  <div class="flex items-center justify-between py-2 pt-3">
+    <div>
+      <p class="text-sm font-medium text-gray-700">Diagnóstico de Escopo</p>
+      <p class="text-xs text-gray-400 mt-0.5">Verificar registros sem responsável antes de aplicar filtros</p>
+    </div>
+    <a href="{% url 'configuracoes:diagnostico_escopo' %}" class="btn-secondary text-sm flex-shrink-0">
+      Ver diagnóstico
     </a>
   </div>
 </div>
