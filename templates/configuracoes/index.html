@@ -122,6 +122,21 @@
   </div>
 </div>
 
+{% if usuario_e_admin_escritorio %}
+{# Card de departamentos — visível apenas para admin #}
+<div class="card p-5 mt-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-700">Departamentos</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Organize a estrutura interna do escritório</p>
+    </div>
+    <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary text-sm flex-shrink-0">
+      Gerenciar departamentos
+    </a>
+  </div>
+</div>
+{% endif %}
+
 {# Card de dados do escritório #}
 <div class="card p-5 mt-4">
   <div class="flex items-center justify-between mb-4">

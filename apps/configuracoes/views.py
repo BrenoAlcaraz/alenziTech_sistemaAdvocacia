@@ -9,7 +9,7 @@ from apps.accounts.decorators import (
     usuario_admin_escritorio,
 )
 from apps.accounts.forms import CriarUsuarioEscritorioForm, PerfilUsuarioForm
-from apps.accounts.models import PerfilUsuario
+from apps.accounts.models import Departamento, PerfilUsuario
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -93,6 +93,34 @@ def novo_usuario(request):
         "configuracoes/novo_usuario.html",
         {
             "form": form,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@requer_admin_escritorio
+def departamentos(request):
+    deps = (
+        Departamento.objects
+        .select_related("departamento_pai")
+        .prefetch_related("membros", "membros__usuario")
+        .order_by("nome")
+    )
+
+    departamentos_contexto = []
+    for dep in deps:
+        membros_list = list(dep.membros.all())
+        departamentos_contexto.append({
+            "departamento": dep,
+            "total_membros": len(membros_list),
+            "total_gerentes": sum(1 for m in membros_list if m.eh_gerente),
+        })
+
+    return render(
+        request,
+        "configuracoes/departamentos.html",
+        {
+            "departamentos_contexto": departamentos_contexto,
             "item_ativo": "configuracoes",
         },
     )
