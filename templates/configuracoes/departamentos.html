@@ -8,9 +8,14 @@
     <h1 class="text-2xl font-bold text-gray-900">Departamentos</h1>
     <p class="text-sm text-gray-500 mt-0.5">Organize a estrutura interna do escritório.</p>
   </div>
-  <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm flex-shrink-0">
-    Voltar
-  </a>
+  <div class="flex items-center gap-2 flex-shrink-0">
+    <a href="{% url 'configuracoes:novo_departamento' %}" class="btn-primary text-sm">
+      Novo departamento
+    </a>
+    <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm">
+      Voltar
+    </a>
+  </div>
 </div>
 
 <div class="card p-0 overflow-hidden">
@@ -61,8 +66,11 @@
               </span>
             {% endif %}
           </td>
-          <td class="px-5 py-4 text-xs text-gray-400 italic">
-            Edição em breve
+          <td class="px-5 py-4">
+            <a href="{% url 'configuracoes:editar_departamento' item.departamento.pk %}"
+               class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
+              Editar
+            </a>
           </td>
         </tr>
         {% endfor %}
@@ -73,9 +81,12 @@
   {% else %}
   <div class="p-10 text-center">
     <p class="text-sm font-medium text-gray-500">Nenhum departamento cadastrado ainda.</p>
-    <p class="text-xs text-gray-400 mt-1">
-      Na próxima etapa, será possível criar departamentos e organizar usuários.
+    <p class="text-xs text-gray-400 mt-1 mb-4">
+      Crie o primeiro departamento para organizar os usuários do escritório.
     </p>
+    <a href="{% url 'configuracoes:novo_departamento' %}" class="btn-primary text-sm">
+      Novo departamento
+    </a>
   </div>
   {% endif %}
 

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
@@ -8,7 +8,7 @@ from apps.accounts.decorators import (
     requer_admin_escritorio,
     usuario_admin_escritorio,
 )
-from apps.accounts.forms import CriarUsuarioEscritorioForm, PerfilUsuarioForm
+from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, PerfilUsuarioForm
 from apps.accounts.models import Departamento, PerfilUsuario
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
@@ -121,6 +121,53 @@ def departamentos(request):
         "configuracoes/departamentos.html",
         {
             "departamentos_contexto": departamentos_contexto,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@requer_admin_escritorio
+def novo_departamento(request):
+    if request.method == "POST":
+        form = DepartamentoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracoes:departamentos")
+    else:
+        form = DepartamentoForm()
+
+    return render(
+        request,
+        "configuracoes/departamento_form.html",
+        {
+            "form": form,
+            "modo": "novo",
+            "titulo": "Novo departamento",
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@requer_admin_escritorio
+def editar_departamento(request, pk):
+    departamento = get_object_or_404(Departamento, pk=pk)
+
+    if request.method == "POST":
+        form = DepartamentoForm(request.POST, instance=departamento)
+        if form.is_valid():
+            form.save()
+            return redirect("configuracoes:departamentos")
+    else:
+        form = DepartamentoForm(instance=departamento)
+
+    return render(
+        request,
+        "configuracoes/departamento_form.html",
+        {
+            "form": form,
+            "departamento": departamento,
+            "modo": "editar",
+            "titulo": "Editar departamento",
             "item_ativo": "configuracoes",
         },
     )

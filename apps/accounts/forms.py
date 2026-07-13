@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, User
 
 from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
 
-from .models import PerfilUsuario
+from .models import Departamento, PerfilUsuario
 
 
 class GrupoPapelChoiceField(forms.ModelChoiceField):
@@ -105,6 +105,68 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             user.groups.add(grupo)
 
         return user
+
+
+class DepartamentoForm(forms.ModelForm):
+    class Meta:
+        model = Departamento
+        fields = [
+            "nome",
+            "descricao",
+            "departamento_pai",
+            "ativo",
+        ]
+        widgets = {
+            "nome": forms.TextInput(
+                attrs={
+                    "class": "input",
+                    "placeholder": "Nome do departamento",
+                }
+            ),
+            "descricao": forms.Textarea(
+                attrs={
+                    "class": "input h-24 resize-none",
+                    "placeholder": "Descrição opcional do departamento",
+                }
+            ),
+            "departamento_pai": forms.Select(
+                attrs={
+                    "class": "input",
+                }
+            ),
+            "ativo": forms.CheckboxInput(
+                attrs={
+                    "class": "rounded border-gray-300",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = Departamento.objects.filter(ativo=True).order_by("nome")
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        self.fields["departamento_pai"].queryset = qs
+        self.fields["departamento_pai"].empty_label = "Sem departamento pai"
+
+    def clean_departamento_pai(self):
+        departamento_pai = self.cleaned_data.get("departamento_pai")
+
+        if not departamento_pai or not self.instance or not self.instance.pk:
+            return departamento_pai
+
+        if departamento_pai.pk == self.instance.pk:
+            raise forms.ValidationError("Um departamento não pode ser pai dele mesmo.")
+
+        atual = departamento_pai
+        while atual:
+            if atual.pk == self.instance.pk:
+                raise forms.ValidationError(
+                    "Um departamento não pode ser vinculado a um de seus próprios subdepartamentos."
+                )
+            atual = atual.departamento_pai
+
+        return departamento_pai
 
 
 class PerfilUsuarioForm(forms.ModelForm):
