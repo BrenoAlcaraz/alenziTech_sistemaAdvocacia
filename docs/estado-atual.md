@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-13 (Fase 2.9 — Departamentos e escopo de dados concluída em nível básico)
+Última atualização: 2026-07-13 (Fase 2.10A — Diagnóstico de Escopo implementado)
 
 ## Stack instalada e configurada
 
@@ -395,6 +395,54 @@ Não implementado nesta fase (deliberado):
 - Gerente vendo apenas dados do departamento
 - Departamentos múltiplos afetando queries operacionais
 - Herança automática de departamento por cliente/processo
+
+---
+
+## Diagnóstico de Escopo de Dados — Fase 2.10A implementada
+
+> **Classificação atual:** ferramenta administrativa/técnica de apoio ao desenvolvimento. Não é uma funcionalidade final do produto. Deve ser reavaliada antes da produção.
+
+| Funcionalidade | Implementação |
+|---|---|
+| Tela de diagnóstico | `/configuracoes/diagnostico-escopo/` — somente leitura, somente admin |
+| Proteção de acesso | `@requer_admin_escritorio`; advogado recebe 403 em acesso direto |
+| Link de acesso | Card "Administração" em `/configuracoes/` — visível apenas para admin |
+| Contadores | Total de clientes ativos, processos, tarefas, compromissos, lançamentos |
+| Sem responsável | Contagem de registros sem `responsavel` em Processos, Tarefas, Compromissos, Financeiro |
+| Aviso sobre Cliente | `Cliente` não tem campo `responsavel`; aviso explícito com badge "Risco alto" |
+| Aviso sobre Agenda | compromissos têm `participantes` M2M; escopo futuro não pode considerar só `responsavel` |
+| Aviso sobre Financeiro | dado sensível; exige regra própria de acesso |
+| Badges de severidade | Verde (OK) quando sem_responsavel=0; Âmbar (Atenção) quando sem_responsavel>0 |
+| Efeito nos dados | **nenhum** — a tela não altera, filtra nem bloqueia qualquer dado |
+| Efeito nos models | **nenhum** — nenhum model foi alterado |
+| Migrations | **nenhuma** — nenhuma migration foi criada |
+| Módulos operacionais | **nenhum foi alterado** |
+
+### O que o diagnóstico revelou
+
+- `Cliente`: não possui campo `responsavel` — impossível filtrar por usuário sem migration.
+- `Processo`, `Tarefa`, `Compromisso`, `LancamentoFinanceiro`: possuem `responsavel`, mas o campo é `null=True`. Registros criados antes da Fase 2.8 ou por importações podem ter `responsavel=null`.
+- `Compromisso`: além de `responsavel`, possui `participantes` (M2M) — escopo futuro deve usar `Q(responsavel=user) | Q(participantes=user)`.
+- Nenhum model operacional possui campo `departamento` — filtro por departamento exigiria joins frágeis via `responsavel → membros_departamento → departamento`.
+- `Dashboard` lê todos os módulos com queries globais — deve ser ajustado por último.
+
+### Decisão sobre registros sem responsável
+
+Registros antigos sem responsável **não devem ser automaticamente liberados para todos os usuários** quando filtros de escopo forem ativados.
+
+- Em desenvolvimento/demo: atribuir manualmente ao administrador antes de ativar filtros.
+- Em produção: tratar como pendência administrativa — apenas o administrador deve enxergar.
+- Advogado comum não deve ganhar acesso automaticamente a registros com `responsavel=null`.
+- Gerente poderá ter regra própria no futuro, associada ao `departamento` do registro.
+
+### Decisão de produto sobre a tela de diagnóstico
+
+Antes da produção, a tela deve ser reavaliada. Possíveis caminhos:
+
+- Virar tela de "Saúde dos Dados" do escritório
+- Virar tela de "Auditoria Administrativa"
+- Ficar restrita a suporte/administradores da plataforma SaaS
+- Ser removida se o problema for resolvido e não fizer mais sentido
 
 ---
 

@@ -334,23 +334,83 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 
 ---
 
-## Fase 2.10 — Próxima fase recomendada
+## Fase 2.10 — Escopo de dados nos módulos operacionais
 
-Duas opções igualmente válidas:
+### Fase 2.10A — Diagnóstico de Escopo — Concluída ✅
 
-### Opção A — Escopo de dados nos módulos operacionais
+✅ Tela `/configuracoes/diagnostico-escopo/` implementada (somente leitura, somente admin)  
+✅ Contadores de registros sem `responsavel` em Processos, Tarefas, Compromissos, Financeiro  
+✅ Aviso explícito sobre `Cliente` sem campo `responsavel`  
+✅ Avisos específicos sobre Agenda (participantes) e Financeiro (dado sensível)  
+✅ Link de acesso no card "Administração" em `/configuracoes/` — visível apenas para admin  
+✅ Acesso direto por advogado retorna 403  
+✅ Nenhum dado alterado, nenhuma migration criada, nenhum módulo operacional alterado  
 
-**Importante:** iniciar com diagnóstico profundo antes de implementar, pois envolve risco de esconder dados.
+> **Classificação:** ferramenta administrativa/técnica de apoio ao desenvolvimento — **não é funcionalidade final**. Reavaliação obrigatória antes da produção.
 
-- Decidir onde colocar campo `departamento` (Cliente ainda não tem responsável)
-- Decidir se Cliente/Processo serão entidades primárias de escopo
-- Definir regra para dados sem departamento
-- Definir regra para dados sem responsável (campo `responsavel` pode ser `null`)
-- Aplicar filtros gradualmente, módulo por módulo
-- Garantir que Admin continue vendo tudo
-- Garantir que Dashboard tenha comportamento coerente por papel
+---
 
-### Opção B — Segurança de usuários e onboarding
+### Fase 2.10B — Preparação dos models para escopo (próxima etapa recomendada)
+
+Pré-requisito: corrigir registros sem `responsavel` manualmente no ambiente demo antes de prosseguir.
+
+- Adicionar `responsavel = ForeignKey(User, null=True, blank=True, SET_NULL)` ao model `Cliente`
+- Avaliar adição de `departamento = ForeignKey(Departamento, null=True, blank=True, SET_NULL)` em `Cliente` e `Processo`
+- Usar `null=True` e `blank=True` em todos os novos campos — não quebra dados existentes
+- Criar migrations com `null=True` (sem valor padrão obrigatório)
+- Aplicar `migrate_schemas` após aprovação
+
+**Cuidados:**
+- Não aplicar filtros ainda nesta etapa — apenas preparar os models
+- Não tornar os campos obrigatórios nos forms nesta etapa
+- Confirmar que `python manage.py check` passa antes de aplicar
+
+---
+
+### Fase 2.10C — Backfill/correção de dados antigos
+
+Antes de ativar filtros, atribuir responsáveis a registros sem `responsavel`:
+
+- Identificar processos, tarefas, compromissos e lançamentos com `responsavel=null` via tela de diagnóstico
+- Atribuir manualmente ao administrador ou ao responsável correto via shell ou tela administrativa
+- Confirmar que contadores da tela de diagnóstico mostram zero para todos os módulos antes de avançar
+
+---
+
+### Fase 2.10D — Escopo piloto em Processo
+
+- Aplicar filtro de escopo apenas na view `processos.lista`
+- Regra inicial: administrador vê tudo; gerente vê processos do departamento; advogado vê próprios
+- Manter `responsavel=null` visível apenas para administrador
+- Testar com múltiplos usuários antes de propagar
+
+---
+
+### Fase 2.10E — Propagar escopo gradualmente
+
+Na ordem recomendada (menor risco → maior risco):
+
+1. Tarefas
+2. Agenda — usar `Q(responsavel=user) | Q(participantes=user)`, não só `responsavel`
+3. Financeiro — definir regra própria para o papel `financeiro`
+4. Dashboard — por último, após todos os módulos estarem consistentes
+
+---
+
+### Fase 2.10F — Reavaliação da tela de Diagnóstico de Escopo
+
+Após filtros aplicados e dados corrigidos, decidir o destino da tela:
+
+- Manter como "Saúde dos Dados" do escritório
+- Transformar em "Auditoria Administrativa"
+- Restringir a suporte da plataforma SaaS
+- Remover se não houver mais utilidade
+
+---
+
+### Opção paralela — Segurança de usuários e onboarding (Fase 2.10 alternativa)
+
+Pode ser feita antes ou em paralelo com o escopo de dados:
 
 - Redefinição de senha pela interface (`PasswordChangeForm`)
 - Desativação/reativação de usuários pela interface
