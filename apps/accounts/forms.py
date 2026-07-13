@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, User
 
 from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
 
-from .models import Departamento, PerfilUsuario
+from .models import Departamento, MembroDepartamento, PerfilUsuario
 
 
 class GrupoPapelChoiceField(forms.ModelChoiceField):
@@ -167,6 +167,43 @@ class DepartamentoForm(forms.ModelForm):
             atual = atual.departamento_pai
 
         return departamento_pai
+
+
+class MembroDepartamentoForm(forms.ModelForm):
+    class Meta:
+        model = MembroDepartamento
+        fields = [
+            "usuario",
+            "eh_gerente",
+        ]
+        widgets = {
+            "usuario": forms.Select(
+                attrs={
+                    "class": "input",
+                }
+            ),
+            "eh_gerente": forms.CheckboxInput(
+                attrs={
+                    "class": "rounded border-gray-300",
+                }
+            ),
+        }
+
+    def __init__(self, *args, departamento=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        usuarios_ja_vinculados = MembroDepartamento.objects.none()
+        if departamento and departamento.pk:
+            usuarios_ja_vinculados = MembroDepartamento.objects.filter(
+                departamento=departamento
+            ).values_list("usuario_id", flat=True)
+
+        self.fields["usuario"].queryset = (
+            User.objects.filter(is_active=True)
+            .exclude(id__in=usuarios_ja_vinculados)
+            .order_by("username")
+        )
+        self.fields["usuario"].empty_label = "Selecione um usuário"
 
 
 class PerfilUsuarioForm(forms.ModelForm):

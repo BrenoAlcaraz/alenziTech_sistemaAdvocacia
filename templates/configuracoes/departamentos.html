@@ -67,10 +67,16 @@
             {% endif %}
           </td>
           <td class="px-5 py-4">
-            <a href="{% url 'configuracoes:editar_departamento' item.departamento.pk %}"
-               class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
-              Editar
-            </a>
+            <div class="flex items-center gap-3">
+              <a href="{% url 'configuracoes:departamento_membros' item.departamento.pk %}"
+                 class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
+                Membros
+              </a>
+              <a href="{% url 'configuracoes:editar_departamento' item.departamento.pk %}"
+                 class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
+                Editar
+              </a>
+            </div>
           </td>
         </tr>
         {% endfor %}

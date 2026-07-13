@@ -1,0 +1,129 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Membros — {{ departamento.nome }} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-xs text-gray-400 mb-0.5">Departamento</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ departamento.nome }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Membros do departamento</p>
+  </div>
+  <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary text-sm flex-shrink-0">
+    Voltar
+  </a>
+</div>
+
+{# Formulário para adicionar membro #}
+<div class="card p-5 mb-4">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Adicionar usuário ao departamento</h2>
+
+  {% if form.fields.usuario.queryset.exists %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="flex items-end gap-3 flex-wrap">
+        <div class="flex-1 min-w-48">
+          <label for="{{ form.usuario.id_for_label }}" class="label">Usuário</label>
+          {{ form.usuario }}
+          {% if form.usuario.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.usuario.errors.0 }}</p>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-2 mb-0.5">
+          {{ form.eh_gerente }}
+          <label for="{{ form.eh_gerente.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
+            Gerente do departamento
+          </label>
+        </div>
+        <button type="submit" class="btn-primary text-sm">
+          Adicionar membro
+        </button>
+      </div>
+
+    </form>
+
+  {% else %}
+    <p class="text-sm text-gray-400 italic">
+      Todos os usuários ativos já estão vinculados a este departamento ou não há usuários disponíveis.
+    </p>
+  {% endif %}
+
+</div>
+
+{# Lista de membros #}
+<div class="card p-0 overflow-hidden">
+
+  {% if membros %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+          <th class="text-left px-5 py-3 font-medium">Usuário</th>
+          <th class="text-center px-5 py-3 font-medium">Gerente</th>
+          <th class="text-left px-5 py-3 font-medium">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for membro in membros %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-4">
+            <p class="font-medium text-gray-900">
+              {% if membro.usuario.perfil and membro.usuario.perfil.nome_completo %}
+                {{ membro.usuario.perfil.nome_completo }}
+              {% else %}
+                {{ membro.usuario.get_full_name|default:membro.usuario.username }}
+              {% endif %}
+            </p>
+            <p class="text-xs text-gray-400">@{{ membro.usuario.username }}</p>
+            {% if membro.usuario.email %}
+              <p class="text-xs text-gray-400">{{ membro.usuario.email }}</p>
+            {% endif %}
+          </td>
+          <td class="px-5 py-4 text-center">
+            {% if membro.eh_gerente %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                Gerente
+              </span>
+            {% else %}
+              <span class="text-gray-300">—</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-4">
+            <div class="flex items-center gap-3">
+              <form method="post" action="{% url 'configuracoes:alternar_gerente_departamento' departamento.pk membro.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="text-sm text-gray-500 hover:text-gray-900 underline underline-offset-2">
+                  {% if membro.eh_gerente %}Remover como gerente{% else %}Tornar gerente{% endif %}
+                </button>
+              </form>
+              <form method="post" action="{% url 'configuracoes:remover_membro_departamento' departamento.pk membro.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
+                  Remover
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="p-10 text-center">
+    <p class="text-sm font-medium text-gray-500">Nenhum usuário vinculado a este departamento ainda.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

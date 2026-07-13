@@ -11,4 +11,7 @@ urlpatterns = [
     path("configuracoes/departamentos/", views.departamentos, name="departamentos"),
     path("configuracoes/departamentos/novo/", views.novo_departamento, name="novo_departamento"),
     path("configuracoes/departamentos/<int:pk>/editar/", views.editar_departamento, name="editar_departamento"),
+    path("configuracoes/departamentos/<int:pk>/membros/", views.departamento_membros, name="departamento_membros"),
+    path("configuracoes/departamentos/<int:pk>/membros/<int:membro_pk>/remover/", views.remover_membro_departamento, name="remover_membro_departamento"),
+    path("configuracoes/departamentos/<int:pk>/membros/<int:membro_pk>/alternar-gerente/", views.alternar_gerente_departamento, name="alternar_gerente_departamento"),
 ]

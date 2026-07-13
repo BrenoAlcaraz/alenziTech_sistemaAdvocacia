@@ -8,8 +8,8 @@ from apps.accounts.decorators import (
     requer_admin_escritorio,
     usuario_admin_escritorio,
 )
-from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, PerfilUsuarioForm
-from apps.accounts.models import Departamento, PerfilUsuario
+from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, MembroDepartamentoForm, PerfilUsuarioForm
+from apps.accounts.models import Departamento, MembroDepartamento, PerfilUsuario
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -171,6 +171,71 @@ def editar_departamento(request, pk):
             "item_ativo": "configuracoes",
         },
     )
+
+
+@requer_admin_escritorio
+def departamento_membros(request, pk):
+    departamento = get_object_or_404(Departamento, pk=pk)
+
+    if request.method == "POST":
+        form = MembroDepartamentoForm(request.POST, departamento=departamento)
+        if form.is_valid():
+            membro = form.save(commit=False)
+            membro.departamento = departamento
+            membro.ativo = True
+            membro.save()
+            return redirect("configuracoes:departamento_membros", pk=departamento.pk)
+    else:
+        form = MembroDepartamentoForm(departamento=departamento)
+
+    membros = (
+        MembroDepartamento.objects
+        .filter(departamento=departamento)
+        .select_related("usuario", "usuario__perfil")
+        .order_by("-eh_gerente", "usuario__username")
+    )
+
+    return render(
+        request,
+        "configuracoes/departamento_membros.html",
+        {
+            "departamento": departamento,
+            "form": form,
+            "membros": membros,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@requer_admin_escritorio
+def remover_membro_departamento(request, pk, membro_pk):
+    departamento = get_object_or_404(Departamento, pk=pk)
+    membro = get_object_or_404(
+        MembroDepartamento,
+        pk=membro_pk,
+        departamento=departamento,
+    )
+
+    if request.method == "POST":
+        membro.delete()
+
+    return redirect("configuracoes:departamento_membros", pk=departamento.pk)
+
+
+@requer_admin_escritorio
+def alternar_gerente_departamento(request, pk, membro_pk):
+    departamento = get_object_or_404(Departamento, pk=pk)
+    membro = get_object_or_404(
+        MembroDepartamento,
+        pk=membro_pk,
+        departamento=departamento,
+    )
+
+    if request.method == "POST":
+        membro.eh_gerente = not membro.eh_gerente
+        membro.save(update_fields=["eh_gerente"])
+
+    return redirect("configuracoes:departamento_membros", pk=departamento.pk)
 
 
 @requer_admin_escritorio
