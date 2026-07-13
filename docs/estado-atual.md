@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-10 (Fase 2.8 — Permissões iniciais concluída em nível básico)
+Última atualização: 2026-07-13 (Fase 2.9 — Departamentos e escopo de dados concluída em nível básico)
 
 ## Stack instalada e configurada
 
@@ -28,7 +28,7 @@
 
 | App | Descrição | Status |
 |-----|-----------|--------|
-| `accounts` | PerfilUsuario, signal de criação automática, helpers de permissão, grupos padrão | ✅ **Permissões básicas** |
+| `accounts` | PerfilUsuario, Departamento, MembroDepartamento, helpers de permissão, helpers de escopo, grupos padrão | ✅ **Departamentos básicos** |
 | `dashboard` | Painel principal | ✅ **Básico operacional (dados reais)** |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
@@ -38,7 +38,7 @@
 | `chat` | Conversas internas | mock |
 | `modelos` | Modelos de peças jurídicas | mock |
 | `laboratorio` | Laboratório Jurídico — placeholder IA | mock |
-| `configuracoes` | Usuários, perfil, dados do escritório, criação de usuários, papéis | ✅ **Permissões básicas** |
+| `configuracoes` | Usuários, perfil, dados do escritório, criação de usuários, papéis, gestão de departamentos e membros | ✅ **Departamentos básicos** |
 
 ## Status do banco de dados
 
@@ -371,6 +371,33 @@ Não implementado nesta fase (não bloqueante):
 
 ---
 
+## Departamentos e estrutura organizacional — Fase 2.9 concluída
+
+| Funcionalidade | Implementação |
+|---|---|
+| Model `Departamento` | `nome`, `descricao`, `departamento_pai` (FK para si), `ativo`, `criado_em`, `atualizado_em` |
+| Model `MembroDepartamento` | `usuario`, `departamento`, `eh_gerente`, `ativo`, `criado_em`; constraint única `usuario+departamento` |
+| Migration | `accounts.0003_departamento_membrodepartamento` — aplicada em todos os schemas |
+| Admin | `DepartamentoAdmin` e `MembroDepartamentoAdmin` registrados |
+| Listagem de departamentos | `/configuracoes/departamentos/` — restrita a Administrador do Escritório |
+| Criação de departamento | `/configuracoes/departamentos/novo/` — com validação de ciclo hierárquico |
+| Edição de departamento | `/configuracoes/departamentos/<id>/editar/` — nome, descrição, pai, status |
+| Gestão de membros | `/configuracoes/departamentos/<id>/membros/` — vincular/desvincular, marcar gerente |
+| Exibição em Configurações | `/configuracoes/` mostra departamentos e indicação de gerente por usuário |
+| Helpers de escopo | `apps/accounts/escopo.py` — 6 funções de consulta; não aplicam filtros ainda |
+| Constantes de escopo | `ESCOPO_TUDO`, `ESCOPO_DEPARTAMENTOS_GERENCIADOS`, `ESCOPO_DEPARTAMENTO`, `ESCOPO_PROPRIOS_ITENS`, `ESCOPO_NENHUM` |
+
+Não implementado nesta fase (deliberado):
+
+- Filtro por departamento em Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard
+- Campo `departamento` nos módulos operacionais
+- Escopo real aplicado nas views
+- Gerente vendo apenas dados do departamento
+- Departamentos múltiplos afetando queries operacionais
+- Herança automática de departamento por cliente/processo
+
+---
+
 ## Templates
 
 - ✅ Todas as páginas existem e são navegáveis
@@ -392,3 +419,4 @@ Não implementado nesta fase (não bloqueante):
 - CRUD Clientes: ✅ Validado no navegador (criação, edição, detalhe, desativação, reativação)
 - Configurações: ✅ Usuários reais, edição de perfil e dados do escritório validados no navegador
 - Permissões: ✅ Grupos criados, admin inicial formalizado, criação de usuário pelo admin validada no navegador
+- Departamentos: ✅ Criação, edição, membros, gerentes, helpers de escopo — validados no navegador e no shell do tenant

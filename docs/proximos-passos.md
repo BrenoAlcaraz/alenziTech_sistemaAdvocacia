@@ -303,32 +303,63 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas no nave
 
 ---
 
-## Fase 2.9 — Próxima fase recomendada: Departamentos e escopo de dados
+## Fase 2.9 — Departamentos e escopo de dados — Concluída ✅
 
-**Fase 2.9 — Departamentos** é o próximo passo lógico para escalar as permissões.
+Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-Com grupos/papéis criados e os papéis base funcionando, o próximo passo é organizar os usuários em departamentos e aplicar filtros de visibilidade de dados:
+✅ Model `Departamento` (tenant-scoped) com hierarquia de departamento pai  
+✅ Model `MembroDepartamento` com constraint de unicidade `usuario+departamento`  
+✅ Migration `accounts.0003_departamento_membrodepartamento` aplicada em todos os schemas  
+✅ Admin de `Departamento` e `MembroDepartamento` registrados  
+✅ Listagem de departamentos em `/configuracoes/departamentos/` (admin only)  
+✅ Criação de departamento com validação de ciclo hierárquico  
+✅ Edição de departamento (nome, descrição, pai, status ativo)  
+✅ Gestão de membros: vincular/desvincular, marcar/remover gerente  
+✅ Exibição de departamentos na lista de usuários em `/configuracoes/`  
+✅ Helpers de escopo em `apps/accounts/escopo.py` — 6 funções de consulta + constantes  
+✅ Todos os acessos administrativos protegidos por `@requer_admin_escritorio`  
+✅ Nenhum filtro de escopo aplicado nos módulos operacionais (deliberado)  
 
-- Criar model `Departamento` (tenant-scoped)
-- Associar usuários a departamentos (ManyToMany)
-- Definir gerente/responsável por departamento
-- Definir escopo de dados por usuário: tudo / departamento / departamentos gerenciados / próprios itens / nenhum
-- Preparar filtros por escopo nos módulos operacionais
+### Pendências futuras de Departamentos (não bloqueantes)
 
-**Importante:** iniciar com diagnóstico completo antes de implementar.
+- Escopo real aplicado nas views (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard)
+- Campo `departamento` nos módulos operacionais
+- Gerente vendo apenas dados do departamento
+- Advogado vendo apenas próprios itens
+- Financeiro com escopo específico
+- Herança automática de departamento por cliente/processo
+- Regra para dados sem departamento/responsável
+- Edição do papel de usuário existente pela interface
+- Desativação/reativação de usuários pela interface
 
-### Alternativa: Fase 2.10 — Segurança de usuários e onboarding
+---
 
-Se departamentos forem considerados complexos demais para agora, a alternativa é:
+## Fase 2.10 — Próxima fase recomendada
+
+Duas opções igualmente válidas:
+
+### Opção A — Escopo de dados nos módulos operacionais
+
+**Importante:** iniciar com diagnóstico profundo antes de implementar, pois envolve risco de esconder dados.
+
+- Decidir onde colocar campo `departamento` (Cliente ainda não tem responsável)
+- Decidir se Cliente/Processo serão entidades primárias de escopo
+- Definir regra para dados sem departamento
+- Definir regra para dados sem responsável (campo `responsavel` pode ser `null`)
+- Aplicar filtros gradualmente, módulo por módulo
+- Garantir que Admin continue vendo tudo
+- Garantir que Dashboard tenha comportamento coerente por papel
+
+### Opção B — Segurança de usuários e onboarding
 
 - Redefinição de senha pela interface (`PasswordChangeForm`)
+- Desativação/reativação de usuários pela interface
+- Edição do papel de usuário existente
 - Convite por e-mail
 - Confirmação real de e-mail
-- Desativação/reativação de usuários
-- Edição do papel de usuário existente
 - Auditoria de ações administrativas
 
-### Sequência recomendada após Fase 2.9
+### Sequência recomendada após Fase 2.10
 
 1. **Modelos** — templates de peças jurídicas
 2. **Chat** — conversas internas por processo ou geral
