@@ -53,6 +53,14 @@ class Processo(models.Model):
     data_distribuicao = models.DateField(null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
     responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
+    departamento = models.ForeignKey(
+        "accounts.Departamento",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="processos",
+        verbose_name="Departamento",
+    )
     prazo_proximo = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 

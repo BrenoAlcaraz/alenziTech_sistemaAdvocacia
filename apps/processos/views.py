@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from apps.accounts.escopo import departamento_padrao_para_usuario
 from .models import Processo
 from .forms import ProcessoForm, ParteProcessoForm, MovimentacaoProcessualForm
 
@@ -41,6 +42,8 @@ def novo(request):
             processo = form.save(commit=False)
             processo.responsavel = request.user
             processo.status = "ativo"
+            if not processo.departamento:
+                processo.departamento = departamento_padrao_para_usuario(request.user)
             processo.save()
             return redirect("processos:detalhe", pk=processo.pk)
     else:

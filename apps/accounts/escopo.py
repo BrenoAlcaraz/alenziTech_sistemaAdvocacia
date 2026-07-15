@@ -5,6 +5,7 @@ Estes helpers ainda não aplicam filtros nos módulos operacionais.
 Eles apenas expõem consultas de departamentos para uso futuro.
 """
 
+from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.models import Departamento, MembroDepartamento
 
 # ---------------------------------------------------------------------------
@@ -94,6 +95,36 @@ def ids_departamentos_gerenciados_pelo_usuario(user, somente_ativos=True):
         departamentos_gerenciados_pelo_usuario(user, somente_ativos=somente_ativos)
         .values_list("id", flat=True)
     )
+
+
+# ---------------------------------------------------------------------------
+# Helper de departamento padrão para criação de registros
+# ---------------------------------------------------------------------------
+
+def departamento_padrao_para_usuario(user):
+    """
+    Retorna um departamento padrão seguro para atribuição automática na criação de registros.
+
+    Regras:
+    - Usuário inválido ou não autenticado → None
+    - Administrador do escritório ou superuser → None (admin vê tudo, sem departamento fixo)
+    - Exatamente 1 departamento ativo → retorna esse departamento
+    - 0 ou 2+ departamentos ativos → None (não é possível inferir qual é o correto)
+
+    Não aplica filtros de escopo. Apenas sugere um departamento para novo registro.
+    """
+    if not user or not user.is_authenticated:
+        return None
+
+    if usuario_admin_escritorio(user):
+        return None
+
+    departamentos = list(departamentos_do_usuario(user, somente_ativos=True)[:2])
+
+    if len(departamentos) == 1:
+        return departamentos[0]
+
+    return None
 
 
 # ---------------------------------------------------------------------------
