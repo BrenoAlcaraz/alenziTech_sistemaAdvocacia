@@ -258,7 +258,9 @@ def diagnostico_escopo(request):
     diagnostico = {
         "clientes": {
             "total_ativos": Cliente.objects.filter(ativo=True).count(),
-            "tem_responsavel": False,
+            "com_responsavel": Cliente.objects.filter(ativo=True, responsavel__isnull=False).count(),
+            "sem_responsavel": Cliente.objects.filter(ativo=True, responsavel__isnull=True).count(),
+            "tem_responsavel": True,
         },
         "processos": {
             "total": Processo.objects.count(),
