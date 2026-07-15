@@ -27,7 +27,10 @@ def novo(request):
     if request.method == "POST":
         form = ClienteForm(request.POST)
         if form.is_valid():
-            form.save()
+            cliente = form.save(commit=False)
+            if not cliente.responsavel:
+                cliente.responsavel = request.user
+            cliente.save()
             return redirect("clientes:lista")
     else:
         form = ClienteForm()

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -14,6 +15,14 @@ class Cliente(models.Model):
     telefone = models.CharField(max_length=20, blank=True)
     endereco = models.TextField(blank=True)
     observacoes = models.TextField(blank=True)
+    responsavel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="clientes_responsaveis",
+        verbose_name="Responsável",
+    )
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
