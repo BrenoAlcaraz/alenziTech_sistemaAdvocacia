@@ -255,16 +255,27 @@ def alternar_gerente_departamento(request, pk, membro_pk):
 
 @requer_admin_escritorio
 def diagnostico_escopo(request):
+    clientes_ativos = Cliente.objects.filter(ativo=True)
+    processos = Processo.objects.all()
+
     diagnostico = {
         "clientes": {
-            "total_ativos": Cliente.objects.filter(ativo=True).count(),
-            "com_responsavel": Cliente.objects.filter(ativo=True, responsavel__isnull=False).count(),
-            "sem_responsavel": Cliente.objects.filter(ativo=True, responsavel__isnull=True).count(),
+            "total_ativos": clientes_ativos.count(),
+            "com_responsavel": clientes_ativos.filter(responsavel__isnull=False).count(),
+            "sem_responsavel": clientes_ativos.filter(responsavel__isnull=True).count(),
+            "com_departamento": clientes_ativos.filter(departamento__isnull=False).count(),
+            "sem_departamento": clientes_ativos.filter(departamento__isnull=True).count(),
             "tem_responsavel": True,
+            "tem_departamento": True,
+            "observacao": "Clientes agora possuem campos responsável e departamento. Registros antigos podem continuar sem esses vínculos até uma etapa futura de correção/backfill.",
         },
         "processos": {
-            "total": Processo.objects.count(),
-            "sem_responsavel": Processo.objects.filter(responsavel__isnull=True).count(),
+            "total": processos.count(),
+            "com_responsavel": processos.filter(responsavel__isnull=False).count(),
+            "sem_responsavel": processos.filter(responsavel__isnull=True).count(),
+            "com_departamento": processos.filter(departamento__isnull=False).count(),
+            "sem_departamento": processos.filter(departamento__isnull=True).count(),
+            "tem_departamento": True,
         },
         "tarefas": {
             "total": Tarefa.objects.count(),

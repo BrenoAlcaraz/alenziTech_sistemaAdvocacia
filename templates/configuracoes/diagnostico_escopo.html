@@ -19,7 +19,7 @@
 <div class="card p-5 mb-4">
   <div class="flex items-start justify-between gap-4 mb-3">
     <h2 class="font-semibold text-gray-900">Clientes</h2>
-    {% if diagnostico.clientes.sem_responsavel > 0 %}
+    {% if diagnostico.clientes.sem_responsavel > 0 or diagnostico.clientes.sem_departamento > 0 %}
     <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex-shrink-0">
       Atenção
     </span>
@@ -45,6 +45,16 @@
         {{ diagnostico.clientes.sem_responsavel }}
       </p>
     </div>
+    <div>
+      <p class="text-xs text-gray-400">Com departamento</p>
+      <p class="text-2xl font-bold text-gray-900">{{ diagnostico.clientes.com_departamento }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400">Sem departamento</p>
+      <p class="text-2xl font-bold {% if diagnostico.clientes.sem_departamento > 0 %}text-amber-600{% else %}text-gray-900{% endif %}">
+        {{ diagnostico.clientes.sem_departamento }}
+      </p>
+    </div>
   </div>
 
   {% if diagnostico.clientes.sem_responsavel > 0 %}
@@ -59,12 +69,24 @@
   </div>
   {% endif %}
 
+  {% if diagnostico.clientes.sem_departamento > 0 %}
+  <div class="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mb-2">
+    <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <p class="text-xs text-amber-800">
+      {{ diagnostico.clientes.sem_departamento }} cliente{% if diagnostico.clientes.sem_departamento != 1 %}s{% endif %}
+      sem departamento. Clientes antigos podem continuar sem departamento até uma etapa futura de correção.
+    </p>
+  </div>
+  {% endif %}
+
   <div class="flex items-start gap-2 p-3 rounded-lg bg-stone-50 border border-stone-200">
     <svg class="w-4 h-4 text-stone-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
     </svg>
     <p class="text-xs text-stone-600">
-      Clientes agora possuem campo responsável. Registros sem responsável devem ser tratados como pendência administrativa — não como dados automaticamente visíveis para todos os usuários.
+      Clientes antigos podem continuar sem responsável ou departamento por causa da evolução incremental do sistema. Esses registros devem ser tratados como pendência administrativa, não como dados automaticamente visíveis para todos os usuários.
     </p>
   </div>
 </div>
@@ -73,7 +95,7 @@
 <div class="card p-5 mb-4">
   <div class="flex items-start justify-between gap-4 mb-3">
     <h2 class="font-semibold text-gray-900">Processos</h2>
-    {% if diagnostico.processos.sem_responsavel > 0 %}
+    {% if diagnostico.processos.sem_responsavel > 0 or diagnostico.processos.sem_departamento > 0 %}
     <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex-shrink-0">
       Atenção
     </span>
@@ -90,15 +112,29 @@
       <p class="text-2xl font-bold text-gray-900">{{ diagnostico.processos.total }}</p>
     </div>
     <div>
+      <p class="text-xs text-gray-400">Com responsável</p>
+      <p class="text-2xl font-bold text-gray-900">{{ diagnostico.processos.com_responsavel }}</p>
+    </div>
+    <div>
       <p class="text-xs text-gray-400">Sem responsável</p>
       <p class="text-2xl font-bold {% if diagnostico.processos.sem_responsavel > 0 %}text-amber-600{% else %}text-gray-900{% endif %}">
         {{ diagnostico.processos.sem_responsavel }}
       </p>
     </div>
+    <div>
+      <p class="text-xs text-gray-400">Com departamento</p>
+      <p class="text-2xl font-bold text-gray-900">{{ diagnostico.processos.com_departamento }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400">Sem departamento</p>
+      <p class="text-2xl font-bold {% if diagnostico.processos.sem_departamento > 0 %}text-amber-600{% else %}text-gray-900{% endif %}">
+        {{ diagnostico.processos.sem_departamento }}
+      </p>
+    </div>
   </div>
 
   {% if diagnostico.processos.sem_responsavel > 0 %}
-  <div class="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+  <div class="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mb-2">
     <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
     </svg>
@@ -108,6 +144,27 @@
     </p>
   </div>
   {% endif %}
+
+  {% if diagnostico.processos.sem_departamento > 0 %}
+  <div class="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 mb-2">
+    <svg class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.538-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <p class="text-xs text-amber-800">
+      {{ diagnostico.processos.sem_departamento }} processo{% if diagnostico.processos.sem_departamento != 1 %}s{% endif %}
+      sem departamento. Esses registros devem ser tratados como pendência administrativa antes de qualquer filtro por departamento.
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="flex items-start gap-2 p-3 rounded-lg bg-stone-50 border border-stone-200">
+    <svg class="w-4 h-4 text-stone-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-xs text-stone-600">
+      Processos agora possuem campo departamento. Registros antigos podem continuar sem departamento até uma etapa futura de correção/backfill.
+    </p>
+  </div>
 </div>
 
 {# Tarefas #}
