@@ -14,5 +14,4 @@ urlpatterns = [
     path("configuracoes/departamentos/<int:pk>/membros/", views.departamento_membros, name="departamento_membros"),
     path("configuracoes/departamentos/<int:pk>/membros/<int:membro_pk>/remover/", views.remover_membro_departamento, name="remover_membro_departamento"),
     path("configuracoes/departamentos/<int:pk>/membros/<int:membro_pk>/alternar-gerente/", views.alternar_gerente_departamento, name="alternar_gerente_departamento"),
-    path("configuracoes/diagnostico-escopo/", views.diagnostico_escopo, name="diagnostico_escopo"),
 ]

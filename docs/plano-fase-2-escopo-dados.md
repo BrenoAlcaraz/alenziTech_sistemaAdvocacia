@@ -63,75 +63,20 @@ Por isso, a Fase 2.10 iniciou com uma etapa de diagnóstico antes de qualquer im
 
 ---
 
-## Fase 2.10A — Diagnóstico de Escopo (concluída)
+## Fase 2.10A — Diagnóstico de Escopo (concluída e removida)
 
-### O que foi implementado
+A tela foi criada como ferramenta temporária de desenvolvimento para mapear riscos antes de aplicar filtros de escopo, e removida após cumprir seu papel.
 
-| Item | Detalhe |
-|---|---|
-| View | `configuracoes.views.diagnostico_escopo` |
-| Rota | `/configuracoes/diagnostico-escopo/` |
-| Proteção | `@requer_admin_escritorio` — advogado recebe 403 |
-| Link | Card "Administração" em `/configuracoes/` — visível apenas para admin |
-| Template | `templates/configuracoes/diagnostico_escopo.html` |
+**Commits históricos:**
+- `ef8c5fd` — `feat(configuracoes): adicionar diagnostico de escopo` (criação)
+- Commits 2.10B1A, 2.10B3A — atualizações dos contadores
+- Removida após Fase 2.10B3 — os problemas identificados foram endereçados
 
-### O que a tela exibe
-
-**Clientes:**
-- Total de clientes ativos
-- Aviso: campo `responsavel` não existe — badge "Risco alto"
-
-**Processos, Tarefas, Compromissos, Financeiro:**
-- Total de registros
-- Contagem de registros com `responsavel=null`
-- Badge "OK" (verde) se zero sem responsável; badge "Atenção" (âmbar) se houver
-
-**Avisos específicos:**
-- Agenda: `Compromisso` tem `participantes` M2M — escopo não pode considerar só `responsavel`
-- Financeiro: dado sensível; exige regra própria de acesso
-
-### O que a tela NÃO faz
-
-- Não altera, filtra nem bloqueia qualquer dado
-- Não altera models
-- Não cria migrations
-- Não altera módulos operacionais
-- Não aplica regras de escopo
-
-### Arquivos alterados
-
-| Arquivo | Operação |
-|---|---|
-| `apps/configuracoes/views.py` | Imports dos models operacionais + view `diagnostico_escopo` |
-| `apps/configuracoes/urls.py` | Rota `configuracoes/diagnostico-escopo/` |
-| `templates/configuracoes/index.html` | Card "Administração" com links Departamentos e Diagnóstico |
-| `templates/configuracoes/diagnostico_escopo.html` | Template criado |
-
-### Commit
-
-`ef8c5fd` — `feat(configuracoes): adicionar diagnostico de escopo`
-
----
-
-## Decisão de produto/arquitetura sobre a tela de diagnóstico
-
-> A tela de Diagnóstico de Escopo deve ser tratada, **por enquanto**, como ferramenta administrativa/técnica de apoio ao desenvolvimento.
-
-### Para que serve
-
-- Auxiliar o desenvolvimento incremental de escopo de dados
-- Mostrar riscos antes de ativar filtros por usuário, departamento ou papel
-- Evitar que dados sumam silenciosamente durante a evolução do sistema
-- Identificar registros antigos sem responsável antes de aplicar filtros
-- Apoiar decisões de arquitetura com dados reais do banco
-- Validar se o sistema está pronto para receber regras reais de escopo
-
-### O que ela NÃO é ainda
-
-- Não é uma funcionalidade principal do produto
-- Não é uma tela de auditoria de produção
-- Não é um painel de saúde permanente
-- Não é obrigatória para o funcionamento do sistema
+**O que ela revelou e que foi endereçado:**
+- `Cliente` sem `responsavel` → corrigido na Fase 2.10B1
+- `Cliente` sem `departamento`, `Processo` sem `departamento` → corrigido na Fase 2.10B3
+- `Compromisso` tem `participantes` M2M → a considerar quando escopo de Agenda for implementado
+- `Dashboard` lê tudo globalmente → a ajustar por último
 
 ### Reavaliação obrigatória antes da produção
 

@@ -336,17 +336,11 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 
 ## Fase 2.10 — Escopo de dados nos módulos operacionais
 
-### Fase 2.10A — Diagnóstico de Escopo — Concluída ✅
+### Fase 2.10A — Diagnóstico de Escopo — Concluída e removida ✅
 
-✅ Tela `/configuracoes/diagnostico-escopo/` implementada (somente leitura, somente admin)  
-✅ Contadores de registros sem `responsavel` em Processos, Tarefas, Compromissos, Financeiro  
-✅ Aviso explícito sobre `Cliente` sem campo `responsavel`  
-✅ Avisos específicos sobre Agenda (participantes) e Financeiro (dado sensível)  
-✅ Link de acesso no card "Administração" em `/configuracoes/` — visível apenas para admin  
-✅ Acesso direto por advogado retorna 403  
-✅ Nenhum dado alterado, nenhuma migration criada, nenhum módulo operacional alterado  
-
-> **Classificação:** ferramenta administrativa/técnica de apoio ao desenvolvimento — **não é funcionalidade final**. Reavaliação obrigatória antes da produção.
+✅ Tela implementada, usada para mapear riscos de escopo, e removida após cumprir seu papel.  
+✅ O que ela revelou foi endereçado nas Fases 2.10B1 e 2.10B3 (`Cliente.responsavel`, `Cliente.departamento`, `Processo.departamento`).  
+✅ Nenhum dado foi alterado, nenhuma migration criada por ela.
 
 ---
 
@@ -396,15 +390,6 @@ Na ordem recomendada (menor risco → maior risco):
 4. Dashboard — por último, após todos os módulos estarem consistentes
 
 ---
-
-### Fase 2.10F — Reavaliação da tela de Diagnóstico de Escopo
-
-Após filtros aplicados e dados corrigidos, decidir o destino da tela:
-
-- Manter como "Saúde dos Dados" do escritório
-- Transformar em "Auditoria Administrativa"
-- Restringir a suporte da plataforma SaaS
-- Remover se não houver mais utilidade
 
 ---
 

@@ -10,11 +10,6 @@ from apps.accounts.decorators import (
 )
 from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, MembroDepartamentoForm, PerfilUsuarioForm
 from apps.accounts.models import Departamento, MembroDepartamento, PerfilUsuario
-from apps.clientes.models import Cliente
-from apps.processos.models import Processo
-from apps.tarefas.models import Tarefa
-from apps.agenda.models import Compromisso
-from apps.financeiro.models import LancamentoFinanceiro
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -252,48 +247,6 @@ def alternar_gerente_departamento(request, pk, membro_pk):
 
     return redirect("configuracoes:departamento_membros", pk=departamento.pk)
 
-
-@requer_admin_escritorio
-def diagnostico_escopo(request):
-    clientes_ativos = Cliente.objects.filter(ativo=True)
-    processos = Processo.objects.all()
-
-    diagnostico = {
-        "clientes": {
-            "total_ativos": clientes_ativos.count(),
-            "com_responsavel": clientes_ativos.filter(responsavel__isnull=False).count(),
-            "sem_responsavel": clientes_ativos.filter(responsavel__isnull=True).count(),
-            "com_departamento": clientes_ativos.filter(departamento__isnull=False).count(),
-            "sem_departamento": clientes_ativos.filter(departamento__isnull=True).count(),
-            "tem_responsavel": True,
-            "tem_departamento": True,
-            "observacao": "Clientes agora possuem campos responsável e departamento. Registros antigos podem continuar sem esses vínculos até uma etapa futura de correção/backfill.",
-        },
-        "processos": {
-            "total": processos.count(),
-            "com_responsavel": processos.filter(responsavel__isnull=False).count(),
-            "sem_responsavel": processos.filter(responsavel__isnull=True).count(),
-            "com_departamento": processos.filter(departamento__isnull=False).count(),
-            "sem_departamento": processos.filter(departamento__isnull=True).count(),
-            "tem_departamento": True,
-        },
-        "tarefas": {
-            "total": Tarefa.objects.count(),
-            "sem_responsavel": Tarefa.objects.filter(responsavel__isnull=True).count(),
-        },
-        "compromissos": {
-            "total": Compromisso.objects.count(),
-            "sem_responsavel": Compromisso.objects.filter(responsavel__isnull=True).count(),
-        },
-        "financeiro": {
-            "total": LancamentoFinanceiro.objects.count(),
-            "sem_responsavel": LancamentoFinanceiro.objects.filter(responsavel__isnull=True).count(),
-        },
-    }
-    return render(request, "configuracoes/diagnostico_escopo.html", {
-        "diagnostico": diagnostico,
-        "item_ativo": "configuracoes",
-    })
 
 
 @requer_admin_escritorio
