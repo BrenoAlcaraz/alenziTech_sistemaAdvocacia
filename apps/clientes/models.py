@@ -23,14 +23,6 @@ class Cliente(models.Model):
         related_name="clientes_responsaveis",
         verbose_name="Responsável",
     )
-    departamento = models.ForeignKey(
-        "accounts.Departamento",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="clientes",
-        verbose_name="Departamento",
-    )
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 

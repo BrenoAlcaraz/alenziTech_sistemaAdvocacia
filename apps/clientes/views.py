@@ -1,6 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from apps.accounts.escopo import departamento_padrao_para_usuario
 from .models import Cliente
 from .forms import ClienteForm
 
@@ -31,8 +30,6 @@ def novo(request):
             cliente = form.save(commit=False)
             if not cliente.responsavel:
                 cliente.responsavel = request.user
-            if not cliente.departamento:
-                cliente.departamento = departamento_padrao_para_usuario(request.user)
             cliente.save()
             return redirect("clientes:lista")
     else:
