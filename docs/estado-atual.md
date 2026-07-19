@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-18 (Refatoração Departamento → Equipe concluída; Cliente.departamento removido por decisão de produto)
+Última atualização: 2026-07-19 (Fase 2.11B: papel técnico `limitado` introduzido; `gerente` e `advogado` depreciados como papéis técnicos)
 
 ## Stack instalada e configurada
 
@@ -358,6 +358,8 @@ Não implementado nesta fase (não bloqueante):
 | `/configuracoes/` mantido para todos | `@login_required` — não bloqueado inteiro |
 | Edição de perfil mantida para todos | `@login_required` |
 
+> **Evolução — Fase 2.11B (2026-07-19):** os grupos `gerente` e `advogado` foram depreciados como papéis técnicos ativos. O papel técnico `limitado` foi introduzido como substituto. Usuários nesses grupos foram migrados pelas migrations `accounts.0005_criar_grupo_limitado` e `accounts.0006_migrar_papeis_legados`. Os objetos `Group` legados permanecem no banco sem usuários ativos. Ver seção "Transição de papéis técnicos — Fase 2.11B" abaixo.
+
 Não implementado nesta fase (não bloqueante):
 
 - Bloqueio por papel nos módulos operacionais (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard)
@@ -434,6 +436,60 @@ A tela `/configuracoes/diagnostico-escopo/` foi criada na Fase 2.10A como ferram
 
 ---
 
+## Transição de papéis técnicos — Fase 2.11B concluída
+
+| Funcionalidade | Implementação |
+|---|---|
+| Grupo `limitado` criado | `accounts.0005_criar_grupo_limitado` — `get_or_create`, idempotente, reverse vazio |
+| Usuários migrados | `accounts.0006_migrar_papeis_legados` — não-administradores de `advogado` e `gerente` movidos para `limitado`; reverse vazio |
+| Proteção de admins na migration | pelos três mecanismos: `is_superuser`, `is_admin_escritorio`, grupo `administrador_escritorio` |
+| Grupos legados preservados | objetos `Group` `advogado` e `gerente` mantidos no banco sem usuários ativos |
+| Equipes inalteradas | `MembroEquipe.eh_gerente` não foi alterado pelas migrations |
+| `apps/accounts/decorators.py` atualizado | `GRUPOS_PADROES` e `GRUPOS_CRIACAO_USUARIO` refletem novo estado; legados em bloco separado |
+| Formulário de criação atualizado | exibe `limitado` e `financeiro`; texto de ajuda atualizado |
+| Validado no shell do tenant `demo` | `admin` → `administrador_escritorio`; `advogado` → `limitado`; zero usuários nos grupos legados |
+
+### Papéis técnicos ativos (pós Fase 2.11B)
+
+| Slug | Nome legível | Observação |
+|---|---|---|
+| `administrador_escritorio` | Administrador do Escritório | criado por fluxo administrativo separado; inalterado |
+| `limitado` | Limitado | introduzido nesta fase; substituto técnico de `advogado` e `gerente` |
+| `financeiro` | Financeiro | inalterado |
+
+### Papéis legados (banco apenas)
+
+| Slug | Estado |
+|---|---|
+| `gerente` | objeto `Group` preservado; zero usuários ativos; depreciado como papel técnico global |
+| `advogado` | objeto `Group` preservado; zero usuários ativos; depreciado como papel técnico |
+
+### Separação conceitual
+
+| Conceito | Mecanismo | Exemplo |
+|---|---|---|
+| Tipo de conta técnico | `auth.Group` (`limitado`, `financeiro`, `administrador_escritorio`) | usuário tem tipo `limitado` |
+| Cargo profissional descritivo | `PerfilUsuario.cargo` (texto livre) | "Advogada Sênior", "Gerente de Projetos" |
+| Função de gerente de equipe | `MembroEquipe.eh_gerente=True` | gerente da equipe "Cível" |
+| Permissões e habilitações futuras | ainda não implementadas | Fase 2.11C |
+
+`PerfilUsuario.cargo = "Advogado"` continua válido — é cargo profissional descritivo, não papel técnico.
+Gerente de equipe (`MembroEquipe.eh_gerente`) não é `auth.Group` técnico e não cria usuários nesta fase.
+Futuramente, gerente poderá administrar permissões individuais apenas dos membros das equipes que gerencia.
+
+Não implementado nesta fase:
+
+- `PermissaoPapel`, `PermissaoUsuario`, `HabilitacaoPapel`, `HabilitacaoUsuario`
+- Constantes de módulos, níveis e habilitações
+- Seeds padrão de permissões
+- Helpers de resolução (papel → permissão efetiva)
+- Telas de Permissões e Habilitações
+- Sobrescritas individuais por usuário
+- Acesso de gerente de equipe a dados dos membros
+- Filtros nos módulos operacionais
+
+---
+
 ## Templates
 
 - ✅ Todas as páginas existem e são navegáveis
@@ -456,3 +512,4 @@ A tela `/configuracoes/diagnostico-escopo/` foi criada na Fase 2.10A como ferram
 - Configurações: ✅ Usuários reais, edição de perfil e dados do escritório validados no navegador
 - Permissões: ✅ Grupos criados, admin inicial formalizado, criação de usuário pelo admin validada no navegador
 - Equipes: ✅ Criação, edição, membros, gerentes, helpers de escopo — validados no navegador e no shell do tenant
+- Papéis técnicos (Fase 2.11B): ✅ `accounts.0005` e `0006` aplicados no schema `demo`; grupo `limitado` criado; usuários migrados; zero usuários nos grupos legados; validado no shell do tenant

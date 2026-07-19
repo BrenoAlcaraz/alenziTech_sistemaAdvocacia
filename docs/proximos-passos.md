@@ -412,3 +412,38 @@ Pode ser feita antes ou em paralelo com o escopo de dados:
 
 1. **Modelos** — templates de peças jurídicas
 2. **Chat** — conversas internas por processo ou geral
+
+---
+
+## Fase 2.11B — Transição dos papéis técnicos — Concluída ✅
+
+Aplicado no tenant `demo` em 2026-07-19:
+
+✅ `accounts.0005_criar_grupo_limitado` — grupo `limitado` criado com `get_or_create`; idempotente; reverse vazio deliberado
+✅ `accounts.0006_migrar_papeis_legados` — usuários não-administradores migrados de `advogado`/`gerente` para `limitado`; reverse vazio (semanticamente irreversível)
+✅ `apps/accounts/decorators.py` — `GRUPOS_PADROES`, `GRUPOS_CRIACAO_USUARIO`, `NOMES_GRUPOS` refletem novo estado; legados em bloco separado
+✅ `templates/configuracoes/novo_usuario.html` — texto de ajuda do campo de papel atualizado
+✅ Validação no shell do tenant `demo`: `admin` → `administrador_escritorio`; `advogado` → `limitado`; zero usuários nos grupos legados
+✅ Equipes e gerências (`MembroEquipe.eh_gerente`) inalteradas pelas migrations
+
+Commit: `f5abb86 refactor(accounts): substituir papeis legados por limitado`
+
+---
+
+## Fase 2.11C — Modelagem de Permissões e Habilitações (próxima etapa)
+
+Ainda não iniciada. Requer aprovação explícita antes de qualquer implementação.
+
+O que será definido nesta fase:
+
+- `PermissaoPapel` — permissões padrão por papel técnico
+- `PermissaoUsuario` — sobrescritas individuais por usuário
+- `HabilitacaoPapel` — habilitações de módulo/nível por papel
+- `HabilitacaoUsuario` — sobrescritas individuais por usuário
+- Constantes de módulos, níveis e habilitações
+- Seeds padrão por papel
+- Helpers de resolução (papel → permissão efetiva, com hierarquia de sobrescrita)
+- Telas de Permissões (admin do escritório)
+- Telas de Habilitações (admin do escritório)
+- Acesso de gerente de equipe a dados dos membros das equipes que gerencia
+- Filtros nos módulos operacionais por permissão efetiva

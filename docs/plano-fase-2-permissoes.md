@@ -47,11 +47,15 @@ Criados com `Group.objects.get_or_create(name=nome)` — idempotente.
 Não apaga grupos no reverse migration (`noop_reverse`).  
 Dependências: `accounts.0001_initial` e `auth.0012_alter_user_first_name_max_length`.
 
+> **Evolução — Fase 2.11B (2026-07-19):** os grupos `gerente` e `advogado` foram depreciados como papéis técnicos ativos. O papel técnico `limitado` foi introduzido pelas migrations `accounts.0005_criar_grupo_limitado` e `accounts.0006_migrar_papeis_legados`. Usuários nesses grupos foram migrados para `limitado`. Os objetos `Group` legados permanecem no banco sem usuários ativos. Ver seção "Fase 2.11B — Transição de papéis técnicos" abaixo.
+
 ---
 
 ## Helpers e constantes (`apps/accounts/decorators.py`)
 
 ### Constantes
+
+Estado original (Fase 2.8):
 
 ```python
 GRUPO_ADMINISTRADOR_ESCRITORIO = "administrador_escritorio"
@@ -66,6 +70,39 @@ GRUPOS_CRIACAO_USUARIO = [    # grupos permitidos na tela de criação comum
     GRUPO_FINANCEIRO,
 ]
 NOMES_GRUPOS = {...}           # slug → nome legível
+```
+
+Estado atual (pós Fase 2.11B):
+
+```python
+# Slugs dos grupos — papéis técnicos ativos
+GRUPO_ADMINISTRADOR_ESCRITORIO = "administrador_escritorio"
+GRUPO_LIMITADO = "limitado"
+GRUPO_FINANCEIRO = "financeiro"
+
+# Slugs legados — mantidos para referência em migrations e fallback de exibição
+GRUPO_GERENTE = "gerente"
+GRUPO_ADVOGADO = "advogado"
+
+GRUPOS_PADROES = [
+    GRUPO_ADMINISTRADOR_ESCRITORIO,
+    GRUPO_LIMITADO,
+    GRUPO_FINANCEIRO,
+]
+
+GRUPOS_CRIACAO_USUARIO = [
+    GRUPO_LIMITADO,
+    GRUPO_FINANCEIRO,
+]
+
+NOMES_GRUPOS = {
+    GRUPO_ADMINISTRADOR_ESCRITORIO: "Administrador do Escritório",
+    GRUPO_LIMITADO: "Limitado",
+    GRUPO_FINANCEIRO: "Financeiro",
+    # Legado — exibido enquanto houver registros históricos
+    GRUPO_GERENTE: "Gerente (legado)",
+    GRUPO_ADVOGADO: "Advogado (legado)",
+}
 ```
 
 ### Funções
@@ -123,7 +160,7 @@ Campos:
 | `email` | EmailField | validado como único no tenant |
 | `nome_completo` | CharField | salvo em `PerfilUsuario.nome_completo` |
 | `cargo` | CharField | salvo em `PerfilUsuario.cargo` (descritivo) |
-| `grupo` | `GrupoPapelChoiceField` | apenas `gerente`, `advogado`, `financeiro` |
+| `grupo` | `GrupoPapelChoiceField` | apenas `gerente`, `advogado`, `financeiro` (Fase 2.8); atualizado para `limitado`, `financeiro` na Fase 2.11B |
 | `password1` | CharField | validado pelo Django |
 | `password2` | CharField | confirmação |
 
@@ -154,11 +191,19 @@ A view `index` monta `usuarios_contexto`, uma lista de dicionários:
 }
 ```
 
-Exibido no template com nome humanizado:
+Exibido no template com nome humanizado (estado original, Fase 2.8):
 - Administrador do Escritório
 - Gerente
 - Advogado
 - Financeiro
+- Sem papel definido
+
+Estado atual (pós Fase 2.11B):
+- Administrador do Escritório
+- Limitado
+- Financeiro
+- Gerente (legado) — exibido para usuários ainda no grupo antigo, se houver
+- Advogado (legado) — idem
 - Sem papel definido
 
 `PerfilUsuario.cargo` continua exibido separadamente como campo descritivo.
@@ -217,14 +262,76 @@ A proteção backend nas rotas permanece independente do ajuste visual.
 - ✅ Constantes de escopo: `ESCOPO_TUDO`, `ESCOPO_EQUIPES_GERENCIADAS`, `ESCOPO_EQUIPE`, `ESCOPO_PROPRIOS_ITENS`, `ESCOPO_NENHUM`
 - Filtros por escopo nos módulos operacionais — fase futura (2.10D+)
 
-### Fase 2.10 — Segurança de usuários e onboarding
+### Fase 2.11B — Transição de papéis técnicos (concluída ✅)
 
-- Redefinição de senha pela interface (`PasswordChangeForm`)
-- Convite por e-mail
-- Confirmação de e-mail
-- Desativação de usuário
-- Edição do papel de usuário existente
-- Auditoria de ações administrativas
+- ✅ Grupo `limitado` criado; `gerente` e `advogado` depreciados como papéis técnicos ativos
+- ✅ Usuários migrados para `limitado`; objetos `Group` legados preservados
+- ✅ `decorators.py`, formulário de criação e template atualizados
+
+---
+
+## Fase 2.11B — Transição de papéis técnicos — Concluída
+
+**Data**: 2026-07-19
+**Commit**: `f5abb86 refactor(accounts): substituir papeis legados por limitado`
+
+### Migrations
+
+**`accounts.0005_criar_grupo_limitado`**
+
+- Cria o grupo `limitado` com `Group.objects.get_or_create(name="limitado")`
+- Idempotente — seguro reexecutar
+- Dependências: `accounts.0004_rename_departamento_equipe`, `auth.0012_alter_user_first_name_max_length`
+- Reverse deliberadamente vazio (noop)
+
+**`accounts.0006_migrar_papeis_legados`**
+
+- Move usuários não-administradores dos grupos `advogado` e `gerente` para `limitado`
+- Administrador protegido pelos três mecanismos: `is_superuser`, `is_admin_escritorio`, grupo `administrador_escritorio`
+- Não altera equipes nem `MembroEquipe.eh_gerente`
+- Não exclui os objetos `Group` legados
+- Reverse deliberadamente vazio — não é possível reconstruir o grupo anterior com segurança
+
+### Separação conceitual documentada
+
+Um mesmo usuário pode ter simultaneamente:
+
+- Tipo de conta técnico: `limitado` (`auth.Group`)
+- Cargo profissional: "Advogada Sênior" (`PerfilUsuario.cargo` — texto livre)
+- Função de gerente: `MembroEquipe.eh_gerente=True` para a equipe "Cível"
+
+`PerfilUsuario.cargo = "Advogado"` continua válido — é cargo profissional descritivo.
+Gerente de equipe não é `auth.Group` técnico ativo; não cria usuários; não cria grupos Django nesta fase.
+Futuramente, gerente poderá administrar permissões individuais apenas dos membros das equipes que gerencia.
+
+### Formulário de criação de usuários (pós Fase 2.11B)
+
+Papéis disponíveis na criação comum: `limitado` e `financeiro`.
+Administrador continua sendo criado por fluxo administrativo separado.
+O campo `cargo` continua como texto livre descritivo (placeholder: "Ex.: Advogado, Financeiro, Gerente").
+
+### Resultado validado no tenant demo
+
+| Usuário | Grupo antes | Grupo depois |
+|---|---|---|
+| `admin` | `administrador_escritorio` | `administrador_escritorio` (inalterado) |
+| `advogado` | `advogado` | `limitado` |
+
+- Zero usuários ativos associados aos grupos legados
+- Equipes e gerências inalteradas
+
+### Fase 2.11C — Modelagem de Permissões e Habilitações (próxima etapa)
+
+Ainda não implementado:
+
+- `PermissaoPapel`, `PermissaoUsuario`, `HabilitacaoPapel`, `HabilitacaoUsuario`
+- Constantes de módulos, níveis e habilitações
+- Seeds padrão por papel
+- Helpers de resolução (papel → permissão efetiva)
+- Telas de Permissões e Habilitações
+- Sobrescritas individuais por usuário
+- Acesso de gerente de equipe a dados dos membros
+- Filtros nos módulos operacionais
 
 ### Fase futura — Permissões granulares
 
