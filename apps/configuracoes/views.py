@@ -8,8 +8,8 @@ from apps.accounts.decorators import (
     requer_admin_escritorio,
     usuario_admin_escritorio,
 )
-from apps.accounts.forms import CriarUsuarioEscritorioForm, DepartamentoForm, MembroDepartamentoForm, PerfilUsuarioForm
-from apps.accounts.models import Departamento, MembroDepartamento, PerfilUsuario
+from apps.accounts.forms import CriarUsuarioEscritorioForm, EquipeForm, MembroEquipeForm, PerfilUsuarioForm
+from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -28,8 +28,8 @@ def index(request):
         .select_related("perfil")
         .prefetch_related(
             "groups",
-            "membros_departamento",
-            "membros_departamento__departamento",
+            "membros_equipe",
+            "membros_equipe__equipe",
         )
         .order_by("first_name", "last_name", "username")
     )
@@ -38,16 +38,16 @@ def index(request):
     usuarios_contexto = []
     for usuario in usuarios:
         grupo = obter_papel_principal_usuario(usuario)
-        membros_departamento = [
+        membros_equipe = [
             membro
-            for membro in usuario.membros_departamento.all()
-            if membro.ativo and membro.departamento.ativo
+            for membro in usuario.membros_equipe.all()
+            if membro.ativo and membro.equipe.ativo
         ]
         usuarios_contexto.append({
             "usuario": usuario,
             "papel": grupo.name if grupo else "",
             "papel_nome": nome_legivel_grupo(grupo.name) if grupo else "Sem papel definido",
-            "membros_departamento": membros_departamento,
+            "membros_equipe": membros_equipe,
         })
 
     configuracao_escritorio = _obter_configuracao_escritorio()
@@ -109,107 +109,107 @@ def novo_usuario(request):
 
 
 @requer_admin_escritorio
-def departamentos(request):
+def equipes(request):
     deps = (
-        Departamento.objects
-        .select_related("departamento_pai")
+        Equipe.objects
+        .select_related("equipe_pai")
         .prefetch_related("membros", "membros__usuario")
         .order_by("nome")
     )
 
-    departamentos_contexto = []
+    equipes_contexto = []
     for dep in deps:
         membros_list = list(dep.membros.all())
-        departamentos_contexto.append({
-            "departamento": dep,
+        equipes_contexto.append({
+            "equipe": dep,
             "total_membros": len(membros_list),
             "total_gerentes": sum(1 for m in membros_list if m.eh_gerente),
         })
 
     return render(
         request,
-        "configuracoes/departamentos.html",
+        "configuracoes/equipes.html",
         {
-            "departamentos_contexto": departamentos_contexto,
+            "equipes_contexto": equipes_contexto,
             "item_ativo": "configuracoes",
         },
     )
 
 
 @requer_admin_escritorio
-def novo_departamento(request):
+def nova_equipe(request):
     if request.method == "POST":
-        form = DepartamentoForm(request.POST)
+        form = EquipeForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect("configuracoes:departamentos")
+            return redirect("configuracoes:equipes")
     else:
-        form = DepartamentoForm()
+        form = EquipeForm()
 
     return render(
         request,
-        "configuracoes/departamento_form.html",
+        "configuracoes/equipe_form.html",
         {
             "form": form,
             "modo": "novo",
-            "titulo": "Novo departamento",
+            "titulo": "Nova equipe",
             "item_ativo": "configuracoes",
         },
     )
 
 
 @requer_admin_escritorio
-def editar_departamento(request, pk):
-    departamento = get_object_or_404(Departamento, pk=pk)
+def editar_equipe(request, pk):
+    equipe = get_object_or_404(Equipe, pk=pk)
 
     if request.method == "POST":
-        form = DepartamentoForm(request.POST, instance=departamento)
+        form = EquipeForm(request.POST, instance=equipe)
         if form.is_valid():
             form.save()
-            return redirect("configuracoes:departamentos")
+            return redirect("configuracoes:equipes")
     else:
-        form = DepartamentoForm(instance=departamento)
+        form = EquipeForm(instance=equipe)
 
     return render(
         request,
-        "configuracoes/departamento_form.html",
+        "configuracoes/equipe_form.html",
         {
             "form": form,
-            "departamento": departamento,
+            "equipe": equipe,
             "modo": "editar",
-            "titulo": "Editar departamento",
+            "titulo": "Editar equipe",
             "item_ativo": "configuracoes",
         },
     )
 
 
 @requer_admin_escritorio
-def departamento_membros(request, pk):
-    departamento = get_object_or_404(Departamento, pk=pk)
+def equipe_membros(request, pk):
+    equipe = get_object_or_404(Equipe, pk=pk)
 
     if request.method == "POST":
-        form = MembroDepartamentoForm(request.POST, departamento=departamento)
+        form = MembroEquipeForm(request.POST, equipe=equipe)
         if form.is_valid():
             membro = form.save(commit=False)
-            membro.departamento = departamento
+            membro.equipe = equipe
             membro.ativo = True
             membro.save()
-            return redirect("configuracoes:departamento_membros", pk=departamento.pk)
+            return redirect("configuracoes:equipe_membros", pk=equipe.pk)
     else:
-        form = MembroDepartamentoForm(departamento=departamento)
+        form = MembroEquipeForm(equipe=equipe)
 
     membros = (
-        MembroDepartamento.objects
-        .filter(departamento=departamento)
+        MembroEquipe.objects
+        .filter(equipe=equipe)
         .select_related("usuario", "usuario__perfil")
         .order_by("-eh_gerente", "usuario__username")
     )
 
     return render(
         request,
-        "configuracoes/departamento_membros.html",
+        "configuracoes/equipe_membros.html",
         {
-            "departamento": departamento,
+            "equipe": equipe,
             "form": form,
             "membros": membros,
             "item_ativo": "configuracoes",
@@ -218,35 +218,34 @@ def departamento_membros(request, pk):
 
 
 @requer_admin_escritorio
-def remover_membro_departamento(request, pk, membro_pk):
-    departamento = get_object_or_404(Departamento, pk=pk)
+def remover_membro_equipe(request, pk, membro_pk):
+    equipe = get_object_or_404(Equipe, pk=pk)
     membro = get_object_or_404(
-        MembroDepartamento,
+        MembroEquipe,
         pk=membro_pk,
-        departamento=departamento,
+        equipe=equipe,
     )
 
     if request.method == "POST":
         membro.delete()
 
-    return redirect("configuracoes:departamento_membros", pk=departamento.pk)
+    return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
 
 @requer_admin_escritorio
-def alternar_gerente_departamento(request, pk, membro_pk):
-    departamento = get_object_or_404(Departamento, pk=pk)
+def alternar_gerente_equipe(request, pk, membro_pk):
+    equipe = get_object_or_404(Equipe, pk=pk)
     membro = get_object_or_404(
-        MembroDepartamento,
+        MembroEquipe,
         pk=membro_pk,
-        departamento=departamento,
+        equipe=equipe,
     )
 
     if request.method == "POST":
         membro.eh_gerente = not membro.eh_gerente
         membro.save(update_fields=["eh_gerente"])
 
-    return redirect("configuracoes:departamento_membros", pk=departamento.pk)
-
+    return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
 
 @requer_admin_escritorio

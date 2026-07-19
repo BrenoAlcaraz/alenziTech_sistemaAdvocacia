@@ -7,11 +7,11 @@
   <div>
     <h1 class="text-2xl font-bold text-gray-900">{{ titulo }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">
-      {% if modo == "novo" %}Crie uma área interna do escritório.
-      {% else %}Atualize os dados deste departamento.{% endif %}
+      {% if modo == "novo" %}Crie uma equipe interna do escritório.
+      {% else %}Atualize os dados desta equipe.{% endif %}
     </p>
   </div>
-  <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary text-sm flex-shrink-0">
+  <a href="{% url 'configuracoes:equipes' %}" class="btn-secondary text-sm flex-shrink-0">
     Cancelar
   </a>
 </div>
@@ -44,17 +44,17 @@
     </div>
 
     <div class="mb-4">
-      <label for="{{ form.departamento_pai.id_for_label }}" class="label">Departamento pai</label>
-      {{ form.departamento_pai }}
-      {% if form.departamento_pai.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.departamento_pai.errors.0 }}</p>
+      <label for="{{ form.equipe_pai.id_for_label }}" class="label">Equipe pai</label>
+      {{ form.equipe_pai }}
+      {% if form.equipe_pai.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ form.equipe_pai.errors.0 }}</p>
       {% endif %}
     </div>
 
     <div class="mb-6 flex items-center gap-2">
       {{ form.ativo }}
       <label for="{{ form.ativo.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
-        Departamento ativo
+        Equipe ativa
       </label>
       {% if form.ativo.errors %}
         <p class="mt-1 text-xs text-red-600">{{ form.ativo.errors.0 }}</p>
@@ -63,9 +63,9 @@
 
     <div class="flex items-center gap-3">
       <button type="submit" class="btn-primary">
-        {% if modo == "novo" %}Criar departamento{% else %}Salvar alterações{% endif %}
+        {% if modo == "novo" %}Criar equipe{% else %}Salvar alterações{% endif %}
       </button>
-      <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary">Cancelar</a>
+      <a href="{% url 'configuracoes:equipes' %}" class="btn-secondary">Cancelar</a>
     </div>
 
   </form>

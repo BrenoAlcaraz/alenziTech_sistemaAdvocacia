@@ -1,16 +1,16 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Departamentos — Jurídico SaaS{% endblock %}
+{% block title %}Equipes — Jurídico SaaS{% endblock %}
 
 {% block content %}
 
 <div class="flex items-start justify-between mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Departamentos</h1>
+    <h1 class="text-2xl font-bold text-gray-900">Equipes</h1>
     <p class="text-sm text-gray-500 mt-0.5">Organize a estrutura interna do escritório.</p>
   </div>
   <div class="flex items-center gap-2 flex-shrink-0">
-    <a href="{% url 'configuracoes:novo_departamento' %}" class="btn-primary text-sm">
-      Novo departamento
+    <a href="{% url 'configuracoes:nova_equipe' %}" class="btn-primary text-sm">
+      Nova equipe
     </a>
     <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm">
       Voltar
@@ -20,13 +20,13 @@
 
 <div class="card p-0 overflow-hidden">
 
-  {% if departamentos_contexto %}
+  {% if equipes_contexto %}
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead>
         <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
           <th class="text-left px-5 py-3 font-medium">Nome</th>
-          <th class="text-left px-5 py-3 font-medium">Departamento pai</th>
+          <th class="text-left px-5 py-3 font-medium">Equipe pai</th>
           <th class="text-center px-5 py-3 font-medium">Membros</th>
           <th class="text-center px-5 py-3 font-medium">Gerentes</th>
           <th class="text-center px-5 py-3 font-medium">Status</th>
@@ -34,17 +34,17 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
-        {% for item in departamentos_contexto %}
+        {% for item in equipes_contexto %}
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-5 py-4">
-            <p class="font-medium text-gray-900">{{ item.departamento.nome }}</p>
-            {% if item.departamento.descricao %}
-              <p class="text-xs text-gray-400 mt-0.5">{{ item.departamento.descricao }}</p>
+            <p class="font-medium text-gray-900">{{ item.equipe.nome }}</p>
+            {% if item.equipe.descricao %}
+              <p class="text-xs text-gray-400 mt-0.5">{{ item.equipe.descricao }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-gray-500">
-            {% if item.departamento.departamento_pai %}
-              {{ item.departamento.departamento_pai.nome }}
+            {% if item.equipe.equipe_pai %}
+              {{ item.equipe.equipe_pai.nome }}
             {% else %}
               <span class="text-gray-300">—</span>
             {% endif %}
@@ -56,23 +56,23 @@
             {{ item.total_gerentes }}
           </td>
           <td class="px-5 py-4 text-center">
-            {% if item.departamento.ativo %}
+            {% if item.equipe.ativo %}
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                Ativo
+                Ativa
               </span>
             {% else %}
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                Inativo
+                Inativa
               </span>
             {% endif %}
           </td>
           <td class="px-5 py-4">
             <div class="flex items-center gap-3">
-              <a href="{% url 'configuracoes:departamento_membros' item.departamento.pk %}"
+              <a href="{% url 'configuracoes:equipe_membros' item.equipe.pk %}"
                  class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
                 Membros
               </a>
-              <a href="{% url 'configuracoes:editar_departamento' item.departamento.pk %}"
+              <a href="{% url 'configuracoes:editar_equipe' item.equipe.pk %}"
                  class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
                 Editar
               </a>
@@ -86,12 +86,12 @@
 
   {% else %}
   <div class="p-10 text-center">
-    <p class="text-sm font-medium text-gray-500">Nenhum departamento cadastrado ainda.</p>
+    <p class="text-sm font-medium text-gray-500">Nenhuma equipe cadastrada ainda.</p>
     <p class="text-xs text-gray-400 mt-1 mb-4">
-      Crie o primeiro departamento para organizar os usuários do escritório.
+      Crie a primeira equipe para organizar os usuários do escritório.
     </p>
-    <a href="{% url 'configuracoes:novo_departamento' %}" class="btn-primary text-sm">
-      Novo departamento
+    <a href="{% url 'configuracoes:nova_equipe' %}" class="btn-primary text-sm">
+      Nova equipe
     </a>
   </div>
   {% endif %}

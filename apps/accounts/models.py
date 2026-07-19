@@ -43,37 +43,37 @@ class PerfilUsuario(models.Model):
         return self.user.username[:2].upper()
 
 
-class Departamento(models.Model):
+class Equipe(models.Model):
     nome = models.CharField(max_length=100)
     descricao = models.TextField(blank=True)
-    departamento_pai = models.ForeignKey(
+    equipe_pai = models.ForeignKey(
         "self",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="subdepartamentos",
+        related_name="subequipes",
     )
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Departamento"
-        verbose_name_plural = "Departamentos"
+        verbose_name = "Equipe"
+        verbose_name_plural = "Equipes"
         ordering = ["nome"]
 
     def __str__(self):
         return self.nome
 
 
-class MembroDepartamento(models.Model):
+class MembroEquipe(models.Model):
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="membros_departamento",
+        related_name="membros_equipe",
     )
-    departamento = models.ForeignKey(
-        Departamento,
+    equipe = models.ForeignKey(
+        Equipe,
         on_delete=models.CASCADE,
         related_name="membros",
     )
@@ -82,14 +82,14 @@ class MembroDepartamento(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Membro de Departamento"
-        verbose_name_plural = "Membros de Departamento"
+        verbose_name = "Membro de Equipe"
+        verbose_name_plural = "Membros de Equipe"
         constraints = [
             models.UniqueConstraint(
-                fields=["usuario", "departamento"],
-                name="uniq_usuario_departamento",
+                fields=["usuario", "equipe"],
+                name="uniq_usuario_equipe",
             )
         ]
 
     def __str__(self):
-        return f"{self.usuario.username} → {self.departamento.nome}"
+        return f"{self.usuario.username} → {self.equipe.nome}"

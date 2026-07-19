@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, User
 
 from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
 
-from .models import Departamento, MembroDepartamento, PerfilUsuario
+from .models import Equipe, MembroEquipe, PerfilUsuario
 
 
 class GrupoPapelChoiceField(forms.ModelChoiceField):
@@ -107,29 +107,29 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
         return user
 
 
-class DepartamentoForm(forms.ModelForm):
+class EquipeForm(forms.ModelForm):
     class Meta:
-        model = Departamento
+        model = Equipe
         fields = [
             "nome",
             "descricao",
-            "departamento_pai",
+            "equipe_pai",
             "ativo",
         ]
         widgets = {
             "nome": forms.TextInput(
                 attrs={
                     "class": "input",
-                    "placeholder": "Nome do departamento",
+                    "placeholder": "Nome da equipe",
                 }
             ),
             "descricao": forms.Textarea(
                 attrs={
                     "class": "input h-24 resize-none",
-                    "placeholder": "Descrição opcional do departamento",
+                    "placeholder": "Descrição opcional da equipe",
                 }
             ),
-            "departamento_pai": forms.Select(
+            "equipe_pai": forms.Select(
                 attrs={
                     "class": "input",
                 }
@@ -143,35 +143,35 @@ class DepartamentoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        qs = Departamento.objects.filter(ativo=True).order_by("nome")
+        qs = Equipe.objects.filter(ativo=True).order_by("nome")
         if self.instance and self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
-        self.fields["departamento_pai"].queryset = qs
-        self.fields["departamento_pai"].empty_label = "Sem departamento pai"
+        self.fields["equipe_pai"].queryset = qs
+        self.fields["equipe_pai"].empty_label = "Sem equipe pai"
 
-    def clean_departamento_pai(self):
-        departamento_pai = self.cleaned_data.get("departamento_pai")
+    def clean_equipe_pai(self):
+        equipe_pai = self.cleaned_data.get("equipe_pai")
 
-        if not departamento_pai or not self.instance or not self.instance.pk:
-            return departamento_pai
+        if not equipe_pai or not self.instance or not self.instance.pk:
+            return equipe_pai
 
-        if departamento_pai.pk == self.instance.pk:
-            raise forms.ValidationError("Um departamento não pode ser pai dele mesmo.")
+        if equipe_pai.pk == self.instance.pk:
+            raise forms.ValidationError("Uma equipe não pode ser pai dela mesma.")
 
-        atual = departamento_pai
+        atual = equipe_pai
         while atual:
             if atual.pk == self.instance.pk:
                 raise forms.ValidationError(
-                    "Um departamento não pode ser vinculado a um de seus próprios subdepartamentos."
+                    "Uma equipe não pode ser vinculada a uma de suas próprias subequipes."
                 )
-            atual = atual.departamento_pai
+            atual = atual.equipe_pai
 
-        return departamento_pai
+        return equipe_pai
 
 
-class MembroDepartamentoForm(forms.ModelForm):
+class MembroEquipeForm(forms.ModelForm):
     class Meta:
-        model = MembroDepartamento
+        model = MembroEquipe
         fields = [
             "usuario",
             "eh_gerente",
@@ -189,13 +189,13 @@ class MembroDepartamentoForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, departamento=None, **kwargs):
+    def __init__(self, *args, equipe=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        usuarios_ja_vinculados = MembroDepartamento.objects.none()
-        if departamento and departamento.pk:
-            usuarios_ja_vinculados = MembroDepartamento.objects.filter(
-                departamento=departamento
+        usuarios_ja_vinculados = MembroEquipe.objects.none()
+        if equipe and equipe.pk:
+            usuarios_ja_vinculados = MembroEquipe.objects.filter(
+                equipe=equipe
             ).values_list("usuario_id", flat=True)
 
         self.fields["usuario"].queryset = (

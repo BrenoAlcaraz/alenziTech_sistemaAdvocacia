@@ -1,22 +1,22 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Membros — {{ departamento.nome }} — Jurídico SaaS{% endblock %}
+{% block title %}Membros — {{ equipe.nome }} — Jurídico SaaS{% endblock %}
 
 {% block content %}
 
 <div class="flex items-start justify-between mb-6">
   <div>
-    <p class="text-xs text-gray-400 mb-0.5">Departamento</p>
-    <h1 class="text-2xl font-bold text-gray-900">{{ departamento.nome }}</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Membros do departamento</p>
+    <p class="text-xs text-gray-400 mb-0.5">Equipe</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ equipe.nome }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Membros da equipe</p>
   </div>
-  <a href="{% url 'configuracoes:departamentos' %}" class="btn-secondary text-sm flex-shrink-0">
+  <a href="{% url 'configuracoes:equipes' %}" class="btn-secondary text-sm flex-shrink-0">
     Voltar
   </a>
 </div>
 
 {# Formulário para adicionar membro #}
 <div class="card p-5 mb-4">
-  <h2 class="text-sm font-semibold text-gray-700 mb-4">Adicionar usuário ao departamento</h2>
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Adicionar usuário à equipe</h2>
 
   {% if form.fields.usuario.queryset.exists %}
 
@@ -40,7 +40,7 @@
         <div class="flex items-center gap-2 mb-0.5">
           {{ form.eh_gerente }}
           <label for="{{ form.eh_gerente.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
-            Gerente do departamento
+            Gerente da equipe
           </label>
         </div>
         <button type="submit" class="btn-primary text-sm">
@@ -52,7 +52,7 @@
 
   {% else %}
     <p class="text-sm text-gray-400 italic">
-      Todos os usuários ativos já estão vinculados a este departamento ou não há usuários disponíveis.
+      Todos os usuários ativos já estão vinculados a esta equipe ou não há usuários disponíveis.
     </p>
   {% endif %}
 
@@ -98,13 +98,13 @@
           </td>
           <td class="px-5 py-4">
             <div class="flex items-center gap-3">
-              <form method="post" action="{% url 'configuracoes:alternar_gerente_departamento' departamento.pk membro.pk %}">
+              <form method="post" action="{% url 'configuracoes:alternar_gerente_equipe' equipe.pk membro.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="text-sm text-gray-500 hover:text-gray-900 underline underline-offset-2">
                   {% if membro.eh_gerente %}Remover como gerente{% else %}Tornar gerente{% endif %}
                 </button>
               </form>
-              <form method="post" action="{% url 'configuracoes:remover_membro_departamento' departamento.pk membro.pk %}">
+              <form method="post" action="{% url 'configuracoes:remover_membro_equipe' equipe.pk membro.pk %}">
                 {% csrf_token %}
                 <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
                   Remover
@@ -120,7 +120,7 @@
 
   {% else %}
   <div class="p-10 text-center">
-    <p class="text-sm font-medium text-gray-500">Nenhum usuário vinculado a este departamento ainda.</p>
+    <p class="text-sm font-medium text-gray-500">Nenhum usuário vinculado a esta equipe ainda.</p>
   </div>
   {% endif %}
 
