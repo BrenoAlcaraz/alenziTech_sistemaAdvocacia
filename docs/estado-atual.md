@@ -1,6 +1,6 @@
 # Estado Atual do Projeto
 
-Última atualização: 2026-07-18 (Fase 2.10B3 — departamento em Cliente e Processo; tela de diagnóstico removida)
+Última atualização: 2026-07-18 (Refatoração Departamento → Equipe concluída; Cliente.departamento removido por decisão de produto)
 
 ## Stack instalada e configurada
 
@@ -28,7 +28,7 @@
 
 | App | Descrição | Status |
 |-----|-----------|--------|
-| `accounts` | PerfilUsuario, Departamento, MembroDepartamento, helpers de permissão, helpers de escopo, grupos padrão | ✅ **Departamentos básicos** |
+| `accounts` | PerfilUsuario, Equipe, MembroEquipe, helpers de permissão, helpers de escopo, grupos padrão | ✅ **Equipes básicas** |
 | `dashboard` | Painel principal | ✅ **Básico operacional (dados reais)** |
 | `clientes` | Cadastro de clientes | ✅ **CRUD real completo** |
 | `processos` | Processos jurídicos | ✅ **Pasta jurídica básica funcional** |
@@ -38,7 +38,7 @@
 | `chat` | Conversas internas | mock |
 | `modelos` | Modelos de peças jurídicas | mock |
 | `laboratorio` | Laboratório Jurídico — placeholder IA | mock |
-| `configuracoes` | Usuários, perfil, dados do escritório, criação de usuários, papéis, gestão de departamentos e membros | ✅ **Departamentos básicos** |
+| `configuracoes` | Usuários, perfil, dados do escritório, criação de usuários, papéis, gestão de equipes e membros | ✅ **Equipes básicas** |
 
 ## Status do banco de dados
 
@@ -366,35 +366,55 @@ Não implementado nesta fase (não bloqueante):
 - Exclusão/desativação de usuários pela interface
 - Redefinição de senha pela interface
 - Convite por e-mail / confirmação real de e-mail
-- Departamentos e escopo de dados
+- Equipes e escopo de dados
 - Auditoria de ações administrativas
 
 ---
 
-## Departamentos e estrutura organizacional — Fase 2.9 concluída
+## Equipes e estrutura organizacional — Fase 2.9 concluída
+
+> Originalmente planejado como "Departamentos", o conceito foi renomeado para "Equipes" por decisão de produto (refatoração concluída em 2026-07-18).
 
 | Funcionalidade | Implementação |
 |---|---|
-| Model `Departamento` | `nome`, `descricao`, `departamento_pai` (FK para si), `ativo`, `criado_em`, `atualizado_em` |
-| Model `MembroDepartamento` | `usuario`, `departamento`, `eh_gerente`, `ativo`, `criado_em`; constraint única `usuario+departamento` |
-| Migration | `accounts.0003_departamento_membrodepartamento` — aplicada em todos os schemas |
-| Admin | `DepartamentoAdmin` e `MembroDepartamentoAdmin` registrados |
-| Listagem de departamentos | `/configuracoes/departamentos/` — restrita a Administrador do Escritório |
-| Criação de departamento | `/configuracoes/departamentos/novo/` — com validação de ciclo hierárquico |
-| Edição de departamento | `/configuracoes/departamentos/<id>/editar/` — nome, descrição, pai, status |
-| Gestão de membros | `/configuracoes/departamentos/<id>/membros/` — vincular/desvincular, marcar gerente |
-| Exibição em Configurações | `/configuracoes/` mostra departamentos e indicação de gerente por usuário |
-| Helpers de escopo | `apps/accounts/escopo.py` — 6 funções de consulta; não aplicam filtros ainda |
-| Constantes de escopo | `ESCOPO_TUDO`, `ESCOPO_DEPARTAMENTOS_GERENCIADOS`, `ESCOPO_DEPARTAMENTO`, `ESCOPO_PROPRIOS_ITENS`, `ESCOPO_NENHUM` |
+| Model `Equipe` | `nome`, `descricao`, `equipe_pai` (FK para si), `ativo`, `criado_em`, `atualizado_em` |
+| Model `MembroEquipe` | `usuario`, `equipe`, `eh_gerente`, `ativo`, `criado_em`; constraint única `usuario+equipe` |
+| Migration | `accounts.0003_departamento_membrodepartamento` (criação) + `accounts.0004_rename_departamento_equipe` (renomeação) |
+| Admin | `EquipeAdmin` e `MembroEquipeAdmin` registrados |
+| Listagem de equipes | `/configuracoes/equipes/` — restrita a Administrador do Escritório |
+| Criação de equipe | `/configuracoes/equipes/novo/` — com validação de ciclo hierárquico |
+| Edição de equipe | `/configuracoes/equipes/<id>/editar/` — nome, descrição, pai, status |
+| Gestão de membros | `/configuracoes/equipes/<id>/membros/` — vincular/desvincular, marcar gerente |
+| Exibição em Configurações | `/configuracoes/` mostra equipes e indicação de gerente por usuário |
+| Helpers de escopo | `apps/accounts/escopo.py` — 7 funções de consulta; não aplicam filtros ainda |
+| Constantes de escopo | `ESCOPO_TUDO`, `ESCOPO_EQUIPES_GERENCIADAS`, `ESCOPO_EQUIPE`, `ESCOPO_PROPRIOS_ITENS`, `ESCOPO_NENHUM` |
+
+### Decisão de produto: Cliente não possui equipe
+
+`Cliente` representa a pessoa ou empresa atendida pelo escritório e pode ter processos em equipes diferentes. A equipe pertence ao `Processo`, não ao `Cliente`.
+
+Exemplo:
+- Cliente João → Processo de divórcio (Equipe Família) + Processo de cobrança (Equipe Cível)
+
+### Estado atual de equipe por módulo
+
+| Módulo | `responsavel` | `equipe` | Observação |
+|---|---|---|---|
+| `Cliente` | ✅ | ❌ (deliberado) | Cliente não possui equipe — decisão de produto |
+| `Processo` | ✅ | ✅ | `equipe_padrao_para_usuario` aplicado na criação |
+| `Tarefa` | ✅ | ❌ | Campo `equipe` ainda não existe no model |
+| `Compromisso` | ✅ + `participantes` M2M | ❌ | Campo `equipe` ainda não existe no model |
+| `LancamentoFinanceiro` | ✅ | ❌ | Campo `equipe` ainda não existe no model |
+| `Dashboard` | — | — | Lê dados globalmente; escopo por último |
 
 Não implementado nesta fase (deliberado):
 
-- Filtro por departamento em Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard
-- Campo `departamento` nos módulos operacionais
-- Escopo real aplicado nas views
-- Gerente vendo apenas dados do departamento
-- Departamentos múltiplos afetando queries operacionais
-- Herança automática de departamento por cliente/processo
+- Filtro por equipe nas views operacionais
+- Campo `equipe` em Tarefa, Compromisso e Financeiro
+- Escopo real aplicado nas queries
+- Gerente vendo apenas dados da equipe
+- Equipes múltiplas afetando queries operacionais
+- Herança automática de equipe por processo
 
 ---
 
@@ -403,14 +423,14 @@ Não implementado nesta fase (deliberado):
 A tela `/configuracoes/diagnostico-escopo/` foi criada na Fase 2.10A como ferramenta temporária de apoio ao desenvolvimento e removida após cumprir seu papel.
 
 **O que ela revelou (histórico):**
-- `Cliente` não possuía `responsavel` nem `departamento` — corrigido nas Fases 2.10B1 e 2.10B3.
+- `Cliente` não possuía `responsavel` — corrigido na Fase 2.10B1.
 - `Compromisso` tem `participantes` M2M — escopo futuro deve usar `Q(responsavel=user) | Q(participantes=user)`.
 - `Dashboard` lê todos os módulos globalmente — deve ser ajustado por último.
 
 **O que permanece ativo:**
-- `Cliente.responsavel`, `Cliente.departamento`, `Processo.departamento` — campos presentes no banco.
-- Helper `departamento_padrao_para_usuario` em `apps/accounts/escopo.py`.
-- Registros antigos sem `responsavel`/`departamento` não devem ser visíveis automaticamente para usuários comuns quando filtros forem ativados.
+- `Cliente.responsavel`, `Processo.equipe` — campos presentes no banco.
+- Helper `equipe_padrao_para_usuario` em `apps/accounts/escopo.py`.
+- Registros antigos sem `responsavel`/`equipe` não devem ser visíveis automaticamente para usuários comuns quando filtros forem ativados.
 
 ---
 
@@ -435,4 +455,4 @@ A tela `/configuracoes/diagnostico-escopo/` foi criada na Fase 2.10A como ferram
 - CRUD Clientes: ✅ Validado no navegador (criação, edição, detalhe, desativação, reativação)
 - Configurações: ✅ Usuários reais, edição de perfil e dados do escritório validados no navegador
 - Permissões: ✅ Grupos criados, admin inicial formalizado, criação de usuário pelo admin validada no navegador
-- Departamentos: ✅ Criação, edição, membros, gerentes, helpers de escopo — validados no navegador e no shell do tenant
+- Equipes: ✅ Criação, edição, membros, gerentes, helpers de escopo — validados no navegador e no shell do tenant

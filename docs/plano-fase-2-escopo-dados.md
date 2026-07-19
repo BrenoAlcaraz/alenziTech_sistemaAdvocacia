@@ -1,7 +1,7 @@
 # Fase 2.10 — Escopo de dados nos módulos operacionais
 
 **Status:** Em andamento — Fase 2.10A concluída em 2026-07-13  
-**Contexto:** Continuação da Fase 2.9 (Departamentos). Aplicar filtros de dados por usuário, departamento e papel nos módulos operacionais.
+**Contexto:** Continuação da Fase 2.9 (Equipes). Aplicar filtros de dados por usuário, equipe e papel nos módulos operacionais.
 
 ---
 
@@ -18,7 +18,7 @@ Aplicar filtros diretamente nos módulos operacionais sem auditoria prévia caus
 - Registros com `responsavel=null` simplesmente desapareceriam das listagens.
 - `Cliente` não tem campo `responsavel` — filtro quebraria com `FieldError`.
 - Registros criados antes da Fase 2.8 podem não ter `responsavel` definido.
-- Sem campo `departamento` nos models operacionais, qualquer filtro por departamento exigiria joins frágeis e difíceis de manter.
+- Sem campo `equipe` em Tarefa, Compromisso e Financeiro, qualquer filtro por equipe nestes módulos exigiria joins frágeis e difíceis de manter.
 
 Por isso, a Fase 2.10 iniciou com uma etapa de diagnóstico antes de qualquer implementação de filtro.
 
@@ -28,20 +28,20 @@ Por isso, a Fase 2.10 iniciou com uma etapa de diagnóstico antes de qualquer im
 
 ### Mapa de campos por módulo
 
-| Model | `responsavel` | `departamento` | Observação |
+| Model | `responsavel` | `equipe` | Observação |
 |---|---|---|---|
-| `Cliente` | ❌ não existe | ❌ | Maior gap — impossível filtrar por usuário sem migration |
-| `Processo` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Melhor candidato para piloto |
-| `Tarefa` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Responsável preservado na edição |
+| `Cliente` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ (deliberado) | Cliente não possui equipe — decisão de produto |
+| `Processo` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ✅ `ForeignKey(Equipe, SET_NULL, null=True)` | `equipe_padrao_para_usuario` aplicado na criação |
+| `Tarefa` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Campo `equipe` ainda não existe no model |
 | `Compromisso` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Também tem `participantes` M2M |
-| `LancamentoFinanceiro` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Dado sensível |
+| `LancamentoFinanceiro` | ✅ `ForeignKey(User, SET_NULL, null=True)` | ❌ | Campo `equipe` ainda não existe; dado sensível |
 | `CustaJudicial` | ❌ não existe | ❌ | UI ainda usa mocks |
 
 ### Como `responsavel` é atribuído na criação
 
 | Módulo | Atribuição na criação |
 |---|---|
-| `Cliente` | **impossível** — campo não existe |
+| `Cliente` | `cliente.responsavel = request.user` — **sempre** (implementado na Fase 2.10B1) |
 | `Processo` | `processo.responsavel = request.user` — **sempre** |
 | `Tarefa` | `tarefa.responsavel = request.user` — **sempre** |
 | `Compromisso` | `if not compromisso.responsavel:` — **condicional** (form pode enviar outro) |
@@ -53,13 +53,13 @@ Por isso, a Fase 2.10 iniciou com uma etapa de diagnóstico antes de qualquer im
 
 | Risco | Grau |
 |---|---|
-| `Cliente` sem `responsavel` — filtro quebraria a query | Alto |
+| Registros antigos com `responsavel=null` sumindo para usuários comuns | Alto |
 | Registros antigos com `responsavel=null` sumindo para todos | Alto |
 | Dashboard incoerente com módulos filtrados | Alto |
 | Compromissos onde usuário é só `participante` sumindo | Médio |
 | Financeiro com responsável diferente do criador | Médio |
-| Múltiplos departamentos causando duplicatas sem `.distinct()` | Médio |
-| Join transitivo `responsavel → membros_departamento → departamento` frágil | Médio |
+| Múltiplas equipes causando duplicatas sem `.distinct()` | Médio |
+| Join transitivo `responsavel → membros_equipe → equipe` frágil | Médio |
 
 ---
 
@@ -74,7 +74,7 @@ A tela foi criada como ferramenta temporária de desenvolvimento para mapear ris
 
 **O que ela revelou e que foi endereçado:**
 - `Cliente` sem `responsavel` → corrigido na Fase 2.10B1
-- `Cliente` sem `departamento`, `Processo` sem `departamento` → corrigido na Fase 2.10B3
+- `Processo` sem `equipe` → corrigido na Fase 2.10B3 (`Processo.equipe` implementado via migration)
 - `Compromisso` tem `participantes` M2M → a considerar quando escopo de Agenda for implementado
 - `Dashboard` lê tudo globalmente → a ajustar por último
 
@@ -106,7 +106,7 @@ Registros sem responsável podem existir porque:
 | Desenvolvimento / demo | Atribuir ao administrador ou corrigir manualmente antes de ativar filtros |
 | Produção | Tratar como pendência administrativa — não liberar automaticamente |
 | Administrador | Deve enxergar **todos** os registros, inclusive sem responsável |
-| Gerente | Poderá ter regra própria associada ao `departamento` do registro |
+| Gerente | Poderá ter regra própria associada à `equipe` do registro |
 | Advogado | **Não deve** ganhar acesso a registros com `responsavel=null` |
 | Financeiro | Regra própria a definir — dado sensível |
 
@@ -118,13 +118,21 @@ Registros sem responsável podem existir porque:
 
 **Pré-requisito:** corrigir registros com `responsavel=null` no ambiente demo.
 
+Migrations já aplicadas:
+
+| Migration | App | Campo | Status |
+|---|---|---|---|
+| `clientes.0002_cliente_responsavel` | `clientes` | `responsavel = ForeignKey(User, null=True, blank=True, SET_NULL)` | ✅ aplicada |
+| `processos.0003_processo_departamento` | `processos` | criação de `Processo.equipe` (com nome antigo) | ✅ aplicada |
+| `processos.0004_rename_departamento_equipe` | `processos` | renomeação `departamento` → `equipe` em `Processo` | ✅ aplicada |
+
 Migrations planejadas (ainda não criadas):
 
 | Migration | App | Campo |
 |---|---|---|
-| `clientes.0002_...` | `clientes` | `responsavel = ForeignKey(User, null=True, blank=True, SET_NULL)` |
-| `clientes.0003_...` | `clientes` | `departamento = ForeignKey(Departamento, null=True, blank=True, SET_NULL)` |
-| `processos.0002_...` | `processos` | `departamento = ForeignKey(Departamento, null=True, blank=True, SET_NULL)` |
+| `tarefas.0002_...` | `tarefas` | `equipe = ForeignKey(Equipe, null=True, blank=True, SET_NULL)` |
+| `agenda.0002_...` | `agenda` | `equipe = ForeignKey(Equipe, null=True, blank=True, SET_NULL)` |
+| `financeiro.0002_...` | `financeiro` | `equipe = ForeignKey(Equipe, null=True, blank=True, SET_NULL)` |
 
 Todos os campos com `null=True` — registros existentes ficam com `null` sem perda de dados.
 
@@ -140,7 +148,7 @@ Todos os campos com `null=True` — registros existentes ficam com `null` sem pe
 
 - Aplicar filtro de escopo apenas na view `processos.lista`
 - Administrador: sem filtro
-- Gerente: processos dos departamentos que gerencia
+- Gerente: processos das equipes que gerencia
 - Advogado: próprios processos (`responsavel=request.user`)
 - `responsavel=null`: visível apenas para administrador
 
@@ -160,14 +168,14 @@ Na ordem recomendada:
 | Papel | Regra de escopo |
 |---|---|
 | `administrador_escritorio` | Sem filtro — vê tudo do tenant |
-| `gerente` | Dados cujo responsável pertence aos departamentos gerenciados |
+| `gerente` | Dados cujo `equipe` pertence às equipes gerenciadas |
 | `advogado` | Próprios itens + itens em que participa (Agenda: `participantes`) |
 | `financeiro` | Definição pendente — provavelmente todo o financeiro do tenant |
 
 **Observações:**
 - Administrador deve sempre ver 100% — nunca aplicar filtro em admin.
-- Gerente em múltiplos departamentos: usar `IN` com lista de ids gerenciados.
-- Advogado em múltiplos departamentos: `responsavel=user OR departamento IN meus_departamentos`.
+- Gerente em múltiplas equipes: usar `IN` com lista de ids de equipes gerenciadas.
+- Advogado em múltiplas equipes: `responsavel=user OR equipe IN minhas_equipes`.
 - Dashboard sempre por último — incoerência entre cards e módulos é confusa para o usuário.
 - `responsavel=null`: visível para admin e gerente; invisível para advogado e financeiro.
 
@@ -178,8 +186,8 @@ Na ordem recomendada:
 | Item | Motivo |
 |---|---|
 | Filtros nas views operacionais | Risco de perda silenciosa de dados |
-| Campo `departamento` nos models operacionais | Exige migration; depende de auditoria prévia |
-| Campo `responsavel` em `Cliente` | Exige migration; depende de decisão sobre backfill |
+| Campo `equipe` em Tarefa, Compromisso e Financeiro | Exige migration; depende de auditoria prévia |
+| Backfill de `responsavel` em registros antigos | Dados sem responsável devem ser atribuídos manualmente antes de ativar filtros |
 | Regras de escopo por papel | Depende de preparação dos models e correção de dados |
 | Ajuste do Dashboard | Deve ser feito por último |
 | Bloqueio de acesso por papel | Fase futura — Fase 2.10D+ |

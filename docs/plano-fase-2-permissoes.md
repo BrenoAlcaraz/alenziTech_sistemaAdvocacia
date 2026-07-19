@@ -188,7 +188,7 @@ A proteção backend nas rotas permanece independente do ajuste visual.
 - **`PerfilUsuario.cargo`** não controla acesso — é apenas texto livre para exibição.
 - **`PerfilUsuario.is_admin_escritorio`** é uma flag de segurança/recuperação de acesso, não o mecanismo principal de papel.
 - **`/configuracoes/` não foi bloqueado inteiro** — manter acessível para que todos os usuários possam editar o próprio perfil.
-- **Escopo de dados por departamento** exigirá models próprios em fase futura.
+- **Escopo de dados por equipe** exigirá aplicação de filtros nos módulos operacionais em fase futura.
 - **Módulos operacionais** (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard) não receberam restrições por papel nesta fase.
 
 ---
@@ -197,7 +197,7 @@ A proteção backend nas rotas permanece independente do ajuste visual.
 
 - Sem bloqueio por papel nos módulos operacionais
 - Sem `auth.Permission` granular por model/ação
-- Sem departamentos ou subgrupos
+- Sem equipes ou subgrupos
 - Sem edição do papel de um usuário existente
 - Sem exclusão/desativação de usuários pela interface
 - Sem redefinição de senha pela interface
@@ -209,13 +209,13 @@ A proteção backend nas rotas permanece independente do ajuste visual.
 
 ## Pendências futuras
 
-### Fase 2.9 — Departamentos e escopo de dados (recomendado)
+### Fase 2.9 — Equipes e estrutura organizacional (concluída ✅)
 
-- Criar model `Departamento` (tenant-scoped)
-- Associar usuários a departamentos (ManyToMany)
-- Definir gerente/responsável por departamento
-- Escopo de dados: tudo / departamento / departamentos gerenciados / próprios itens / nenhum
-- Filtros por escopo nos módulos operacionais
+- ✅ Criar model `Equipe` (tenant-scoped)
+- ✅ Associar usuários a equipes via `MembroEquipe`
+- ✅ Definir gerente/responsável por equipe (`eh_gerente`)
+- ✅ Constantes de escopo: `ESCOPO_TUDO`, `ESCOPO_EQUIPES_GERENCIADAS`, `ESCOPO_EQUIPE`, `ESCOPO_PROPRIOS_ITENS`, `ESCOPO_NENHUM`
+- Filtros por escopo nos módulos operacionais — fase futura (2.10D+)
 
 ### Fase 2.10 — Segurança de usuários e onboarding
 

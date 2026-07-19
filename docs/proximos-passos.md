@@ -298,37 +298,41 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas no nave
 - Exclusão/desativação de usuários pela interface
 - Redefinição de senha pela interface
 - Convite por e-mail / confirmação real de e-mail
-- Departamentos e escopo de dados por departamento
+- Equipes e estrutura organizacional
 - Auditoria de ações administrativas
 
 ---
 
-## Fase 2.9 — Departamentos e escopo de dados — Concluída ✅
+## Fase 2.9 — Equipes e estrutura organizacional — Concluída ✅
+
+> Originalmente planejado como "Departamentos", o conceito foi renomeado para "Equipes" por decisão de produto (refatoração concluída em 2026-07-18).
 
 Todas as funcionalidades do escopo básico foram implementadas, testadas e commitadas:
 
-✅ Model `Departamento` (tenant-scoped) com hierarquia de departamento pai  
-✅ Model `MembroDepartamento` com constraint de unicidade `usuario+departamento`  
-✅ Migration `accounts.0003_departamento_membrodepartamento` aplicada em todos os schemas  
-✅ Admin de `Departamento` e `MembroDepartamento` registrados  
-✅ Listagem de departamentos em `/configuracoes/departamentos/` (admin only)  
-✅ Criação de departamento com validação de ciclo hierárquico  
-✅ Edição de departamento (nome, descrição, pai, status ativo)  
+✅ Model `Equipe` (tenant-scoped) com hierarquia de equipe pai  
+✅ Model `MembroEquipe` com constraint de unicidade `usuario+equipe`  
+✅ Migrations `accounts.0003_departamento_membrodepartamento` (criação) + `accounts.0004_rename_departamento_equipe` (renomeação)  
+✅ Admin de `Equipe` e `MembroEquipe` registrados  
+✅ Listagem de equipes em `/configuracoes/equipes/` (admin only)  
+✅ Criação de equipe com validação de ciclo hierárquico  
+✅ Edição de equipe (nome, descrição, pai, status ativo)  
 ✅ Gestão de membros: vincular/desvincular, marcar/remover gerente  
-✅ Exibição de departamentos na lista de usuários em `/configuracoes/`  
-✅ Helpers de escopo em `apps/accounts/escopo.py` — 6 funções de consulta + constantes  
+✅ Exibição de equipes na lista de usuários em `/configuracoes/`  
+✅ Helpers de escopo em `apps/accounts/escopo.py` — 7 funções de consulta + constantes  
 ✅ Todos os acessos administrativos protegidos por `@requer_admin_escritorio`  
 ✅ Nenhum filtro de escopo aplicado nos módulos operacionais (deliberado)  
+✅ `Processo.equipe` atribuído automaticamente via `equipe_padrao_para_usuario` na criação  
+✅ Decisão de produto: `Cliente` não possui equipe (equipe pertence ao `Processo`)  
 
-### Pendências futuras de Departamentos (não bloqueantes)
+### Pendências futuras de Equipes (não bloqueantes)
 
-- Escopo real aplicado nas views (Clientes, Processos, Tarefas, Agenda, Financeiro, Dashboard)
-- Campo `departamento` nos módulos operacionais
-- Gerente vendo apenas dados do departamento
+- Escopo real aplicado nas views (Processos, Tarefas, Agenda, Financeiro, Dashboard)
+- Campo `equipe` em Tarefa, Compromisso e LancamentoFinanceiro
+- Gerente vendo apenas dados da equipe
 - Advogado vendo apenas próprios itens
 - Financeiro com escopo específico
-- Herança automática de departamento por cliente/processo
-- Regra para dados sem departamento/responsável
+- Herança automática de equipe por processo
+- Regra para dados sem equipe/responsável
 - Edição do papel de usuário existente pela interface
 - Desativação/reativação de usuários pela interface
 
@@ -339,7 +343,7 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 ### Fase 2.10A — Diagnóstico de Escopo — Concluída e removida ✅
 
 ✅ Tela implementada, usada para mapear riscos de escopo, e removida após cumprir seu papel.  
-✅ O que ela revelou foi endereçado nas Fases 2.10B1 e 2.10B3 (`Cliente.responsavel`, `Cliente.departamento`, `Processo.departamento`).  
+✅ O que ela revelou foi endereçado nas Fases 2.10B1 e 2.10B3 (`Cliente.responsavel`, `Processo.equipe`).  
 ✅ Nenhum dado foi alterado, nenhuma migration criada por ela.
 
 ---
@@ -349,7 +353,7 @@ Todas as funcionalidades do escopo básico foram implementadas, testadas e commi
 Pré-requisito: corrigir registros sem `responsavel` manualmente no ambiente demo antes de prosseguir.
 
 - Adicionar `responsavel = ForeignKey(User, null=True, blank=True, SET_NULL)` ao model `Cliente`
-- Avaliar adição de `departamento = ForeignKey(Departamento, null=True, blank=True, SET_NULL)` em `Cliente` e `Processo`
+- Avaliar adição de `equipe = ForeignKey(Equipe, null=True, blank=True, SET_NULL)` em `Tarefa`, `Compromisso` e `LancamentoFinanceiro` (não em `Cliente` — decisão de produto)
 - Usar `null=True` e `blank=True` em todos os novos campos — não quebra dados existentes
 - Criar migrations com `null=True` (sem valor padrão obrigatório)
 - Aplicar `migrate_schemas` após aprovação
@@ -374,7 +378,7 @@ Antes de ativar filtros, atribuir responsáveis a registros sem `responsavel`:
 ### Fase 2.10D — Escopo piloto em Processo
 
 - Aplicar filtro de escopo apenas na view `processos.lista`
-- Regra inicial: administrador vê tudo; gerente vê processos do departamento; advogado vê próprios
+- Regra inicial: administrador vê tudo; gerente vê processos da equipe; advogado vê próprios
 - Manter `responsavel=null` visível apenas para administrador
 - Testar com múltiplos usuários antes de propagar
 
