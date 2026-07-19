@@ -4,32 +4,35 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import resolve_url
 
-# Slugs dos grupos padrão — devem coincidir com a migration 0002_criar_grupos_padroes
+# Slugs dos grupos — papéis técnicos ativos
 GRUPO_ADMINISTRADOR_ESCRITORIO = "administrador_escritorio"
+GRUPO_LIMITADO = "limitado"
+GRUPO_FINANCEIRO = "financeiro"
+
+# Slugs legados — mantidos para referência em migrations e fallback de exibição
 GRUPO_GERENTE = "gerente"
 GRUPO_ADVOGADO = "advogado"
-GRUPO_FINANCEIRO = "financeiro"
 
 GRUPOS_PADROES = [
     GRUPO_ADMINISTRADOR_ESCRITORIO,
-    GRUPO_GERENTE,
-    GRUPO_ADVOGADO,
+    GRUPO_LIMITADO,
     GRUPO_FINANCEIRO,
 ]
 
 # Grupos que podem ser atribuídos na criação de novos usuários (o admin é atribuído por flag)
 GRUPOS_CRIACAO_USUARIO = [
-    GRUPO_GERENTE,
-    GRUPO_ADVOGADO,
+    GRUPO_LIMITADO,
     GRUPO_FINANCEIRO,
 ]
 
 # Nomes legíveis para exibição no UI
 NOMES_GRUPOS = {
     GRUPO_ADMINISTRADOR_ESCRITORIO: "Administrador do Escritório",
-    GRUPO_GERENTE: "Gerente",
-    GRUPO_ADVOGADO: "Advogado",
+    GRUPO_LIMITADO: "Limitado",
     GRUPO_FINANCEIRO: "Financeiro",
+    # Legado — exibido enquanto houver usuários ainda no grupo antigo
+    GRUPO_GERENTE: "Gerente (legado)",
+    GRUPO_ADVOGADO: "Advogado (legado)",
 }
 
 
