@@ -1,0 +1,177 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Permissões — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Permissões por tipo de conta</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Defina o que cada tipo de conta pode visualizar e acessar.</p>
+  </div>
+  <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm flex-shrink-0">
+    Voltar
+  </a>
+</div>
+
+{% if mensagem %}
+<div class="mb-5 px-4 py-3 bg-green-50 border border-green-200 text-green-800 text-sm rounded-xl">
+  {{ mensagem }}
+</div>
+{% endif %}
+
+{% if erro %}
+<div class="mb-5 px-4 py-3 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl">
+  {{ erro }}
+</div>
+{% endif %}
+
+{# Tabs #}
+<div class="flex border-b border-gray-200 mb-5">
+  <button type="button" onclick="switchTab('administrador')" id="tab-btn-administrador"
+    class="tab-btn px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
+    Administrador
+  </button>
+  <button type="button" onclick="switchTab('limitado')" id="tab-btn-limitado"
+    class="tab-btn px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
+    Limitado
+  </button>
+  <button type="button" onclick="switchTab('financeiro')" id="tab-btn-financeiro"
+    class="tab-btn px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
+    Financeiro
+  </button>
+</div>
+
+{# ── Tab: Administrador (somente leitura) ─────────────────────────────────── #}
+<div id="tab-administrador" class="tab-pane">
+  <div class="card p-5">
+    <div class="flex items-start gap-3 px-4 py-3 bg-gray-50 rounded-xl mb-4">
+      <svg class="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      <p class="text-sm text-gray-600">
+        Administradores têm acesso total a todos os módulos e funcionalidades.
+        Este perfil não é configurável.
+      </p>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for mod in modulos_limitado %}
+      <div class="flex items-center justify-between py-3">
+        <p class="text-sm font-medium text-gray-700">{{ mod.label }}</p>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          Acesso total
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{# ── Tab: Limitado ─────────────────────────────────────────────────────────── #}
+<div id="tab-limitado" class="tab-pane hidden">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="tipo_conta" value="limitado">
+    <div class="card p-0 overflow-hidden mb-4">
+      <div class="px-5 py-3 bg-gray-50 border-b border-gray-100">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Módulos — Limitado</p>
+      </div>
+      <div class="divide-y divide-gray-100">
+        {% for mod in modulos_limitado %}
+        <div class="flex items-center justify-between px-5 py-4 gap-4">
+          <p class="text-sm font-medium text-gray-800 w-40 flex-shrink-0">{{ mod.label }}</p>
+          <div class="flex items-center gap-6 ml-auto">
+            {% if mod.niveis %}
+            <div class="flex items-center gap-4">
+              {% for nivel in mod.niveis %}
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="nivel_{{ mod.slug }}" value="{{ nivel.valor }}"
+                  {% if mod.nivel_atual == nivel.valor %}checked{% endif %}
+                  class="accent-gray-800 cursor-pointer">
+                <span class="text-xs text-gray-600 whitespace-nowrap">{{ nivel.label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input type="checkbox" name="ativo_{{ mod.slug }}"
+                class="sr-only peer" {% if mod.ativo %}checked{% endif %}>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-gray-800
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                          after:bg-white after:rounded-full after:h-5 after:w-5
+                          after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="flex justify-end">
+      <button type="submit" class="btn-primary text-sm">Salvar permissões Limitado</button>
+    </div>
+  </form>
+</div>
+
+{# ── Tab: Financeiro ───────────────────────────────────────────────────────── #}
+<div id="tab-financeiro" class="tab-pane hidden">
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="tipo_conta" value="financeiro">
+    <div class="card p-0 overflow-hidden mb-4">
+      <div class="px-5 py-3 bg-gray-50 border-b border-gray-100">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Módulos — Financeiro</p>
+      </div>
+      <div class="divide-y divide-gray-100">
+        {% for mod in modulos_financeiro %}
+        <div class="flex items-center justify-between px-5 py-4 gap-4">
+          <p class="text-sm font-medium text-gray-800 w-40 flex-shrink-0">{{ mod.label }}</p>
+          <div class="flex items-center gap-6 ml-auto">
+            {% if mod.niveis %}
+            <div class="flex items-center gap-4">
+              {% for nivel in mod.niveis %}
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="nivel_{{ mod.slug }}" value="{{ nivel.valor }}"
+                  {% if mod.nivel_atual == nivel.valor %}checked{% endif %}
+                  class="accent-gray-800 cursor-pointer">
+                <span class="text-xs text-gray-600 whitespace-nowrap">{{ nivel.label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+              <input type="checkbox" name="ativo_{{ mod.slug }}"
+                class="sr-only peer" {% if mod.ativo %}checked{% endif %}>
+              <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-gray-800
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                          after:bg-white after:rounded-full after:h-5 after:w-5
+                          after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="flex justify-end">
+      <button type="submit" class="btn-primary text-sm">Salvar permissões Financeiro</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(function(el) {
+    el.classList.add('hidden');
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(el) {
+    el.classList.remove('border-gray-900', 'text-gray-900');
+    el.classList.add('border-transparent', 'text-gray-500');
+  });
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  var btn = document.getElementById('tab-btn-' + name);
+  btn.classList.remove('border-transparent', 'text-gray-500');
+  btn.classList.add('border-gray-900', 'text-gray-900');
+}
+switchTab('{{ tab_ativa }}');
+</script>
+
+{% endblock %}

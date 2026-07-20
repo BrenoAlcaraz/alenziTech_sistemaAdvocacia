@@ -146,6 +146,16 @@
       Gerenciar
     </a>
   </div>
+
+  <div class="flex items-center justify-between py-2 border-t border-gray-100">
+    <div>
+      <p class="text-sm font-medium text-gray-700">Permissões</p>
+      <p class="text-xs text-gray-400 mt-0.5">Definir o que cada tipo de conta pode visualizar e acessar</p>
+    </div>
+    <a href="{% url 'configuracoes:permissoes' %}" class="btn-secondary text-sm flex-shrink-0">
+      Gerenciar
+    </a>
+  </div>
 </div>
 {% endif %}
 

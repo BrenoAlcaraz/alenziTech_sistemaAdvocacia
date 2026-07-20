@@ -9,7 +9,8 @@ from apps.accounts.decorators import (
     usuario_admin_escritorio,
 )
 from apps.accounts.forms import CriarUsuarioEscritorioForm, EquipeForm, MembroEquipeForm, PerfilUsuarioForm
-from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario
+from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario, PermissaoPapel
+from apps.accounts.permissoes_constants import TIPOS_CONTA_CONFIGURAVEIS
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -246,6 +247,72 @@ def alternar_gerente_equipe(request, pk, membro_pk):
         membro.save(update_fields=["eh_gerente"])
 
     return redirect("configuracoes:equipe_membros", pk=equipe.pk)
+
+
+@requer_admin_escritorio
+def permissoes(request):
+    _MODULOS_CONFIG = [
+        ("processos",  "Processos",       [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("clientes",   "Clientes",        [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("financeiro", "Financeiro",      [("solicitacoes", "Apenas solicitações"), ("dados", "Acesso a dados")]),
+        ("tarefas",    "Tarefas",         [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("modelos",    "Modelos de peças",[("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("chat",       "Chat",            []),
+        ("painel",     "Painel",          [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("agenda",     "Agenda",          [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+        ("gerir",      "Gerir",           []),
+    ]
+
+    mensagem = None
+    erro = None
+    tab_ativa = request.GET.get("tab", "limitado")
+    if tab_ativa not in ("administrador", "limitado", "financeiro"):
+        tab_ativa = "limitado"
+
+    if request.method == "POST":
+        tipo_conta = request.POST.get("tipo_conta", "")
+        if tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
+            erro = "Tipo de conta inválido. Apenas Limitado e Financeiro podem ser configurados."
+        else:
+            for slug, _, niveis in _MODULOS_CONFIG:
+                ativo = request.POST.get(f"ativo_{slug}") == "on"
+                if niveis:
+                    nivel = request.POST.get(f"nivel_{slug}", niveis[0][0])
+                    if nivel not in [n[0] for n in niveis]:
+                        nivel = niveis[0][0]
+                else:
+                    nivel = ""
+                PermissaoPapel.objects.update_or_create(
+                    tipo_conta=tipo_conta,
+                    modulo=slug,
+                    defaults={"ativo": ativo, "nivel": nivel},
+                )
+            tab_ativa = tipo_conta
+            nome = "Limitado" if tipo_conta == "limitado" else "Financeiro"
+            mensagem = f"Permissões de '{nome}' atualizadas com sucesso."
+
+    def _build_modulos(tipo):
+        registros = {p.modulo: p for p in PermissaoPapel.objects.filter(tipo_conta=tipo)}
+        result = []
+        for slug, label, niveis in _MODULOS_CONFIG:
+            reg = registros.get(slug)
+            result.append({
+                "slug": slug,
+                "label": label,
+                "niveis": [{"valor": v, "label": lbl} for v, lbl in niveis],
+                "ativo": reg.ativo if reg else False,
+                "nivel_atual": reg.nivel if reg else (niveis[0][0] if niveis else ""),
+            })
+        return result
+
+    return render(request, "configuracoes/permissoes.html", {
+        "tab_ativa": tab_ativa,
+        "modulos_limitado": _build_modulos("limitado"),
+        "modulos_financeiro": _build_modulos("financeiro"),
+        "mensagem": mensagem,
+        "erro": erro,
+        "item_ativo": "configuracoes",
+    })
 
 
 @requer_admin_escritorio
