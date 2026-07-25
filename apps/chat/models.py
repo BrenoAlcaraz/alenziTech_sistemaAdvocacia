@@ -3,9 +3,14 @@ from django.contrib.auth.models import User
 
 
 class Conversa(models.Model):
+    TIPO_INDIVIDUAL = "individual"
+    TIPO_GRUPO = "grupo"
+    TIPO_GLOBAL = "global"
+
     TIPO_CHOICES = [
-        ("individual", "Individual"),
-        ("grupo", "Grupo"),
+        (TIPO_INDIVIDUAL, "Individual"),
+        (TIPO_GRUPO, "Grupo"),
+        (TIPO_GLOBAL, "Global"),
     ]
 
     titulo = models.CharField(max_length=255, blank=True)
@@ -20,6 +25,13 @@ class Conversa(models.Model):
         verbose_name = "Conversa"
         verbose_name_plural = "Conversas"
         ordering = ["-criada_em"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tipo"],
+                condition=models.Q(tipo="global"),
+                name="uniq_conversa_global",
+            ),
+        ]
 
     def __str__(self):
         return self.titulo or f"Conversa #{self.pk}"
