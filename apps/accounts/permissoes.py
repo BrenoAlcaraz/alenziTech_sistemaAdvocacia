@@ -1,8 +1,4 @@
-from apps.accounts.decorators import (
-    usuario_admin_escritorio,
-    GRUPO_GERENTE,
-    GRUPO_ADVOGADO,
-)
+from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.models import (
     MembroEquipe,
     PermissaoPapel,
@@ -15,9 +11,8 @@ from apps.accounts.permissoes_constants import (
     TIPO_CONTA_LIMITADO,
     TIPO_CONTA_FINANCEIRO,
     NIVEIS_POR_MODULO,
+    ITENS_POR_MODULO,
 )
-
-_GRUPOS_LEGADOS = {GRUPO_GERENTE, GRUPO_ADVOGADO}
 
 
 def _usuario_valido(user):
@@ -40,8 +35,14 @@ def tipo_conta_usuario(user):
     Resolve o tipo de conta técnico do usuário.
 
     Retorna um dos slugs: 'administrador_escritorio', 'financeiro', 'limitado',
-    ou None se o usuário não tiver tipo de conta reconhecido.
+    ou None se o usuário não tiver exatamente um papel técnico reconhecido.
 
+    Casos que retornam None:
+      - usuário inativo ou inválido
+      - nenhum papel técnico ativo
+      - duplo papel (limitado + financeiro ao mesmo tempo)
+
+    Grupos legados ('advogado', 'gerente') não concedem acesso.
     PerfilUsuario.cargo é descritivo e não entra nessa resolução.
     MembroEquipe.eh_gerente não substitui o tipo de conta.
     """
@@ -51,18 +52,16 @@ def tipo_conta_usuario(user):
     if usuario_admin_escritorio(user):
         return TIPO_CONTA_ADMINISTRADOR
 
-    grupos = set(user.groups.values_list("name", flat=True))
+    grupos_tecnicos = set(
+        user.groups.filter(
+            name__in=[TIPO_CONTA_LIMITADO, TIPO_CONTA_FINANCEIRO]
+        ).values_list("name", flat=True)
+    )
 
-    if TIPO_CONTA_FINANCEIRO in grupos:
-        return TIPO_CONTA_FINANCEIRO
+    if len(grupos_tecnicos) != 1:
+        return None
 
-    if TIPO_CONTA_LIMITADO in grupos:
-        return TIPO_CONTA_LIMITADO
-
-    if grupos & _GRUPOS_LEGADOS:
-        return TIPO_CONTA_LIMITADO
-
-    return None
+    return grupos_tecnicos.pop()
 
 
 # ── Permissão efetiva de módulo ────────────────────────────────────────────────
@@ -75,8 +74,17 @@ def permissao_efetiva(user, modulo):
       tem_acesso (bool), modulo (str), nivel (str),
       origem ('admin'|'individual'|'papel'|'nenhuma'), tipo_conta (str|None).
 
-    Precedência: admin > individual > papel > nenhuma.
-    Admin nunca depende de registros no banco.
+    Ordem de avaliação:
+      1. Módulo inválido → negar sem consultar o banco
+      2. Usuário inativo ou inválido → negar
+      3. Administrador → acesso total (não depende de registros no banco)
+      4. Tipo técnico ausente ou duplo → negar
+      5. Override individual (PermissaoUsuario)
+      6. Padrão do papel (PermissaoPapel)
+      7. Negação padrão
+
+    Admin nunca é bloqueado por override individual.
+    Usuário sem papel técnico não recebe acesso mesmo com override individual.
     """
     _sem_acesso = {
         "tem_acesso": False,
@@ -85,6 +93,9 @@ def permissao_efetiva(user, modulo):
         "origem": "nenhuma",
         "tipo_conta": None,
     }
+
+    if modulo not in NIVEIS_POR_MODULO:
+        return _sem_acesso
 
     if not _usuario_valido(user):
         return _sem_acesso
@@ -100,6 +111,9 @@ def permissao_efetiva(user, modulo):
 
     tipo = tipo_conta_usuario(user)
 
+    if tipo is None:
+        return _sem_acesso
+
     individual = PermissaoUsuario.objects.filter(usuario=user, modulo=modulo).first()
     if individual is not None:
         return {
@@ -109,9 +123,6 @@ def permissao_efetiva(user, modulo):
             "origem": "individual",
             "tipo_conta": tipo,
         }
-
-    if tipo is None:
-        return {**_sem_acesso, "tipo_conta": None}
 
     papel = PermissaoPapel.objects.filter(tipo_conta=tipo, modulo=modulo).first()
     if papel is not None:
@@ -142,14 +153,21 @@ def habilitacao_efetiva(user, modulo, item):
     """
     Resolve a habilitação efetiva de um usuário para um item dentro de um módulo.
 
+    A combinação módulo/item é validada antes de qualquer consulta ao banco.
     A habilitação só é verificada se a permissão do módulo estiver ativa.
-    Se a permissão estiver desligada, retorna habilitado=False com
-    origem='permissao_desligada', independente dos registros de habilitação.
 
     Retorna dict com:
       habilitado (bool), modulo (str), item (str),
       origem ('admin'|'individual'|'papel'|'permissao_desligada'|'nenhuma'),
       tipo_conta (str|None).
+
+    Nega sem consultar o banco quando:
+      - módulo não existe em ITENS_POR_MODULO
+      - módulo sem habilitações definidas nesta versão (chat, financeiro, painel)
+      - item não pertence ao módulo
+      - usuário inativo ou inválido (após validação da combinação)
+
+    Admin recebe habilitado=True apenas para combinações módulo/item válidas.
     """
     _nao_habilitado = {
         "habilitado": False,
@@ -158,6 +176,10 @@ def habilitacao_efetiva(user, modulo, item):
         "origem": "nenhuma",
         "tipo_conta": None,
     }
+
+    itens_validos = ITENS_POR_MODULO.get(modulo)
+    if not itens_validos or item not in itens_validos:
+        return _nao_habilitado
 
     if not _usuario_valido(user):
         return _nao_habilitado
@@ -194,9 +216,6 @@ def habilitacao_efetiva(user, modulo, item):
             "origem": "individual",
             "tipo_conta": tipo,
         }
-
-    if tipo is None:
-        return {**_nao_habilitado, "tipo_conta": None}
 
     papel = HabilitacaoPapel.objects.filter(
         tipo_conta=tipo, modulo=modulo, item=item
