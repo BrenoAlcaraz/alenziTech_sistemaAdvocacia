@@ -1,21 +1,25 @@
 {% extends "base/base_auth.html" %}
-{% block title %}{% if modo == "novo" %}Novo modelo{% else %}Editar modelo{% endif %} — Jurídico SaaS{% endblock %}
+{% block title %}Importar modelo — Jurídico SaaS{% endblock %}
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% if modo == 'editar' and modelo %}{% url 'modelos:detalhe' modelo.pk %}{% else %}{% url 'modelos:lista' %}{% endif %}"
-     class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'modelos:lista' %}" class="text-gray-400 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold text-gray-900">
-    {% if modo == "novo" %}Novo modelo de peça{% else %}Editar modelo{% endif %}
-  </h1>
+  <h1 class="text-xl font-bold text-gray-900">Importar modelo de peça</h1>
 </div>
 
-<div class="card p-6 max-w-3xl">
-  <form method="post">
+<div class="card p-6 max-w-2xl">
+
+  <p class="text-sm text-gray-500 mb-5">
+    O texto será extraído do arquivo e salvo como um modelo de peça. Você poderá editar o conteúdo depois da importação.
+    <br>
+    <span class="text-amber-600 font-medium">PDFs escaneados ainda não são suportados</span> — somente PDFs com camada de texto selecionável.
+  </p>
+
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -27,8 +31,20 @@
     <div class="flex flex-col gap-4">
 
       <div>
+        <label class="label" for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }}</label>
+        {{ form.arquivo }}
+        {% if form.arquivo.help_text %}
+          <p class="text-xs text-gray-400 mt-1">{{ form.arquivo.help_text }}</p>
+        {% endif %}
+        {% if form.arquivo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.arquivo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div>
         <label class="label" for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
         {{ form.titulo }}
+        <p class="text-xs text-gray-400 mt-1">Deixe em branco para usar o nome do arquivo.</p>
         {% if form.titulo.errors %}
           <p class="text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
         {% endif %}
@@ -51,22 +67,11 @@
         </div>
       </div>
 
-      <div>
-        <label class="label" for="{{ form.conteudo.id_for_label }}">{{ form.conteudo.label }}</label>
-        {{ form.conteudo }}
-        {% if form.conteudo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.conteudo.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
     </div>
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
-      <button type="submit" class="btn-primary">
-        {% if modo == "novo" %}Criar modelo{% else %}Salvar alterações{% endif %}
-      </button>
-      <a href="{% if modo == 'editar' and modelo %}{% url 'modelos:detalhe' modelo.pk %}{% else %}{% url 'modelos:lista' %}{% endif %}"
-         class="btn-secondary">Cancelar</a>
+      <button type="submit" class="btn-primary">Importar e criar modelo</button>
+      <a href="{% url 'modelos:lista' %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>
 </div>

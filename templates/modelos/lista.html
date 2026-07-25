@@ -5,9 +5,12 @@
 <div class="flex items-center justify-between mb-6">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Modelos de Peças</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Banco de modelos que a IA usa como exemplo, e a identidade visual do escritório</p>
+    <p class="text-sm text-gray-500 mt-0.5">Banco de modelos de peças jurídicas do escritório</p>
   </div>
-  <a href="{% url 'modelos:novo' %}" class="btn-primary">+ Novo modelo</a>
+  <div class="flex gap-2">
+    <a href="{% url 'modelos:novo' %}" class="btn-primary">+ Novo modelo</a>
+    <a href="{% url 'modelos:importar' %}" class="btn-secondary">Importar arquivo</a>
+  </div>
 </div>
 
 {# Abas internas #}
@@ -31,9 +34,27 @@
 </div>
 
 {% if aba_ativa == "modelos" %}
+
+  {# Pesquisa #}
+  <form method="get" action="{% url 'modelos:lista' %}" class="mb-5">
+    <input type="hidden" name="aba" value="modelos">
+    <div class="flex gap-3 max-w-xl">
+      <input type="text"
+             name="q"
+             value="{{ busca }}"
+             class="input flex-1"
+             placeholder="Pesquisar por título, categoria, área ou conteúdo...">
+      <button type="submit" class="btn-primary px-4">Pesquisar</button>
+      {% if busca %}
+        <a href="?aba=modelos" class="btn-secondary px-4">Limpar</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {# Lista de modelos #}
   <div class="flex flex-col gap-3">
-    {% for m in modelos %}
-      <a href="{% url 'modelos:detalhe' m.id %}" class="card px-5 py-4 flex items-start gap-4 hover:shadow-md transition-shadow group">
+    {% for modelo in modelos %}
+      <a href="{% url 'modelos:detalhe' modelo.pk %}" class="card px-5 py-4 flex items-start gap-4 hover:shadow-md transition-shadow group">
         <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -41,36 +62,35 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ m.titulo }}</p>
-          <p class="text-xs text-juridico-ouro font-medium mt-0.5">{{ m.categoria }} &bull; {{ m.area_direito }}</p>
-          <p class="text-xs text-gray-400 mt-1 line-clamp-2">{{ m.preview }}</p>
+          <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ modelo.titulo }}</p>
+          <p class="text-xs text-juridico-ouro font-medium mt-0.5">{{ modelo.categoria }} &bull; {{ modelo.area_direito }}</p>
+          <p class="text-xs text-gray-400 mt-1">
+            {% if modelo.criado_por %}
+              {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name }}{% else %}{{ modelo.criado_por.username }}{% endif %}
+            {% else %}
+              Usuário removido
+            {% endif %}
+            &bull; {{ modelo.criado_em|date:"d/m/Y" }}
+          </p>
+          <p class="text-xs text-gray-400 mt-1">{{ modelo.conteudo|truncatechars:160 }}</p>
         </div>
-        <button class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
       </a>
     {% empty %}
-      {% include "components/empty_state.html" with mensagem="Nenhum modelo cadastrado." %}
+      {% if busca %}
+        {% include "components/empty_state.html" with mensagem="Nenhum modelo encontrado para esta pesquisa." %}
+      {% else %}
+        {% include "components/empty_state.html" with mensagem="Nenhum modelo cadastrado." %}
+      {% endif %}
     {% endfor %}
   </div>
+
 {% else %}
-  {# Aba "Meu estilo" — placeholder para IA futura #}
+  {# Aba "Meu estilo" — funcionalidade futura #}
   <div class="card p-6 max-w-2xl">
     <h2 class="font-semibold text-gray-900 mb-1">Tom de voz do escritório</h2>
-    <p class="text-sm text-gray-500 mb-4">
-      Descreva como o escritório prefere escrever. A IA usará essas informações para gerar peças no seu estilo.
+    <p class="text-sm text-gray-500">
+      A configuração de estilo do escritório será implementada na próxima fase de revisão.
     </p>
-    <div class="mb-4">
-      <label class="label">Tom de voz</label>
-      <textarea class="input h-24 resize-none" placeholder="Ex: Formal, objetivo, direto ao ponto. Evitar linguagem rebuscada..."></textarea>
-    </div>
-    <div class="mb-5">
-      <label class="label">Instruções gerais</label>
-      <textarea class="input h-24 resize-none" placeholder="Ex: Sempre incluir qualificação completa das partes no cabeçalho..."></textarea>
-    </div>
-    <button class="btn-primary">Salvar estilo</button>
   </div>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base/base_auth.html" %}
+{% block title %}{{ modelo.titulo }} — Modelos{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'modelos:lista' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900 truncate">{{ modelo.titulo }}</h1>
+</div>
+
+<div class="card p-6 max-w-3xl">
+
+  {# Metadados #}
+  <div class="flex flex-wrap gap-x-6 gap-y-1 mb-5 text-sm text-gray-500">
+    <span>
+      <span class="font-medium text-gray-700">Categoria:</span>
+      {{ modelo.categoria }}
+    </span>
+    <span>
+      <span class="font-medium text-gray-700">Área:</span>
+      {{ modelo.area_direito }}
+    </span>
+    <span>
+      <span class="font-medium text-gray-700">Autor:</span>
+      {% if modelo.criado_por %}
+        {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name }}{% else %}{{ modelo.criado_por.username }}{% endif %}
+      {% else %}
+        Usuário removido
+      {% endif %}
+    </span>
+    <span>
+      <span class="font-medium text-gray-700">Criado em:</span>
+      {{ modelo.criado_em|date:"d/m/Y" }}
+    </span>
+  </div>
+
+  {# Conteúdo integral #}
+  <div class="border-t border-gray-100 pt-4 mb-6">
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Conteúdo</p>
+    <div class="bg-gray-50 rounded-lg p-4 text-sm text-gray-800 font-mono"
+         style="white-space: pre-wrap; overflow-wrap: break-word;">{{ modelo.conteudo }}</div>
+  </div>
+
+  {# Ações #}
+  <div class="flex gap-3">
+    <a href="{% url 'modelos:editar' modelo.pk %}" class="btn-primary">Editar</a>
+    <button type="button"
+            id="copiar-conteudo"
+            class="btn-secondary">Copiar conteúdo</button>
+    <a href="{% url 'modelos:lista' %}" class="btn-secondary">Voltar</a>
+  </div>
+
+</div>
+
+{# Conteúdo oculto para cópia #}
+<textarea id="conteudo-modelo-copia" hidden>{{ modelo.conteudo }}</textarea>
+
+<script>
+document.getElementById("copiar-conteudo").addEventListener("click", async function () {
+    const campo = document.getElementById("conteudo-modelo-copia");
+
+    try {
+        await navigator.clipboard.writeText(campo.value);
+        this.textContent = "Copiado!";
+    } catch (erro) {
+        campo.hidden = false;
+        campo.select();
+        document.execCommand("copy");
+        campo.hidden = true;
+        this.textContent = "Copiado!";
+    }
+
+    setTimeout(() => {
+        this.textContent = "Copiar conteúdo";
+    }, 1500);
+});
+</script>
+{% endblock %}
