@@ -1,45 +1,60 @@
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_http_methods
 
-# Dados temporários apenas para layout — substituir futuramente por queries reais
-CONVERSAS_MOCK = [
-    {
-        "id": 1,
-        "nome": "Dra. Maria Lenzi",
-        "iniciais": "ML",
-        "cor_avatar": "bg-teal-600",
-        "ultima_mensagem": "Você: Vi sim, Maria. Prazo dia 12. Consegue adiantar a contestação?",
-        "horario": "08:45",
-        "nao_lidas": 0,
-    },
-    {
-        "id": 2,
-        "nome": "Lucas Martins",
-        "iniciais": "LM",
-        "cor_avatar": "bg-stone-500",
-        "ultima_mensagem": "Confirmado, vou protocolar ainda hoje.",
-        "horario": "Ontem",
-        "nao_lidas": 2,
-    },
-]
-
-MENSAGENS_MOCK = [
-    {"autor": "Dra. Maria Lenzi", "iniciais": "ML", "conteudo": "João, vi o prazo do processo Unimed. Você já elaborou a contestação?", "horario": "08:30", "minha": False},
-    {"autor": "Você", "iniciais": "JS", "conteudo": "Vi sim, Maria. Prazo dia 12. Consegue adiantar a contestação?", "horario": "08:45", "minha": True},
-]
+from apps.chat.models import Conversa, Mensagem
 
 
 @login_required
 def lista(request):
-    # Futuramente: Conversa.objects.filter(participantes=request.user)
-    return render(request, "chat/lista.html", {"conversas": CONVERSAS_MOCK, "item_ativo": "chat"})
+    return redirect("chat:global")
 
 
 @login_required
 def detalhe(request, pk):
-    conversa = next((c for c in CONVERSAS_MOCK if c["id"] == pk), CONVERSAS_MOCK[0])
-    return render(request, "chat/detalhe.html", {
-        "conversa": conversa,
-        "mensagens": MENSAGENS_MOCK,
-        "item_ativo": "chat",
-    })
+    return redirect("chat:global")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def global_sala(request):
+    sala, _ = Conversa.objects.get_or_create(
+        tipo=Conversa.TIPO_GLOBAL,
+        defaults={"titulo": "Sala Geral"},
+    )
+
+    erro = None
+    conteudo_digitado = ""
+
+    if request.method == "POST":
+        conteudo_digitado = request.POST.get("conteudo", "")
+        conteudo = conteudo_digitado.strip()
+
+        if not conteudo:
+            erro = "Digite uma mensagem antes de enviar."
+        else:
+            Mensagem.objects.create(
+                conversa=sala,
+                autor=request.user,
+                conteudo=conteudo,
+            )
+            return redirect("chat:global")
+
+    mensagens = list(
+        sala.mensagens
+        .select_related("autor")
+        .order_by("-enviada_em", "-pk")[:100]
+    )
+    mensagens.reverse()
+
+    return render(
+        request,
+        "chat/global.html",
+        {
+            "sala": sala,
+            "mensagens": mensagens,
+            "erro": erro,
+            "conteudo_digitado": conteudo_digitado,
+            "item_ativo": "chat",
+        },
+    )

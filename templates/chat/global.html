@@ -1,0 +1,104 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Sala Geral — Chat{% endblock %}
+
+{% block content %}
+<div class="flex flex-col" style="height: calc(100vh - 10rem);">
+
+  {# Cabeçalho #}
+  <div class="flex items-center gap-3 mb-4 flex-shrink-0">
+    <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
+      <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="font-bold text-gray-900 leading-tight">Sala Geral</h1>
+      <p class="text-xs text-gray-400">Todos do escritório</p>
+    </div>
+  </div>
+
+  {# Área de mensagens #}
+  <div id="mensagens-container" class="flex-1 overflow-y-auto flex flex-col gap-3 mb-4" style="min-height: 0;">
+
+    {% if not mensagens %}
+      <div class="flex items-center justify-center h-full text-gray-400 text-sm">
+        Ainda não há mensagens. Comece a conversa!
+      </div>
+    {% endif %}
+
+    {% for mensagem in mensagens %}
+      <div class="flex {% if mensagem.autor_id == request.user.id %}justify-end{% endif %} gap-2 items-end">
+
+        {# Avatar — somente para mensagens alheias #}
+        {% if mensagem.autor_id != request.user.id %}
+          <div class="w-8 h-8 rounded-full bg-stone-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            {% if mensagem.autor %}{{ mensagem.autor.username|first|upper }}{% else %}?{% endif %}
+          </div>
+        {% endif %}
+
+        <div class="max-w-sm">
+
+          {# Nome do autor — somente para mensagens alheias #}
+          {% if mensagem.autor_id != request.user.id %}
+            <p class="text-xs text-gray-500 mb-1 ml-1">
+              {% if mensagem.autor %}
+                {% if mensagem.autor.get_full_name %}{{ mensagem.autor.get_full_name }}{% else %}{{ mensagem.autor.username }}{% endif %}
+              {% else %}
+                Usuário removido
+              {% endif %}
+            </p>
+          {% endif %}
+
+          {# Bolha #}
+          <div style="overflow-wrap: break-word;" class="px-4 py-2.5 rounded-2xl text-sm
+                      {% if mensagem.autor_id == request.user.id %}bg-gray-900 text-white rounded-tr-sm{% else %}bg-white border border-gray-100 text-gray-900 rounded-tl-sm{% endif %}">
+            {{ mensagem.conteudo }}
+          </div>
+
+          {# Horário #}
+          <p class="text-xs text-gray-400 mt-1 {% if mensagem.autor_id == request.user.id %}text-right{% endif %}">
+            {{ mensagem.enviada_em|date:"d/m/Y H:i" }}
+          </p>
+
+        </div>
+      </div>
+    {% endfor %}
+
+  </div>
+
+  {# Formulário de envio #}
+  <div class="flex-shrink-0">
+    {% if erro %}
+      <p class="text-sm text-red-600 mb-2">{{ erro }}</p>
+    {% endif %}
+    <form method="post" action="{% url 'chat:global' %}">
+      {% csrf_token %}
+      <div class="flex gap-3">
+        <input type="text"
+               name="conteudo"
+               value="{{ conteudo_digitado }}"
+               class="input flex-1"
+               placeholder="Digite uma mensagem..."
+               autocomplete="off">
+        <button type="submit" class="btn-primary px-4">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("mensagens-container");
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+});
+</script>
+{% endblock %}

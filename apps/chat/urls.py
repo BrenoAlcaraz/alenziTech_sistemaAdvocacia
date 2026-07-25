@@ -5,5 +5,6 @@ app_name = "chat"
 
 urlpatterns = [
     path("chat/", views.lista, name="lista"),
+    path("chat/global/", views.global_sala, name="global"),
     path("chat/<int:pk>/", views.detalhe, name="detalhe"),
 ]
