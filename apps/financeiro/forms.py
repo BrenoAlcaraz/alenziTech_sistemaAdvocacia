@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import LancamentoFinanceiro
+from .models import LancamentoFinanceiro, CustaJudicial
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 
@@ -69,3 +69,41 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             self.add_error("data_pagamento", "Informe a data de pagamento para lançamentos pagos.")
 
         return cleaned_data
+
+
+class CustaJudicialForm(forms.ModelForm):
+    class Meta:
+        model = CustaJudicial
+        fields = ["tipo", "descricao", "valor", "data", "cliente", "processo"]
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "descricao": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Custas de citação – Processo 001/2026"}),
+            "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
+            "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "cliente": forms.Select(attrs={"class": "select"}),
+            "processo": forms.Select(attrs={"class": "select"}),
+        }
+        labels = {
+            "tipo": "Tipo de custa",
+            "descricao": "Descrição",
+            "valor": "Valor (R$)",
+            "data": "Data",
+            "cliente": "Cliente",
+            "processo": "Processo",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
+        self.fields["cliente"].required = False
+        self.fields["cliente"].empty_label = "Nenhum"
+        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
+        self.fields["processo"].required = False
+        self.fields["processo"].empty_label = "Nenhum"
+        self.fields["data"].input_formats = ["%Y-%m-%d"]
+
+    def clean_valor(self):
+        valor = self.cleaned_data.get("valor")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor

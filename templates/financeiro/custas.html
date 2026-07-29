@@ -38,7 +38,7 @@
   </p>
 </div>
 
-{# Saldo por cliente — dados mockados #}
+{# Saldo por cliente — calculado a partir dos registros reais de CustaJudicial #}
 <div class="card p-5 mb-6">
   <h2 class="font-semibold text-gray-900 mb-4">Saldo por cliente</h2>
   <div class="flex flex-col divide-y divide-gray-100">
@@ -65,9 +65,9 @@
   {% for c in custas %}
     <div class="card px-5 py-4 flex items-center gap-4">
       <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-        <svg class="w-4 h-4 {% if c.negativo %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}"
+        <svg class="w-4 h-4 {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}"
              fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          {% if c.negativo %}
+          {% if c.tipo == "adiantamento" %}
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
           {% else %}
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -76,17 +76,14 @@
       </div>
       <div class="flex-1 min-w-0">
         <p class="font-medium text-gray-900">{{ c.descricao }}</p>
-        <p class="text-xs text-gray-400">{{ c.detalhe }} &bull; {{ c.data }}</p>
+        <p class="text-xs text-gray-400">
+          {{ c.get_tipo_display }}{% if c.cliente %} &bull; {{ c.cliente }}{% endif %}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
+        </p>
       </div>
       <div class="flex items-center gap-3">
-        <p class="font-semibold {% if c.negativo %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}">
-          {% if c.negativo %}&minus; {% endif %}{{ c.valor }}
+        <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}">
+          {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|floatformat:2 }}
         </p>
-        <button class="text-gray-300 hover:text-red-400">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-          </svg>
-        </button>
       </div>
     </div>
   {% empty %}

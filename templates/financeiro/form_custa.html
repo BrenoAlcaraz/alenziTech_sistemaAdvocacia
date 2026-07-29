@@ -14,44 +14,64 @@
 <div class="card p-6 max-w-2xl">
   <form method="post">
     {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for erro in form.non_field_errors %}{{ erro }}{% endfor %}
+      </div>
+    {% endif %}
+
     <div class="flex flex-col gap-4">
+
       <div>
-        <label class="label">Tipo</label>
-        <div class="flex gap-3">
-          <button type="button" class="flex-1 py-2.5 border-2 border-gray-900 rounded-xl text-sm font-medium text-gray-900 bg-white">Adiantado pelo escritório</button>
-          <button type="button" class="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 bg-white">Depósito do cliente</button>
-        </div>
+        <label class="label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
+        {% endif %}
       </div>
+
       <div>
-        <label class="label">Descrição</label>
-        <input type="text" class="input" placeholder="Ex: Custas de citação – Unimed">
+        <label class="label" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.descricao.errors|join:", " }}</p>
+        {% endif %}
       </div>
+
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="label">Valor</label>
-          <input type="text" class="input" placeholder="R$ 0,00">
+          <label class="label" for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+          {{ form.valor }}
+          {% if form.valor.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.valor.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
-          <label class="label">Data</label>
-          <input type="date" class="input">
+          <label class="label" for="{{ form.data.id_for_label }}">{{ form.data.label }}</label>
+          {{ form.data }}
+          {% if form.data.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.data.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
-          <label class="label">Cliente</label>
-          <select class="select">
-            <option value="">Selecionar cliente...</option>
-            <option>Unimed Regional</option>
-            <option>Construtora Horizonte Ltda.</option>
-          </select>
+          <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }}</label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
-          <label class="label">Processo</label>
-          <select class="select">
-            <option value="">Nenhum</option>
-            <option>Unimed – Contencioso de Massa</option>
-          </select>
+          <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }}</label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
         </div>
       </div>
+
     </div>
+
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
       <button type="submit" class="btn-primary">Registrar custa</button>
       <a href="{% url 'financeiro:custas' %}" class="btn-secondary">Cancelar</a>

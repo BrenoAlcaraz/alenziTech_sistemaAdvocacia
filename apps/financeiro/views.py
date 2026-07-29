@@ -1,3 +1,4 @@
+from collections import defaultdict
 from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -6,35 +7,9 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .forms import LancamentoFinanceiroForm
-from .models import LancamentoFinanceiro
+from .forms import LancamentoFinanceiroForm, CustaJudicialForm
+from .models import LancamentoFinanceiro, CustaJudicial
 
-
-# Dados temporários — custas ainda não implementadas com dados reais
-CUSTAS_MOCK = [
-    {
-        "id": 1,
-        "descricao": "Custas de citação – Unimed (adiantado pelo escritório)",
-        "valor": "R$ 740,00",
-        "tipo": "adiantamento",
-        "negativo": True,
-        "cliente": "Unimed Regional",
-        "data": "02/06/2026",
-        "detalhe": "Pagamento adiantado pelo escritório • Unimed Regional",
-    },
-]
-
-SALDO_CLIENTES_MOCK = [
-    {"cliente": "Construtora Horizonte Ltda.", "saldo": "Crédito: R$ 3.150,00", "credito": True},
-    {"cliente": "Unimed Regional", "saldo": "A cobrar: R$ 740,00", "credito": False},
-]
-
-RESUMO_MOCK = {
-    "a_receber": "R$ 72.000,00",
-    "recebido": "R$ 25.000,00",
-    "despesas": "R$ 11.500,00",
-    "saldo": "R$ 13.500,00",
-}
 
 def _redirect_seguro(request):
     next_url = request.POST.get("next")
@@ -150,10 +125,37 @@ def index(request):
 
 @login_required
 def custas(request):
+    custas_qs = list(
+        CustaJudicial.objects.select_related("cliente", "processo").order_by("-data", "-criado_em")
+    )
+
+    saldos = defaultdict(lambda: Decimal("0"))
+    nomes_clientes = {}
+    for c in custas_qs:
+        if c.cliente_id:
+            if c.tipo == "deposito_cliente":
+                saldos[c.cliente_id] += c.valor
+            else:
+                saldos[c.cliente_id] -= c.valor
+            nomes_clientes[c.cliente_id] = str(c.cliente)
+
+    saldo_clientes = []
+    for cid in sorted(nomes_clientes, key=lambda k: nomes_clientes[k]):
+        saldo = saldos[cid]
+        if saldo == 0:
+            continue
+        credito = saldo > 0
+        abs_saldo = abs(saldo)
+        prefixo = "Crédito: " if credito else "A cobrar: "
+        saldo_clientes.append({
+            "cliente": nomes_clientes[cid],
+            "saldo": prefixo + _formatar_moeda(abs_saldo),
+            "credito": credito,
+        })
+
     return render(request, "financeiro/custas.html", {
-        "resumo": RESUMO_MOCK,
-        "custas": CUSTAS_MOCK,
-        "saldo_clientes": SALDO_CLIENTES_MOCK,
+        "custas": custas_qs,
+        "saldo_clientes": saldo_clientes,
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
@@ -247,4 +249,16 @@ def excluir_lancamento(request, pk):
 
 @login_required
 def form_custa(request):
-    return render(request, "financeiro/form_custa.html", {"item_ativo": "financeiro"})
+    if request.method == "POST":
+        form = CustaJudicialForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("financeiro:custas")
+    else:
+        form = CustaJudicialForm(initial={"data": timezone.localdate()})
+
+    return render(request, "financeiro/form_custa.html", {
+        "form": form,
+        "aba_ativa": "custas",
+        "item_ativo": "financeiro",
+    })
