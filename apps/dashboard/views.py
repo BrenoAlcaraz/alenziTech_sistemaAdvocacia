@@ -76,11 +76,14 @@ def painel(request):
         .order_by("data_vencimento")[:5]
     )
 
+    assinatura = getattr(request.tenant, "assinatura", None)
+    plano_nome = assinatura.plano.nome if assinatura else None
+
     return render(request, "dashboard/painel.html", {
         "resumo": resumo,
         "tarefas_dashboard": tarefas_dashboard,
         "compromissos_dashboard": compromissos_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
-        "plano_nome": "Mestre",
+        "plano_nome": plano_nome,
         "item_ativo": "painel",
     })

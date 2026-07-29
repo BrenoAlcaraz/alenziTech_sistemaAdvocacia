@@ -53,11 +53,13 @@ def index(request):
 
     configuracao_escritorio = _obter_configuracao_escritorio()
     usuario_e_admin_escritorio = usuario_admin_escritorio(request.user)
+    assinatura = getattr(request.tenant, "assinatura", None)
+    plano_nome = assinatura.plano.nome if assinatura else None
 
     return render(request, "configuracoes/index.html", {
         "perfil_usuario": perfil_usuario,
         "usuarios_contexto": usuarios_contexto,
-        "plano_nome": "Mestre",
+        "plano_nome": plano_nome,
         "usuarios_ativos": usuarios_ativos,
         "limite_usuarios": 10,
         "configuracao_escritorio": configuracao_escritorio,
