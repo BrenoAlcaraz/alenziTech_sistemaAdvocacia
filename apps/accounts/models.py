@@ -44,6 +44,13 @@ class PerfilUsuario(models.Model):
     class Meta:
         verbose_name = "Perfil de Usuário"
         verbose_name_plural = "Perfis de Usuários"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_admin_escritorio"],
+                condition=Q(is_admin_escritorio=True),
+                name="uniq_perfil_tenant_admin",
+            )
+        ]
 
     def __str__(self):
         return self.nome_completo or self.user.username
@@ -108,6 +115,128 @@ class MembroEquipe(models.Model):
         return f"{self.usuario.username} → {self.equipe.nome}"
 
 
+class PapelAcesso(models.Model):
+    """
+    Papel de acesso dinâmico, configurável pelo Tenant Admin.
+
+    Substitui gradualmente django.contrib.auth.Group como fonte de autorização.
+    Papéis com protegido_sistema=True são presets de fábrica e não podem ser
+    excluídos ou ter o codigo_preset alterado via interface — essa proteção
+    será aplicada por services e forms em etapas futuras.
+    """
+
+    nome = models.CharField(
+        max_length=100,
+        verbose_name="Nome",
+    )
+    descricao = models.TextField(
+        blank=True,
+        verbose_name="Descrição",
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo",
+    )
+    codigo_preset = models.SlugField(
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name="Código de preset",
+        help_text=(
+            "Identificador técnico estável dos presets de fábrica. "
+            "Nulo para papéis personalizados pelo Tenant Admin."
+        ),
+    )
+    protegido_sistema = models.BooleanField(
+        default=False,
+        verbose_name="Protegido pelo sistema",
+        help_text=(
+            "Presets de fábrica marcados aqui não podem ser excluídos "
+            "nem ter o codigo_preset alterado pela interface."
+        ),
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Papel de Acesso"
+        verbose_name_plural = "Papéis de Acesso"
+        ordering = ["nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["nome"],
+                name="uniq_papelacesso_nome",
+            ),
+            models.UniqueConstraint(
+                fields=["codigo_preset"],
+                condition=Q(codigo_preset__isnull=False),
+                name="uniq_papelacesso_codigo_preset",
+            ),
+            models.CheckConstraint(
+                condition=Q(codigo_preset__isnull=True) | ~Q(codigo_preset=""),
+                name="chk_papelacesso_codigo_preset_nao_vazio",
+            ),
+        ]
+
+    def __str__(self):
+        return self.nome
+
+
+class UsuarioPapel(models.Model):
+    """
+    Vínculo entre usuário e papel de acesso.
+
+    Um usuário pode ter vários papéis simultâneos.
+    As permissões são agregadas pelo maior nível entre todos os papéis ativos.
+    Overrides individuais em PermissaoUsuario/HabilitacaoUsuario continuam valendo
+    independentemente dos papéis.
+    """
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="atribuicoes_papel",
+        verbose_name="Usuário",
+    )
+    papel = models.ForeignKey(
+        PapelAcesso,
+        on_delete=models.PROTECT,
+        related_name="atribuicoes_usuario",
+        verbose_name="Papel",
+    )
+    ativo = models.BooleanField(
+        default=True,
+        verbose_name="Ativo",
+    )
+    atribuido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="atribuicoes_papel_realizadas",
+        verbose_name="Atribuído por",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Papel do Usuário"
+        verbose_name_plural = "Papéis dos Usuários"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "papel"],
+                name="uniq_usuariopapel_usuario_papel",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["usuario", "ativo"], name="idx_usuariopapel_usuario_ativo"),
+            models.Index(fields=["papel", "ativo"], name="idx_usuariopapel_papel_ativo"),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario.username} → {self.papel.nome}"
+
+
 class PermissaoPapel(models.Model):
     """
     Permissão padrão de acesso a um módulo por tipo de conta técnico.
@@ -121,6 +250,14 @@ class PermissaoPapel(models.Model):
         max_length=20,
         choices=TIPOS_CONTA_CHOICES,
         verbose_name="Tipo de conta",
+    )
+    papel = models.ForeignKey(
+        PapelAcesso,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="permissoes_modulo",
+        verbose_name="Papel (novo sistema)",
     )
     modulo = models.CharField(
         max_length=30,
@@ -150,6 +287,11 @@ class PermissaoPapel(models.Model):
             models.UniqueConstraint(
                 fields=["tipo_conta", "modulo"],
                 name="uniq_permissaopapel_tipo_modulo",
+            ),
+            models.UniqueConstraint(
+                fields=["papel", "modulo"],
+                condition=Q(papel__isnull=False),
+                name="uniq_permissaopapel_papel_modulo",
             ),
             models.CheckConstraint(
                 condition=Q(tipo_conta__in=["limitado", "financeiro"]),
@@ -274,6 +416,14 @@ class HabilitacaoPapel(models.Model):
         choices=TIPOS_CONTA_CHOICES,
         verbose_name="Tipo de conta",
     )
+    papel = models.ForeignKey(
+        PapelAcesso,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="habilitacoes",
+        verbose_name="Papel (novo sistema)",
+    )
     modulo = models.CharField(
         max_length=30,
         choices=MODULO_HABILITACAO_CHOICES,
@@ -299,6 +449,11 @@ class HabilitacaoPapel(models.Model):
             models.UniqueConstraint(
                 fields=["tipo_conta", "modulo", "item"],
                 name="uniq_habilitacaopapel_tipo_modulo_item",
+            ),
+            models.UniqueConstraint(
+                fields=["papel", "modulo", "item"],
+                condition=Q(papel__isnull=False),
+                name="uniq_habilitacaopapel_papel_modulo_item",
             ),
             models.CheckConstraint(
                 condition=Q(tipo_conta__in=["limitado", "financeiro"]),
