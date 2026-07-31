@@ -249,6 +249,8 @@ class PermissaoPapel(models.Model):
     tipo_conta = models.CharField(
         max_length=20,
         choices=TIPOS_CONTA_CHOICES,
+        null=True,
+        blank=True,
         verbose_name="Tipo de conta",
     )
     papel = models.ForeignKey(
@@ -286,7 +288,8 @@ class PermissaoPapel(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["tipo_conta", "modulo"],
-                name="uniq_permissaopapel_tipo_modulo",
+                condition=Q(tipo_conta__isnull=False),
+                name="uniq_permissaopapel_tipo_modulo_legado",
             ),
             models.UniqueConstraint(
                 fields=["papel", "modulo"],
@@ -294,8 +297,8 @@ class PermissaoPapel(models.Model):
                 name="uniq_permissaopapel_papel_modulo",
             ),
             models.CheckConstraint(
-                condition=Q(tipo_conta__in=["limitado", "financeiro"]),
-                name="chk_permissaopapel_tipo_conta",
+                condition=Q(tipo_conta__isnull=True) | Q(tipo_conta__in=["limitado", "financeiro"]),
+                name="chk_permissaopapel_tipo_conta_legado_ou_nulo",
             ),
             models.CheckConstraint(
                 condition=(
@@ -311,8 +314,14 @@ class PermissaoPapel(models.Model):
         ]
 
     def __str__(self):
+        if self.papel_id:
+            conta_str = self.papel.nome
+        elif self.tipo_conta:
+            conta_str = self.get_tipo_conta_display()
+        else:
+            conta_str = "(sem papel)"
         nivel_str = f" [{self.nivel}]" if self.nivel else ""
-        return f"{self.tipo_conta} / {self.modulo}{nivel_str}"
+        return f"{conta_str} / {self.get_modulo_display()}{nivel_str}"
 
     def clean(self):
         if self.tipo_conta and self.tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
@@ -414,6 +423,8 @@ class HabilitacaoPapel(models.Model):
     tipo_conta = models.CharField(
         max_length=20,
         choices=TIPOS_CONTA_CHOICES,
+        null=True,
+        blank=True,
         verbose_name="Tipo de conta",
     )
     papel = models.ForeignKey(
@@ -448,7 +459,8 @@ class HabilitacaoPapel(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["tipo_conta", "modulo", "item"],
-                name="uniq_habilitacaopapel_tipo_modulo_item",
+                condition=Q(tipo_conta__isnull=False),
+                name="uniq_habilitacaopapel_tipo_modulo_item_legado",
             ),
             models.UniqueConstraint(
                 fields=["papel", "modulo", "item"],
@@ -456,8 +468,8 @@ class HabilitacaoPapel(models.Model):
                 name="uniq_habilitacaopapel_papel_modulo_item",
             ),
             models.CheckConstraint(
-                condition=Q(tipo_conta__in=["limitado", "financeiro"]),
-                name="chk_habilitacaopapel_tipo_conta",
+                condition=Q(tipo_conta__isnull=True) | Q(tipo_conta__in=["limitado", "financeiro"]),
+                name="chk_habilitacaopapel_tipo_conta_legado_ou_nulo",
             ),
             models.CheckConstraint(
                 condition=(
@@ -494,7 +506,13 @@ class HabilitacaoPapel(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.tipo_conta} / {self.modulo} / {self.item}"
+        if self.papel_id:
+            conta_str = self.papel.nome
+        elif self.tipo_conta:
+            conta_str = self.get_tipo_conta_display()
+        else:
+            conta_str = "(sem papel)"
+        return f"{conta_str} / {self.get_modulo_display()} / {self.get_item_display()}"
 
     def clean(self):
         if self.tipo_conta and self.tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
