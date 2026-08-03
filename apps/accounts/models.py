@@ -311,6 +311,10 @@ class PermissaoPapel(models.Model):
                 ),
                 name="chk_permissaopapel_nivel",
             ),
+            models.CheckConstraint(
+                condition=Q(tipo_conta__isnull=False) | Q(papel__isnull=False),
+                name="chk_permissaopapel_tipo_ou_papel",
+            ),
         ]
 
     def __str__(self):
@@ -502,6 +506,10 @@ class HabilitacaoPapel(models.Model):
                     ])
                 ),
                 name="chk_habilitacaopapel_modulo_item",
+            ),
+            models.CheckConstraint(
+                condition=Q(tipo_conta__isnull=False) | Q(papel__isnull=False),
+                name="chk_habilitacaopapel_tipo_ou_papel",
             ),
         ]
 
