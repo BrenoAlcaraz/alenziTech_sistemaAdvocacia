@@ -225,14 +225,14 @@ class TestKernelContrato(KernelBase):
         u = self._user("u_inativo", is_active=False)
         self._add_group(u, "limitado")
         r = permissao_efetiva(u, MODULO_PROCESSOS)
-        self._perm_result_basico(r, tem_acesso=False, modulo=MODULO_PROCESSOS, origem="nenhuma")
+        self._perm_result_basico(r, tem_acesso=False, modulo=MODULO_PROCESSOS, origem="inativo")
 
     def test_usuario_inativo_nega_habilitacao(self):
         """is_active=False → nega habilitação."""
         u = self._user("u_inativo_h", is_active=False)
         self._add_group(u, "limitado")
         r = habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
-        self._hab_result_basico(r, habilitado=False, modulo=MODULO_PROCESSOS, item=HAB_PROCESSOS_CRIAR, origem="nenhuma")
+        self._hab_result_basico(r, habilitado=False, modulo=MODULO_PROCESSOS, item=HAB_PROCESSOS_CRIAR, origem="inativo")
 
     def test_anonimo_nega_permissao(self):
         """AnonymousUser → nega permissão."""
@@ -317,7 +317,7 @@ class TestKernelGrupoLegado(KernelBase):
         r = permissao_efetiva(u, MODULO_PROCESSOS)
         self.assertEqual(r["tem_acesso"], seed.ativo)
         self.assertEqual(r["nivel"], seed.nivel)
-        self.assertEqual(r["origem"], "papel")
+        self.assertEqual(r["origem"], "grupo_legado")
         self.assertEqual(r["tipo_conta"], "limitado")
 
     def test_grupo_limitado_financeiro_modulo_inativo(self):
@@ -327,7 +327,7 @@ class TestKernelGrupoLegado(KernelBase):
         seed = PermissaoPapel.objects.get(tipo_conta="limitado", modulo=MODULO_FINANCEIRO)
         r = permissao_efetiva(u, MODULO_FINANCEIRO)
         self.assertEqual(r["tem_acesso"], seed.ativo)
-        self.assertEqual(r["origem"], "papel")
+        self.assertEqual(r["origem"], "grupo_legado")
 
     def test_grupo_financeiro_processos_usa_seed(self):
         """Group=financeiro → usa PermissaoPapel seed (tipo_conta=financeiro, modulo=processos)."""
@@ -337,7 +337,7 @@ class TestKernelGrupoLegado(KernelBase):
         r = permissao_efetiva(u, MODULO_PROCESSOS)
         self.assertEqual(r["tem_acesso"], seed.ativo)
         self.assertEqual(r["nivel"], seed.nivel)
-        self.assertEqual(r["origem"], "papel")
+        self.assertEqual(r["origem"], "grupo_legado")
         self.assertEqual(r["tipo_conta"], "financeiro")
 
     def test_habilitacao_limitado_processos_criar_usa_seed(self):
@@ -353,7 +353,7 @@ class TestKernelGrupoLegado(KernelBase):
             self.assertEqual(r["origem"], "permissao_desligada")
         else:
             self.assertEqual(r["habilitado"], seed_hp.ativo)
-            self.assertEqual(r["origem"], "papel")
+            self.assertEqual(r["origem"], "grupo_legado")
             self.assertEqual(r["tipo_conta"], "limitado")
 
     def test_habilitacao_nega_se_modulo_desligado(self):
@@ -444,7 +444,7 @@ class TestKernelFallbackGrupo(KernelBase):
         seed = PermissaoPapel.objects.get(tipo_conta="limitado", modulo=MODULO_PROCESSOS)
         r = permissao_efetiva(u, MODULO_PROCESSOS)
         self.assertEqual(r["tem_acesso"], seed.ativo)
-        self.assertEqual(r["origem"], "papel")
+        self.assertEqual(r["origem"], "grupo_legado")
 
     def test_usuario_com_up_inativo_nao_usa_group_fallback(self):
         """

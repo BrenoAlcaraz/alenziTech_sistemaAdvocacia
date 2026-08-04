@@ -15,6 +15,8 @@ from apps.accounts.permissoes_constants import (
     ITENS_POR_MODULO,
 )
 
+_SENTINEL = object()
+
 
 def _usuario_valido(user):
     return bool(
@@ -25,16 +27,23 @@ def _usuario_valido(user):
 
 
 def _nivel_admin(modulo):
-    """Retorna o nível máximo válido para administradores no módulo dado."""
     return NIVEIS_POR_MODULO.get(modulo, [""])[-1]
 
 
 def _maior_nivel(modulo, niveis):
-    """Retorna o maior nível dentre os fornecidos segundo a ordem de NIVEIS_POR_MODULO."""
+    """
+    Retorna o maior nível dentre os fornecidos segundo a ordem de NIVEIS_POR_MODULO.
+
+    - Lista vazia → ""
+    - Há pelo menos um nível válido → maior nível válido (inválidos ignorados)
+    - Lista não vazia com todos inválidos → menor nível válido do módulo
+    """
     ordem = NIVEIS_POR_MODULO.get(modulo, [""])
     melhor_idx = -1
-    melhor = ""
+    melhor = None
+    tem_entradas = False
     for n in niveis:
+        tem_entradas = True
         try:
             idx = ordem.index(n)
             if idx > melhor_idx:
@@ -42,23 +51,86 @@ def _maior_nivel(modulo, niveis):
                 melhor = n
         except ValueError:
             pass
-    return melhor
+    if melhor is not None:
+        return melhor
+    if not tem_entradas:
+        return ""
+    # Lista não vazia, todos inválidos → mínimo seguro
+    return ordem[0] if ordem else ""
 
 
-def _papeis_ativos_ids(user):
-    """IDs de PapelAcesso com vínculo ativo: UP.ativo=True + PapelAcesso.ativo=True."""
-    return list(
-        UsuarioPapel.objects.filter(
-            usuario=user,
-            ativo=True,
-            papel__ativo=True,
-        ).values_list("papel_id", flat=True)
-    )
+def _menor_nivel_seguro(modulo, niveis):
+    """
+    Retorna o menor nível válido dentre os fornecidos.
+    Se todos inválidos → menor nível configurado para o módulo.
+    Se lista vazia → "".
+    Usado para preservar nível em permissões inativas.
+    """
+    if not niveis:
+        return ""
+    ordem = NIVEIS_POR_MODULO.get(modulo, [""])
+    melhor_idx = len(ordem)
+    melhor = None
+    for n in niveis:
+        try:
+            idx = ordem.index(n)
+            if idx < melhor_idx:
+                melhor_idx = idx
+                melhor = n
+        except ValueError:
+            pass
+    if melhor is not None:
+        return melhor
+    return ordem[0] if ordem else ""
 
 
-def _tem_qualquer_up(user):
-    """True se o usuário tiver ao menos um UsuarioPapel (qualquer estado)."""
-    return UsuarioPapel.objects.filter(usuario=user).exists()
+class _AupContexto:
+    """
+    Contexto interno de autorização para uma chamada de permissao/habilitacao.
+
+    Carrega UsuarioPapel uma única vez via select_related("papel").
+    Deriva tem_qualquer_up e ids_papeis_ativos em memória.
+    Carrega is_admin e tipo_conta apenas se necessário (lazy).
+    Nunca reutilizar entre requests, usuários ou tenants.
+    """
+
+    def __init__(self, user):
+        self._user = user
+        self._ups = _SENTINEL
+        self._is_admin = _SENTINEL
+        self._tipo_conta = _SENTINEL
+
+    def _carregar_ups(self):
+        if self._ups is _SENTINEL:
+            self._ups = list(
+                UsuarioPapel.objects.filter(usuario=self._user)
+                .select_related("papel")
+            )
+        return self._ups
+
+    @property
+    def is_admin(self):
+        if self._is_admin is _SENTINEL:
+            self._is_admin = usuario_admin_escritorio(self._user)
+        return self._is_admin
+
+    @property
+    def tem_qualquer_up(self):
+        return bool(self._carregar_ups())
+
+    @property
+    def ids_papeis_ativos(self):
+        return [
+            up.papel_id
+            for up in self._carregar_ups()
+            if up.ativo and up.papel.ativo
+        ]
+
+    @property
+    def tipo_conta(self):
+        if self._tipo_conta is _SENTINEL:
+            self._tipo_conta = tipo_conta_usuario(self._user)
+        return self._tipo_conta
 
 
 # ── Tipo de conta ──────────────────────────────────────────────────────────────
@@ -101,16 +173,28 @@ def permissao_efetiva(user, modulo):
 
     Retorna dict com:
       tem_acesso (bool), modulo (str), nivel (str),
-      origem ('admin'|'individual'|'papel'|'nenhuma'), tipo_conta (str|None).
+      origem ('admin'|'individual'|'papel'|'grupo_legado'|'inativo'|'nenhuma'),
+      tipo_conta (str|None).
+
+    Cria um contexto interno para evitar queries repetidas.
+    """
+    ctx = _AupContexto(user)
+    return _permissao_efetiva_com_contexto(user, modulo, ctx)
+
+
+def _permissao_efetiva_com_contexto(user, modulo, ctx):
+    """
+    Resolve a permissão efetiva reutilizando um contexto existente.
 
     Ordem de avaliação:
       1. Módulo inválido → negar sem consultar o banco
-      2. Usuário inativo ou inválido → negar
-      3. Administrador → acesso total
-      4. Override individual (PermissaoUsuario)
-      5. Usuário tem UsuarioPapel → caminho de papéis (agrega pelo maior nível)
-      6. Sem UsuarioPapel → fallback de grupo legado (tipo_conta via Group)
-      7. Negação padrão
+      2. Usuário sem pk → negar
+      3. Usuário inativo → negar (origem="inativo")
+      4. Administrador → acesso total (origem="admin")
+      5. Override individual (PermissaoUsuario) → origem="individual"
+      6. Usuário tem UsuarioPapel → caminho de papéis (origem="papel")
+      7. Sem UsuarioPapel → fallback de grupo legado (origem="grupo_legado")
+      8. Negação padrão
     """
     _sem_acesso = {
         "tem_acesso": False,
@@ -123,10 +207,13 @@ def permissao_efetiva(user, modulo):
     if modulo not in NIVEIS_POR_MODULO:
         return _sem_acesso
 
-    if not _usuario_valido(user):
+    if not user or not getattr(user, "pk", None):
         return _sem_acesso
 
-    if usuario_admin_escritorio(user):
+    if not getattr(user, "is_active", False):
+        return {**_sem_acesso, "origem": "inativo"}
+
+    if ctx.is_admin:
         return {
             "tem_acesso": True,
             "modulo": modulo,
@@ -137,7 +224,8 @@ def permissao_efetiva(user, modulo):
 
     individual = PermissaoUsuario.objects.filter(usuario=user, modulo=modulo).first()
     if individual is not None:
-        tipo = tipo_conta_usuario(user)
+        # tipo_conta=None quando UP existe (contexto dinâmico, não legado)
+        tipo = None if ctx.tem_qualquer_up else ctx.tipo_conta
         return {
             "tem_acesso": individual.ativo,
             "modulo": modulo,
@@ -146,22 +234,37 @@ def permissao_efetiva(user, modulo):
             "tipo_conta": tipo,
         }
 
-    if _tem_qualquer_up(user):
-        ids_ativos = _papeis_ativos_ids(user)
+    if ctx.tem_qualquer_up:
+        ids_ativos = ctx.ids_papeis_ativos
         if not ids_ativos:
-            return _sem_acesso
-        pps = list(
+            # UP existe mas todos inativos ou com PapelAcesso inativo
+            return {**_sem_acesso, "origem": "papel", "tipo_conta": None}
+
+        # Carregar todas as linhas sem filtrar ativo — separar em memória
+        linhas = list(
             PermissaoPapel.objects.filter(
                 papel_id__in=ids_ativos,
                 modulo=modulo,
-                ativo=True,
             )
         )
-        if not pps:
-            return _sem_acesso
-        nivel = _maior_nivel(modulo, [pp.nivel for pp in pps])
+        if not linhas:
+            return {**_sem_acesso, "origem": "papel", "tipo_conta": None}
+
+        concessoes = [pp for pp in linhas if pp.ativo]
+        if concessoes:
+            nivel = _maior_nivel(modulo, [pp.nivel for pp in concessoes])
+            return {
+                "tem_acesso": True,
+                "modulo": modulo,
+                "nivel": nivel,
+                "origem": "papel",
+                "tipo_conta": None,
+            }
+
+        # Linhas existem mas todas inativas — preservar nível seguro conservador
+        nivel = _menor_nivel_seguro(modulo, [pp.nivel for pp in linhas])
         return {
-            "tem_acesso": True,
+            "tem_acesso": False,
             "modulo": modulo,
             "nivel": nivel,
             "origem": "papel",
@@ -169,7 +272,7 @@ def permissao_efetiva(user, modulo):
         }
 
     # Fallback legado: usar tipo_conta via Group
-    tipo = tipo_conta_usuario(user)
+    tipo = ctx.tipo_conta
     if tipo is None:
         return _sem_acesso
 
@@ -179,11 +282,11 @@ def permissao_efetiva(user, modulo):
             "tem_acesso": papel.ativo,
             "modulo": modulo,
             "nivel": papel.nivel,
-            "origem": "papel",
+            "origem": "grupo_legado",
             "tipo_conta": tipo,
         }
 
-    return {**_sem_acesso, "tipo_conta": tipo}
+    return {**_sem_acesso, "origem": "grupo_legado", "tipo_conta": tipo}
 
 
 def tem_permissao_modulo(user, modulo):
@@ -207,16 +310,25 @@ def habilitacao_efetiva(user, modulo, item):
 
     Retorna dict com:
       habilitado (bool), modulo (str), item (str),
-      origem ('admin'|'individual'|'papel'|'permissao_desligada'|'nenhuma'),
+      origem ('admin'|'individual'|'papel'|'grupo_legado'|
+              'permissao_desligada'|'inativo'|'nenhuma'),
       tipo_conta (str|None).
 
-    Nega sem consultar o banco quando:
-      - módulo não existe em ITENS_POR_MODULO
-      - módulo sem habilitações definidas nesta versão (chat, financeiro, painel)
-      - item não pertence ao módulo
-      - usuário inativo ou inválido (após validação da combinação)
+    Cria contexto interno e reutiliza em _permissao_efetiva_com_contexto.
+    """
+    ctx = _AupContexto(user)
+    return _habilitacao_efetiva_com_contexto(user, modulo, item, ctx)
 
-    Admin recebe habilitado=True apenas para combinações módulo/item válidas.
+
+def _habilitacao_efetiva_com_contexto(user, modulo, item, ctx):
+    """
+    Resolve habilitação reutilizando contexto para evitar queries repetidas.
+
+    Caminho de papéis (contexto.tem_qualquer_up=True):
+      nunca consulta HabilitacaoPapel por tipo_conta.
+
+    Fallback legado (contexto.tem_qualquer_up=False):
+      somente então usa tipo_conta e HabilitacaoPapel por tipo_conta.
     """
     _nao_habilitado = {
         "habilitado": False,
@@ -230,10 +342,13 @@ def habilitacao_efetiva(user, modulo, item):
     if not itens_validos or item not in itens_validos:
         return _nao_habilitado
 
-    if not _usuario_valido(user):
+    if not user or not getattr(user, "pk", None):
         return _nao_habilitado
 
-    if usuario_admin_escritorio(user):
+    if not getattr(user, "is_active", False):
+        return {**_nao_habilitado, "origem": "inativo"}
+
+    if ctx.is_admin:
         return {
             "habilitado": True,
             "modulo": modulo,
@@ -242,7 +357,7 @@ def habilitacao_efetiva(user, modulo, item):
             "tipo_conta": TIPO_CONTA_ADMINISTRADOR,
         }
 
-    perm = permissao_efetiva(user, modulo)
+    perm = _permissao_efetiva_com_contexto(user, modulo, ctx)
     if not perm["tem_acesso"]:
         return {
             "habilitado": False,
@@ -252,7 +367,8 @@ def habilitacao_efetiva(user, modulo, item):
             "tipo_conta": perm["tipo_conta"],
         }
 
-    tipo = perm["tipo_conta"]
+    # tipo_conta=None quando existe qualquer UP — mesmo para override individual
+    tipo = None if ctx.tem_qualquer_up else ctx.tipo_conta
 
     individual = HabilitacaoUsuario.objects.filter(
         usuario=user, modulo=modulo, item=item
@@ -266,9 +382,9 @@ def habilitacao_efetiva(user, modulo, item):
             "tipo_conta": tipo,
         }
 
-    if tipo is None:
-        # Caminho de papéis (new kernel): agrega HP de todos os papéis ativos
-        ids_ativos = _papeis_ativos_ids(user)
+    if ctx.tem_qualquer_up:
+        # Caminho dinâmico: nunca consultar por tipo_conta
+        ids_ativos = ctx.ids_papeis_ativos
         if ids_ativos:
             for hp in HabilitacaoPapel.objects.filter(
                 papel_id__in=ids_ativos,
@@ -283,9 +399,12 @@ def habilitacao_efetiva(user, modulo, item):
                         "origem": "papel",
                         "tipo_conta": None,
                     }
-        return {**_nao_habilitado, "tipo_conta": None}
+        return {**_nao_habilitado, "origem": "papel", "tipo_conta": None}
 
-    # Fallback legado: HP por tipo_conta
+    # Fallback legado: somente quando não existe nenhum UP
+    if tipo is None:
+        return _nao_habilitado
+
     papel = HabilitacaoPapel.objects.filter(
         tipo_conta=tipo, modulo=modulo, item=item
     ).first()
@@ -294,11 +413,11 @@ def habilitacao_efetiva(user, modulo, item):
             "habilitado": papel.ativo,
             "modulo": modulo,
             "item": item,
-            "origem": "papel",
+            "origem": "grupo_legado",
             "tipo_conta": tipo,
         }
 
-    return {**_nao_habilitado, "tipo_conta": tipo}
+    return {**_nao_habilitado, "origem": "grupo_legado", "tipo_conta": tipo}
 
 
 def tem_habilitacao(user, modulo, item):
