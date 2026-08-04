@@ -8,6 +8,12 @@ class Migration(migrations.Migration):
     dependencies = [
         ('accounts', '0003_departamento_membrodepartamento'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        # Garante que clientes.0004 (FK → accounts.Departamento) roda antes do rename.
+        # Sem isso, o sort topológico pode colocar este rename antes de clientes.0004,
+        # invalidando a referência ao model 'accounts.departamento'.
+        ('clientes', '0005_remove_cliente_departamento'),
+        # Mesmo motivo para processos.0003 (FK → accounts.Departamento).
+        ('processos', '0003_processo_departamento'),
     ]
 
     operations = [
