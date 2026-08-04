@@ -46,26 +46,14 @@ def usuario_admin_escritorio(user):
     """
     Verifica se o usuário pode agir como administrador do escritório.
 
-    Três caminhos independentes:
-    - is_superuser: bypass para desenvolvimento e suporte técnico
-    - PerfilUsuario.is_admin_escritorio: escape hatch para o primeiro admin do tenant
-      e recuperação de acesso sem depender de grupos
-    - Grupo auth.Group "administrador_escritorio": papel real do administrador
-
-    Nota: PerfilUsuario.cargo é apenas descritivo e não controla permissões aqui.
+    Único caminho: PerfilUsuario.is_admin_escritorio=True com is_active=True.
     """
-    if not user or not user.is_authenticated:
+    if not user or not getattr(user, "is_authenticated", False):
         return False
-
-    if user.is_superuser:
-        return True
-
-    # Escape hatch: primeiro admin do tenant ou recuperação de acesso
+    if not getattr(user, "is_active", False):
+        return False
     perfil = getattr(user, "perfil", None)
-    if perfil and perfil.is_admin_escritorio:
-        return True
-
-    return usuario_pertence_ao_grupo(user, GRUPO_ADMINISTRADOR_ESCRITORIO)
+    return perfil is not None and perfil.is_admin_escritorio
 
 
 def nome_legivel_grupo(nome_grupo):

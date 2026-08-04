@@ -5,6 +5,7 @@ from apps.accounts.models import (
     PermissaoUsuario,
     HabilitacaoPapel,
     HabilitacaoUsuario,
+    UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import (
     TIPO_CONTA_ADMINISTRADOR,
@@ -28,29 +29,57 @@ def _nivel_admin(modulo):
     return NIVEIS_POR_MODULO.get(modulo, [""])[-1]
 
 
+def _maior_nivel(modulo, niveis):
+    """Retorna o maior nível dentre os fornecidos segundo a ordem de NIVEIS_POR_MODULO."""
+    ordem = NIVEIS_POR_MODULO.get(modulo, [""])
+    melhor_idx = -1
+    melhor = ""
+    for n in niveis:
+        try:
+            idx = ordem.index(n)
+            if idx > melhor_idx:
+                melhor_idx = idx
+                melhor = n
+        except ValueError:
+            pass
+    return melhor
+
+
+def _papeis_ativos_ids(user):
+    """IDs de PapelAcesso com vínculo ativo: UP.ativo=True + PapelAcesso.ativo=True."""
+    return list(
+        UsuarioPapel.objects.filter(
+            usuario=user,
+            ativo=True,
+            papel__ativo=True,
+        ).values_list("papel_id", flat=True)
+    )
+
+
+def _tem_qualquer_up(user):
+    """True se o usuário tiver ao menos um UsuarioPapel (qualquer estado)."""
+    return UsuarioPapel.objects.filter(usuario=user).exists()
+
+
 # ── Tipo de conta ──────────────────────────────────────────────────────────────
 
 def tipo_conta_usuario(user):
     """
-    Resolve o tipo de conta técnico do usuário.
+    Resolve o tipo de conta técnico do usuário via Group legado.
 
-    Retorna um dos slugs: 'administrador_escritorio', 'financeiro', 'limitado',
-    ou None se o usuário não tiver exatamente um papel técnico reconhecido.
+    Retorna 'financeiro' ou 'limitado', ou None.
 
     Casos que retornam None:
       - usuário inativo ou inválido
-      - nenhum papel técnico ativo
-      - duplo papel (limitado + financeiro ao mesmo tempo)
+      - nenhum grupo técnico
+      - duplo grupo (limitado + financeiro ao mesmo tempo)
 
+    Administradores são tratados por usuario_admin_escritorio() antes de aqui.
     Grupos legados ('advogado', 'gerente') não concedem acesso.
     PerfilUsuario.cargo é descritivo e não entra nessa resolução.
-    MembroEquipe.eh_gerente não substitui o tipo de conta.
     """
     if not _usuario_valido(user):
         return None
-
-    if usuario_admin_escritorio(user):
-        return TIPO_CONTA_ADMINISTRADOR
 
     grupos_tecnicos = set(
         user.groups.filter(
@@ -77,14 +106,11 @@ def permissao_efetiva(user, modulo):
     Ordem de avaliação:
       1. Módulo inválido → negar sem consultar o banco
       2. Usuário inativo ou inválido → negar
-      3. Administrador → acesso total (não depende de registros no banco)
-      4. Tipo técnico ausente ou duplo → negar
-      5. Override individual (PermissaoUsuario)
-      6. Padrão do papel (PermissaoPapel)
+      3. Administrador → acesso total
+      4. Override individual (PermissaoUsuario)
+      5. Usuário tem UsuarioPapel → caminho de papéis (agrega pelo maior nível)
+      6. Sem UsuarioPapel → fallback de grupo legado (tipo_conta via Group)
       7. Negação padrão
-
-    Admin nunca é bloqueado por override individual.
-    Usuário sem papel técnico não recebe acesso mesmo com override individual.
     """
     _sem_acesso = {
         "tem_acesso": False,
@@ -109,13 +135,9 @@ def permissao_efetiva(user, modulo):
             "tipo_conta": TIPO_CONTA_ADMINISTRADOR,
         }
 
-    tipo = tipo_conta_usuario(user)
-
-    if tipo is None:
-        return _sem_acesso
-
     individual = PermissaoUsuario.objects.filter(usuario=user, modulo=modulo).first()
     if individual is not None:
+        tipo = tipo_conta_usuario(user)
         return {
             "tem_acesso": individual.ativo,
             "modulo": modulo,
@@ -123,6 +145,33 @@ def permissao_efetiva(user, modulo):
             "origem": "individual",
             "tipo_conta": tipo,
         }
+
+    if _tem_qualquer_up(user):
+        ids_ativos = _papeis_ativos_ids(user)
+        if not ids_ativos:
+            return _sem_acesso
+        pps = list(
+            PermissaoPapel.objects.filter(
+                papel_id__in=ids_ativos,
+                modulo=modulo,
+                ativo=True,
+            )
+        )
+        if not pps:
+            return _sem_acesso
+        nivel = _maior_nivel(modulo, [pp.nivel for pp in pps])
+        return {
+            "tem_acesso": True,
+            "modulo": modulo,
+            "nivel": nivel,
+            "origem": "papel",
+            "tipo_conta": None,
+        }
+
+    # Fallback legado: usar tipo_conta via Group
+    tipo = tipo_conta_usuario(user)
+    if tipo is None:
+        return _sem_acesso
 
     papel = PermissaoPapel.objects.filter(tipo_conta=tipo, modulo=modulo).first()
     if papel is not None:
@@ -217,6 +266,26 @@ def habilitacao_efetiva(user, modulo, item):
             "tipo_conta": tipo,
         }
 
+    if tipo is None:
+        # Caminho de papéis (new kernel): agrega HP de todos os papéis ativos
+        ids_ativos = _papeis_ativos_ids(user)
+        if ids_ativos:
+            for hp in HabilitacaoPapel.objects.filter(
+                papel_id__in=ids_ativos,
+                modulo=modulo,
+                item=item,
+            ):
+                if hp.ativo:
+                    return {
+                        "habilitado": True,
+                        "modulo": modulo,
+                        "item": item,
+                        "origem": "papel",
+                        "tipo_conta": None,
+                    }
+        return {**_nao_habilitado, "tipo_conta": None}
+
+    # Fallback legado: HP por tipo_conta
     papel = HabilitacaoPapel.objects.filter(
         tipo_conta=tipo, modulo=modulo, item=item
     ).first()
