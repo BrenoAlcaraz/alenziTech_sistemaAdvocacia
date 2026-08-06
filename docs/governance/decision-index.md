@@ -19,9 +19,9 @@ nas fontes anteriores do projeto (histórico, planos e checkpoints) e
 foram formalizadas em `docs/product/decisions/`. Os ADR-0001 a ADR-0005
 listados abaixo representam decisões arquiteturais já consolidadas nas
 mesmas fontes, mas ainda estão pendentes apenas de formalização em
-arquivos ADR individuais — não estão em aberto. Já os itens OPEN-001,
-OPEN-002 e OPEN-003, na seção "Decisões em aberto", continuam realmente
-sem decisão tomada.
+arquivos ADR individuais — não estão em aberto. Já os itens OPEN-001 e
+OPEN-002, na seção "Decisões em aberto", continuam realmente sem
+decisão tomada.
 
 ## Decisões de produto formalizadas
 
@@ -37,6 +37,12 @@ sem decisão tomada.
 | PDR-0008 | IA após consolidação do núcleo funcional | accepted | `docs/product/decisions/PDR-0008-ia-apos-nucleo-funcional.md` |
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | `docs/product/decisions/PDR-0009-sequencia-fase-2.md` |
 
+A decisão aceita em PDR-0003 inclui explicitamente que billing e
+assinatura SaaS permanecem no contexto compartilhado de `saas_billing`,
+que não há espelhamento automático dessa assinatura no Financeiro do
+tenant, e que uma eventual integração futura entre os dois exigirá um
+novo PDR. Este ponto não é uma decisão pendente.
+
 ## Decisões arquiteturais pendentes de formalização
 
 | ID planejado | Assunto | Estado | Futuro documento |
@@ -51,7 +57,6 @@ sem decisão tomada.
 
 - **OPEN-001** — Periodicidades financeiras da primeira versão.
 - **OPEN-002** — Etapas de aprovação das solicitações financeiras.
-- **OPEN-003** — Espelhamento da assinatura SaaS no Financeiro.
 
 Estas decisões ainda não foram resolvidas. Elas estão registradas em
 `docs/product/open-decisions.md`.

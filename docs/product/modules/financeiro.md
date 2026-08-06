@@ -218,10 +218,12 @@ solicitada → em análise → aprovada ou rejeitada → paga
   honorários a um processo, conforme [processos.md](processos.md).
 - Fornece indicadores financeiros consumidos pelo módulo Dashboard,
   conforme [dashboard.md](dashboard.md) e PDR-0004.
-- A relação entre a assinatura da plataforma SaaS e o Financeiro do
-  tenant depende de
-  [OPEN-003](../open-decisions.md#open-003--espelhamento-da-assinatura-saas-no-financeiro),
-  tratada também em [configuracoes.md](configuracoes.md).
+- O billing da plataforma SaaS (`saas_billing`) e o Financeiro
+  operacional deste módulo são domínios distintos, conforme
+  [PDR-0003](../decisions/PDR-0003-areas-funcionais-financeiro.md). O
+  Financeiro do tenant não recebe automaticamente lançamentos da
+  assinatura SaaS; essa relação também é tratada em
+  [configuracoes.md](configuracoes.md).
 - A integração futura entre honorários e IA jurídica depende dos
   pré-requisitos descritos em
   [inteligencia-artificial.md](inteligencia-artificial.md).
@@ -233,7 +235,10 @@ solicitada → em análise → aprovada ou rejeitada → paga
   [PDR-0008](../decisions/PDR-0008-ia-apos-nucleo-funcional.md)
   estejam consolidados.
 - Qualquer integração automática entre a cobrança da assinatura SaaS e
-  o financeiro do tenant, enquanto OPEN-003 não for decidido.
+  o financeiro do tenant. Não há espelhamento automático entre
+  `saas_billing` e o Financeiro do tenant; uma eventual integração
+  futura exige um novo PDR, conforme
+  [PDR-0003](../decisions/PDR-0003-areas-funcionais-financeiro.md).
 - Gráficos, relatórios ou exportações financeiras além dos indicadores
   mínimos definidos em PDR-0004.
 - Integrações bancárias, emissão de boletos por API ou conciliação
@@ -245,8 +250,6 @@ solicitada → em análise → aprovada ou rejeitada → paga
   — periodicidades financeiras da primeira versão.
 - [OPEN-002](../open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras)
   — fluxo final de aprovação das solicitações financeiras.
-- [OPEN-003](../open-decisions.md#open-003--espelhamento-da-assinatura-saas-no-financeiro)
-  — espelhamento da assinatura SaaS no Financeiro.
 - Lista inicial de categorias de receita e de despesa.
 - Regras detalhadas de anexos no financeiro geral.
 - Alcance exato dos papéis e habilitações financeiras.

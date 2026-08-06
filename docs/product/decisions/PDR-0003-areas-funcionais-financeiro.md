@@ -58,6 +58,15 @@ implementação, não a este PDR de produto.
   condicionadas ao tipo do lançamento (receita ou despesa), evitando que
   categorias de um tipo apareçam para o outro.
 
+**Financeiro do tenant e billing da plataforma SaaS**
+
+- O financeiro operacional do escritório, tratado por este PDR, e o
+  billing da plataforma SaaS são domínios distintos.
+- Plano e Assinatura, referentes à cobrança da própria plataforma,
+  permanecem no contexto compartilhado de `saas_billing`.
+- Nenhuma despesa recorrente da assinatura SaaS é criada
+  automaticamente no financeiro geral do tenant.
+
 **Modalidades de lançamento**
 
 Todo lançamento do financeiro geral segue uma das três modalidades:
@@ -97,6 +106,9 @@ este PDR — essa decisão permanece em aberto em
   quatro áreas relacionadas, e não como uma lista única de lançamentos.
 - Custas judiciais deixam de concorrer como categoria dentro do
   financeiro geral.
+- O financeiro do tenant e o billing da plataforma SaaS ficam
+  estabelecidos como domínios distintos, sem lançamento automático da
+  assinatura SaaS como despesa do escritório.
 - A distinção entre único, parcelado e recorrente passa a ser uma regra
   de produto obrigatória, com consequências diferentes para geração de
   ocorrências e para cancelamento.
@@ -129,6 +141,9 @@ que é compatível com esta decisão.
   [PDR-0006](PDR-0006-solicitacoes-financeiras.md).
 - Regras específicas de honorários, que são tratadas em
   [PDR-0007](PDR-0007-honorarios-manuais-antes-ia.md).
+- Forma de eventual integração futura entre `saas_billing` e o
+  financeiro do tenant, incluindo um possível espelhamento opcional:
+  não é decidida por este PDR e exigirá um novo PDR próprio.
 
 ## Critérios de aceite funcionais
 
@@ -153,6 +168,8 @@ que é compatível com esta decisão.
 - Cada ocorrência futura é gerada inicialmente como pendente.
 - Cancelar uma recorrência impede novas ocorrências futuras, mas não
   apaga nem reescreve ocorrências já pagas ou recebidas.
+- Nenhum lançamento de despesa referente à assinatura SaaS da
+  plataforma é criado automaticamente no financeiro geral do tenant.
 
 ## Fontes
 

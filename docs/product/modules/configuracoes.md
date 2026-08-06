@@ -76,10 +76,14 @@ documento não redefine esses termos.
 - As configurações white label pertencem ao escritório (tenant).
 - A administração da plataforma SaaS pertence ao Platform Admin, e não
   ao Administrador do escritório.
-- Assinatura e plano são conceitos pertencentes ao billing SaaS. Sua
-  eventual representação ou integração com o financeiro do tenant
-  depende de
-  [OPEN-003](../open-decisions.md#open-003--espelhamento-da-assinatura-saas-no-financeiro),
+- Plano e Assinatura são conceitos pertencentes ao billing SaaS e
+  permanecem em `saas_billing`. Configurações pode apresentar ou
+  administrar informações do plano conforme autorização e
+  implementação futura, sem que essa consulta crie lançamento no
+  Financeiro do tenant. Uma eventual integração financeira futura
+  entre `saas_billing` e o financeiro do tenant exige um novo PDR,
+  conforme
+  [PDR-0003](../decisions/PDR-0003-areas-funcionais-financeiro.md),
   tratada também em [financeiro.md](financeiro.md).
 
 Esta especificação não define:
@@ -135,8 +139,9 @@ Esta especificação não determina exclusão física de usuário.
 - Fluxo de upgrade e downgrade de plano.
 - Efeitos de uma redução de plano sobre dados e usuários existentes.
 - Tratamento de usuários acima do limite contratado.
-- [OPEN-003](../open-decisions.md#open-003--espelhamento-da-assinatura-saas-no-financeiro)
-  — eventual espelhamento financeiro da assinatura SaaS.
+- Interface exata de apresentação ou administração do plano SaaS
+  dentro de Configurações — não confirmada nesta especificação nem no
+  código, apenas prevista como possibilidade funcional futura.
 
 ## Critérios de aceite funcionais
 

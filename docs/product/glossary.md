@@ -126,9 +126,10 @@ Regras obrigatórias:
 Mesmo que o módulo Financeiro seja detalhado em especificação de
 módulo em lote futuro, os termos abaixo já são estáveis por estarem
 formalizados nos PDRs aceitos (PDR-0003 a PDR-0007). Este glossário
-não resolve [OPEN-001](open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão),
-[OPEN-002](open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras)
-nem [OPEN-003](open-decisions.md#open-003--espelhamento-da-assinatura-saas-no-financeiro).
+não resolve [OPEN-001](open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão)
+nem [OPEN-002](open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras).
+Plano e assinatura SaaS pertencem ao billing compartilhado e não geram
+automaticamente lançamento no Financeiro operacional do escritório.
 
 | Termo | Definição | Observação ou distinção |
 | --- | --- | --- |
