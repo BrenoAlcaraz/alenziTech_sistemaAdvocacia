@@ -10,31 +10,32 @@ last_reviewed: 2026-08-06
 ## Como utilizar este índice
 
 Este índice lista decisões de produto e arquitetura já identificadas no
-projeto, junto com o registro formal (PDR ou ADR) que futuramente as
-documentará. Este índice não substitui os futuros PDRs e ADRs; ele apenas
-rastreia quais decisões existem e para onde apontar quando forem
-formalizadas.
+projeto, junto com o registro formal (PDR ou ADR) que as documenta. Este
+índice não substitui os PDRs e ADRs; ele apenas rastreia quais decisões
+existem e para onde apontar.
 
-Os PDRs e ADRs listados abaixo representam decisões funcionais e
-arquiteturais já consolidadas nas fontes anteriores do projeto (histórico,
-planos e checkpoints). Elas estão pendentes apenas de formalização em
-arquivos PDR ou ADR individuais — não estão em aberto. Já os itens
-OPEN-001, OPEN-002 e OPEN-003, na seção "Decisões em aberto", continuam
-realmente sem decisão tomada.
+Os PDR-0001 a PDR-0009 representam decisões funcionais já consolidadas
+nas fontes anteriores do projeto (histórico, planos e checkpoints) e
+foram formalizadas em `docs/product/decisions/`. Os ADR-0001 a ADR-0005
+listados abaixo representam decisões arquiteturais já consolidadas nas
+mesmas fontes, mas ainda estão pendentes apenas de formalização em
+arquivos ADR individuais — não estão em aberto. Já os itens OPEN-001,
+OPEN-002 e OPEN-003, na seção "Decisões em aberto", continuam realmente
+sem decisão tomada.
 
-## Decisões de produto pendentes de formalização
+## Decisões de produto formalizadas
 
-| ID planejado | Assunto | Estado | Futuro documento |
+| ID | Assunto | Estado | Documento |
 | --- | --- | --- | --- |
-| PDR-0001 | Participantes processuais | aprovada — pendente de formalização | `docs/product/decisions/PDR-0001-participantes-processuais.md` |
-| PDR-0002 | Delegação direta de tarefas | aprovada — pendente de formalização | `docs/product/decisions/PDR-0002-delegacao-direta-de-tarefas.md` |
-| PDR-0003 | Áreas funcionais do Financeiro | aprovada — pendente de formalização | `docs/product/decisions/PDR-0003-areas-funcionais-financeiro.md` |
-| PDR-0004 | Previsto e realizado | aprovada — pendente de formalização | `docs/product/decisions/PDR-0004-previsto-e-realizado.md` |
-| PDR-0005 | Custas por cliente | aprovada — pendente de formalização | `docs/product/decisions/PDR-0005-custas-por-cliente.md` |
-| PDR-0006 | Solicitações de pagamento e reembolso | aprovada — pendente de formalização | `docs/product/decisions/PDR-0006-solicitacoes-financeiras.md` |
-| PDR-0007 | Honorários manuais antes da IA | aprovada — pendente de formalização | `docs/product/decisions/PDR-0007-honorarios-manuais-antes-ia.md` |
-| PDR-0008 | IA após consolidação do núcleo funcional | aprovada — pendente de formalização | `docs/product/decisions/PDR-0008-ia-apos-nucleo-funcional.md` |
-| PDR-0009 | Sequência revisada da Fase 2 | aprovada — pendente de formalização | `docs/product/decisions/PDR-0009-sequencia-fase-2.md` |
+| PDR-0001 | Participantes processuais | accepted | `docs/product/decisions/PDR-0001-participantes-processuais.md` |
+| PDR-0002 | Delegação direta de tarefas | accepted | `docs/product/decisions/PDR-0002-delegacao-direta-de-tarefas.md` |
+| PDR-0003 | Áreas funcionais do Financeiro | accepted | `docs/product/decisions/PDR-0003-areas-funcionais-financeiro.md` |
+| PDR-0004 | Previsto e realizado | accepted | `docs/product/decisions/PDR-0004-previsto-e-realizado.md` |
+| PDR-0005 | Custas por cliente | accepted | `docs/product/decisions/PDR-0005-custas-por-cliente.md` |
+| PDR-0006 | Solicitações de pagamento e reembolso | accepted | `docs/product/decisions/PDR-0006-solicitacoes-financeiras.md` |
+| PDR-0007 | Honorários manuais antes da IA | accepted | `docs/product/decisions/PDR-0007-honorarios-manuais-antes-ia.md` |
+| PDR-0008 | IA após consolidação do núcleo funcional | accepted | `docs/product/decisions/PDR-0008-ia-apos-nucleo-funcional.md` |
+| PDR-0009 | Sequência revisada da Fase 2 | accepted | `docs/product/decisions/PDR-0009-sequencia-fase-2.md` |
 
 ## Decisões arquiteturais pendentes de formalização
 
@@ -52,8 +53,8 @@ realmente sem decisão tomada.
 - **OPEN-002** — Etapas de aprovação das solicitações financeiras.
 - **OPEN-003** — Espelhamento da assinatura SaaS no Financeiro.
 
-Estas decisões ainda não foram resolvidas. Após a criação da área de
-produto, elas serão mantidas em `docs/product/open-decisions.md`.
+Estas decisões ainda não foram resolvidas. Elas estão registradas em
+`docs/product/open-decisions.md`.
 
 ## Regra de atualização
 
