@@ -38,18 +38,9 @@ Regras de leitura destas especificações:
 | Tarefas | [tarefas.md](tarefas.md) | canonical |
 | Agenda | [agenda.md](agenda.md) | canonical |
 | Equipes | [equipes.md](equipes.md) | canonical |
-
-## Módulos ainda não especificados
-
-Os módulos abaixo pertencem ao escopo do produto (ver
-[../scope.md](../scope.md)), mas suas especificações funcionais não
-foram criadas neste lote de reorganização documental.
-
-| Módulo | Documento | Estado da especificação |
-| --- | --- | --- |
-| Financeiro | — | pendente neste lote |
-| Dashboard | — | pendente neste lote |
-| Configurações | — | pendente neste lote |
-| Chat | — | pendente neste lote |
-| Modelos | — | pendente neste lote |
-| Inteligência Artificial | — | pendente neste lote |
+| Financeiro | [financeiro.md](financeiro.md) | canonical |
+| Dashboard | [dashboard.md](dashboard.md) | canonical |
+| Configurações | [configuracoes.md](configuracoes.md) | canonical |
+| Chat | [chat.md](chat.md) | canonical |
+| Modelos | [modelos.md](modelos.md) | canonical |
+| Inteligência Artificial | [inteligencia-artificial.md](inteligencia-artificial.md) | canonical |
