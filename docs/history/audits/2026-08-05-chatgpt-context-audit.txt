@@ -1,0 +1,2102 @@
+RELATÓRIO DE CONTEXTO DO CHAT
+Projeto “Gabinete dos Advogados” / “Sistema Jurídico” / “Breno - LawSystem”
+Nota de escopo e confiabilidade
+
+Este relatório foi produzido exclusivamente a partir do histórico desta conversa, incluindo mensagens do usuário, decisões registradas pelo ChatGPT e relatórios de execução atribuídos ao Claude Code.
+
+O repositório não foi inspecionado diretamente por este ChatGPT. Portanto:
+
+toda afirmação sobre código, migrations, banco, testes e commits informada pelo Claude está classificada como IMPLEMENTAÇÃO RELATADA;
+decisões aceitas durante o diálogo estão classificadas como DECISÃO APROVADA;
+conclusões não declaradas expressamente estão classificadas como INFERÊNCIA;
+lacunas são classificadas como AUSENTE;
+versões incompatíveis são classificadas como CONTRADIÇÃO.
+1. Resumo executivo
+
+FATO DO CHAT: O usuário está desenvolvendo um sistema jurídico SaaS e white label voltado a escritórios de advocacia. O projeto foi referido ao longo do histórico como “Breno - LawSystem”, “Sistema Jurídico”, “Jurídico SaaS” e, na solicitação atual, “Gabinete dos Advogados”.
+
+FATO DO CHAT: O desenvolvimento foi conduzido por uma combinação de três agentes:
+
+o usuário como responsável pelo produto e operador do repositório;
+este ChatGPT como coordenador, arquiteto, revisor e gerador de prompts;
+o Claude Code como agente que lê e modifica o repositório, executa comandos, cria testes e realiza commits.
+
+IMPLEMENTAÇÃO RELATADA: O produto utiliza Django, PostgreSQL e django-tenants, com um schema separado por escritório. O sistema é dividido em apps funcionais como clientes, processos, tarefas, agenda, financeiro, chat, modelos, laboratório, configurações e contas.
+
+FATO DO CHAT: A Fase 1 foi considerada encerrada após ajustes em chat global, modelos de documentos, custas judiciais, limpeza de mocks e documentação.
+
+DECISÃO APROVADA: A Fase 2 começou pela revisão completa da arquitetura de usuários, papéis, permissões, equipes e escopos de dados.
+
+IMPLEMENTAÇÃO RELATADA: A parte central do chamado “kernel de permissões” foi implementada e testada. O último relatório do Claude informa:
+
+86 testes executados;
+86 testes aprovados;
+zero falhas;
+zero erros;
+criação de papéis dinâmicos;
+múltiplos papéis por usuário;
+overrides individuais;
+fallback temporário para Groups legados;
+Tenant Admin baseado exclusivamente em uma flag do perfil;
+contexto interno para reduzir consultas repetidas;
+commits locais até 031a878.
+
+AUSENTE: Não houve confirmação posterior, neste chat, de que o push final desses três commits locais foi efetivamente realizado.
+
+ESTADO APARENTE: O cálculo de permissões parece implementado, mas a aplicação sistemática dessas permissões nas views e nos objetos do domínio ainda estava prevista para etapas posteriores. O próprio smoke test relatou que um advogado ainda recebia HTTP 200 em quase todos os módulos, mesmo quando o kernel poderia negar determinadas permissões.
+
+2. Visão do produto
+2.1 Finalidade do sistema
+
+FATO DO CHAT: O sistema pretende apoiar a operação completa de um escritório de advocacia, reunindo em uma única aplicação:
+
+gestão de clientes;
+gestão de processos;
+agenda;
+tarefas;
+financeiro;
+custas judiciais;
+solicitações e reembolsos;
+honorários;
+modelos de documentos;
+chat interno;
+configurações;
+permissões;
+recursos futuros de inteligência artificial.
+
+A visão é de um sistema operacional do escritório, e não apenas um cadastro de processos.
+
+2.2 Público-alvo
+
+FATO DO CHAT: O público-alvo principal são escritórios de advocacia.
+
+Os tipos de usuários discutidos incluem:
+
+administrador do escritório;
+sócio;
+gestor de núcleo;
+advogado associado;
+estagiário;
+paralegal;
+gestor financeiro;
+secretaria;
+recepção;
+gerente de equipe;
+usuários com permissões individualizadas.
+2.3 Modelo SaaS e white label
+
+FATO DO CHAT: O produto é tratado como SaaS white label.
+
+IMPLEMENTAÇÃO RELATADA: Cada escritório é representado como um tenant isolado, aparentemente pelo model saas_tenants.Escritorio, com domínio próprio aparentemente representado por saas_tenants.Dominio.
+
+INFERÊNCIA: O white label permitiria oferecer o mesmo sistema a vários escritórios, possivelmente com marca e domínio próprios.
+
+AUSENTE: Não foram definidos no chat:
+
+quais elementos visuais poderão ser personalizados;
+se haverá domínio personalizado por cliente em produção;
+quais planos comerciais existirão;
+preços;
+limites de usuários;
+limites de armazenamento;
+processo de contratação;
+período de teste;
+política de cobrança.
+2.4 Necessidades específicas de escritórios de advocacia
+
+Foram discutidas necessidades jurídicas específicas que ultrapassam um CRM genérico.
+
+Processos e partes
+
+DECISÃO APROVADA: O cadastro de processos deverá suportar:
+
+múltiplos clientes representados;
+polo de cada participante;
+qualificação jurídica;
+partes externas;
+advogados ligados às partes;
+Ministério Público em papel próprio;
+autoridades tratadas separadamente;
+grupos dinâmicos de participantes;
+visualização tabular.
+Tarefas e delegação
+
+DECISÃO APROVADA: A delegação de tarefas deverá ser direta, sem mecanismo obrigatório de aceite ou rejeição.
+
+Deverá existir rastreabilidade de:
+
+criador;
+pessoa que atribuiu;
+responsável atual;
+histórico;
+visibilidade por gerente ou equipe.
+Financeiro jurídico
+
+DECISÃO APROVADA: O domínio financeiro deverá distinguir:
+
+financeiro geral;
+custas judiciais;
+solicitações de pagamento;
+reembolsos;
+honorários advocatícios;
+lançamentos únicos;
+parcelamentos;
+recorrências;
+previsto versus realizado;
+vencimento opcional quando aplicável;
+créditos de custas do cliente.
+
+DECISÃO APROVADA: Não foi recomendada a criação automática de uma despesa interna vinculada à assinatura da própria plataforma.
+
+2.5 Visão comercial mencionada
+
+FATO DO CHAT: A visão comercial é compatível com um produto replicável para vários escritórios, com isolamento de dados e configuração específica por escritório.
+
+IMPLEMENTAÇÃO RELATADA: Há apps ou domínios denominados saas_tenants e saas_billing, indicando intenção de gerenciar tenants e cobrança.
+
+AUSENTE: Não há definição consolidada de:
+
+proposta comercial final;
+planos;
+cobrança;
+comissão;
+onboarding;
+suporte;
+SLA;
+operação do Platform Admin;
+métricas comerciais.
+2.6 Expectativas para produção
+
+As expectativas inferidas ou declaradas incluem:
+
+dados reais, sem telas mockadas;
+isolamento entre escritórios;
+controle rigoroso de acesso;
+proteção do administrador principal;
+migrações reproduzíveis para novos tenants;
+funcionamento sem erros 500;
+permissões testadas;
+compatibilidade temporária com dados antigos;
+evolução incremental sem interromper o sistema existente.
+
+AUSENTE: A arquitetura de implantação em produção não foi consolidada.
+
+3. Arquitetura pretendida
+Item	Registro do chat	Classificação
+Arquitetura geral	Aplicação Django dividida em apps de domínio	IMPLEMENTAÇÃO RELATADA
+Monólito modular	A estrutura relatada é compatível com monólito modular Django	INFERÊNCIA
+Microserviços	Não houve definição ou implantação relatada de microserviços	AUSENTE
+Multi-tenancy	Um schema PostgreSQL por escritório usando django-tenants	DECISÃO APROVADA / IMPLEMENTAÇÃO RELATADA
+Isolamento	Dados de apps do tenant ficam no schema do escritório; não se usa tenant_id em cada tabela	DECISÃO APROVADA / IMPLEMENTAÇÃO RELATADA
+Apps compartilhados	saas_tenants e saas_billing foram citados como apps compartilhados	IMPLEMENTAÇÃO RELATADA
+Apps por tenant	accounts, dashboard, clientes, processos, tarefas, financeiro, agenda, chat, modelos, laboratório e configurações	IMPLEMENTAÇÃO RELATADA
+Backend	Python e Django	IMPLEMENTAÇÃO RELATADA
+Frontend	Django Templates, JavaScript e Tailwind foram citados	IMPLEMENTAÇÃO RELATADA, pendente de confirmação
+Banco	PostgreSQL	IMPLEMENTAÇÃO RELATADA
+Autenticação	django.contrib.auth.models.User com PerfilUsuario	IMPLEMENTAÇÃO RELATADA
+Autorização	Kernel próprio com papéis, permissões, habilitações e overrides	DECISÃO APROVADA / IMPLEMENTAÇÃO RELATADA
+Grupos Django	Compatibilidade temporária, não arquitetura definitiva	DECISÃO APROVADA
+Escopo de objetos	Serviços ou selectors explícitos para próprio/equipe/global	DECISÃO APROVADA, ainda pendente
+Integração entre módulos	Clientes, processos, tarefas, agenda e financeiro possuem relações funcionais planejadas	DECISÃO APROVADA / parcialmente relatada
+Implantação	Não consolidada	AUSENTE
+CI/CD	Não relatado	AUSENTE
+Segurança	Inativos negados, Tenant Admin protegido, overrides, testes multi-tenant e 403/404 planejados	DECISÃO APROVADA / parcialmente implementada
+3.1 Microserviços
+
+AUSENTE: O histórico não registra decisão de usar microserviços.
+
+INFERÊNCIA: A organização por apps Django pode ter sido confundida com serviços independentes, mas os relatos indicam uma única aplicação Django e um único banco multi-schema.
+
+3.2 Multi-tenancy e isolamento
+
+DECISÃO APROVADA: O isolamento deve ocorrer por schema PostgreSQL.
+
+Consequências registradas:
+
+“global” significa global dentro do escritório atual;
+não significa acesso entre escritórios;
+models de apps tenant não precisam de tenant_id;
+o schema public deve conter apenas o que pertence aos apps compartilhados;
+migrations devem ser direcionadas cuidadosamente ao schema correto.
+
+CONTRADIÇÃO: Em uma rodada, o comando tenant_command migrate --schema=demo aparentemente atualizou o histórico de migrations no public e no demo, embora as tabelas de accounts não tenham sido criadas no public. Isso foi tratado como não destrutivo, mas precisa ser verificado diretamente.
+
+3.3 Autorização
+
+A arquitetura aprovada separa:
+
+identidade do usuário;
+Tenant Admin;
+papel profissional;
+papéis de acesso;
+equipes;
+gerente de equipe;
+permissões de módulo;
+habilitações de ações;
+overrides individuais;
+escopo de dados.
+
+Esse refinamento foi necessário porque esses conceitos estavam inicialmente misturados.
+
+3.4 Segurança
+
+Decisões aprovadas:
+
+usuário inativo é sempre negado;
+Tenant Admin inativo também é negado;
+is_superuser não concede poder administrativo dentro do tenant;
+is_staff não concede poder administrativo dentro do tenant;
+Group administrador_escritorio não concede poder administrativo dentro do tenant;
+negação individual vence papéis;
+permissões de papéis são agregadas;
+Group legado não pode reativar um papel desativado;
+módulo negado bloqueia habilitação positiva do item;
+módulo negado deve produzir 403;
+objeto fora do escopo deve produzir 404;
+o Tenant Admin ativo não pode ser bloqueado por override;
+deve existir no máximo um Tenant Admin por tenant;
+a proteção contra ficar sem nenhum Tenant Admin depende de services/forms futuros.
+4. Stack e tecnologias mencionadas
+4.1 Tecnologias principais
+Python;
+Django;
+PostgreSQL;
+django-tenants;
+Django ORM;
+Django Auth;
+Django Templates;
+JavaScript;
+Tailwind CSS;
+Git;
+repositório remoto com branch main;
+ambiente virtual .venv;
+PowerShell;
+Windows.
+4.2 Testes
+Django Test Runner;
+django.test.TestCase;
+django_tenants.test.cases.TenantTestCase;
+CaptureQueriesContext;
+testes com transações e rollback;
+smoke tests com Django Client;
+contagem de queries;
+criação de schemas temporários.
+
+IMPLEMENTAÇÃO RELATADA: Uma tentativa de usar pytest falhou porque o pacote não estava instalado. O desenvolvimento continuou com o test runner do Django.
+
+4.3 Bibliotecas de documentos
+
+IMPLEMENTAÇÃO RELATADA:
+
+pypdf==6.14.2;
+python-docx==1.2.0.
+
+Essas bibliotecas teriam sido usadas para importar texto de PDFs e DOCX.
+
+4.4 Ferramentas de IA
+ChatGPT;
+Claude Code ou Claude em integração com VS Code.
+4.5 Versões
+Python 3.12.5 apareceu em saídas de terminal do Claude.
+PostgreSQL 16 foi mencionado em um perfil técnico resumido do projeto, mas deve ser confirmado.
+A versão exata do Django não foi comprovada neste chat. Um resumo anterior a tratou como “provavelmente Django 5.2 LTS”, o que deve ser classificado como INFERÊNCIA, não como fato confirmado.
+5. Módulos do produto
+5.1 Accounts / usuários / permissões
+Objetivo
+
+Gerenciar:
+
+usuários;
+perfis;
+papéis;
+permissões;
+habilitações;
+equipes;
+compatibilidade com Groups antigos.
+Funcionalidades aparentemente concluídas
+
+IMPLEMENTAÇÃO RELATADA:
+
+PerfilUsuario;
+flag is_admin_escritorio;
+PapelAcesso;
+UsuarioPapel;
+PermissaoPapel;
+PermissaoUsuario;
+HabilitacaoPapel;
+HabilitacaoUsuario;
+múltiplos papéis;
+kernel de cálculo de permissões;
+fallback de Groups;
+testes multi-tenant;
+rota de permissões protegida para administrador.
+Pendências
+decorators padronizados por módulo e habilitação;
+mixins para CBVs;
+aplicação progressiva às views;
+interface completa para gestão dos papéis;
+proteção operacional contra remover ou desativar o único administrador;
+escopos de objetos;
+controles de gerente de equipe;
+limpeza futura do campo legado tipo_conta.
+5.2 Dashboard / Painel
+Objetivo
+
+Exibir indicadores e atividades relevantes ao usuário, equipe ou escritório.
+
+Planejado
+painel pessoal;
+painel por equipe;
+painel gerencial;
+atividade do escritório;
+visibilidade conforme escopo.
+Aparentemente concluído
+
+AUSENTE: Não houve relato suficiente para considerar o dashboard completo.
+
+Pendências
+escopo somente_seus, equipe e global;
+indicadores por gestor;
+proteção por módulo.
+5.3 Clientes
+Objetivo
+
+Gerenciar clientes do escritório e suas relações com responsáveis, equipes, processos e financeiro.
+
+Aparentemente concluído
+
+IMPLEMENTAÇÃO RELATADA: Existência de módulo, rotas e models básicos.
+
+Pendências
+visibilidade por responsável/equipe/escritório;
+integridade cliente-processo;
+proteção contra POST adulterado;
+relações com múltiplos processos e participantes;
+aplicação do kernel às views.
+Regra de acesso
+níveis somente_seus e todos foram definidos;
+níveis de equipe/global ficaram para etapa posterior.
+5.4 Processos
+Objetivo
+
+Gerenciar processos jurídicos, partes, responsáveis, movimentações, documentos e prazos.
+
+Planejado
+múltiplos clientes representados;
+partes em diferentes polos;
+partes externas;
+qualificação;
+advogados das partes;
+Ministério Público;
+autoridades;
+grupos de participantes;
+movimentações;
+documentos;
+prazos.
+Aparentemente concluído
+
+IMPLEMENTAÇÃO RELATADA: Existência do módulo e de cadastros básicos.
+
+Pendências
+nova modelagem de participantes;
+integridade cliente-processo;
+escopo de visualização;
+selectors;
+movimentações;
+documentos;
+prazos;
+aplicação das permissões.
+5.5 Tarefas
+Objetivo
+
+Distribuição e acompanhamento de atividades.
+
+Decisões
+atribuição direta;
+sem aceite/rejeição obrigatório;
+criador, atribuidor e responsável atual distintos;
+histórico de alterações;
+visibilidade por equipe e gerente.
+Pendências
+
+A maior parte dessa evolução estava planejada para fases posteriores.
+
+5.6 Agenda
+Objetivo
+
+Gerenciar compromissos, audiências, prazos e eventos.
+
+Integrações
+clientes;
+processos;
+tarefas;
+usuários;
+equipes.
+Regra de acesso
+níveis somente_seus e todos;
+habilitação citada: agenda_criar_para_outros.
+Estado aparente
+
+IMPLEMENTAÇÃO RELATADA: Módulo e rotas funcionais.
+
+PENDENTE: Aplicação completa de permissões e escopos.
+
+5.7 Financeiro
+Objetivo
+
+Administrar movimentos financeiros pessoais, de equipes e do escritório.
+
+Planejado
+
+Abas futuras:
+
+Lançamentos;
+Custas Judiciais;
+Solicitações;
+Honorários.
+
+Escopos futuros:
+
+Pessoal;
+Equipes;
+Escritório.
+Aparentemente concluído
+
+IMPLEMENTAÇÃO RELATADA:
+
+formulário e cadastro real de CustaJudicial;
+remoção de mocks financeiros;
+listagem real de custas.
+Pendências
+núcleo financeiro completo;
+solicitações;
+reembolsos;
+honorários;
+recorrência;
+parcelamento;
+previsto versus realizado;
+escopos;
+acesso por equipe;
+relatórios.
+Regras de acesso
+nível solicitacoes < dados;
+Tenant Admin acessa Escritório;
+demais usuários somente com concessão explícita;
+Advogado deve futuramente ter acesso financeiro pessoal, não ao caixa geral;
+equipe exige eh_gerente=True e concessão do Tenant Admin;
+model futuro AcessoFinanceiroEquipe foi proposto, mas não deveria ser criado ainda.
+5.8 Chat
+Objetivo
+
+Comunicação interna.
+
+Aparentemente concluído
+
+IMPLEMENTAÇÃO RELATADA:
+
+Conversa.TIPO_GLOBAL;
+constraint parcial para uma conversa global;
+migration chat.0002_conversa_global;
+sala global funcional;
+commits 53e8e8d e c0fe8aa.
+Pendências
+regras de acesso mais refinadas;
+integração com equipes ou processos, caso desejada;
+aplicação uniforme do kernel.
+5.9 Modelos de documentos
+Objetivo
+
+Gerenciar modelos jurídicos reutilizáveis.
+
+Aparentemente concluído
+
+IMPLEMENTAÇÃO RELATADA:
+
+criação;
+listagem;
+busca;
+detalhe;
+edição;
+cópia;
+importação de PDF;
+importação de DOCX;
+limite de 10 MB;
+descarte do arquivo original;
+extração apenas de texto;
+sem OCR;
+sem armazenamento do arquivo importado;
+sem migration específica para armazenamento.
+Pendências
+permissões de estilo e edição;
+escopos;
+integração com geração de documentos ou processos.
+5.10 Configurações
+Objetivo
+
+Gerenciar configurações do escritório, equipes, usuários e permissões.
+
+Estado aparente
+
+IMPLEMENTAÇÃO RELATADA:
+
+/configuracoes/ existe;
+/configuracoes/permissoes/ existe;
+smoke test final: administrador recebeu 200;
+advogado recebeu 403 em /configuracoes/permissoes/.
+Divergência
+
+O mesmo advogado ainda teria recebido 200 em /configuracoes/, indicando proteção parcial.
+
+5.11 Laboratório
+Objetivo
+
+Área experimental, aparentemente relacionada a recursos de IA.
+
+Estado
+
+AUSENTE: Não há informação suficiente sobre funcionalidades implementadas.
+
+Planejamento
+
+Foi colocado para uma fase posterior, junto do Assistente.
+
+5.12 Assistente de IA
+Objetivo
+
+Apoio contextual ao trabalho jurídico.
+
+Estado
+
+PROPOSTA: Previsto para fase posterior.
+
+AUSENTE: Não foram definidos:
+
+modelos utilizados;
+política de dados;
+acesso aos processos;
+limites jurídicos;
+revisão humana;
+rastreabilidade;
+custos;
+isolamento de prompts;
+armazenamento de conversas.
+5.13 SaaS Tenants e Billing
+Objetivo
+criação e administração de escritórios;
+domínios;
+provável cobrança da plataforma.
+Estado
+
+IMPLEMENTAÇÃO RELATADA: Apps existem e participam das migrations.
+
+AUSENTE: Fluxos comerciais e administrativos completos.
+
+6. Evolução cronológica do desenvolvimento
+6.1 Refatorações anteriores à Fase 1
+
+IMPLEMENTAÇÃO RELATADA: Foram relatados commits anteriores para:
+
+renomear departamentos para equipes;
+atualizar documentação;
+substituir papéis antigos por limitado;
+registrar transição;
+criar models de permissões;
+popular permissões padrão;
+adicionar helpers.
+
+Commits relatados:
+
+1778501 refactor(accounts): renomear departamentos para equipes;
+f426b7c docs(equipes): atualizar nomenclatura de departamentos;
+f5abb86 refactor(accounts): substituir papeis legados por limitado;
+4c5b741 docs(accounts): registrar transicao para papel limitado;
+8a89c78 feat(accounts): adicionar modelos de permissoes e habilitacoes;
+351fb16 feat(accounts): popular permissoes e habilitacoes padrao;
+650beab feat(accounts): adicionar helpers de permissoes efetivas.
+6.2 Fase 1 — funcionalidades básicas e limpeza
+Objetivo
+
+Transformar partes mockadas em funcionalidades reais e encerrar um primeiro ciclo utilizável.
+
+Entregas relatadas
+endurecimento dos helpers de permissão;
+chat global;
+modelos de documentos;
+importação PDF/DOCX;
+custas judiciais reais;
+remoção de mocks;
+remoção de banner fictício;
+correções de badges;
+exclusão de templates obsoletos;
+documentação de encerramento.
+Commits relatados
+c359c29 fix(accounts): endurecer resolucao de permissoes;
+53e8e8d feat(chat): adicionar tipo global a conversa;
+c0fe8aa feat(chat): implementar sala global funcional;
+5bc4d88 feat(modelos): implementar modelos e importacao de documentos;
+a36473d feat(financeiro): implementar cadastro real de custas judiciais;
+d2573b7 chore: concluir limpeza e documentar fase 1.
+Status aparente
+
+IMPLEMENTAÇÃO RELATADA: Fase 1 formalmente encerrada.
+
+Limitação conhecida
+
+As views ainda não estavam protegidas de forma uniforme por permissões. Isso foi intencionalmente transferido para a Fase 2.
+
+6.3 Revisão funcional para a Fase 2
+Origem
+
+O usuário forneceu um documento de anotações de sócios ou parceiros sobre:
+
+Clientes;
+Processos;
+Agenda;
+Tarefas;
+Financeiro;
+Painel;
+Configurações;
+Assistente;
+Laboratório.
+Resultado
+
+Foi criado um plano consolidado e um documento Word:
+
+Plano_Ajustes_Fase_2_Sistema_Juridico.docx.
+
+Ordem definida
+2.1 Permissões e integridade;
+2.2A Modelagem de partes e relações;
+2.2B Fluxos e UI;
+2.3 Movimentações, documentos e prazos;
+2.4 Tarefas e agenda;
+2.5 Núcleo financeiro;
+2.6 Custas e solicitações;
+2.7 Honorários e relatórios;
+2.8 Painel gerencial e atividade;
+2.9 Assistente e laboratório.
+6.4 Fase 2.1A — auditoria inicial
+Objetivo
+
+Compreender usuários, Groups, permissões e comportamento de usuários inativos.
+
+Descobertas relatadas
+nenhuma regra individual de override no demo;
+/configuracoes/ acessível por usuário comum;
+um Tenant Admin ativo;
+usuário inativo perde sessão e é tratado como anônimo pelo backend padrão;
+middleware adicional não era necessário.
+6.5 Fase 2.1B1 — estrutura de papéis dinâmicos
+Entregas relatadas
+
+Migration 0009:
+
+constraint parcial de Tenant Admin;
+PapelAcesso;
+UsuarioPapel;
+FK de papel em permissões e habilitações;
+constraints e índices;
+validações.
+Commit
+
+0d43192 feat(accounts): adicionar estrutura de papeis dinamicos.
+
+6.6 Fase 2.1B2A — ponte com o modelo legado
+Problema
+
+PermissaoPapel.tipo_conta e HabilitacaoPapel.tipo_conta eram obrigatórios e limitados a valores antigos.
+
+Solução aprovada
+tornar tipo_conta nullable;
+permitir estados transitórios;
+criar constraints condicionais;
+preservar compatibilidade.
+Commit
+
+8d421aa feat(accounts): preparar transicao para papeis dinamicos.
+
+6.7 Fase 2.1B2B — presets e migração dos dados
+Problema técnico
+
+A primeira migration 0011 combinava RunPython e criação de constraints. PostgreSQL retornou:
+
+cannot ALTER TABLE ... because it has pending trigger events.
+
+Proposta rejeitada
+
+PROPOSTA: Usar atomic=False.
+
+DECISÃO APROVADA: Não usar atomic=False. Separar DML e DDL.
+
+Resultado
+0011: data migration;
+0012: constraints;
+aplicação sequencial.
+Presets relatados
+Sócio / Gestor de Núcleo;
+Advogado Associado;
+Estagiário / Paralegal;
+Gestor Financeiro;
+Secretaria / Recepção.
+Dados relatados
+5 papéis;
+45 permissões de papel;
+75 habilitações de papel;
+mapeamento do advogado;
+Groups preservados;
+admin sem UsuarioPapel.
+Commit
+
+1b35037 feat(accounts): migrar papeis legados e criar presets.
+
+6.8 Fase 2.1C0 — auditoria do kernel existente
+Objetivo
+
+Descobrir o contrato literal dos helpers antes de refatorar.
+
+Descobertas
+chaves existentes eram tem_acesso e habilitado;
+UsuarioPapel era ignorado;
+overrides individuais já tinham precedência em parte;
+is_superuser e Group admin concediam poder administrativo;
+Tenant Admin inativo ainda podia ser reconhecido em determinados caminhos;
+várias queries repetidas;
+o fallback poderia reativar acesso revogado.
+6.9 Fase 2.1C1A — suíte test-first
+Objetivo
+
+Criar testes antes de alterar o kernel.
+
+Descoberta inesperada
+
+Ao criar um tenant limpo, a ordem das migrations antigas estava incorreta.
+
+accounts.0004 renomeava Departamento para Equipe antes que migrations de clientes e processos concluíssem referências a Departamento.
+
+Correção
+
+Dependências adicionadas à migration histórica accounts.0004.
+
+Commit isolado
+
+d97844d fix(migrations): corrigir ordem da renomeacao de departamentos.
+
+O relatório afirma que apenas dependencies mudou, sem alterar operations.
+
+6.10 Fase 2.1C1B — primeira implementação do kernel
+Entregas relatadas
+remoção de bypass por is_superuser;
+remoção de bypass pelo Group admin;
+Tenant Admin somente por flag;
+UsuarioPapel;
+múltiplos papéis;
+agregação de níveis;
+bloqueio do fallback quando existe vínculo moderno;
+testes formais.
+Resultado intermediário
+62 testes;
+62 aprovados.
+Commit
+
+452eeb6 feat(accounts): implementar kernel de papeis dinamicos.
+
+6.11 Fase 2.1C1B.1 — auditoria pós-implementação
+Problemas encontrados
+override individual com UsuarioPapel ainda podia retornar tipo_conta="limitado";
+habilitações podiam voltar ao Group legado;
+origens estavam inconsistentes;
+nível inválido retornava string vazia;
+permissões inativas perdiam o nível;
+queries eram repetidas.
+Resultado
+84 testes;
+75 aprovados;
+9 falhas esperadas;
+zero erros inesperados.
+6.12 Fase 2.1C1B.2 — correção final do kernel
+Entregas relatadas
+_AupContexto;
+carregamento lazy;
+reutilização do contexto;
+origem inativo;
+origem grupo_legado;
+origem papel;
+override com tipo_conta=None quando há UsuarioPapel;
+preservação de nível em permissão inativa;
+nível mínimo seguro;
+testes adicionais;
+contagem de SELECTs;
+smoke HTTP.
+Resultado final relatado
+86 testes;
+86 aprovados;
+zero falhas;
+zero erros;
+demo inalterado;
+árvore limpa.
+Commit
+
+031a878 fix(accounts): corrigir interacoes do kernel de permissoes.
+
+Status remoto
+
+AUSENTE: O usuário recebeu autorização para executar git push origin main, mas não enviou uma confirmação posterior de que o push ocorreu.
+
+7. Histórico de decisões sobre usuários, papéis e equipes
+7.1 Administrador do escritório
+Decisão antiga
+
+O administrador poderia ser reconhecido por:
+
+is_superuser;
+flag no perfil;
+Group administrador_escritorio.
+Problema
+
+Essas três fontes misturavam:
+
+administração técnica do Django;
+suporte da plataforma;
+administração do tenant;
+papel de negócio.
+Decisão vigente
+
+DECISÃO APROVADA: A única fonte de Tenant Admin é:
+
+PerfilUsuario.is_admin_escritorio=True
+
+e somente quando:
+
+user.is_active=True.
+
+Não concedem Tenant Admin:
+
+is_superuser;
+is_staff;
+Group administrador_escritorio;
+PapelAcesso;
+cargo profissional.
+Proteções futuras
+não pode autodesativar;
+não pode se remover;
+não pode restringir a própria administração;
+outros usuários do tenant não podem removê-lo;
+transferência e recuperação ficariam inicialmente restritas ao Platform Admin;
+recuperação deve usar redefinição de senha, sem revelar senha anterior.
+Restrição estrutural
+
+A constraint relatada garante no máximo um Tenant Admin.
+
+Ela não garante:
+
+que exista um;
+que esteja ativo;
+que não seja removido por fluxos mal implementados.
+7.2 Gerente
+Conceito antigo
+
+“Gerente” apareceu como Group ou papel legado.
+
+Evolução
+
+O conceito foi dividido em:
+
+papel de acesso “Sócio / Gestor de Núcleo”;
+gerente real de equipe;
+eventual gestor financeiro;
+Tenant Admin.
+Decisão vigente
+
+DECISÃO APROVADA: Gerente de equipe é determinado por:
+
+MembroEquipe.eh_gerente=True
+
+e não pelo nome de um Group.
+
+7.3 Advogado
+Conceito antigo
+
+Group advogado ou limitado.
+
+Evolução
+
+O papel legado limitado foi mapeado para:
+
+Advogado Associado.
+
+Decisão vigente
+papel profissional e papel de acesso devem ser separados;
+Advogado Associado é um preset de acesso;
+o usuário pode ter outros papéis simultaneamente;
+Group limitado permanece apenas como ponte temporária.
+7.4 Limitado
+Decisão antiga
+
+limitado funcionava como tipo principal de conta.
+
+Decisão vigente
+
+limitado é somente fallback legado.
+
+O kernel moderno deve consultar UsuarioPapel.
+
+Se existe qualquer UsuarioPapel, mesmo inativo, o Group limitado não pode ser usado.
+
+7.5 Financeiro
+Decisão antiga
+
+Group ou tipo de conta financeiro.
+
+Evolução
+
+Foi mapeado para o preset:
+
+Gestor Financeiro.
+
+Decisão vigente
+
+O Group financeiro permanece somente como fallback para usuários ainda não migrados.
+
+7.6 Cargo profissional
+
+DECISÃO APROVADA: O cargo em PerfilUsuario é descritivo.
+
+Ele não deve controlar:
+
+acesso a módulos;
+Tenant Admin;
+escopo;
+equipe;
+permissões.
+7.7 Groups Django
+Uso original
+
+Groups eram a principal fonte de autorização.
+
+Uso vigente
+
+DECISÃO APROVADA: Groups serão mantidos temporariamente para compatibilidade.
+
+Fallback permitido apenas para:
+
+limitado;
+financeiro.
+
+Group administrador_escritorio não concede Tenant Admin.
+
+Groups antigos advogado e gerente não devem entrar no novo kernel.
+
+7.8 Equipes
+Evolução
+
+O conceito antigo “Departamento” foi renomeado para “Equipe”.
+
+Models relatados
+Equipe;
+MembroEquipe.
+Regra
+vínculo usuário-equipe em MembroEquipe;
+gerente por eh_gerente;
+equipe ativa;
+membro ativo.
+Dados preexistentes relatados no demo
+equipe financeiro;
+equipe cotnabil, aparentemente com erro de digitação;
+equipe fianciero -antigo, inativa;
+dois membros em uma equipe;
+administrador como gerente;
+advogado como membro.
+
+Esses dados foram descritos como preexistentes e devem ser confirmados ou saneados.
+
+7.9 Gerente de equipe
+Autoridade proposta e aprovada
+
+Poderia:
+
+gerenciar membros da própria equipe;
+delegar tarefas;
+atribuir papéis previamente autorizados pelo Tenant Admin.
+
+Não poderia:
+
+editar o Tenant Admin;
+editar definições globais;
+elevar o próprio teto;
+remover negações do administrador;
+alterar overrides brutos na primeira versão.
+8. Histórico da arquitetura de permissões
+8.1 Intenção do responsável pelo produto
+
+FATO DO CHAT: O usuário queria deixar de depender de papéis fixos e permitir uma configuração profissional, flexível e segura para cada escritório.
+
+Necessidades expressas ou aceitas:
+
+múltiplos papéis;
+papéis customizados;
+presets editáveis;
+permissões por módulo;
+ações específicas;
+exceções individuais;
+gerente de equipe;
+escopo de dados;
+administrador protegido;
+financeiro segmentado.
+8.2 Models de autorização
+
+IMPLEMENTAÇÃO RELATADA:
+
+PapelAcesso
+
+Representa um papel dinâmico.
+
+Campos ou comportamentos mencionados:
+
+nome;
+descrição;
+ativo;
+codigo_preset;
+protegido_sistema.
+UsuarioPapel
+
+Vínculo explícito entre usuário e papel.
+
+Permite:
+
+múltiplos papéis;
+vínculo ativo ou inativo;
+unicidade usuário/papel.
+PermissaoPapel
+
+Define acesso de um papel a um módulo.
+
+Atributos mencionados:
+
+papel;
+tipo_conta legado;
+módulo;
+ativo;
+nível.
+PermissaoUsuario
+
+Override individual por módulo.
+
+Pode:
+
+conceder;
+negar;
+definir nível.
+HabilitacaoPapel
+
+Permite ou nega uma ação específica de um módulo para um papel.
+
+HabilitacaoUsuario
+
+Override individual de uma ação.
+
+8.3 Permissão versus habilitação
+Permissão
+
+Controla acesso ao módulo e seu nível.
+
+Exemplo:
+
+acessar Processos;
+somente seus processos;
+todos os processos.
+Habilitação
+
+Controla uma ação dentro de um módulo.
+
+Exemplo:
+
+criar processo;
+editar processo;
+criar compromisso para outra pessoa;
+editar estilo de modelo.
+8.4 Módulos e níveis
+Níveis aprovados
+
+Para:
+
+processos;
+clientes;
+tarefas;
+modelos;
+painel;
+agenda:
+
+somente_seus < todos
+
+Para financeiro:
+
+solicitacoes < dados
+
+Para chat e gerir:
+
+sem nível;
+string vazia.
+Níveis futuros
+
+Equipe e global foram discutidos, mas deveriam ser introduzidos posteriormente.
+
+8.5 Precedência vigente
+Permissão de módulo
+
+DECISÃO APROVADA:
+
+módulo inválido: negar;
+usuário ausente ou anônimo: negar;
+usuário inativo: negar;
+Tenant Admin ativo: permitir;
+override individual:
+ativo=False: negar;
+ativo=True: permitir;
+se existe qualquer UsuarioPapel:
+não usar Groups;
+considerar somente vínculos ativos;
+considerar somente papéis ativos;
+agregar permissões;
+qualquer concessão ativa concede;
+uma linha inativa não anula outra ativa;
+usar o maior nível das concessões;
+se não existe nenhum UsuarioPapel:
+fallback limitado ou financeiro;
+negar por padrão.
+Habilitação
+validar módulo e item;
+usuário inválido ou inativo: negar;
+Tenant Admin: permitir;
+resolver permissão do módulo;
+módulo negado: negar habilitação;
+override individual de habilitação;
+papéis dinâmicos;
+fallback legado;
+negar.
+8.6 Regras de negação
+usuário inativo sempre negado;
+Tenant Admin ativo não pode ser negado por override;
+override individual negativo vence os papéis;
+uma negação de um papel não veta concessão de outro papel;
+falta de permissão não significa herdar Group se existe UsuarioPapel;
+módulo negado bloqueia habilitação positiva;
+linha inativa pode preservar nível para diagnóstico, mas não concede acesso.
+8.7 Origem da decisão
+
+O contrato mais recente diferencia:
+
+admin;
+individual;
+papel;
+grupo_legado;
+inativo;
+permissao_desligada;
+nenhuma.
+8.8 Escopo de dados
+Decisão aprovada
+
+O escopo deve ser tratado explicitamente por services ou selectors, por exemplo:
+
+ProcessoSelector.visiveis_para(user).
+
+Não deveria existir um manager global que aplicasse escopo implicitamente a tudo.
+
+Escopos discutidos
+próprio;
+equipe;
+global dentro do tenant.
+Respostas HTTP
+módulo sem permissão: 403;
+objeto fora do escopo: 404.
+Estado
+
+PENDENTE: Essa camada não foi relatada como implementada.
+
+8.9 Financeiro
+Escopo Pessoal
+
+Deve incluir:
+
+solicitações próprias;
+reembolsos próprios;
+status;
+comprovantes;
+custas relacionadas a processos em seu escopo.
+
+Não deve incluir:
+
+receitas gerais;
+despesas administrativas;
+salários;
+fluxo de caixa geral;
+resultado;
+lucro.
+Escopo Equipes
+
+Exige:
+
+MembroEquipe.eh_gerente=True;
+concessão explícita do Tenant Admin.
+Escopo Escritório
+Tenant Admin automaticamente;
+outros usuários somente com concessão explícita.
+Model futuro
+
+AcessoFinanceiroEquipe.
+
+DECISÃO APROVADA: Não criar esse model na primeira migration de papéis.
+
+8.10 Responsável, equipe e gerente
+
+As permissões de módulo não devem substituir o escopo de dados.
+
+Exemplo:
+
+alguém pode acessar Processos;
+mas visualizar apenas processos pelos quais é responsável;
+ou processos de sua equipe;
+ou todos do escritório.
+
+A definição detalhada por domínio ainda estava pendente.
+
+9. Estado aparente da implementação de permissões
+
+Tudo nesta seção é IMPLEMENTAÇÃO RELATADA NO CHAT, PENDENTE DE CONFIRMAÇÃO NO REPOSITÓRIO.
+
+9.1 Models aparentemente criados
+PerfilUsuario;
+Equipe;
+MembroEquipe;
+PapelAcesso;
+UsuarioPapel;
+PermissaoPapel;
+PermissaoUsuario;
+HabilitacaoPapel;
+HabilitacaoUsuario.
+9.2 Migrations relatadas
+Accounts
+0009_adicionar_papeis_dinamicos;
+0010_preparar_transicao_papeis_dinamicos;
+0011_migrar_papeis_e_presets;
+0012_adicionar_constraints_tipo_ou_papel.
+Migration histórica corrigida
+0004_rename_departamento_equipe.
+
+O Claude relatou que as dependências de clientes e processos foram adicionadas sem alterar as operações da migration.
+
+9.3 Helpers relatados
+
+Públicos:
+
+usuario_admin_escritorio;
+tipo_conta_usuario;
+permissao_efetiva;
+habilitacao_efetiva;
+tem_permissao_modulo;
+nivel_acesso_modulo;
+tem_habilitacao;
+usuario_eh_gerente_de_alguma_equipe.
+
+Internos relatados:
+
+_AupContexto;
+_maior_nivel;
+_menor_nivel_seguro;
+_permissao_efetiva_com_contexto;
+_habilitacao_efetiva_com_contexto.
+9.4 Seeds relatados
+
+No schema demo:
+
+5 PapelAcesso;
+1 UsuarioPapel;
+45 PermissaoPapel;
+75 HabilitacaoPapel;
+0 PermissaoUsuario;
+0 HabilitacaoUsuario;
+1 Tenant Admin;
+Groups legados preservados.
+9.5 Papéis padrão relatados
+Sócio / Gestor de Núcleo;
+Advogado Associado;
+Estagiário / Paralegal;
+Gestor Financeiro;
+Secretaria / Recepção.
+9.6 Telas e rotas relatadas
+/configuracoes/;
+/configuracoes/permissoes/.
+
+Smoke final:
+
+admin: 200 em todas as rotas testadas;
+advogado: 403 em /configuracoes/permissoes/;
+advogado: 200 em quase todas as outras rotas.
+9.7 Filtros relatados
+
+AUSENTE: Não foi relatada implementação completa de selectors próprio/equipe/global.
+
+INFERÊNCIA: O kernel calcula permissão, mas não filtra automaticamente os QuerySets de todos os módulos.
+
+9.8 Testes relatados
+
+Infraestrutura:
+
+TenantTestCase;
+schema específico por classe;
+migrations executadas no tenant temporário;
+rollback por teste;
+smoke HTTP;
+queries classificadas;
+testes de múltiplos papéis;
+inativos;
+overrides;
+fallback;
+níveis;
+Tenant Admin;
+migration limpa.
+
+Último resultado:
+
+86 testes;
+86 aprovados;
+zero falhas;
+zero erros.
+9.9 Commits relatados na sequência final
+0d43192 feat(accounts): adicionar estrutura de papeis dinamicos;
+8d421aa feat(accounts): preparar transicao para papeis dinamicos;
+1b35037 feat(accounts): migrar papeis legados e criar presets;
+d97844d fix(migrations): corrigir ordem da renomeacao de departamentos;
+452eeb6 feat(accounts): implementar kernel de papeis dinamicos;
+031a878 fix(accounts): corrigir interacoes do kernel de permissoes.
+9.10 Última etapa aparentemente concluída
+
+Rodada 2.1C1B.2:
+
+correção final do kernel;
+suíte verde;
+smoke;
+rollback;
+commit local.
+9.11 Próxima etapa aparentemente prevista
+Rodada 2.1C2:
+decorators padronizados;
+mixins;
+testes desses mecanismos.
+Rodada 2.1D:
+aplicação progressiva nas views;
+aplicação aos objetos e escopos.
+10. Fluxo atual de desenvolvimento com IA
+10.1 Papel do usuário
+
+O usuário atuou como:
+
+responsável pelo produto;
+aprovador das decisões;
+operador do ambiente local;
+intermediário entre ChatGPT e Claude;
+responsável pelo push manual;
+fornecedor de documentos funcionais;
+verificador das respostas dos agentes.
+10.2 Papel deste ChatGPT
+
+Este ChatGPT atuou como:
+
+arquiteto;
+analista de requisitos;
+revisor dos relatórios do Claude;
+identificador de riscos;
+definidor de mini-etapas;
+criador de prompts detalhados;
+coordenador de migrations;
+coordenador de testes;
+controlador de escopo;
+aprovador ou rejeitador de commits;
+responsável pela continuidade conceitual.
+10.3 Papel do Claude Code
+
+O Claude atuou como:
+
+leitor do repositório;
+executor de comandos;
+editor de arquivos;
+criador de migrations;
+criador de testes;
+executor de migrations;
+executor de smoke tests;
+executor de Git;
+autor de commits;
+gerador de relatórios de entrega.
+10.4 Fluxo recorrente
+o usuário explicava a necessidade;
+o ChatGPT analisava;
+o ChatGPT produzia um prompt extenso e prescritivo;
+o usuário enviava o prompt ao Claude;
+o Claude auditava ou implementava;
+o Claude produzia um relatório;
+o usuário colava o relatório neste chat;
+o ChatGPT revisava;
+o ChatGPT aprovava, rejeitava ou criava uma rodada corretiva;
+o Claude criava commit;
+o usuário fazia ou deveria fazer o push manual.
+10.5 O que funcionou bem
+divisão em mini-etapas;
+auditoria antes da edição;
+test-first;
+baseline vermelho e suíte verde;
+commits isolados;
+migration de dados separada de constraints;
+rollback de testes;
+validação do demo;
+diferenciação de public e tenant;
+staging explícito;
+detecção de defeitos históricos;
+revisão das decisões de autorização;
+medição de queries;
+smoke HTTP;
+preservação de compatibilidade.
+10.6 Pontos de confusão ou fragilidade
+Relatórios produzidos pelo próprio implementador
+
+O mesmo Claude:
+
+implementou;
+testou;
+descreveu;
+avaliou o próprio resultado.
+
+Isso reduz independência da revisão.
+
+Prompts excessivamente longos
+
+Os prompts chegaram a dezenas de passos e centenas de linhas.
+
+Isso pode ter causado:
+
+perda de foco;
+desvios;
+execução de etapas fora de ordem;
+tentativas de comandos desnecessários;
+relatórios muito extensos;
+dificuldade de identificar o critério principal.
+Mudanças fora do escopo
+
+Exemplos:
+
+alteração inesperada da migration histórica 0004;
+atualização de um terceiro arquivo de teste não inicialmente autorizado;
+inclusão de corpo e Co-Authored-By em commits;
+uso de git commit --amend apesar da proibição;
+tentativa de usar pytest sem estar instalado.
+Problemas de shell
+
+Houve vários erros de:
+
+heredoc em PowerShell;
+redirecionamento <;
+quoting;
+manage.py shell;
+encoding cp1252;
+caractere →;
+caminhos Windows;
+settings incorretos.
+Estado remoto nem sempre confirmado
+
+O processo dependia do usuário fazer push manualmente. Nem sempre houve confirmação posterior.
+
+Arquitetura refinada durante a implementação
+
+Algumas decisões importantes foram descobertas ou corrigidas depois do primeiro código:
+
+origem da permissão;
+fallback legado;
+override com papel dinâmico;
+nível de permissão inativa;
+contexto de queries.
+
+Isso indica que a especificação estava amadurecendo junto da implementação.
+
+11. Prompts e regras permanentes utilizados
+11.1 Regras de leitura e diagnóstico
+ler arquivos integralmente antes de alterar;
+buscar todos os call sites;
+registrar contrato literal;
+executar preflight;
+confirmar branch, HEAD, remoto e working tree;
+não presumir fields;
+não presumir comportamento;
+separar auditoria de implementação.
+11.2 Regras de edição
+alterar apenas os arquivos autorizados;
+parar ao encontrar divergência;
+não corrigir outros problemas sem aprovação;
+não criar migrations sem autorização;
+não alterar dados permanentemente;
+preservar compatibilidade;
+evitar refatorações amplas não necessárias.
+11.3 Regras de migrations
+não aplicar migration sem aprovação explícita;
+mostrar plano;
+aplicar schema específico;
+validar demo e public;
+não usar comandos amplos;
+separar DML de DDL quando necessário;
+não usar atomic=False como primeira solução;
+tratar migration histórica em commit isolado.
+11.4 Regras de Git
+executar git status antes de commit;
+usar git add com caminhos explícitos;
+nunca usar git add .;
+nunca usar git add -A;
+nunca usar staging amplo;
+não fazer push pelo Claude;
+push manual pelo usuário;
+commits isolados por assunto;
+árvore limpa entre etapas;
+não fazer commit sem aprovação.
+11.5 Regras de testes
+criar baseline antes da implementação;
+escrever testes dos requisitos;
+não enfraquecer asserts;
+não usar skip;
+não usar expectedFailure permanente;
+não mudar o esperado apenas para acomodar o código;
+usar tenant real de teste;
+usar rollback;
+verificar contagens do demo;
+medir queries;
+excluir SET search_path das metas funcionais;
+executar smoke HTTP;
+zero erro 500;
+executar manage.py check;
+executar makemigrations --check --dry-run;
+executar compileall;
+executar pip check.
+11.6 Regras operacionais adicionais
+usar .venv\Scripts\python.exe;
+manter item_ativo, embora o contexto exato dessa regra não esteja claro no histórico disponível;
+testes automatizados foram adiados na Fase 1, mas exigidos na Fase 2;
+polimento visual pode ser adiado quando a funcionalidade estiver correta;
+não expor senha antiga;
+preferir reset de senha;
+não criar acesso financeiro de equipe prematuramente.
+12. Decisões vigentes
+Assunto	Decisão mais recente	Evidência no histórico	Grau de certeza
+Multi-tenancy	Um schema por escritório com django-tenants	Repetido em arquitetura, migrations e testes	Alto
+Tenant Admin	Somente PerfilUsuario.is_admin_escritorio=True e usuário ativo	Decisão aprovada e implementação relatada	Alto
+Superuser	Não concede administração do tenant	Testes e kernel relatados	Alto
+Group admin	Não concede administração do tenant	Testes e kernel relatados	Alto
+Usuário inativo	Sempre negado	Decisão e testes	Alto
+Papéis	Dinâmicos e múltiplos por usuário	Models e testes relatados	Alto
+Tenant Admin como papel	Não é um PapelAcesso	Decisão explícita	Alto
+Groups	Compatibilidade temporária	Repetido no desenho	Alto
+Fallback	Apenas limitado e financeiro	Decisão explícita	Alto
+Bloqueio do fallback	Qualquer UsuarioPapel bloqueia Group, mesmo inativo	Testes corretivos	Alto
+Overrides	Override individual tem precedência	Decisão e implementação relatada	Alto
+Negação individual	Vence papéis	Decisão explícita	Alto
+Negação de um papel	Não veta concessão de outro papel	Decisão explícita	Alto
+Múltiplos níveis	Usar o maior nível válido das concessões	Testes relatados	Alto
+Permissão inativa	Não concede, mas pode preservar nível	Rodada corretiva final	Médio-alto
+Cargo profissional	Descritivo, sem controlar acesso	Decisão explícita	Alto
+Gerente de equipe	MembroEquipe.eh_gerente	Decisão explícita	Alto
+Escopo	Próprio/equipe/global por selectors explícitos	Decisão, ainda não implementada	Alto quanto à intenção
+Módulo negado	403	Decisão aprovada	Alto
+Objeto fora do escopo	404	Decisão aprovada	Alto
+Financeiro pessoal	Não expõe caixa geral	Decisão funcional	Alto
+Push pelo Claude	Proibido; usuário faz manualmente	Regra recorrente	Alto
+Migration 0004	Correção isolada de dependências	Commit relatado	Médio-alto
+Próxima fase	Decorators/mixins e depois views	Último planejamento	Alto
+13. Decisões substituídas ou depreciadas
+Decisão antiga	Decisão que a substituiu	Motivo aparente	Grau de certeza
+is_superuser concede admin do escritório	Apenas flag no perfil concede Tenant Admin	Separar suporte técnico de administração do tenant	Alto
+Group administrador_escritorio concede admin	Group admin não concede Tenant Admin	Remover bypass legado	Alto
+Tenant Admin pode continuar ativo mesmo com user inativo	Inativo sempre negado	Segurança	Alto
+tipo_conta_usuario() representa todo tipo de acesso	Helper apenas legado para limitado/financeiro	Não suporta papéis dinâmicos ou múltiplos	Alto
+Group é fonte principal	UsuarioPapel é fonte principal	Flexibilidade e múltiplos papéis	Alto
+Sem papel ativo, usar Group	Existindo qualquer UsuarioPapel, nunca usar Group	Evitar reativação de acesso revogado	Alto
+Um papel por usuário	Vários papéis por usuário	Necessidade operacional	Alto
+Negação de papel poderia bloquear tudo	Papéis agregam por concessão; só override individual nega globalmente	Composição de funções	Alto
+“Gerente” como Group ou papel	Gerente de equipe por MembroEquipe.eh_gerente	Separação de conceitos	Alto
+Departamento	Equipe	Nomenclatura funcional	Alto
+Migration 0011 com dados e constraints	0011 dados, 0012 constraints	Erro de trigger pendente no PostgreSQL	Alto
+Usar atomic=False	Dividir migration	Segurança transacional	Alto
+Resolver habilitação pelo tipo_conta retornado	Usar contexto explícito de UsuarioPapel	Override podia reativar Group	Alto
+Origem papel para Groups	Origem grupo_legado	Auditoria e clareza	Alto
+Origem nenhuma para inativo	Origem inativo	Auditoria	Alto
+Nível inválido retorna vazio	Usa nível mínimo seguro	Evitar elevação ou ambiguidade	Alto
+Filtro ativo=True elimina permissões inativas	Carregar e preservar contexto da linha inativa	Auditoria e nível seguro	Médio-alto
+Comando tenant_command migrate como padrão	Preferência por migrate_schemas --schema direcionado	Efeito inesperado no histórico do public	Médio
+Testes apenas posteriores	Test-first na Fase 2	Segurança do kernel	Alto
+14. Contradições e ambiguidades
+14.1 Nome do produto
+
+CONTRADIÇÃO: O projeto aparece como:
+
+Breno - LawSystem;
+Sistema Jurídico;
+Jurídico SaaS;
+Gabinete dos Advogados.
+
+É necessário confirmar o nome oficial e distinguir nome interno, nome comercial e nome do repositório.
+
+14.2 Microserviços
+
+AUSENTE: A estrutura solicitada neste relatório pede arquitetura de microserviços, mas o histórico não registra uma decisão de adotar microserviços.
+
+INFERÊNCIA: O projeto parece um monólito modular Django.
+
+14.3 Versões da stack
+Django exato não confirmado;
+PostgreSQL 16 foi mencionado, mas não comprovado;
+Python 3.12.5 apareceu em logs.
+14.4 Estado do remoto
+
+AUSENTE: O último push foi autorizado, mas não confirmado.
+
+É possível que:
+
+os commits estejam apenas locais;
+já tenham sido enviados sem retorno ao chat;
+o remoto ainda esteja em 1b35037.
+14.5 Histórico de migrations no public
+
+CONTRADIÇÃO: Foi relatado que uma aplicação direcionada ao demo marcou migrations também no public, embora não tenha criado as tabelas tenant no public.
+
+É necessário verificar:
+
+django_migrations no public;
+estado efetivo dos schemas;
+consistência do plano.
+14.6 Proteção parcial das views
+
+O kernel final pode negar acesso financeiro ao advogado, mas o smoke HTTP mostrou:
+
+/financeiro/ retornando 200 para advogado;
+/configuracoes/ retornando 200;
+apenas /configuracoes/permissoes/ retornando 403.
+
+Isso indica divergência entre:
+
+cálculo da autorização;
+aplicação da autorização.
+14.7 Interface de gestão de papéis
+
+Há rota de permissões e models, mas não foi comprovado que existe uma interface completa para:
+
+criar papel;
+editar papel;
+atribuir múltiplos papéis;
+configurar módulos;
+configurar habilitações;
+criar override;
+remover override;
+impedir lockout.
+14.8 Presets versus gerente real
+
+“Sócio / Gestor de Núcleo” é um preset de acesso.
+
+“Gerente de equipe” vem de MembroEquipe.eh_gerente.
+
+Esses dois conceitos podem parecer equivalentes para o usuário final, mas não são equivalentes na arquitetura.
+
+14.9 Campo tipo_conta
+
+O campo permanece nos models por compatibilidade.
+
+PENDENTE: Não está claro quando será removido ou se será mantido indefinidamente.
+
+14.10 Constraint de Tenant Admin
+
+A constraint garante no máximo um, mas não pelo menos um.
+
+A proteção operacional contra zero administradores ainda não foi relatada como implementada.
+
+14.11 Testes versus comportamento de produção
+
+Os testes criam tenants temporários e passaram segundo o Claude.
+
+Isso não prova:
+
+que todos os dados reais se encaixam;
+que todas as views usam o kernel;
+que não há queries diretas ignorando selectors;
+que não há vazamento em endpoints não testados.
+14.12 Documentação antiga
+
+Documentos anteriores podem ainda mencionar:
+
+departamentos;
+advogado;
+gerente;
+limitado;
+financeiro;
+Groups como papéis principais.
+
+Eles podem estar desatualizados em relação ao kernel final.
+
+14.13 Números de testes
+
+Ao longo do processo aparecem:
+
+60;
+62;
+84;
+86 testes.
+
+Isso é explicado pela adição progressiva de testes, mas documentos intermediários podem registrar contagens antigas.
+
+15. Riscos identificados no processo
+15.1 Perda de contexto
+
+O chat é extenso, com múltiplas fases, decisões revisadas e vários relatórios.
+
+Risco:
+
+uma decisão antiga ser tratada como vigente;
+uma decisão recente ser esquecida;
+o novo agente não saber qual documento prevalece.
+15.2 Chats excessivamente longos
+
+Prompts e respostas muito extensos aumentam:
+
+custo;
+dificuldade de revisão;
+repetição;
+chance de desvio;
+chance de o executor ignorar detalhes.
+15.3 Documentação desatualizada
+
+Há vários documentos e planos produzidos em momentos diferentes.
+
+Risco:
+
+estados conflitantes;
+papéis antigos;
+fases antigas;
+contagens antigas;
+instruções de migrations já substituídas.
+15.4 Implementação fora do escopo
+
+O Claude alterou arquivos não autorizados em algumas rodadas.
+
+Mesmo quando a alteração era justificável, isso mostra que o controle de escopo depende da revisão posterior.
+
+15.5 Revisão pelo próprio implementador
+
+O Claude executou e validou o próprio código.
+
+Falta uma revisão independente diretamente no repositório.
+
+15.6 Permissões parcialmente aplicadas
+
+Esse é o maior risco funcional atual.
+
+O kernel pode estar correto, mas as views podem continuar acessíveis.
+
+15.7 Divergência frontend/backend
+
+Uma tela pode:
+
+esconder um botão;
+mas aceitar o POST;
+
+ou:
+
+exibir um módulo;
+enquanto o backend deveria negar.
+
+A integridade precisa existir no servidor.
+
+15.8 Risco entre tenants
+
+Qualquer erro de schema, middleware, comando de migration ou consulta fora de contexto pode expor dados.
+
+Os testes relatados são positivos, mas não substituem auditoria ampla.
+
+15.9 Migration histórica modificada
+
+Editar migration já aplicada é uma decisão sensível.
+
+Foi relatado como necessário para novos schemas, mas deve ser validado em:
+
+instalação limpa;
+banco existente;
+criação de novo tenant;
+recuperação;
+CI.
+15.10 Compatibilidade legada prolongada
+
+Enquanto Groups e tipo_conta existirem:
+
+há dois sistemas;
+aumenta a complexidade;
+aumenta o risco de fallback incorreto;
+aumenta o custo de testes.
+15.11 Administrador sem proteção operacional
+
+A constraint não impede deixar o tenant sem administrador.
+
+15.12 Critérios de aceitação tardios
+
+Alguns critérios surgiram apenas depois da primeira implementação:
+
+origem;
+preservação de nível;
+override mais papel;
+Group completando habilitação;
+query count.
+
+Isso sugere que o contrato do kernel não estava totalmente fechado antes do primeiro código.
+
+15.13 Complexidade dos prompts
+
+Os prompts funcionaram como scripts operacionais extensos.
+
+Risco:
+
+engessar a implementação;
+obrigar comandos frágeis;
+gerar ruído;
+fazer o agente cumprir forma e perder o objetivo.
+15.14 Ausência de CI relatada
+
+Não há confirmação de execução automática dos 86 testes em push ou pull request.
+
+15.15 Push manual
+
+O fluxo depende de o usuário lembrar de enviar os commits.
+
+15.16 Dados preexistentes inconsistentes
+
+Equipes com nomes como cotnabil e fianciero -antigo podem indicar dados de teste ou resíduos que influenciam auditorias.
+
+16. Informações que precisam ser confirmadas no repositório
+
+Outro agente deverá verificar diretamente:
+
+nome e URL do repositório;
+branch vigente;
+hash local;
+hash de origin/main;
+existência do commit 031a878;
+working tree;
+conteúdo real de apps/accounts/models.py;
+conteúdo real de apps/accounts/permissoes.py;
+conteúdo real de apps/accounts/decorators.py;
+conteúdo de permissoes_constants.py;
+conteúdo de escopo.py;
+migrations 0009 a 0012;
+diff da migration histórica 0004;
+grafo completo das migrations;
+estado de migrations no schema public;
+estado de migrations no schema demo;
+existência indevida de tabelas tenant no public;
+models PapelAcesso e UsuarioPapel;
+constraints de unicidade;
+constraint parcial do Tenant Admin;
+checks de tipo_conta ou papel;
+seed exato dos cinco presets;
+matrizes de 45 permissões e 75 habilitações;
+mapping de limitado;
+mapping de financeiro;
+usuários do demo;
+Groups do demo;
+equipes do demo;
+vínculo do advogado;
+flag do administrador;
+proteção contra excluir/desativar o único administrador;
+call sites de usuario_admin_escritorio;
+call sites de permissao_efetiva;
+call sites de habilitacao_efetiva;
+views que usam apenas login_required;
+views que já usam proteção administrativa;
+rota /configuracoes/;
+rota /configuracoes/permissoes/;
+rotas de clientes;
+rotas de processos;
+rotas de tarefas;
+rotas de financeiro;
+rotas de agenda;
+rotas de modelos;
+existência de decorators de módulo;
+existência de mixins;
+selectors de escopo;
+filtros próprio/equipe/global;
+proteção de objetos com 404;
+integridade cliente-processo no backend;
+proteção contra POST adulterado;
+implementação de AcessoFinanceiroEquipe;
+UI de papéis;
+UI de overrides;
+UI de equipes;
+UI de transferência de admin;
+execução real dos 86 testes;
+ausência de skips;
+contagens de queries;
+smoke HTTP;
+testes de vazamento entre tenants;
+requirements e versões;
+settings de produção;
+middleware de tenant;
+domínio e criação de tenant;
+logging;
+auditoria de alterações;
+CI/CD;
+backups;
+documentação atual do projeto.
+17. Perguntas ainda não respondidas sobre o produto
+
+Estas perguntas decorrem de temas já discutidos e que ainda dependem do responsável pelo produto.
+
+Qual é o nome comercial oficial?
+“Gabinete dos Advogados” substitui “Breno - LawSystem”?
+Quais elementos serão realmente white label?
+Como será criado um novo escritório?
+Quem será o Platform Admin?
+Como ocorrerá a transferência do Tenant Admin?
+Como recuperar um escritório sem administrador ativo?
+Quem poderá criar papéis customizados?
+Quem poderá editar os cinco presets?
+Quais campos de um preset protegido poderão ser alterados pela interface?
+Um gerente de equipe poderá atribuir quais papéis?
+Como será definido o teto de autoridade do gerente?
+Quais dados entram em somente_seus em cada módulo?
+O responsável do cliente determina visibilidade?
+O responsável do processo determina visibilidade?
+A equipe do processo determina visibilidade?
+Como combinar responsável, participante e equipe?
+Quais dados financeiros pessoais um advogado verá?
+Quais custas um advogado verá?
+Quais informações um gerente financeiro verá?
+Quem pode ver honorários?
+Como funcionará o escopo “Equipes” no financeiro?
+Qual será o fluxo da solicitação de pagamento?
+Qual será o fluxo do reembolso?
+Como funcionará o crédito de custas do cliente?
+Como serão registrados participantes do processo na interface?
+Como serão diferenciados cliente, parte externa, advogado externo, MP e autoridade?
+Como será implementado o histórico de delegação de tarefas?
+Quais notificações existirão?
+Qual será o papel do Assistente de IA?
+Quais dados o Assistente poderá acessar?
+Qual será a relação entre Assistente e Laboratório?
+Qual será a ordem de aplicação das permissões nas views?
+Quando o fallback de Groups será removido?
+Quando o campo tipo_conta será removido?
+Como será a implantação em produção?
+Como será a cobrança do SaaS?
+Quais critérios definem que o sistema está pronto para o primeiro escritório real?
+18. Materiais que devo entregar ao novo especialista
+18.1 Documentação funcional
+documento de anotações dos parceiros ou sócios;
+encerramento-fase-1.md;
+proximos-passos.md;
+plano-fase-2-permissoes.md;
+estado-atual.md;
+demais documentos de referência enviados no início da reorganização;
+Plano_Ajustes_Fase_2_Sistema_Juridico.docx.
+18.2 Relatórios de execução do Claude
+auditoria inicial de permissões;
+relatório da migration 0009;
+relatório da migration 0010;
+relatório das migrations 0011 e 0012;
+auditoria 2.1C0;
+auditoria 2.1C0.1;
+criação da suíte;
+análise da migration histórica 0004;
+implementação do kernel;
+auditoria das interações;
+correção final do kernel.
+18.3 Informações do Git
+git log --oneline --decorate;
+git status -sb;
+git branch -vv;
+git ls-remote origin refs/heads/main;
+diff dos commits:
+d97844d;
+452eeb6;
+031a878.
+18.4 Arquivos de arquitetura e configuração
+árvore do projeto;
+settings;
+INSTALLED_APPS;
+SHARED_APPS;
+TENANT_APPS;
+DATABASES;
+middleware;
+URLs;
+requirements;
+arquivos de implantação.
+18.5 Código da autorização
+apps/accounts/models.py;
+apps/accounts/decorators.py;
+apps/accounts/permissoes.py;
+apps/accounts/permissoes_constants.py;
+apps/accounts/escopo.py;
+forms;
+admin;
+views de configurações.
+18.6 Migrations
+todas as migrations de accounts;
+migrations de clientes e processos relacionadas a Departamento/Equipe;
+migrations de tenant;
+migrations de billing;
+plano completo de migrations.
+18.7 Testes
+apps/accounts/tests/__init__.py;
+test_admin_tenant.py;
+test_permissoes_kernel.py;
+test_interacoes_kernel.py;
+saída integral da suíte;
+saída de smoke;
+saída de query counts.
+18.8 Estado do banco
+lista de schemas;
+migrations aplicadas por schema;
+contagens do demo;
+usuários;
+perfis;
+Groups;
+papéis;
+permissões;
+habilitações;
+equipes;
+membros;
+domínios.
+18.9 Evidências visuais
+capturas das telas;
+fluxo de usuários;
+tela de permissões;
+tela de equipes;
+módulos acessíveis pelo advogado;
+módulos acessíveis pelo administrador.
+19. Resumo final para transferência
+O produto é um SaaS jurídico white label para vários escritórios.
+O nome aparece como “Breno - LawSystem”, “Sistema Jurídico” e “Gabinete dos Advogados”.
+A arquitetura relatada é Django modular com PostgreSQL e django-tenants.
+Cada escritório usa um schema próprio.
+Não há decisão registrada de usar microserviços.
+O ChatGPT atuou como arquiteto e orquestrador.
+O Claude Code atuou como implementador no repositório.
+O usuário operou o fluxo, aprovou decisões e deveria fazer os pushes.
+A Fase 1 foi relatada como concluída.
+Chat global, modelos de documentos e custas judiciais foram relatados como funcionais.
+A Fase 2 começou pela arquitetura de permissões.
+Tenant Admin é uma flag em PerfilUsuario, não um Group ou papel.
+is_superuser, is_staff e Group admin não concedem administração do tenant.
+Usuário inativo é sempre negado.
+Foram definidos cinco presets de papel.
+Usuários podem ter múltiplos papéis.
+Groups limitado e financeiro permanecem apenas como fallback temporário.
+Qualquer UsuarioPapel, mesmo inativo, bloqueia o fallback de Group.
+Overrides individuais vencem os papéis.
+Negações entre papéis não anulam concessões de outros papéis.
+A migration de dados foi separada das constraints por erro de triggers pendentes.
+Uma migration histórica foi alterada para corrigir a ordem Departamento → Equipe.
+O kernel final foi relatado no commit 031a878.
+A suíte final relatada possui 86 testes aprovados.
+O push de 031a878 não foi confirmado neste chat.
+O kernel parece calcular permissões, mas ainda não está aplicado uniformemente às views.
+O advogado ainda obteve HTTP 200 em quase todos os módulos no smoke.
+Selectors próprio/equipe/global ainda estavam pendentes.
+A próxima etapa prevista era criar decorators/mixins e aplicá-los às views.
+Todo o estado técnico precisa ser confirmado diretamente no repositório antes de uma nova análise de governança ou arquitetura.

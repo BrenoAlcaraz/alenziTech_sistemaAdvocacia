@@ -1,0 +1,637 @@
+. Partes do processo
+Decisão consolidada
+
+Um processo poderá ter:
+
+mais de um cliente representado pelo escritório;
+mais de uma pessoa no polo ativo;
+mais de uma pessoa no polo passivo;
+terceiros;
+Ministério Público;
+um ou mais advogados vinculados individualmente a cada participante;
+juiz ou outra autoridade, separadamente.
+
+O cadastro deve diferenciar três conceitos que hoje estão misturados:
+
+Conceito	Exemplo
+Vínculo com o escritório	Cliente representado ou parte contrária
+Posição estrutural	Polo ativo, polo passivo, terceiro, Ministério Público
+Qualificação processual	Requerente, requerido, exequente, executado, agravante, agravado etc.
+
+Essa separação é importante porque “autor” e “réu” não servem para todos os tipos e fases de processo. A posição estrutural é mais estável; a qualificação processual é o nome jurídico exibido naquele caso.
+
+Cliente já vinculado ao processo
+
+Quando um cliente do escritório já estiver associado ao processo:
+
+ele deverá aparecer automaticamente na aba Partes;
+nome, CPF/CNPJ e demais dados virão do cadastro de Cliente;
+o usuário não deverá digitá-los novamente;
+será necessário informar apenas sua posição e sua qualificação processual;
+deverá ser possível indicar se aquele cliente é representado pelo escritório naquele processo.
+
+Isso evita dados duplicados e inconsistências entre Cliente e Parte.
+
+Pessoas externas
+
+Partes contrárias, terceiros e representantes que não são clientes continuarão podendo ser cadastrados diretamente no processo.
+
+O sistema deverá permitir pessoa física, pessoa jurídica e órgão público.
+
+Advogados
+
+O advogado não deve ser tratado como uma parte. Ele deverá estar vinculado à pessoa que representa.
+
+Cada parte poderá ter:
+
+nenhum advogado;
+um advogado;
+vários advogados.
+
+Para advogados externos, os dados principais serão:
+
+nome;
+número da OAB;
+UF da OAB;
+telefone;
+e-mail.
+
+CPF não deve ser obrigatório para esse cadastro.
+
+Para advogados do próprio escritório, devemos reaproveitar o usuário ou membro da equipe já cadastrado, evitando criar uma segunda ficha independente.
+
+Ministério Público
+
+O Ministério Público precisa admitir pelo menos duas formas de atuação:
+
+parte do processo;
+fiscal da ordem jurídica.
+
+Não é adequado colocá-lo sempre no polo ativo ou passivo.
+
+Juiz
+
+O juiz continuará fora da estrutura de partes.
+
+A solução recomendada é uma seção de Autoridades do processo, inicialmente com:
+
+juiz;
+nome;
+vara ou órgão;
+observação opcional.
+
+Posteriormente essa estrutura poderá receber relator, desembargador, perito e outras autoridades ou auxiliares.
+
+Apresentação visual
+
+Em vez de cinco colunas permanentemente fixas, a tela deve formar grupos dinâmicos:
+
+Polo ativo
+  João — Requerente
+    Advogados: Ana, Bruno
+
+Polo passivo
+  Empresa X — Requerida
+    Advogado: Carlos
+
+Terceiros
+  Pessoa Y — Assistente
+
+Ministério Público
+  Promotoria Z — Fiscal da ordem jurídica
+
+Autoridades
+  Juíza: Dra. Maria
+
+Na tela maior, esses grupos poderão aparecer como tabela ou colunas. Em celular, devem virar blocos verticais.
+
+Regra sobre mudança de posição
+
+Minha recomendação é:
+
+cada vínculo da pessoa com um processo terá uma qualificação processual atual;
+a mesma pessoa não será duplicada apenas porque o nome jurídico mudou;
+alterações relevantes serão registradas no histórico;
+em recurso ou processo apenso com outro número, a mesma pessoa poderá possuir outra qualificação no novo processo.
+
+Assim evitamos que João apareça várias vezes no mesmo processo como se fossem pessoas diferentes.
+
+2. Delegação de tarefas
+Decisão consolidada
+
+A delegação será direta.
+
+Não haverá fluxo de:
+
+delegar → aguardar aceite → aceitar ou recusar
+
+O comportamento será:
+
+criar/delegar → tarefa aparece imediatamente para o destinatário
+
+A tarefa funciona como uma ordem ou atribuição interna de trabalho. O destinatário não precisa aceitar para que ela passe a existir.
+
+Dados necessários
+
+A tarefa deverá guardar separadamente:
+
+quem criou;
+quem atribuiu;
+para quem foi atribuída;
+data da atribuição;
+responsável atual;
+prazo;
+prioridade;
+status;
+data de conclusão;
+cliente relacionado, quando houver;
+processo relacionado, quando houver.
+
+Mesmo quando quem cria e quem atribui for a mesma pessoa, os dois conceitos devem permanecer separados para permitir automações futuras.
+
+Status inicial recomendado
+
+Para esta rodada:
+
+pendente;
+em andamento;
+concluída;
+cancelada.
+
+Não adicionaria agora “recusada”, porque isso contradiz a delegação direta.
+
+Visibilidade
+
+A primeira regra funcional deve ser:
+
+Usuário	O que poderá ver
+Administrador do escritório	Todas as tarefas
+Usuário com habilitação de gestão	Tarefas da equipe ou escopo habilitado
+Usuário comum	Tarefas atribuídas a ele e tarefas criadas por ele
+
+A aplicação exata desse escopo dependerá do trabalho de permissões que já estava previsto para o início da Fase 2.
+
+Reatribuição
+
+Uma tarefa poderá ser reatribuída, mas deverá ser possível identificar:
+
+responsável anterior;
+novo responsável;
+quem fez a alteração;
+data da alteração.
+
+Não precisamos criar um sistema complexo de auditoria nesta primeira rodada, mas não devemos sobrescrever silenciosamente a informação anterior.
+
+Notificações
+
+A delegação deve funcionar mesmo sem notificações.
+
+Notificações por sino, e-mail ou tempo real continuam adiadas. Primeiro garantimos que a tarefa apareça corretamente na lista do destinatário.
+
+3. Financeiro
+
+Os áudios reforçam que não devemos tentar representar tudo dentro de uma única tabela de lançamentos. O módulo terá quatro áreas funcionais relacionadas, mas distintas.
+
+3.1 Financeiro geral do escritório
+
+Representa o caixa operacional do escritório:
+
+honorários recebidos;
+salários;
+aluguel;
+condomínio;
+software;
+impostos;
+equipamentos;
+despesas administrativas;
+outras receitas e despesas próprias do escritório.
+
+Custas processuais não deverão aparecer como categoria comum nessa área.
+
+Estrutura do lançamento
+
+Cada lançamento geral precisará ter:
+
+receita ou despesa;
+descrição;
+categoria compatível com o tipo;
+valor;
+competência;
+vencimento, quando aplicável;
+data de pagamento ou recebimento;
+status;
+forma de repetição;
+anexos;
+observações.
+Categorias condicionais
+
+Depois de escolher “Receita”, somente categorias de receita devem aparecer.
+
+Depois de escolher “Despesa”, somente categorias de despesa devem aparecer.
+
+Exemplo:
+
+Receita
+- Honorários contratuais
+- Honorários de êxito
+- Reembolso recebido
+- Outra receita
+
+Despesa
+- Salário/pró-labore
+- Aluguel
+- Condomínio
+- Software
+- Impostos
+- Equipamentos
+- Despesa administrativa
+- Outra despesa
+
+Custas judiciais, perícias e emolumentos ficarão na área específica de custas.
+
+3.2 Único, parcelado e recorrente
+
+Embora “parcelado” derive de uma obrigação única, tecnicamente precisamos distingui-lo de recorrência indeterminada.
+
+A estrutura recomendada é:
+
+Modalidade	Exemplo
+Único	Compra à vista de um equipamento
+Parcelado	Honorários de R$ 12 mil em 12 parcelas
+Recorrente	Aluguel mensal enquanto o contrato estiver ativo
+Parcelado
+
+O usuário informará:
+
+quantidade de parcelas;
+periodicidade;
+primeiro vencimento.
+
+O sistema criará ocorrências individuais vinculadas à mesma origem.
+
+Recorrente
+
+O usuário informará:
+
+periodicidade;
+primeiro vencimento;
+data final ou duração, quando houver;
+ou indicação de prazo indeterminado.
+
+Cada ocorrência deverá nascer como um lançamento independente e pendente.
+
+Cancelar uma recorrência deve impedir somente gerações futuras. Itens já pagos ou recebidos não devem ser apagados nem reescritos.
+
+3.3 Previsão e realizado
+
+Todo lançamento terá dois momentos diferentes:
+
+previsto
+realizado
+
+Uma despesa pendente entra em a pagar, mas ainda não reduz o saldo realizado.
+
+Uma receita pendente entra em a receber, mas ainda não aumenta o saldo realizado.
+
+Somente a confirmação de pagamento ou recebimento altera o caixa realizado.
+
+O painel financeiro deverá apresentar:
+
+a receber;
+a pagar;
+recebido no período;
+pago no período;
+saldo realizado;
+saldo previsto.
+Vencimento
+
+A data de vencimento pode ser opcional em lançamentos já realizados ou em situações nas quais realmente não se aplique.
+
+Entretanto:
+
+lançamento pendente deve possuir vencimento;
+parcela deve possuir vencimento;
+ocorrência recorrente deve possuir vencimento;
+lançamento já pago deverá possuir data de pagamento;
+todos devem possuir alguma data de competência para aparecer corretamente nos períodos.
+
+Isso é mais seguro do que simplesmente remover a data.
+
+3.4 Custas judiciais
+
+A área de custas continuará separada do caixa geral.
+
+A tela inicial deverá listar clientes e mostrar o saldo de custas de cada um.
+
+Ao abrir um cliente:
+
+Aba Lançamentos
+
+Registra uma custa vinculada, quando aplicável, a:
+
+cliente;
+processo;
+descrição;
+valor;
+data;
+responsável pelo pagamento;
+boleto;
+comprovante.
+
+O responsável pelo pagamento será:
+
+escritório;
+cliente.
+Aba Creditar
+
+Registra valores adiantados pelo cliente para utilização em custas.
+
+Fórmula do saldo
+
+A regra mais coerente com o documento e os áudios é:
+
+saldo de custas =
+créditos depositados pelo cliente
+− custas pagas pelo escritório
+
+Custa paga diretamente pelo próprio cliente:
+
+aparece no histórico;
+serve para controle;
+não reduz o crédito mantido pelo escritório;
+não altera o saldo entre cliente e escritório.
+
+Essa fórmula deve ser implementada e testada no servidor, não apenas calculada no template.
+
+3.5 Solicitações de pagamento e reembolso
+
+Usuários sem acesso ao caixa geral não verão receitas, despesas ou resultados do escritório. Eles terão uma visão financeira limitada para fazer solicitações.
+
+Tipos iniciais:
+
+solicitação de pagamento;
+solicitação de reembolso.
+Pagamento
+
+Exemplo: advogado gera um boleto de custa judicial e solicita que o Financeiro pague.
+
+Campos:
+
+descrição;
+valor;
+cliente;
+processo;
+vencimento;
+boleto obrigatório;
+observação.
+Reembolso
+
+Exemplo: advogado pagou transporte, impressão ou outra despesa profissional.
+
+Campos:
+
+descrição;
+valor;
+cliente e processo, quando aplicáveis;
+comprovante obrigatório;
+data do gasto;
+observação.
+Fluxo recomendado
+Solicitada
+   ↓
+Em análise
+   ├── Rejeitada
+   └── Aprovada
+          ↓
+        Paga
+
+O usuário solicitante poderá acompanhar o status e, depois do pagamento, visualizar o comprovante anexado pelo Financeiro.
+
+Administrador e usuários com habilitação financeira poderão analisar e processar solicitações.
+
+Uma solicitação não deverá virar despesa realizada automaticamente ao ser criada. A despesa efetiva surgirá ou será confirmada quando ocorrer o pagamento.
+
+3.6 Honorários advocatícios
+
+Não devemos depender de IA para iniciar essa funcionalidade.
+
+Primeiro haverá cadastro manual, relacionado ao processo, com:
+
+tipo do honorário;
+valor estimado;
+valor efetivo;
+processo;
+cliente, quando aplicável;
+data prevista;
+data recebida;
+status;
+observações.
+
+A IA poderá futuramente identificar honorários em documentos e sugerir um cadastro, mas a regra funcional precisa existir antes.
+
+3.7 Assinatura do sistema
+
+Este é um dos pontos que eu ainda não transformaria em código sem uma confirmação expressa.
+
+Existem duas coisas diferentes:
+
+o escritório pagar a assinatura da nossa plataforma;
+o escritório registrar suas próprias despesas operacionais.
+
+É possível lançar automaticamente a assinatura como despesa recorrente do escritório, mas isso cria acoplamento entre saas_billing e o caixa do tenant.
+
+Minha recomendação técnica é:
+
+a cobrança continuar pertencendo ao módulo SaaS/Billing;
+a assinatura aparecer em Configurações e Cobrança;
+não criar automaticamente uma despesa no caixa do escritório;
+posteriormente oferecer uma opção para o administrador importar ou espelhar a cobrança no Financeiro.
+
+Assim evitamos duplicidade e inconsistência quando houver desconto, cupom, inadimplência ou alteração de plano.
+
+4. Próximas rodadas revisadas
+Rodada 2.1 — Permissões e integridade dos vínculos
+
+Esta continua sendo a primeira implementação.
+
+Entregas:
+
+aplicar os helpers de permissões nas views;
+diferenciar administrador, financeiro e limitado;
+habilitações por módulo e ação;
+restringir os cartões financeiros do Painel;
+aplicar escopo de tarefas;
+corrigir filtro dependente Cliente → Processo;
+validar esse vínculo também no servidor;
+corrigir alteração de senha;
+confirmar comportamento de usuários inativos.
+
+Sem isso, os módulos seguintes seriam construídos sobre acesso incorreto.
+
+Rodada 2.2 — Clientes, processos e participantes
+
+Dividir em duas partes.
+
+2.2A — Modelagem
+relação de múltiplos clientes com o processo;
+participante processual;
+polo;
+qualificação processual;
+representação pelo escritório;
+advogados por participante;
+atuação do Ministério Público;
+autoridades;
+relações entre processos apensos;
+migrations literais e revisadas antes de aplicar.
+2.2B — Fluxos e interface
+cliente vinculado aparecendo automaticamente como parte;
+criação de processo pela pasta do cliente;
+criação rápida de cliente pelo formulário de processo;
+edição do processo;
+aba Partes agrupada por posição;
+clientes relacionados;
+aba Apensos;
+validações contra duplicidade.
+Rodada 2.3 — Andamentos, documentos e prazos
+timeline processual real;
+anexos em andamentos;
+documentos do cliente;
+documentos do processo;
+status atual com histórico;
+fases processuais corrigidas;
+tempo desde a última movimentação;
+prazos vinculados ao processo;
+sincronização dos prazos com a Agenda.
+Rodada 2.4 — Tarefas e Agenda
+delegação direta;
+responsável atual;
+reatribuição;
+visualização por usuário;
+visão geral do administrador;
+vínculo válido com cliente e processo;
+calendário mensal;
+Hoje antes de Próximos 7 dias;
+cores por tipo de compromisso;
+prazo processual aparecendo automaticamente na Agenda.
+Rodada 2.5 — Núcleo financeiro
+
+Primeiro realizar uma auditoria do que já existe em:
+
+LancamentoFinanceiro;
+CustaJudicial;
+forms;
+views;
+migrations;
+templates.
+
+Depois implementar:
+
+receita/despesa;
+categorias condicionais;
+competência, vencimento e realização;
+único, parcelado e recorrente;
+ocorrências;
+status;
+navegação mensal;
+filtros;
+saldo realizado e previsto;
+anexos financeiros.
+
+Essa rodada provavelmente exigirá migrations e deverá ser dividida em mini-etapas.
+
+Rodada 2.6 — Custas e solicitações
+painel de custas por cliente;
+créditos;
+saldo calculado;
+custas pagas pelo escritório ou cliente;
+boleto e comprovante;
+solicitação de pagamento;
+solicitação de reembolso;
+análise, aprovação, rejeição e pagamento;
+visão limitada para advogado;
+visão completa para Financeiro e administrador.
+Rodada 2.7 — Honorários e relatórios
+honorários manuais;
+filtros específicos;
+gráficos de 6 e 12 meses;
+exercício anual;
+previsões;
+relatórios financeiros;
+atualização automática do Painel.
+Rodada 2.8 — Painel do gestor e atividade
+usuários ativos;
+movimentações recentes;
+processos parados;
+prazos críticos;
+análises por natureza, localidade, fase e status;
+atividades por usuário;
+concessão de habilitações;
+indicadores com dados reais.
+Rodada 2.9 — Assistente e Laboratório
+
+Somente após os dados jurídicos estarem estruturados:
+
+painel lateral dentro do processo;
+conversa contextual;
+busca em documentos;
+resumo;
+geração e edição de peças;
+histórico das versões;
+integração com Modelos.
+5. Decisões que ainda precisam ser fechadas
+
+Antes de iniciar as migrations do Financeiro, eu registraria apenas estas três confirmações com seu sócio:
+
+Periodicidades
+
+A primeira versão terá:
+
+mensal
+anual
+parcelamento mensal
+
+ou também precisa oferecer, desde o início:
+
+semanal
+quinzenal
+trimestral
+semestral
+personalizada
+
+Minha recomendação é mensal, anual e quantidade de parcelas na primeira versão.
+
+Aprovação de solicitações
+
+Confirmar se o fluxo será:
+
+solicitada → aprovada → paga
+
+ou se o Financeiro poderá ir diretamente de:
+
+solicitada → paga ou rejeitada
+
+Recomendo manter “aprovada”, pois separa autorização de execução.
+
+Assinatura da plataforma
+
+Confirmar se a cobrança:
+
+será automaticamente lançada no caixa financeiro do escritório; ou
+permanecerá somente em Billing, com futura opção de espelhamento.
+
+Recomendo a segunda alternativa.
+
+Próximo movimento técnico
+
+O próximo passo não deve ser criar imediatamente os novos models de Partes ou Financeiro.
+
+Devemos iniciar a Rodada 2.1 com uma auditoria somente leitura, para o Claude mapear:
+
+quais views ainda ignoram permissões;
+como Cliente e Processo estão relacionados hoje;
+como Tarefa guarda responsável;
+como os models financeiros atuais podem ser evoluídos;
+quais mudanças exigirão migrations;
+quais dados do demo precisarão de migração ou compatibilidade.
+
+Depois dessa auditoria, elaboramos o plano literal das primeiras migrations e só então autorizamos alterações. Isso preserva o encerramento limpo da Fase 1 e evita construir as novas regras sobre suposições.

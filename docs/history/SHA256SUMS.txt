@@ -1,0 +1,7 @@
+bee9e1ed30327f6218e4ac7f9b491e2294e37e7e95b284c838be690a5d1f7c44  docs/history/audits/2026-08-05-chatgpt-context-audit.txt
+5a7cd03470bae09eec96f57a8db0e3fc11edc31b447117ce546c9c87d981c564  docs/history/audits/2026-08-05-claude-repository-documentation-audit.txt
+23cda0d2c90aabaa47b0be426491861103d0006134bf744661e65337c7322e40  docs/history/source-material/2026-08-05-decisoes-funcionais-consolidadas-original.txt
+4fd18a621982192704008e902566f17827cca24cef408da0777c32c53ee9f4c7  docs/history/source-material/2026-08-05-ficha-tecnica-arquitetura-snapshot.txt
+18aa6e336f6cfa86e4035b8d517808816d145bf9b9669fb9fd0d8db947c6c49f  docs/history/source-material/phase-1-functional-feedback.docx
+7e4c57dfbbaf182da1fd5354a34ab9c189e99d25b2736d17465aa1b0ad19082b  docs/history/source-material/phase-2-consolidated-plan-v1.docx
+76630e5bbcd1f19c7786a05bcfd735c05aeff629e2f41c481d6452a2196214ca  docs/history/source-material/product-vision-original.docx

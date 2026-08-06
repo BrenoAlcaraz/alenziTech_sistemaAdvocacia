@@ -1,0 +1,466 @@
+Ficha Técnica e de Arquitetura — Sistema Jurídico SaaS
+1. Stack e arquitetura do projeto
+Camada	Tecnologia atual
+Linguagem	Python 3.12
+Framework backend	Django 5.2 LTS
+Frontend	Django Templates, HTML, JavaScript e Tailwind CSS 3
+Banco de dados	PostgreSQL 16
+ORM	Django ORM
+Autenticação	django.contrib.auth, com sessões e cookies do Django
+Multi-tenancy	django-tenants
+Servidor local	Django Development Server
+Produção futura	Docker, servidor WSGI/ASGI, HTTPS e configurações de segurança ainda pendentes
+
+O projeto segue uma arquitetura Django modular, com cada domínio funcional separado em um app.
+
+Apps compartilhados
+
+Executados principalmente no schema público:
+
+saas_tenants
+saas_billing
+Apps pertencentes aos escritórios
+
+Executados dentro do schema de cada tenant:
+
+accounts
+dashboard
+clientes
+processos
+tarefas
+financeiro
+agenda
+chat
+modelos
+laboratorio
+configuracoes
+2. Implementação atual do Multi-Tenancy
+
+O sistema utiliza o modelo:
+
+Schema por tenant
+
+Não é utilizado um simples campo tenant_id nas tabelas de negócio.
+
+A estrutura é:
+
+PostgreSQL
+├── schema public
+│   ├── escritórios/tenants
+│   ├── domínios
+│   ├── planos
+│   └── assinaturas
+│
+├── schema demo
+│   ├── usuários
+│   ├── clientes
+│   ├── processos
+│   ├── tarefas
+│   ├── financeiro
+│   └── demais dados do escritório
+│
+└── schema de cada novo escritório
+    └── conjunto isolado de tabelas de negócio
+Models centrais
+TENANT_MODEL = "saas_tenants.Escritorio"
+TENANT_DOMAIN_MODEL = "saas_tenants.Dominio"
+
+O middleware do django-tenants identifica o escritório pelo domínio acessado e altera o search_path do PostgreSQL para o schema correspondente.
+
+Exemplo atual:
+
+localhost              → schema public
+demo.localhost         → schema demo
+Consequência de segurança
+
+Os dados de Clientes, Processos, Financeiro e demais módulos ficam fisicamente separados por schema.
+
+Mesmo que dois escritórios possuam registros com o mesmo pk, as consultas operam em schemas distintos.
+
+Ainda assim, a segurança depende também de:
+
+configuração correta dos domínios;
+proteção das views;
+ausência de alteração manual insegura de schema;
+validação das permissões dentro de cada tenant.
+3. Estado atual das permissões
+3.1 Usuários e perfis
+
+O sistema usa o model padrão:
+
+django.contrib.auth.models.User
+
+Cada usuário possui um perfil complementar:
+
+PerfilUsuario
+
+A relação é:
+
+User 1 ─── 1 PerfilUsuario
+
+O perfil contém, entre outras informações, a identificação de administrador do escritório:
+
+is_admin_escritorio
+
+Existe um signal post_save que cria o perfil quando necessário.
+
+3.2 Papéis técnicos atuais
+
+Os principais grupos são:
+
+administrador_escritorio
+financeiro
+limitado
+
+Também permanecem no banco grupos legados:
+
+gerente
+advogado
+
+Esses grupos legados não devem ser utilizados como fonte principal das novas regras.
+
+O desenho atual procura garantir que um usuário comum possua apenas um papel técnico principal:
+
+financeiro
+ou
+limitado
+
+O administrador do escritório é tratado separadamente.
+
+3.3 Equipes
+
+O sistema já possui:
+
+Equipe
+MembroEquipe
+
+A relação permite vincular usuários a equipes dentro do escritório.
+
+O papel de gerente de equipe é representado por:
+
+MembroEquipe.eh_gerente
+
+Portanto, gerente de equipe não deve depender do grupo legado gerente.
+
+3.4 Models de permissões
+
+O banco já possui quatro estruturas principais:
+
+PermissaoPapel
+PermissaoUsuario
+HabilitacaoPapel
+HabilitacaoUsuario
+Permissões de módulo
+
+Controlam o nível geral de acesso a um módulo:
+
+Papel → Módulo → nível de permissão
+Usuário → Módulo → sobrescrita individual
+
+Models:
+
+PermissaoPapel
+PermissaoUsuario
+Habilitações específicas
+
+Controlam ações ou funcionalidades internas:
+
+Papel → item/habilitação → permitido ou bloqueado
+Usuário → item/habilitação → sobrescrita individual
+
+Models:
+
+HabilitacaoPapel
+HabilitacaoUsuario
+Ordem de resolução projetada
+1. Administrador do escritório
+2. Configuração individual do usuário
+3. Configuração do papel
+4. Sem permissão
+
+Uma configuração individual pode sobrescrever o papel.
+
+Quando não existe configuração individual, o usuário herda a configuração do papel.
+
+Um registro individual com ativo=False funciona como bloqueio explícito.
+
+3.5 Situação funcional atual
+
+Os helpers já existem:
+
+tem_permissao_modulo()
+tem_habilitacao()
+
+Eles já validam:
+
+usuário ativo;
+módulo válido;
+item válido;
+papel técnico;
+sobrescritas individuais;
+bloqueios explícitos;
+administrador do escritório.
+
+Porém, eles ainda não estão aplicados sistematicamente às views dos módulos.
+
+Atualmente, a maior parte das views utiliza apenas:
+
+@login_required
+
+Consequentemente, usuários autenticados ainda conseguem visualizar módulos que futuramente deverão ser restringidos conforme papel, habilitação e escopo.
+
+Essa é a principal entrega da Rodada 2.1.
+
+3.6 Grupos e gerenciamento delegado
+
+O sistema já possui grupos e equipes isolados dentro de cada tenant.
+
+Entretanto, ainda não existe um gerenciamento delegado completo no qual, por exemplo, um gerente possa livremente:
+
+criar papéis;
+alterar permissões de outros usuários;
+conceder habilitações administrativas;
+administrar toda a equipe sem autorização superior.
+
+O estado atual é:
+
+Recurso	Situação
+Grupos técnicos por tenant	Implementado
+Equipes por tenant	Implementado
+Gerente de equipe	Modelado por MembroEquipe.eh_gerente
+Permissões por papel	Modeladas
+Sobrescritas individuais	Modeladas
+Tela administrativa básica	Existente
+Aplicação das permissões nas views	Pendente
+Delegação de administração para gerentes	Pendente de regra
+Escopo “somente seus/todos/equipe”	Estrutura inicial existente, aplicação pendente
+
+Portanto, a resposta técnica é:
+
+O sistema possui grupos, equipes e modelos de permissões por tenant, mas o gerenciamento delegado e a aplicação efetiva das permissões ainda não estão completos.
+
+4. Módulos com Models e tabelas ativas
+Schema público
+saas_tenants
+
+Principais entidades:
+
+Escritorio
+Dominio
+
+Responsável por:
+
+cadastro do tenant;
+schema_name;
+domínio de acesso;
+ativação do escritório.
+saas_billing
+
+Principais entidades:
+
+Plano
+Assinatura
+
+A estrutura existe, mas o tenant demo ainda não possui assinatura ativa cadastrada.
+
+Schema de cada tenant
+accounts
+
+Principais estruturas:
+
+User
+Group
+PerfilUsuario
+Equipe
+MembroEquipe
+PermissaoPapel
+PermissaoUsuario
+HabilitacaoPapel
+HabilitacaoUsuario
+clientes
+
+Possui cadastro ativo de clientes, utilizado em:
+
+listagem;
+detalhe;
+edição;
+relação atual com processos;
+formulários de tarefas, agenda e financeiro.
+
+A modelagem de múltiplos clientes por processo será revista na Rodada 2.2A.
+
+processos
+
+Possui processos e entidades auxiliares já ativas.
+
+Atualmente existe vínculo principal com cliente, mas ainda serão adicionados ou revisados:
+
+múltiplos clientes representados;
+participantes;
+polos;
+qualificações processuais;
+advogados das partes;
+autoridades;
+apensos;
+histórico de status.
+tarefas
+
+Possui cadastro funcional de tarefas.
+
+A próxima evolução contempla:
+
+delegação direta;
+criador;
+atribuidor;
+responsável;
+reatribuição;
+histórico;
+escopo por usuário ou equipe.
+financeiro
+
+Models ativos incluem:
+
+LancamentoFinanceiro
+CustaJudicial
+
+A funcionalidade mínima de custas já grava dados reais.
+
+A modelagem futura deverá separar:
+
+financeiro geral;
+previsões;
+valores realizados;
+recorrências;
+parcelamentos;
+custas judiciais;
+créditos de clientes;
+solicitações de pagamento;
+reembolsos;
+honorários.
+agenda
+
+Possui compromissos reais, filtros e vínculos básicos.
+
+Futuramente será integrada a:
+
+calendário mensal;
+prazos processuais;
+tarefas;
+tipos de compromissos.
+chat
+
+Models ativos:
+
+Conversa
+Mensagem
+
+Já existe uma Sala Global funcional por tenant.
+
+Existe uma constraint para impedir mais de uma conversa global no mesmo schema.
+
+modelos
+
+Models ativos:
+
+ModeloPeca
+EstiloEscritorio
+
+Funcionalidades implementadas:
+
+criação manual;
+edição;
+pesquisa;
+detalhe;
+cópia do conteúdo;
+importação de PDF textual;
+importação de DOCX.
+
+O arquivo original não é armazenado.
+
+configuracoes
+
+Possui:
+
+ConfiguracaoEscritorio
+
+Também concentra fluxos administrativos relacionados a:
+
+usuários;
+equipes;
+permissões;
+configurações gerais.
+dashboard
+
+Atualmente funciona principalmente como camada de consulta e apresentação.
+
+Não depende necessariamente de um model próprio; utiliza dados agregados dos demais apps.
+
+laboratorio
+
+Existe como módulo estrutural e visual, mas ainda não possui o backend de IA planejado.
+
+A direção aprovada é apresentar o Assistente/Laboratório dentro do contexto de um processo, preservando o app como componente técnico separado.
+
+5. Aderência ao plano de rodadas
+Rodada imediata
+
+A próxima etapa deve ser:
+
+Rodada 2.1 — Permissões e Integridade
+
+Principais entregas:
+
+aplicar tem_permissao_modulo() às views;
+aplicar tem_habilitacao() às ações específicas;
+diferenciar administrador, financeiro e usuário limitado;
+restringir informações financeiras no Painel;
+implementar escopo de visualização;
+validar acesso a Clientes, Processos, Tarefas e Financeiro;
+corrigir relações inválidas Cliente → Processo;
+impedir no backend a seleção de processo pertencente a outro cliente;
+revisar alteração de senha;
+definir o alcance dos gerentes de equipe;
+garantir que usuários inativos permaneçam bloqueados.
+Rodada seguinte
+
+Somente após estabilizar acesso e integridade:
+
+Rodada 2.2A — Modelagem de Partes e Relações Processuais
+
+Essa rodada deverá tratar:
+
+múltiplos clientes representados no mesmo processo;
+participantes processuais;
+polo ativo, passivo e terceiro;
+qualificação processual;
+representação pelo escritório;
+advogados por participante;
+Ministério Público;
+autoridades;
+processos apensos;
+migrations e compatibilidade dos dados atuais.
+Confirmação arquitetural
+
+Sim. A sequência correta é:
+
+Fase 1 concluída
+        ↓
+Rodada 2.1
+Permissões e Integridade
+        ↓
+Rodada 2.2A
+Modelagem de Partes
+        ↓
+Rodada 2.2B
+Fluxos e Interface de Clientes e Processos
+
+A Rodada 2.1 precisa vir primeiro porque a nova modelagem de Partes, tarefas delegadas, financeiro e Painel dependerá de regras claras sobre:
+
+quem pode consultar;
+quem pode cadastrar;
+quem pode editar;
+quem pode atribuir;
+quem pode administrar;
+quais dados pertencem ao usuário, equipe ou escritório inteiro.
+
+Implementar a Rodada 2.2A antes dessas definições aumentaria o risco de retrabalho e de exposição indevida de dados.
