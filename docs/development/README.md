@@ -61,10 +61,21 @@ Ver também a organização documental completa em
 - [testing.md](testing.md) — estratégia e comandos de teste: runner
   atual, inventário de testes existentes, organização, comandos e
   limitações conhecidas da suíte.
+- [workflow.md](workflow.md) — o ciclo de execução de uma unidade de
+  trabalho, do preflight ao relatório final: quando um Work Item pode
+  sair de `ready`, como controlar escopo durante a implementação, como
+  tratar achados fora do escopo e falhas de teste.
+- [quality-gates.md](quality-gates.md) — os critérios de validação
+  obrigatórios e condicionais antes de considerar uma implementação
+  concluída.
+- [git-procedure.md](git-procedure.md) — o procedimento de Git: auditoria
+  do working tree, staging, commit, push, tratamento de falha de push,
+  operações de alto risco e a política de line endings do repositório
+  (`.gitattributes`).
 
-Outros temas operacionais (fluxo de trabalho completo, quality gates,
-procedimento de Git, uso de agentes de IA) pertencem a lotes futuros
-desta reorganização documental e não são tratados aqui.
+Uso de agentes de IA além do que já está implícito no caráter
+executor-agnóstico destes documentos pertence a um lote futuro desta
+reorganização documental e não é tratado aqui.
 
 ## Fluxo mínimo para começar
 
