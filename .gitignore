@@ -64,7 +64,6 @@ yarn-error.log*
 # Claude local
 # =========================
 .claude/
-Claude.md
 
 # =========================
 # Sistema / editor
