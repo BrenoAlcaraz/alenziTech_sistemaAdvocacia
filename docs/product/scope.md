@@ -2,7 +2,7 @@
 title: Escopo do produto
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Escopo do produto
@@ -12,8 +12,8 @@ last_reviewed: 2026-08-06
 Este documento separa o que pertence ao escopo funcional do produto, o
 que é foco da etapa atual, o que está planejado para mais adiante e o
 que está fora de escopo. Ele não afirma o estado real de implementação
-de nenhum item — o estado real é responsabilidade de um documento de
-current-state, ainda não criado neste lote.
+de nenhum item — o estado real é responsabilidade de
+[docs/delivery/current-state.md](../delivery/current-state.md).
 
 ## Escopo funcional do produto
 

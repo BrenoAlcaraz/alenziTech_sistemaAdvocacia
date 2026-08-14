@@ -2,7 +2,7 @@
 title: Agenda
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0009
 ---
@@ -34,8 +34,10 @@ processos.
 - O Administrador do escritório possui expectativa de supervisão
   administrativa dentro do tenant.
 - O alcance exato do Administrador do escritório e de outros papéis
-  sobre agendas individuais de outros usuários será definido em
-  docs/security/authorization-matrix.md, documento ainda não criado.
+  sobre agendas individuais de outros usuários é definido em
+  [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - Nenhuma interface deve conceder acesso sem verificação equivalente no
   backend.
 - Ocultar ou exibir elementos de interface não substitui autorização.

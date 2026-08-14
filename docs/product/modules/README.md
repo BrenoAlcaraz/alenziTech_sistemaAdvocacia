@@ -2,7 +2,7 @@
 title: Especificações funcionais dos módulos
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Especificações funcionais dos módulos
@@ -25,9 +25,13 @@ Regras de leitura destas especificações:
   do PDR ou do [glossário funcional](../glossary.md) correspondente,
   não duplicadas integralmente em cada documento de módulo.
 - Segurança e autorização final — a matriz técnica definitiva de
-  papéis, habilitações e permissões — serão documentadas em
-  `docs/security/`, ainda não criado. As especificações de módulo
-  descrevem apenas a necessidade funcional de acesso.
+  papéis, habilitações e permissões — está documentada em
+  [docs/security/authorization-matrix.md](../../security/authorization-matrix.md),
+  [authorization-model.md](../../security/authorization-model.md) e
+  [data-scope.md](../../security/data-scope.md). As especificações de
+  módulo descrevem apenas a necessidade funcional de acesso; o estado
+  de aplicação dessas regras no backend deve ser verificado no código e
+  em [docs/delivery/current-state.md](../../delivery/current-state.md).
 
 ## Módulos especificados
 

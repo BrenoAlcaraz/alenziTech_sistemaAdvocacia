@@ -2,7 +2,7 @@
 title: Desenvolvimento
 status: canonical
 owner: development
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Desenvolvimento
@@ -18,8 +18,7 @@ executar a aplicação e como executar testes.
 - [docs/product/](../product/) — **o que** construir;
 - [docs/architecture/](../architecture/) — **como** o sistema é
   estruturado;
-- [docs/security/](../security/) (quando existir) — controles de
-  segurança;
+- [docs/security/](../security/) — controles de segurança;
 - [docs/delivery/](../delivery/) — onde o projeto está e o que fazer
   agora.
 

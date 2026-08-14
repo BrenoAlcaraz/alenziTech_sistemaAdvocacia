@@ -2,7 +2,7 @@
 title: Arquitetura multi-tenant
 status: canonical
 owner: architecture
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Arquitetura multi-tenant
@@ -195,7 +195,8 @@ já está aplicada de forma sistemática; essa aplicação é registrada como
 evolução planejada em
 [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md) (Rodada
 2.1 — Permissões e integridade). A matriz técnica definitiva de papéis
-e permissões será aprofundada em `docs/security/`, ainda não criado.
+e permissões está em
+[docs/security/authorization-matrix.md](../security/authorization-matrix.md).
 
 ## Migrations
 

@@ -2,7 +2,7 @@
 title: Processos
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0001
   - PDR-0008
@@ -40,9 +40,12 @@ o papel de acesso, as habilitações e o escopo de dados que lhes forem
 aplicados — por exemplo, escopo por responsável ou por equipe.
 
 Esta seção descreve necessidade funcional, não uma matriz técnica
-definitiva de permissões; essa matriz pertence a `docs/security/`,
-ainda não criado. Autorização e escopo de dados devem ser aplicados no
-backend, não apenas ocultando elementos de interface.
+definitiva de permissões; essa matriz é
+[docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+O estado de aplicação dessas regras no backend deve ser verificado no
+código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+Autorização e escopo de dados devem ser aplicados no backend, não
+apenas ocultando elementos de interface.
 
 ## Conceitos e entidades
 

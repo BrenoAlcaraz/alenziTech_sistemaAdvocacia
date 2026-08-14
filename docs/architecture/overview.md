@@ -2,7 +2,7 @@
 title: Visão geral da arquitetura
 status: canonical
 owner: architecture
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Visão geral da arquitetura
@@ -39,15 +39,12 @@ Constatado no código:
   de serviços independentes.
 - Linguagem Python; `requirements/base.txt` fixa `django>=5.2,<5.3` e
   `django-tenants==3.10.1`. O repositório não possui um arquivo de pin
-  de versão de Python (como `.python-version` ou `pyproject.toml`);
-  `README.md` indica "Python 3.12+" como pré-requisito de
-  desenvolvimento, o que é registrado aqui apenas como pré-requisito
-  documentado, não como versão fixada em arquivo de dependência.
+  de versão de Python (como `.python-version` ou `pyproject.toml`) nem
+  qualquer outra fonte atual que fixe uma versão mínima de Python.
 - PostgreSQL como banco de dados, via `DATABASES["default"]["ENGINE"]`
   configurado como `"django_tenants.postgresql_backend"` em
-  `config/settings/base.py`. A versão do PostgreSQL não é fixada em
-  nenhum arquivo do repositório; `README.md` menciona "PostgreSQL 15+"
-  como pré-requisito.
+  `config/settings/base.py`. O repositório não fixa atualmente uma
+  versão específica de PostgreSQL em nenhum arquivo.
 - Renderização por templates no servidor: em `config/settings/base.py`,
   `TEMPLATES` usa `django.template.backends.django.DjangoTemplates`,
   com `DIRS = [BASE_DIR / "templates"]` e `APP_DIRS = True`. Não há app

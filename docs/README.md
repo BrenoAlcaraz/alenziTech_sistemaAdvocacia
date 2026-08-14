@@ -2,7 +2,7 @@
 title: Documentação do Breno - LawSystem
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Documentação do Breno - LawSystem
@@ -40,8 +40,9 @@ o que o sistema é, como é construído e por que decisões foram tomadas.
 - `history/` — material documental preservado para rastreabilidade, sem
   autoridade sobre o estado atual do sistema.
 
-Algumas dessas áreas ainda não existem no repositório e serão criadas em
-lotes futuros da reorganização documental.
+As áreas acima compõem a organização documental vigente. Novos
+documentos podem ser adicionados dentro dessas áreas conforme o projeto
+evolui.
 
 ## Hierarquia das fontes de verdade
 
@@ -73,7 +74,7 @@ levada a uma decisão humana, conforme a [Regra de conflito](#regra-de-conflito)
 ### Para planejar uma implementação
 
 - Documentação do produto
-- PDRs relacionados
+- [PDRs relacionados](product/decisions/README.md)
 - Arquitetura
 - Segurança
 - Current-state
@@ -90,7 +91,7 @@ levada a uma decisão humana, conforme a [Regra de conflito](#regra-de-conflito)
 
 ### Para consultar histórico
 
-- `docs/history/`
+- [docs/history/](history/README.md)
 
 ## Regra de conflito
 
@@ -105,8 +106,9 @@ documentos canônicos, o agente deve:
 
 ## Estado da reorganização
 
-A estrutura documental está sendo implantada gradualmente na branch
-`docs/reorganizacao-harness`, em lotes sucessivos. Documentos referenciados
-neste índice que ainda não existem no repositório fazem parte de lotes
-futuros e não devem ser tratados como concluídos até que sejam
-efetivamente criados.
+A estrutura documental base está estabelecida: todas as áreas listadas
+em "Organização documental" existem e possuem pelo menos seus
+documentos de índice. Este índice não mantém estado de produto ou de
+implementação — para isso, consultar
+[docs/delivery/current-state.md](delivery/current-state.md) e
+[docs/delivery/roadmap.md](delivery/roadmap.md).

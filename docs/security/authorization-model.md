@@ -2,7 +2,7 @@
 title: Modelo de autorização
 status: canonical
 owner: security
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Modelo de autorização
@@ -329,14 +329,14 @@ nenhuma view — ver [data-scope.md](data-scope.md).
 - Mudanças de acesso (atribuição/remoção de papel, alteração de
   permissão ou habilitação) precisam de rastreabilidade — não
   confirmada no código lido; ver "Pontos em aberto".
-- A política final de autorização por módulo será formalizada em um
-  documento futuro de matriz de autorização, ainda não criado neste
-  lote.
+- A política final de autorização por módulo está formalizada em
+  [authorization-matrix.md](authorization-matrix.md).
 - A decomposição definitiva do campo `nivel` (nível de acesso técnico
   atual) entre preocupações de escopo, visibilidade e modalidade de
-  acesso depende dessa futura matriz de autorização e da implementação
-  efetiva de escopo de dados descrita em [data-scope.md](data-scope.md)
-  — este documento não antecipa essa decomposição.
+  acesso depende de [authorization-matrix.md](authorization-matrix.md)
+  e da implementação efetiva de escopo de dados descrita em
+  [data-scope.md](data-scope.md) — este documento não antecipa essa
+  decomposição.
 
 ## Aplicação nas views
 
@@ -388,8 +388,6 @@ Módulos e fluxos realmente inspecionados nesta auditoria:
   teste.
 - Administração emergencial (acesso excepcional a um tenant) — sem
   decisão encontrada nas fontes canônicas.
-- Matriz de autorização definitiva por módulo — documento futuro, fora
-  do escopo deste lote.
 - Política sobre `auth.Group` legado (`gerente`, `advogado`) — mantidos
   apenas como referência de exibição, conforme comentário em
   `apps/accounts/decorators.py`; sem decisão sobre remoção definitiva.

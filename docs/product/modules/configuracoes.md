@@ -2,7 +2,7 @@
 title: Configurações
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0009
 ---
@@ -40,9 +40,10 @@ sistema.
   administração do escritório.
 - Consultar ou alterar o plano SaaS é restrito conforme autorização,
   distinguindo a administração do tenant e o Platform Admin.
-- O alcance exato de quem pode alterar cada grupo de configurações
-  pertence à futura matriz de autorização, em `docs/security/`, ainda
-  não criado.
+- O alcance exato de quem pode alterar cada grupo de configurações é
+  definido em [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - Autorização deve ser aplicada no backend; ocultar ou exibir um botão
   ou seção não substitui essa verificação.
 

@@ -2,7 +2,7 @@
 title: Financeiro
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0003
   - PDR-0004
@@ -48,9 +48,10 @@ arquitetura e à implementação.
   restrita às suas próprias solicitações de pagamento e reembolso.
 - Usuários sem autorização financeira não podem visualizar receitas,
   despesas ou resultados completos do escritório.
-- O alcance exato dos papéis e habilitações financeiras será definido
-  na futura matriz de autorização, em `docs/security/`, ainda não
-  criado.
+- O alcance exato dos papéis e habilitações financeiras é definido em
+  [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - Autorização deve ser aplicada no backend; ocultar ou exibir
   elementos de interface não substitui essa verificação.
 

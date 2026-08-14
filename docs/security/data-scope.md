@@ -2,7 +2,7 @@
 title: Escopo de dados
 status: canonical
 owner: security
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Escopo de dados
@@ -21,10 +21,11 @@ Este documento explica, para o Breno - LawSystem:
 - a relação entre escopo, equipe, responsabilidade e vínculo processual.
 
 Este documento não define a regra final de escopo por módulo — isso é
-tratado, quando existir decisão aprovada, na futura matriz de
-autorização citada em [authorization-model.md](authorization-model.md).
-Aqui são registrados apenas o que está constatado no código e a direção
-funcional já registrada nas especificações de módulo.
+tratado em [authorization-matrix.md](authorization-matrix.md), na
+coluna "Escopo necessário" de cada operação, quando já existir decisão
+aprovada para o módulo em questão. Aqui são registrados apenas o que
+está constatado no código e a direção funcional já registrada nas
+especificações de módulo.
 
 ## Conceito de escopo
 
@@ -77,9 +78,9 @@ funcional já registrada nas especificações de módulo.
   registrado em [authorization-model.md](authorization-model.md),
   nenhuma view fora de `apps/accounts` lê `nivel_acesso_modulo()` para
   filtrar um `QuerySet`. A decomposição definitiva desse campo entre
-  escopo, visibilidade e modalidade de acesso depende da futura matriz
-  de autorização e da implementação efetiva de escopo descrita neste
-  documento.
+  escopo, visibilidade e modalidade de acesso depende de
+  [authorization-matrix.md](authorization-matrix.md) e da implementação
+  efetiva de escopo descrita neste documento.
 - Regras para administrador: nenhuma regra de escopo é aplicada a
   administradores do escritório em nenhum módulo operacional, pois
   nenhum módulo operacional aplica escopo a nenhum usuário — o efeito

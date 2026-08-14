@@ -2,7 +2,7 @@
 title: Comandos de desenvolvimento
 status: canonical
 owner: development
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Comandos de desenvolvimento
@@ -39,17 +39,14 @@ seguintes:
 - **Python** — `requirements/base.txt` fixa `django>=5.2,<5.3` e
   `django-tenants==3.10.1`, mas nenhum arquivo do repositório
   (`.python-version`, `pyproject.toml`, ou equivalente) fixa uma versão
-  de Python. `README.md` (raiz do repositório) indica "Python 3.12+"
-  como pré-requisito de desenvolvimento — registrado aqui apenas como
-  pré-requisito documentado, não como versão tecnicamente pinada.
+  de Python. Nenhuma versão mínima de Python está documentada
+  atualmente em nenhuma fonte do repositório.
 - **PostgreSQL** — obrigatório. `DATABASES["default"]["ENGINE"]`, em
   `config/settings/base.py`, é `"django_tenants.postgresql_backend"`,
-  que não funciona com SQLite. `README.md` (raiz) indica "PostgreSQL
-  15+" como pré-requisito; nenhum arquivo do repositório fixa
-  tecnicamente essa versão.
+  que não funciona com SQLite. Nenhuma versão de PostgreSQL está
+  tecnicamente fixada em nenhum arquivo do repositório.
 - **Node.js / npm** — necessário apenas para compilar o CSS via
-  Tailwind (`package.json`). `README.md` (raiz) indica "Node.js 18+";
-  essa versão é apenas documentada ali, sem pin técnico correspondente:
+  Tailwind (`package.json`). Nenhuma versão mínima está documentada:
   `package.json` não declara campo `engines`, e não foi encontrado
   `.nvmrc` nem `.node-version` na raiz do repositório.
 
@@ -167,8 +164,8 @@ Nenhum comando de gestão customizado foi encontrado em
 | Migrar schemas de tenant | `python manage.py migrate_schemas` | Sim | Aplica migrations dos apps de `TENANT_APPS` a todos os schemas de tenant existentes; não executado neste lote |
 | Criar um tenant | `python manage.py create_tenant [--schema_name ...] [--nome ...] [--slug ...] [--ativo ...] [--domain-domain ...] [--domain-is_primary ...]` | Sim | Comando genérico de django-tenants, confirmado por `python manage.py help create_tenant` nesta auditoria. Seus argumentos (`--nome`, `--slug`, `--ativo`, `--domain-domain`, `--domain-is_primary`) correspondem diretamente aos campos de `Escritorio`/`Dominio` em `apps/saas_tenants/models.py` (`nome`, `slug`, `ativo`; `domain`, `is_primary`). Não executado neste lote; nenhum procedimento do repositório documenta seu uso — ver "Provisioning de tenant" abaixo |
 | Criar um domínio para um tenant existente | `python manage.py create_domain -s <schema> [--domain-domain ...] [--domain-is_primary ...]` | Sim | Confirmado por `python manage.py help create_domain` nesta auditoria. Não executado neste lote; nenhum procedimento do repositório documenta seu uso |
-| Criar superusuário em um schema de tenant | `python manage.py tenant_command createsuperuser --schema=<schema>` ou `python manage.py create_tenant_superuser -s <schema> --username ...` | Sim | O primeiro é usado por `README.md` (raiz) como procedimento operacional; o segundo é um comando dedicado de django-tenants, confirmado por `python manage.py help create_tenant_superuser` nesta auditoria, mas não referenciado em nenhum procedimento documentado do repositório. Nenhum dos dois foi executado neste lote |
-| Console de shell do Django | `python manage.py shell` | Neutro por si; mutante conforme uso | `README.md` (raiz) demonstra seu uso para criar `Escritorio`/`Dominio` via ORM — nesse uso é mutante |
+| Criar superusuário em um schema de tenant | `python manage.py tenant_command createsuperuser --schema=<schema>` ou `python manage.py create_tenant_superuser -s <schema> --username ...` | Sim | Ambos são comandos confirmados no ambiente django-tenants auditado (o segundo por `python manage.py help create_tenant_superuser` nesta auditoria), mas sua existência não define uma sequência canônica de provisioning; nenhum procedimento documentado do repositório referencia o uso de nenhum dos dois. Nenhum foi executado nesta auditoria documental |
+| Console de shell do Django | `python manage.py shell` | Neutro por si; mutante conforme uso | Pode ser usado para criar `Escritorio`/`Dominio` via ORM diretamente — nesse uso é mutante. Nenhum procedimento documentado do repositório registra esse uso como fluxo oficial |
 | Ajuda sobre comandos disponíveis | `python manage.py help` / `python manage.py help <comando>` | Não | Executado nesta auditoria |
 
 ### Provisioning de tenant
@@ -178,39 +175,22 @@ Nenhum comando de gestão customizado foi encontrado em
 automaticamente ao salvar um `Escritorio`) e `Dominio(DomainMixin)`
 associando um domínio a um `Escritorio`.
 
-`README.md` (raiz do repositório) descreve, como procedimento
-atualmente documentado ali — não como fonte canônica de arquitetura —,
-a criação manual de um tenant público e de um escritório de teste via
-`python manage.py shell`, instanciando `Escritorio`/`Dominio`
-diretamente pelo ORM. Este documento cita esse procedimento apenas como
-o fluxo observável no `README.md` da raiz, não como um fluxo canônico
-de `docs/development/`: o próprio `README.md` (raiz) contém, em outras
-seções, informação desatualizada sobre a fase do produto (ver
-[current-state.md](../delivery/current-state.md)), o que reduz sua
-autoridade como fonte operacional isolada. Este documento não usa o
-`README.md` da raiz, isoladamente, como prova de versão mínima técnica,
-de ordem obrigatória de comandos, de comportamento de migrations, ou de
-que a criação do tenant público/escritório demo descrita ali seja a
-forma correta ou atual de provisionar um tenant.
+django-tenants disponibiliza no ambiente instalado os comandos
+genéricos `create_tenant`, `create_domain` e `create_tenant_superuser`
+(confirmados por `python manage.py help <comando>` nesta auditoria),
+cujos argumentos são compatíveis com os campos de `Escritorio`/
+`Dominio`.
 
-Separadamente, django-tenants disponibiliza no ambiente instalado os
-comandos genéricos `create_tenant`, `create_domain` e
-`create_tenant_superuser` (confirmados por `python manage.py help
-<comando>` nesta auditoria), cujos argumentos são compatíveis com os
-campos de `Escritorio`/`Dominio`. Nenhum procedimento do repositório
-(README da raiz ou qualquer documento canônico) documenta o uso desses
-três comandos como alternativa ao fluxo manual via `shell`.
+Os comandos acima existem tecnicamente, mas sua existência não define
+por si só uma sequência canônica de provisioning. Não foi identificado
+no repositório um procedimento oficial completo que determine a ordem,
+os parâmetros e a política operacional de criação de tenants — nem em
+`README.md` (raiz), nem em nenhum documento canônico de `docs/`.
 
 **Conclusão constatada**: o repositório não possui, hoje, um fluxo
-canônico próprio de provisioning de tenant. Existem dois caminhos
-tecnicamente possíveis e comprovados pelo ambiente instalado — o
-procedimento manual via `shell` demonstrado no `README.md` da raiz, e
-os comandos genéricos `create_tenant`/`create_domain`/
-`create_tenant_superuser` de django-tenants — mas nenhum dos dois está
-registrado como o procedimento oficial em uma fonte canônica de
-`docs/`. Este documento não decide qual dos dois deve ser adotado; essa
-decisão, se necessária, pertence a um Work Item ou documento canônico
-futuro, não a este lote de auditoria.
+canônico próprio de provisioning de tenant. Este documento não decide
+qual sequência deve ser adotada; essa decisão, se necessária, pertence
+a um Work Item ou documento canônico futuro, não a este lote.
 
 ## Django
 

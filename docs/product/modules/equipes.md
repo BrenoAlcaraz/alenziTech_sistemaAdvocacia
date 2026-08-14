@@ -2,7 +2,7 @@
 title: Equipes
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0002
   - PDR-0009
@@ -33,8 +33,10 @@ escopo — não uma concessão automática decorrente apenas de ser
 gerente.
 
 Esta seção descreve necessidade funcional, não uma matriz técnica
-definitiva de permissões; essa matriz pertence a `docs/security/`,
-ainda não criado.
+definitiva de permissões; essa matriz é
+[docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+O estado de aplicação dessas regras no backend deve ser verificado no
+código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 
 ## Conceitos e entidades
 

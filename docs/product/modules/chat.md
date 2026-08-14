@@ -2,7 +2,7 @@
 title: Chat
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs: []
 ---
 
@@ -31,9 +31,10 @@ Esta especificação não afirma que comunicação em tempo real já existe.
 - Participantes de uma conversa pertencem ao mesmo tenant.
 - Um usuário acessa somente as conversas das quais participa, ou que
   seu escopo administrativo autorize.
-- O alcance exato de eventual acesso administrativo a conversas
-  pertence à futura matriz de autorização, em `docs/security/`, ainda
-  não criado.
+- O alcance exato de eventual acesso administrativo a conversas é
+  definido em [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - Acesso a mensagens e anexos deve ser verificado no backend; conhecer
   o identificador de uma conversa ou de um arquivo não concede acesso
   a ele.

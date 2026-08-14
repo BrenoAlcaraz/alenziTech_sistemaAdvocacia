@@ -2,7 +2,7 @@
 title: Dashboard
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0004
   - PDR-0009
@@ -36,8 +36,10 @@ futuro, não desta especificação.
   incluindo o painel do gestor.
 - Um usuário comum acessa somente indicadores compatíveis com seu
   papel e escopo de dados.
-- O alcance exato pertence à futura matriz de autorização, em
-  `docs/security/`, ainda não criado.
+- O alcance exato é definido em
+  [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - O backend deve filtrar agregações e registros de origem; ocultar ou
   exibir um card na interface não substitui essa filtragem.
 

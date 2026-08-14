@@ -2,7 +2,7 @@
 title: Clientes
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0001
   - PDR-0009
@@ -37,9 +37,11 @@ desse escopo.
 
 Esta seção descreve uma necessidade funcional, não uma matriz técnica
 definitiva de permissões. A matriz final de papéis, habilitações e
-escopo pertence a `docs/security/`, ainda não criado. A autorização e
-o escopo de dados devem ser aplicados no backend, não apenas ocultando
-elementos de interface.
+escopo é [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+O estado de aplicação dessas regras no backend deve ser verificado no
+código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+A autorização e o escopo de dados devem ser aplicados no backend, não
+apenas ocultando elementos de interface.
 
 ## Conceitos e entidades
 

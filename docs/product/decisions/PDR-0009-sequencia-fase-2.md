@@ -4,7 +4,7 @@ title: Sequência revisada da Fase 2
 status: accepted
 owner: product-and-engineering
 decision_date: 2026-08-05
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 supersedes: []
 source_files:
   - docs/history/source-material/2026-08-05-decisoes-funcionais-consolidadas-original.txt
@@ -49,8 +49,9 @@ A Fase 2 segue a seguinte ordem de dependência entre rodadas:
 
 - Esta sequência representa dependências de produto entre as rodadas,
   não uma evidência de que qualquer rodada esteja concluída.
-- O estado real de conclusão de cada rodada é responsabilidade de um
-  documento de current-state futuro, não deste PDR.
+- O estado real de conclusão de cada rodada é responsabilidade de
+  [docs/delivery/current-state.md](../../delivery/current-state.md), não
+  deste PDR.
 - Uma rodada pode ser dividida internamente em tarefas e mini-etapas,
   desde que a ordem entre rodadas seja respeitada.
 - Migrations relevantes produzidas em qualquer rodada exigem auditoria e

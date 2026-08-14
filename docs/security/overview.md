@@ -2,7 +2,7 @@
 title: Visão geral de segurança
 status: canonical
 owner: security
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 ---
 
 # Visão geral de segurança
@@ -34,9 +34,9 @@ Este documento define, para o Breno - LawSystem:
 
 Este documento, [authorization-model.md](authorization-model.md) e
 [data-scope.md](data-scope.md) formam o Lote 4B1 da reorganização
-documental do repositório. Eles não substituem uma matriz técnica
-definitiva por módulo; [authorization-model.md](authorization-model.md)
-registra essa matriz como um documento futuro, ainda não criado.
+documental do repositório. Eles não substituem a matriz técnica
+definitiva por módulo, que é
+[authorization-matrix.md](authorization-matrix.md) (Lote 4B2).
 
 ## Fronteiras de segurança
 
@@ -311,8 +311,8 @@ auditoria, não por inferência:
 
 - Este documento não é um threat model completo.
 - Não é a matriz técnica definitiva de papéis, permissões, habilitações
-  e escopo por módulo — [authorization-model.md](authorization-model.md)
-  registra essa matriz como um documento futuro, ainda não criado.
+  e escopo por módulo — essa matriz é
+  [authorization-matrix.md](authorization-matrix.md).
 - Não define política de senhas além do que o Django já aplica por
   padrão.
 - Não define infraestrutura de produção.

@@ -2,7 +2,7 @@
 title: Inteligência Artificial
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-13
 related_pdrs:
   - PDR-0007
   - PDR-0008
@@ -55,8 +55,10 @@ planejada:
 - O acesso a cada documento utilizado pela IA deve ser controlado no
   backend, do mesmo modo que o acesso direto a esse documento.
 - Conhecer o identificador de um documento não concede acesso a ele.
-- O alcance exato de autorização sobre a IA pertence à futura matriz
-  de autorização, em `docs/security/`, ainda não criado.
+- O alcance exato de autorização sobre a IA é definido em
+  [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
+  O estado de aplicação dessas regras no backend deve ser verificado no
+  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 - Ocultar ou exibir um elemento de interface não substitui essa
   verificação.
 
