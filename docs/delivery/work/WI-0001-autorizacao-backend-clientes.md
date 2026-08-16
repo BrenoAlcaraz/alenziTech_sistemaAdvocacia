@@ -2,14 +2,14 @@
 title: WI-0001 — Autorização backend de Clientes
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-16
 ---
 
 # WI-0001 — Autorização backend de Clientes
 
 ## Estado
 
-ready
+done
 
 ## Fase do roadmap
 
@@ -327,31 +327,53 @@ habilitação existente.
 
 ## Critérios de aceite
 
-- [ ] toda rota backend existente de Clientes (`lista`, `detalhe`,
+- [x] toda rota backend existente de Clientes (`lista`, `detalhe`,
   `novo`, `editar`, `desativar`, `inativos`, `reativar`) exige
-  autorização do módulo `clientes` via `tem_permissao_modulo()`;
-- [ ] criação (`novo`) exige a habilitação existente `clientes_criar`
-  via `tem_habilitacao()`;
-- [ ] edição (`editar`) exige a habilitação existente `clientes_editar`
-  via `tem_habilitacao()`;
-- [ ] nenhuma habilitação nova foi criada;
-- [ ] `nivel` não foi lido nem reinterpretado como autorização de ação;
-- [ ] negação ocorre no backend antes de qualquer leitura ou mutação de
-  `Cliente`;
-- [ ] operações negadas não alteram nenhum registro de `Cliente`;
-- [ ] um usuário autorizado (módulo + habilitação, quando aplicável)
-  continua alcançando os sete fluxos existentes normalmente;
-- [ ] testes negativos do enforcement de módulo existem para as sete
-  rotas;
-- [ ] testes negativos do enforcement de habilitação existem para
-  `novo` e `editar`;
-- [ ] escopo de dados (por `responsavel`, IDOR intra-tenant) não foi
-  tratado como resolvido por este item;
-- [ ] nenhuma migration foi criada;
-- [ ] nenhum arquivo fora do escopo permitido foi modificado;
-- [ ] `docs/delivery/current-state.md` foi atualizado ao final se, e
-  somente se, o estado material descrito nele tiver mudado;
-- [ ] evidência de Git final foi registrada na seção "Evidência de
+  autorização do módulo `clientes` via `tem_permissao_modulo()` —
+  confirmado em `apps/clientes/views.py` (commit `da19001`) e por
+  `TestClientesAutorizacaoModuloNegado`/`...ModuloConcedido` em
+  `apps/clientes/tests/test_autorizacao.py`;
+- [x] criação (`novo`) exige a habilitação existente `clientes_criar`
+  via `tem_habilitacao()` — confirmado em `views.py::novo` e por
+  `TestClientesAutorizacaoHabilitacaoCriarAusente`;
+- [x] edição (`editar`) exige a habilitação existente `clientes_editar`
+  via `tem_habilitacao()` — confirmado em `views.py::editar` e por
+  `TestClientesAutorizacaoHabilitacaoEditarAusente`;
+- [x] nenhuma habilitação nova foi criada — `apps/accounts/permissoes_constants.py`
+  não foi alterado; apenas `HAB_CLIENTES_CRIAR`/`HAB_CLIENTES_EDITAR`,
+  já existentes, foram consumidas;
+- [x] `nivel` não foi lido nem reinterpretado como autorização de ação
+  — `nivel_acesso_modulo()` não é chamado em `apps/clientes/views.py`;
+- [x] negação ocorre no backend antes de qualquer leitura ou mutação de
+  `Cliente` — `raise PermissionDenied` é a primeira instrução após
+  `@login_required` em cada view, antes de `get_object_or_404`/`.save()`;
+- [x] operações negadas não alteram nenhum registro de `Cliente` —
+  comprovado por `Cliente.objects.count()`/`refresh_from_db()` nos
+  testes negativos de módulo e de habilitação;
+- [x] um usuário autorizado (módulo + habilitação, quando aplicável)
+  continua alcançando os sete fluxos existentes normalmente —
+  comprovado por `TestClientesAutorizacaoModuloConcedido` (11 testes);
+- [x] testes negativos do enforcement de módulo existem para as sete
+  rotas — `TestClientesAutorizacaoModuloNegado` (11 testes);
+- [x] testes negativos do enforcement de habilitação existem para
+  `novo` e `editar` — `TestClientesAutorizacaoHabilitacaoCriarAusente`/
+  `...EditarAusente` (4 testes);
+- [x] escopo de dados (por `responsavel`, IDOR intra-tenant) não foi
+  tratado como resolvido por este item — preservado como lacuna em
+  "Fora de escopo" deste WI e em `current-state.md`; achado adicional
+  registrado em "Achados fora do escopo";
+- [x] nenhuma migration foi criada — `python manage.py makemigrations
+  --check --dry-run` → "No changes detected";
+- [x] nenhum arquivo fora do escopo permitido foi modificado — commit
+  `da19001` contém exatamente `apps/clientes/views.py`,
+  `apps/clientes/tests/__init__.py`,
+  `apps/clientes/tests/test_autorizacao.py`; esta etapa de encerramento
+  altera apenas `docs/delivery/current-state.md` e este próprio WI;
+- [x] `docs/delivery/current-state.md` foi atualizado ao final se, e
+  somente se, o estado material descrito nele tiver mudado — atualizado
+  nesta etapa, pois as views de Clientes passaram a consultar o kernel
+  de autorização;
+- [x] evidência de Git final foi registrada na seção "Evidência de
   execução" deste item.
 
 ## Testes esperados
@@ -480,14 +502,35 @@ registrar "testes passam" sem evidência de execução real.
 
 ## Quality gates
 
-- [ ] testes alvo executados (`apps.clientes.tests.test_autorizacao`)
-- [ ] testes negativos executados (módulo e habilitação)
-- [ ] suíte relevante executada (`apps.clientes`, `apps.accounts`)
-- [ ] `git diff --check`
-- [ ] `git status --short`
-- [ ] `git diff --name-status`
-- [ ] diff revisado integralmente, manualmente
-- [ ] resultado comparado com os critérios de aceite deste item
+- [x] testes alvo executados (`apps.clientes.tests.test_autorizacao`)
+- [x] testes negativos executados (módulo e habilitação)
+- [x] suíte relevante executada (`apps.clientes`, `apps.accounts`)
+- [x] `git diff --check`
+- [x] `git status --short`
+- [x] `git diff --name-status`
+- [x] diff revisado integralmente, manualmente
+- [x] resultado comparado com os critérios de aceite deste item
+
+### Resultados registrados
+
+```text
+python manage.py test apps.clientes -v 2
+→ 26 testes
+→ OK
+
+python manage.py test apps.accounts -v 2
+→ 86 testes
+→ OK
+
+python manage.py check
+→ System check identified no issues (0 silenced).
+
+python manage.py makemigrations --check --dry-run
+→ No changes detected
+
+git diff --check (working tree e staged, em cada etapa)
+→ aprovado, sem saída
+```
 
 ## Templates / UI e camada de apresentação
 
@@ -567,18 +610,65 @@ Fase A não se encerra com um único módulo autorizado.
   [current-state.md](../current-state.md#clientes). Impacto: nenhum
   para autorização deste item. Destino provável: infraestrutura de
   arquivos, fora do escopo de qualquer fase de autorização.
+- **Escopo por responsável não restringe `lista`/`detalhe`/`editar`,
+  mesmo com `nivel=somente_seus` configurado.** Evidência: teste manual
+  do Product Owner antes do commit de implementação, com um usuário
+  configurado com módulo `clientes` ativo e `nivel=somente_seus`,
+  confirmou que `lista`, `detalhe` e `editar` continuam alcançando
+  clientes de outros responsáveis — consistente com a leitura de
+  código já registrada acima ("Ausência de escopo de dados em
+  Clientes") e em
+  [../../security/data-scope.md](../../security/data-scope.md#aplicação-por-módulo):
+  `nivel` é resolvido pelo kernel, mas nenhuma view de Clientes o lê
+  para filtrar `QuerySet`, conforme a regra deste item em "`nivel`
+  (nível de acesso técnico atual)". Impacto: nenhum além do já
+  registrado — não é regressão nem requisito não cumprido deste item.
+  Classificação: fora do escopo do WI-0001; Fase B — escopo de dados;
+  não é tratado como bug deste WI. Nota lateral: as equipes usadas
+  nesse teste manual (algumas inativas) foram criadas pelo Product
+  Owner para investigação exploratória; equipes não participam
+  atualmente do escopo de Clientes, e a relação entre escopo
+  individual e escopo por equipe permanece fora deste WI, sem
+  requisito novo derivado daqui.
+- **Tela "Permissões" não expõe habilitações
+  (`HabilitacaoPapel`/`HabilitacaoUsuario`), incluindo
+  `clientes_criar`/`clientes_editar`.** Evidência: leitura direta de
+  `apps/configuracoes/views.py::permissoes` confirma que a view lê e
+  grava exclusivamente `PermissaoPapel` por `tipo_conta` legado
+  (`limitado`/`financeiro`) — `ativo` e `nivel` por módulo — sem
+  nenhuma referência a `HabilitacaoPapel`/`HabilitacaoUsuario` em
+  `apps/configuracoes` (busca por `Habilitacao` no diretório do app não
+  retorna nenhum arquivo). Impacto: agora que este item aplica
+  `tem_habilitacao()` em `novo`/`editar` de Clientes, um Administrador
+  do escritório não possui, na interface de produto atual, nenhuma
+  tela para conceder ou revogar `clientes_criar`/`clientes_editar` a um
+  papel ou usuário. Hoje não existe interface de produto nem interface
+  no Django Admin para conceder ou revogar essas habilitações —
+  `PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `PermissaoUsuario`,
+  `HabilitacaoPapel` e `HabilitacaoUsuario` não estão registrados em
+  nenhum `admin.py` do projeto. Alterações exigem um mecanismo técnico
+  direto, como ORM/shell, migration de dados ou acesso direto ao banco.
+  Não é falha de segurança (o backend nega por padrão na ausência de
+  concessão), mas é uma lacuna operacional que só se torna visível
+  depois deste item. Destino provável: item futuro de
+  Configurações, relacionado à lacuna de administração de
+  `PapelAcesso`/habilitações já registrada em
+  [current-state.md](../current-state.md#configurações); nenhum Work
+  Item específico é definido por este registro.
 
 ## Evidência de execução
 
-Este Work Item ainda **não foi executado** — apenas preparado. A seção
-abaixo registra a fotografia usada para criar o item, não evidência de
-uma implementação futura.
+Este Work Item foi preparado em um lote e implementado em lote(s)
+posteriores. Esta seção preserva, distintamente, a evidência de
+preparação (histórica, não sobrescrita) e a evidência real de
+execução/implementação.
 
-### Estado inicial
+### Preparação (histórico)
 
 Branch: `docs/reorganizacao-harness`
 
-HEAD: `5be0395` — "docs: definir protocolo de work items"
+HEAD registrado na preparação: `5be0395` — "docs: definir protocolo de
+work items"
 
 Commit anterior: `68b0551` — "docs: registrar estado atual e roadmap de
 entrega"
@@ -587,45 +677,88 @@ Git status no início desta preparação: um arquivo não rastreado, já
 presente no diretório de trabalho antes do início desta preparação, sem
 relação com o escopo deste item, e nenhum arquivo em staging.
 
-> Esta é a evidência de preparação do item, não evidência da futura
-> implementação.
+Arquivos alterados neste lote de preparação: nenhum — o lote criou
+apenas `docs/delivery/work/WI-0001-autorizacao-backend-clientes.md`.
 
-### Arquivos alterados
+Testes executados neste lote de preparação: nenhum.
 
-Nenhum — este lote cria apenas
-`docs/delivery/work/WI-0001-autorizacao-backend-clientes.md`.
+Validações executadas neste lote de preparação: apenas leitura —
+`git status --short`, `git diff --stat`, `git diff --stat --cached`,
+`find docs/delivery/work -maxdepth 1 -type f`, e checagens de conteúdo
+do arquivo criado (front matter, seção "Estado", habilitações citadas,
+tratamento de `nivel`, tratamento de escopo, proibição de migrations,
+ausência de referências indevidas, ausência de decisões em aberto não
+sustentadas pelas fontes lidas).
 
-### Testes executados
+Resultado deste lote: Work Item criado e pronto para execução futura
+(`ready`). Nenhuma implementação de código, teste, migration ou
+template ocorreu neste lote.
 
-Nenhum. Este lote não executa testes, apenas cria o contrato
-operacional do Work Item.
+> A subseção acima é a evidência de preparação do item, distinta da
+> evidência de execução/implementação real registrada abaixo.
 
-### Validações executadas
+### Execução (implementação)
 
-Apenas leitura: `git status --short`, `git diff --stat`, `git diff
---stat --cached`, `find docs/delivery/work -maxdepth 1 -type f`, e
-checagens de conteúdo do arquivo criado (front matter, seção "Estado",
-habilitações citadas, tratamento de `nivel`, tratamento de escopo,
-proibição de migrations, ausência de referências indevidas, ausência de
-decisões em aberto não sustentadas pelas fontes lidas).
+Branch: `docs/reorganizacao-harness`.
 
-### Resultado
+HEAD inicial da execução: `ff0cf88` — "docs: concluir reorganizacao
+documental" — reconfirmado por preflight de Git (`git branch
+--show-current`, `git log -1 --oneline`, `git status --short`, `git
+status -sb`) imediatamente antes de iniciar a Camada 1, com working
+tree limpo. Distinto do HEAD registrado na preparação (`5be0395`);
+entre `5be0395` e `ff0cf88` houve apenas commits `docs:` de
+reorganização documental, sem alteração de código funcional.
 
-Work Item criado e pronto para execução futura (`ready`). Nenhuma
-implementação de código, teste, migration ou template ocorreu neste
-lote.
+Commit de implementação: `da19001` — "feat(clientes): aplicar
+autorização de módulo e habilitação nas views".
+
+Arquivos do commit de implementação:
+
+- `apps/clientes/views.py` (modificado);
+- `apps/clientes/tests/__init__.py` (novo);
+- `apps/clientes/tests/test_autorizacao.py` (novo).
+
+Documentação de fechamento atualizada nesta etapa (ainda não
+commitada):
+
+- `docs/delivery/current-state.md`;
+- `docs/delivery/work/WI-0001-autorizacao-backend-clientes.md` (este
+  arquivo).
+
+Testes executados na implementação:
+
+- `python manage.py test apps.clientes.tests.test_autorizacao` — Camada
+  1 e Camada 2, em lotes sucessivos — `OK`;
+- `python manage.py test apps.clientes` — 26 testes — `OK`;
+- `python manage.py test apps.accounts` — 86 testes — `OK`;
+- `python manage.py check` — "System check identified no issues (0
+  silenced)";
+- `python manage.py makemigrations --check --dry-run` — "No changes
+  detected";
+- `git diff --check` (working tree e staged, em cada etapa) — sem
+  saída, aprovado.
+
+Estado do Git nesta etapa: o commit documental de encerramento (que
+conterá esta atualização do WI e de `current-state.md`) ainda não
+existe nesta etapa de preparação — seu hash não é registrado aqui
+porque só é conhecido depois que o commit for criado.
 
 ### Commit
 
-Ainda não executado.
+Commit de implementação: `da19001` — "feat(clientes): aplicar
+autorização de módulo e habilitação nas views" (ver "Execução
+(implementação)" acima).
+
+Commit documental de encerramento: ainda não executado nesta etapa.
 
 ## Encerramento
 
-- [ ] critérios de aceite verificados;
-- [ ] testes/validações registrados;
-- [ ] diff revisado;
-- [ ] escopo respeitado;
-- [ ] current-state atualizado quando aplicável;
-- [ ] roadmap atualizado somente se necessário;
-- [ ] achados laterais registrados;
-- [ ] Git final registrado.
+- [x] critérios de aceite verificados;
+- [x] testes/validações registrados;
+- [x] diff revisado;
+- [x] escopo respeitado;
+- [x] current-state atualizado quando aplicável;
+- [x] roadmap atualizado somente se necessário — não foi necessário,
+  não foi alterado;
+- [x] achados laterais registrados;
+- [x] Git final registrado.
