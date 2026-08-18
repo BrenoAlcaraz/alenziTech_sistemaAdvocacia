@@ -63,10 +63,10 @@ class ClientesAutorizacaoBase(TenantTestCase):
             papel=papel, tipo_conta=None, modulo=modulo, item=item, ativo=ativo
         )
 
-    def _cliente(self, **kwargs):
+    def _cliente(self, *, responsavel, **kwargs):
         defaults = {"nome_razao_social": "Cliente Teste", "tipo": "PF"}
         defaults.update(kwargs)
-        return Cliente.objects.create(**defaults)
+        return Cliente.objects.create(responsavel=responsavel, **defaults)
 
 
 class TestClientesAutorizacaoModuloNegado(ClientesAutorizacaoBase):
@@ -88,9 +88,11 @@ class TestClientesAutorizacaoModuloNegado(ClientesAutorizacaoBase):
         super().setUp()
         self.user = self._user("sem_modulo_clientes")
         self.client.force_login(self.user)
-        self.cliente_ativo = self._cliente(nome_razao_social="Cliente Ativo")
+        self.cliente_ativo = self._cliente(
+            nome_razao_social="Cliente Ativo", responsavel=self.user
+        )
         self.cliente_inativo = self._cliente(
-            nome_razao_social="Cliente Inativo", ativo=False
+            nome_razao_social="Cliente Inativo", ativo=False, responsavel=self.user
         )
 
     def test_lista_negada(self):
@@ -194,9 +196,11 @@ class TestClientesAutorizacaoModuloConcedido(ClientesAutorizacaoBase):
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_CRIAR)
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_EDITAR)
         self.client.force_login(self.user)
-        self.cliente_ativo = self._cliente(nome_razao_social="Cliente Ativo")
+        self.cliente_ativo = self._cliente(
+            nome_razao_social="Cliente Ativo", responsavel=self.user
+        )
         self.cliente_inativo = self._cliente(
-            nome_razao_social="Cliente Inativo", ativo=False
+            nome_razao_social="Cliente Inativo", ativo=False, responsavel=self.user
         )
 
     def test_lista_autorizada(self):
@@ -351,7 +355,9 @@ class TestClientesAutorizacaoHabilitacaoEditarAusente(ClientesAutorizacaoBase):
         # Nenhuma HabilitacaoPapel para HAB_CLIENTES_EDITAR — módulo aberto,
         # habilitação de edição ausente.
         self.client.force_login(self.user)
-        self.cliente_ativo = self._cliente(nome_razao_social="Cliente Ativo")
+        self.cliente_ativo = self._cliente(
+            nome_razao_social="Cliente Ativo", responsavel=self.user
+        )
 
     def test_editar_get_negado(self):
         r = self.client.get(

@@ -69,6 +69,19 @@
         <label class="label">Observações</label>
         {{ form.observacoes }}
       </div>
+
+      <div class="col-span-2">
+        <label class="label">Responsável</label>
+        {% if is_admin %}
+          <input type="text" id="filtro_responsavel" class="input mb-2"
+                 placeholder="Pesquisar por nome de usuário...">
+          {{ form.responsavel }}
+        {% else %}
+          <div class="input bg-gray-50 text-gray-500 cursor-not-allowed">
+            {{ responsavel_exibido.get_full_name|default:responsavel_exibido.username }}
+          </div>
+        {% endif %}
+      </div>
     </div>
 
     {% if form.errors %}
@@ -97,5 +110,15 @@
   }
 
   selecionarTipo(document.getElementById("id_tipo").value || "PF");
+
+  {% if is_admin %}
+  document.getElementById("filtro_responsavel").addEventListener("input", function () {
+    var termo = this.value.toLowerCase();
+    var select = document.getElementById("id_responsavel");
+    Array.prototype.forEach.call(select.options, function (opt) {
+      opt.hidden = termo.length > 0 && opt.textContent.toLowerCase().indexOf(termo) === -1;
+    });
+  });
+  {% endif %}
 </script>
 {% endblock %}

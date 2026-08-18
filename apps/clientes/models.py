@@ -17,9 +17,7 @@ class Cliente(models.Model):
     observacoes = models.TextField(blank=True)
     responsavel = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        on_delete=models.PROTECT,
         related_name="clientes_responsaveis",
         verbose_name="Responsável",
     )

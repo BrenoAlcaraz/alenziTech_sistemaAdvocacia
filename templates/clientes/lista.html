@@ -14,6 +14,22 @@
   <a href="{% url 'clientes:novo' %}" class="btn-primary">+ Novo cliente</a>
 </div>
 
+{% if escopo_maximo == "todos" %}
+<div class="flex items-center gap-2 mb-4">
+  <a href="?escopo=todos"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Todos
+  </a>
+  <span class="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-50 text-gray-300 cursor-not-allowed" title="Em breve">
+    Da equipe
+  </span>
+  <a href="?escopo=somente_seus"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Somente os seus
+  </a>
+</div>
+{% endif %}
+
 {# Barra de busca visual — sem lógica real nesta fase #}
 {% include "components/search_bar.html" with placeholder="Buscar por nome ou documento..." %}
 

@@ -1,5 +1,9 @@
 from django import forms
+from django.contrib.auth import get_user_model
+
 from .models import Cliente
+
+User = get_user_model()
 
 
 class ClienteForm(forms.ModelForm):
@@ -33,3 +37,31 @@ class ClienteForm(forms.ModelForm):
                 "placeholder": "Informações adicionais...",
             }),
         }
+
+
+class ResponsavelChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        nome = obj.get_full_name()
+        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+
+
+class ClienteResponsavelForm(ClienteForm):
+    """
+    Variante de ClienteForm usada apenas pelo Administrador do escritório,
+    que também expõe e permite reatribuir o responsável do cliente.
+    """
+
+    responsavel = ResponsavelChoiceField(
+        queryset=User.objects.none(),
+        required=True,
+        label="Responsável",
+        widget=forms.Select(attrs={"class": "select", "id": "id_responsavel"}),
+    )
+
+    class Meta(ClienteForm.Meta):
+        fields = ClienteForm.Meta.fields + ["responsavel"]
+
+    def __init__(self, *args, usuarios_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if usuarios_queryset is not None:
+            self.fields["responsavel"].queryset = usuarios_queryset
