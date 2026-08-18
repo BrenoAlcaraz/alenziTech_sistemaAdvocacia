@@ -9,7 +9,7 @@ last_reviewed: 2026-08-18
 
 ## Estado
 
-in_progress
+done
 
 ## Fase do roadmap
 
@@ -716,14 +716,15 @@ Data: 2026-08-18
 
 ## Atualizações documentais esperadas
 
-`docs/delivery/current-state.md` deve ser atualizado ao final da
-implementação **somente se** o estado material mudar — por exemplo, se
-a subseção "Clientes" passar a refletir que escopo de dados por
-responsável está aplicado, o que hoje não reflete. Esta atualização
-pertence ao fechamento, após a validação manual do Product Owner —
-**não é feita nesta sessão de implementação**, conforme instrução
-explícita da sessão em curso. `docs/delivery/roadmap.md` não é
-atualizado por este item.
+`docs/delivery/current-state.md` foi atualizado no fechamento deste
+item, após a validação manual do Product Owner: a subseção "Clientes"
+passa a refletir que escopo de dados por responsável está aplicado,
+distinguindo escopo de leitura (`todos`/`somente_seus`) de autorização
+de mutação por responsabilidade — o que antes não refletia. Esta
+atualização foi feita no commit documental (H2), separado do commit de
+implementação (H1). `docs/delivery/roadmap.md` não foi atualizado por
+este item — a regra de progressão módulo a módulo já cobre este caso
+sem exigir edição.
 
 ## Achados fora do escopo
 
@@ -837,13 +838,13 @@ Contagem de Cliente.responsavel IS NULL no banco de desenvolvimento
 
 ### Resultado
 
-Implementação concluída e revisada nesta sessão (self-review integral
-do diff realizada). Critérios de aceite verificados com evidência de
-teste automatizado (ver "Critérios de aceite"). Validação manual do
-Product Owner **ainda não realizada** — pendente, conforme "Validação
-manual" acima; o item permanece `in_progress` até essa validação
-ocorrer e o fechamento documental (`current-state.md`) ser feito em
-sessão futura.
+Implementação concluída e revisada. Critérios de aceite verificados com
+evidência de teste automatizado (ver "Critérios de aceite"). Revisão
+técnica independente (Codex) encontrou dois achados e uma implicação de
+produto correlata, todos corrigidos antes do commit de implementação —
+ver "Correção pós-review" abaixo. Validação manual do Product Owner
+**aprovada** em 2026-08-18 (ver "Validação manual"). O item está
+`done`.
 
 ### Correção pós-review
 
@@ -931,17 +932,32 @@ alteração fora do escopo desta correção.
 
 ### Commit
 
-Não autorizado nesta sessão. Alterações deixadas em staging explícito,
-sem commit — ver "Encerramento".
+Commit de implementação (H1): `07675f7` — "feat(clientes): aplicar
+escopo e responsabilidade". Contém exatamente os arquivos listados em
+"Arquivos alterados" acima (código, testes, migration e este próprio
+Work Item, no estado em que se encontrava até a aprovação técnica e
+manual).
+
+Commit documental de encerramento (H2): registrado após este commit
+existir — ver `docs/delivery/current-state.md` para a atualização de
+estado correspondente; o hash de H2 não é referenciado aqui porque este
+arquivo é modificado pelo próprio H2.
 
 ## Encerramento
 
-- [ ] critérios de aceite verificados;
-- [ ] testes/validações registrados;
-- [ ] diff revisado;
-- [ ] escopo respeitado;
-- [ ] current-state atualizado quando aplicável — pendente, depende da
-  validação manual do Product Owner;
-- [ ] roadmap atualizado somente se necessário;
-- [ ] achados laterais registrados;
-- [ ] Git final registrado.
+- [x] critérios de aceite verificados;
+- [x] testes/validações registrados;
+- [x] diff revisado;
+- [x] escopo respeitado;
+- [x] current-state atualizado — módulo Clientes passa a refletir escopo
+  de dados aplicado, distinção leitura/mutação e responsabilidade
+  obrigatória;
+- [x] roadmap atualizado somente se necessário — não foi necessário,
+  não foi alterado: a regra de progressão módulo a módulo já presente em
+  `docs/delivery/roadmap.md` já cobre a conclusão da Fase B de Clientes
+  sem exigir edição;
+- [x] achados laterais registrados — ver "Achados fora do escopo"
+  (drift de `static/css/output.css`);
+- [x] Git final registrado — commit de implementação (H1) `07675f7`;
+  commit documental (H2) registrado em `docs/delivery/current-state.md`,
+  não autorreferenciado neste arquivo antes de existir.

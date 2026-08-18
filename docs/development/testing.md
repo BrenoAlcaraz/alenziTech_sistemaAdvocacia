@@ -15,12 +15,12 @@ existentes, sua organização, os comandos de execução e as limitações
 atuais conhecidas da suíte — incluindo uma divergência já observada
 entre comentários/docstrings de parte da suíte e o código-fonte atual.
 Nenhum teste foi executado no lote original deste documento; ele não
-afirmava resultado de execução (passou/falhou) para nenhum teste. A
-única exceção, registrada minimamente pela correção factual do WI-0001,
-é `apps/clientes/tests/test_autorizacao.py`, cuja execução (`OK`) é
-citada no inventário abaixo. Para os três arquivos de
-`apps/accounts/tests/`, este documento continua sem afirmar resultado
-de execução.
+afirmava resultado de execução (passou/falhou) para nenhum teste. As
+exceções, registradas minimamente pelas correções factuais do WI-0001 e
+do WI-0002, são `apps/clientes/tests/test_autorizacao.py` e
+`apps/clientes/tests/test_escopo.py`, cuja execução (`OK`) é citada no
+inventário abaixo. Para os três arquivos de `apps/accounts/tests/`,
+este documento continua sem afirmar resultado de execução.
 
 ## Runner atual
 
@@ -34,8 +34,8 @@ de execução.
   `tox.ini` nem `setup.cfg` na raiz. `pytest`/`pytest-django` não estão
   em `requirements/base.txt`, `requirements/development.txt` nem
   `requirements/production.txt`.
-- Os quatro arquivos de teste existentes (três em `apps/accounts/tests/`
-  e `apps/clientes/tests/test_autorizacao.py`) usam
+- Os cinco arquivos de teste existentes (três em `apps/accounts/tests/`
+  e os dois de `apps/clientes/tests/`) usam
   `django_tenants.test.cases.TenantTestCase` (de `django-tenants`, já
   uma dependência de `requirements/base.txt`) como classe base para a
   maior parte dos casos, além de `django.test.TestCase` puro em uma
@@ -55,16 +55,18 @@ de execução.
 
 Confirmado por `find apps -type f \( -name "test_*.py" -o -name
 "tests.py" \)` no HEAD auditado: três arquivos de
-`apps/accounts/tests/`, lidos integralmente nesta auditoria, mais
-`apps/clientes/tests/test_autorizacao.py`, acrescentado pelo WI-0001 e
-confirmado pela mesma busca:
+`apps/accounts/tests/`, lidos integralmente nesta auditoria, mais os
+dois arquivos de `apps/clientes/tests/` (`test_autorizacao.py`,
+acrescentado pelo WI-0001; `test_escopo.py`, acrescentado pelo
+WI-0002), confirmados pela mesma busca:
 
 | Arquivo | Área | Tipo de cobertura | Execução neste lote |
 | --- | --- | --- | --- |
 | `apps/accounts/tests/test_admin_tenant.py` (343 linhas) | Administrador do escritório: `usuario_admin_escritorio()`, `requer_admin_escritorio`, `tipo_conta_usuario()` | Teste Django com banco de tenant (todas as classes estendem `AdminTenantBase(TenantTestCase)`); exercita a função e o decorator diretamente sobre `User`/`PerfilUsuario`/`Group` via ORM, com `RequestFactory` para simular a requisição do decorator — não isolado de banco de dados | não executado |
 | `apps/accounts/tests/test_permissoes_kernel.py` (888 linhas) | Kernel de permissões e habilitações: `permissao_efetiva()`, `habilitacao_efetiva()`, precedência admin → individual → papel → grupo legado, multi-papel, níveis, contagem de queries | Teste de integração do kernel com models reais (`PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `HabilitacaoPapel`, `PermissaoUsuario`, `HabilitacaoUsuario`) via ORM, com banco de tenant (todas as classes estendem `KernelBase(TenantTestCase)`) e caracterização de número real de queries (`CaptureQueriesContext`) | não executado |
 | `apps/accounts/tests/test_interacoes_kernel.py` (724 linhas) | Interações do kernel (override individual + papel + grupo legado), contrato de valores de `origem`, `_maior_nivel()`, regressão de nível preservado, queries classificadas por tipo SQL, smoke HTTP de páginas | Teste de aplicação com banco de tenant (`InteracoesBase(TenantTestCase)`), incluindo queries classificadas por tipo SQL e smoke HTTP (`django.test.Client`, via `force_login`, sobre um conjunto fixo de rotas); a classe `TestMaiorNivelSeguranca` usa `django.test.TestCase` puro (sem tenant), testando `_maior_nivel()` isoladamente | não executado |
-| `apps/clientes/tests/test_autorizacao.py` (371 linhas, 26 testes) | Autorização de módulo (`tem_permissao_modulo`) e de habilitação (`tem_habilitacao`, `clientes_criar`/`clientes_editar`) nas sete views de `apps/clientes/views.py`, criado pelo WI-0001 | Teste Django com banco de tenant (`TenantTestCase`), sobre o mesmo padrão de fixtures de `apps/accounts/tests/`; cobre negação de módulo e de habilitação, ausência de mutação em operação negada, e preservação do comportamento de usuário autorizado | executado — `OK` (ver [WI-0001](../delivery/work/WI-0001-autorizacao-backend-clientes.md)) |
+| `apps/clientes/tests/test_autorizacao.py` (377 linhas, 26 testes) | Autorização de módulo (`tem_permissao_modulo`) e de habilitação (`tem_habilitacao`, `clientes_criar`/`clientes_editar`) nas sete views de `apps/clientes/views.py`, criado pelo WI-0001; fixture `_cliente()` adaptada pelo WI-0002 para exigir `responsavel` (schema tornado obrigatório), sem alterar nenhuma asserção | Teste Django com banco de tenant (`TenantTestCase`), sobre o mesmo padrão de fixtures de `apps/accounts/tests/`; cobre negação de módulo e de habilitação, ausência de mutação em operação negada, e preservação do comportamento de usuário autorizado | executado — `OK` (ver [WI-0001](../delivery/work/WI-0001-autorizacao-backend-clientes.md) e [WI-0002](../delivery/work/WI-0002-escopo-responsabilidade-clientes.md)) |
+| `apps/clientes/tests/test_escopo.py` (469 linhas, 31 testes) | Escopo de dados por `Cliente.responsavel` (`todos`/`somente_seus`), autorização sobre objeto (IDOR intra-tenant → 404), distinção entre escopo de leitura e autorização de mutação por responsabilidade, escalonamento de escopo negado (403), responsabilidade obrigatória e reatribuição restrita ao Administrador do escritório, criado pelo WI-0002 | Teste Django com banco de tenant (`TenantTestCase`), sobre o mesmo padrão de fixtures de `apps/clientes/tests/test_autorizacao.py`; cobre leitura (`lista`/`detalhe`/`inativos`) e mutação (`editar`/`desativar`/`reativar`) para `somente_seus`, `todos` (não administrador) e Administrador, incluindo o caso de não administrador com nível `todos` visualizando mas não mutando cliente alheio | executado — `OK` (ver [WI-0002](../delivery/work/WI-0002-escopo-responsabilidade-clientes.md)) |
 
 Nenhum outro app do repositório (`apps/processos`, `apps/tarefas`,
 `apps/financeiro`, `apps/agenda`, `apps/chat`, `apps/modelos`,
@@ -78,14 +80,14 @@ O padrão de organização de testes constatado no HEAD é
 `apps/<app>/tests/` como pacote Python: `apps/accounts/tests/` (com
 `__init__.py` implícito ao conter múltiplos arquivos `test_*.py`) e,
 desde o WI-0001, `apps/clientes/tests/` (`__init__.py` explícito mais
-`test_autorizacao.py`). Nenhum outro app possui essa estrutura ainda no
-HEAD auditado.
+`test_autorizacao.py` e, desde o WI-0002, `test_escopo.py`). Nenhum
+outro app possui essa estrutura ainda no HEAD auditado.
 
 ## Comandos
 
 Confirmados por `python manage.py help test` (executado nesta
 auditoria, sem alteração de estado) e pelo uso de `TenantTestCase`
-nos quatro arquivos existentes.
+nos cinco arquivos existentes.
 
 - **Teste alvo** — executa um método, uma classe ou um módulo
   específico:
@@ -195,18 +197,23 @@ identificada no código, consistente com
   conjunto fixo de rotas, cuja única asserção é a ausência de HTTP 500 —
   não é uma verificação de corretude de autorização por rota.
 - Desde o WI-0001, `apps/clientes` possui teste de autorização de
-  módulo e de habilitação (ver "Inventário atual"). Nenhum teste foi
-  identificado para os demais módulos operacionais fora de
-  `apps/accounts` (Processos, Tarefas, Agenda, Financeiro, Dashboard,
-  Chat, Modelos, Laboratório, Configurações). Para Clientes e para os
-  demais módulos, permanecem sem teste: escopo de dados; autorização
-  sobre objeto específico (IDOR intra-tenant); isolamento cross-tenant
-  explícito.
+  módulo e de habilitação; desde o WI-0002, possui também teste de
+  escopo de dados por responsável e de autorização sobre objeto (IDOR
+  intra-tenant) (ver "Inventário atual"). Nenhum teste foi identificado
+  para os demais módulos operacionais fora de `apps/accounts` e
+  `apps/clientes` (Processos, Tarefas, Agenda, Financeiro, Dashboard,
+  Chat, Modelos, Laboratório, Configurações). Para esses módulos,
+  permanecem sem teste: escopo de dados; autorização sobre objeto
+  específico (IDOR intra-tenant); isolamento cross-tenant explícito —
+  este último também ausente para Clientes, por decisão explícita
+  registrada no WI-0002 (ver "Testes esperados" do próprio item).
 - Os testes de `apps/accounts/tests/` não foram executados nesta
   auditoria — as afirmações sobre esses três arquivos descrevem o que
   existe no código-fonte, não o resultado de rodá-los. Os testes de
   `apps/clientes/tests/test_autorizacao.py` foram executados na
-  implementação do WI-0001, com resultado `OK`.
+  implementação do WI-0001, com resultado `OK`; os de
+  `apps/clientes/tests/test_escopo.py` foram executados na
+  implementação do WI-0002, com resultado `OK`.
 
 ## Divergências conhecidas na suíte
 
@@ -268,10 +275,11 @@ Ao ler ou executar esta suíte no futuro, distinguir sempre:
   sobre o resultado seria especulação, não evidência.
 
 Este documento afirma apenas "teste existe" para os três arquivos de
-`apps/accounts/tests/`, sem afirmação de "passou"/"falhou". Para
-`apps/clientes/tests/test_autorizacao.py`, a exceção mínima registrada
-pelo WI-0001 é "teste foi executado" e "passou" (`OK`), conforme
-"Inventário atual" acima.
+`apps/accounts/tests/`, sem afirmação de "passou"/"falhou". Para os
+dois arquivos de `apps/clientes/tests/`, as exceções mínimas registradas
+pelo WI-0001 (`test_autorizacao.py`) e pelo WI-0002 (`test_escopo.py`)
+são "teste foi executado" e "passou" (`OK`), conforme "Inventário
+atual" acima.
 
 ## Ferramentas não identificadas
 
@@ -288,5 +296,6 @@ runner de testes confirmado é exclusivamente o padrão do Django
 - [commands.md](commands.md)
 - [docs/delivery/work/README.md](../delivery/work/README.md)
 - [docs/delivery/work/WI-0001-autorizacao-backend-clientes.md](../delivery/work/WI-0001-autorizacao-backend-clientes.md)
+- [docs/delivery/work/WI-0002-escopo-responsabilidade-clientes.md](../delivery/work/WI-0002-escopo-responsabilidade-clientes.md)
 - [docs/delivery/current-state.md](../delivery/current-state.md#testes)
 - [docs/architecture/multitenancy.md](../architecture/multitenancy.md)

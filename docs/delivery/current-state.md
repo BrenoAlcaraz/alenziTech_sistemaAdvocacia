@@ -2,7 +2,7 @@
 title: Estado atual do produto
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-16
+last_reviewed: 2026-08-18
 ---
 
 # Estado atual do produto
@@ -29,17 +29,22 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 ## Referência do snapshot
 
 - Branch auditada: `docs/reorganizacao-harness`.
-- Commit HEAD auditado: `da19001` — "feat(clientes): aplicar
-  autorização de módulo e habilitação nas views".
-- Data da revisão: 2026-08-16.
+- Commit HEAD auditado: `07675f7` — "feat(clientes): aplicar escopo e
+  responsabilidade".
+- Data da revisão: 2026-08-18.
 - Esta revisão é incremental: a leitura completa, arquivo por arquivo,
-  descrita abaixo permanece a realizada em `a543c3f`. Entre `a543c3f` e
-  `da19001`, a única mudança de código funcional foi a implementação do
-  WI-0001 (`apps/clientes/views.py` e a criação de
-  `apps/clientes/tests/`), confirmada por `git diff a543c3f da19001`;
-  as seções "Visão executiva", "Accounts e autorização", "Clientes" e
-  "Testes" foram atualizadas para refletir essa mudança — as demais
-  seções continuam válidas sem nova leitura nesta revisão.
+  descrita abaixo permanece a realizada em `a543c3f`. Entre `da19001` e
+  `07675f7`, a única mudança de código funcional foi a implementação do
+  WI-0002 (`apps/clientes/models.py`, `apps/clientes/forms.py`,
+  `apps/clientes/views.py`, `apps/clientes/tests/test_autorizacao.py`,
+  `apps/clientes/tests/test_escopo.py`, a migration
+  `apps/clientes/migrations/0006_cliente_responsavel_obrigatorio.py`,
+  os templates `templates/clientes/lista.html`, `inativos.html`,
+  `form.html` e `templates/configuracoes/permissoes.html`), confirmada
+  por `git show --stat 07675f7`; as seções "Visão executiva", "Escopo de
+  dados", "Clientes" e "Testes" foram atualizadas para refletir essa
+  mudança — as demais seções continuam válidas sem nova leitura nesta
+  revisão.
 - `AGENTS.md` não foi usado como fonte para este documento, apenas
   observado como arquivo não rastreado presente no diretório de
   trabalho.
@@ -100,9 +105,9 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 | Multitenancy | Implementado | Isolamento por schema via `django-tenants`, `TenantMainMiddleware` primeiro na pilha, `SHARED_APPS`/`TENANT_APPS` separados | Sem estratégia de segregação de arquivos por tenant nem testes automatizados de isolamento cross-tenant identificados |
 | Accounts / autenticação | Parcialmente implementado | `auth.User` + `PerfilUsuario`; `login_view`/`logout_view` são as próprias views de sessão, sem decorator; views operacionais usam `@login_required`, rotas administrativas de `apps/configuracoes` usam `@requer_admin_escritorio` | Nenhuma rota, view ou template de alteração de senha foi identificado; `templates/configuracoes/index.html` exibe um `<button>` "Alterar senha" sem `href`/formulário/ação associada |
 | Autorização | Parcialmente implementado | Kernel dinâmico (`PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `PermissaoUsuario`, `HabilitacaoPapel`, `HabilitacaoUsuario`) implementado em `apps/accounts/permissoes.py`, com casos de teste em `apps/accounts/tests/` (86 testes, executados na implementação do WI-0001, resultado `OK`) | Clientes já aplica o kernel de autorização no backend (`tem_permissao_modulo()`/`tem_habilitacao()`, WI-0001); os demais módulos operacionais (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam com a lacuna registrada — nenhuma view fora de Clientes/`apps/accounts`/`apps/configuracoes` consulta esses helpers |
-| Escopo de dados | Não identificado | Helpers de equipe existem em `apps/accounts/escopo.py`, mas o próprio módulo declara que ainda não filtram nada | Nenhum módulo operacional filtra `QuerySet` por responsável, equipe ou participação |
+| Escopo de dados | Parcialmente implementado | Clientes aplica escopo de leitura (`todos`/`somente_seus`) por requisição em `lista`/`detalhe`/`inativos`, com autorização de mutação por responsabilidade (não-admin só edita/desativa/reativa clientes sob sua responsabilidade, mesmo com escopo de leitura `todos`) em `editar`/`desativar`/`reativar` (WI-0002); helpers de equipe em `apps/accounts/escopo.py` continuam não aplicados | Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat e Modelos continuam sem nenhum `QuerySet` filtrado por responsável, equipe ou participação |
 | Dashboard | Parcialmente implementado | Agrega dados reais de Clientes, Processos, Tarefas, Agenda e Financeiro, sem mocks | Agregações cobrem o tenant inteiro, sem respeitar escopo nem autorização financeira do usuário que consulta |
-| Clientes | Parcialmente implementado | CRUD funcional com `ativo`/`inativos`/`reativar`; vínculo `responsavel` preenchido na criação; autorização de módulo (`tem_permissao_modulo`) aplicada nas sete rotas, com `clientes_criar`/`clientes_editar` (`tem_habilitacao`) aplicadas em `novo`/`editar` (WI-0001) | Escopo de dados por `Cliente.responsavel`/equipe/`nivel` ainda não aplicado em listagem, detalhe ou carregamento por `pk` — autorização sobre objeto/IDOR intra-tenant não resolvida |
+| Clientes | Parcialmente implementado | CRUD funcional com `ativo`/`inativos`/`reativar`; autorização de módulo (`tem_permissao_modulo`) aplicada nas sete rotas, com `clientes_criar`/`clientes_editar` (`tem_habilitacao`) aplicadas em `novo`/`editar` (WI-0001); `Cliente.responsavel` obrigatório no schema, preenchido com `request.user` na criação por conta não-admin, selecionável apenas pelo Administrador do escritório; escopo de leitura `todos`/`somente_seus` por requisição em `lista`/`detalhe`/`inativos`; mutação (`editar`/`desativar`/`reativar`) restrita ao Administrador ou a `Cliente.responsavel == request.user`, independente do escopo de leitura; objeto fora do escopo aplicável retorna 404 (WI-0002) | Escopo por equipe ("da equipe") permanece apenas placeholder visual desabilitado, sem regra funcional nem persistência |
 | Processos | Parcialmente implementado | CRUD, movimentações, `ParteProcesso` (campo único `tipo`), `equipe` na criação | `ParteProcesso` não implementa as três dimensões de PDR-0001 (vínculo, posição estrutural, qualificação processual); sem escopo aplicado |
 | Tarefas | Parcialmente implementado | Criação de tarefa existe; na criação, `responsavel` recebe `request.user` sempre (`apps/tarefas/views.py::nova`); `TarefaForm` não expõe campo `responsavel`; status e reatribuição com preservação de `responsavel_original`/`status_original` no `POST` de edição | Delegação direta a outro usuário, prevista por PDR-0002, não está implementada; habilitação `tarefas_atribuir_outros` existe no kernel sem enforcement ou fluxo correspondente; campos `criador`/`atribuidor`/`destinatario_atribuicao`/`data_atribuicao` exigidos por PDR-0002 permanecem ausentes; sem escopo aplicado |
 | Agenda | Parcialmente implementado | Compromissos manuais e vinculados a processo/cliente, filtros por data/status | Sem validação de integridade cliente-processo; sem escopo por responsável/participante aplicado |
@@ -112,7 +117,7 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 | IA / Laboratório | Não identificado | `apps.laboratorio` é um shell visual com um model de placeholder | Nenhuma funcionalidade de IA jurídica implementada; pré-requisitos do PDR-0008 ainda não consolidados |
 | Configurações | Parcialmente implementado | Perfil pessoal, gestão de usuários/equipes/permissões legadas protegida por `@requer_admin_escritorio` | Administração de `PapelAcesso`/habilitações sem interface; identidade visual sem rota de edição no tenant |
 | Arquivos/anexos | Não identificado | Únicos uploads confirmados são avatar de usuário e identidade visual do escritório | Nenhum objeto interno (cliente, processo, tarefa etc.) possui campo de upload; sem estratégia de segregação por tenant |
-| Testes | Parcialmente implementado | Casos de teste extensos do kernel de permissões em `apps/accounts/tests/` (1952 linhas, 3 arquivos); execução não verificada nesta auditoria | Sem testes de escopo, de autorização por objeto ou de isolamento cross-tenant fora de `apps/accounts` |
+| Testes | Parcialmente implementado | Casos de teste extensos do kernel de permissões em `apps/accounts/tests/` (1952 linhas, 3 arquivos); execução não verificada nesta auditoria; Clientes possui testes de autorização de módulo/habilitação (WI-0001) e de escopo/responsabilidade/IDOR (WI-0002), executados com resultado `OK` | Sem testes de escopo, de autorização por objeto ou de isolamento cross-tenant fora de Clientes; sem teste cross-tenant explícito nem para Clientes |
 
 ## Plataforma e arquitetura
 
@@ -339,20 +344,44 @@ Resumo, com detalhe completo em
 - Apenas `equipe_padrao_para_usuario()` é consumida fora de
   `escopo.py`, e somente para pré-preencher `Processo.equipe` na
   criação — não filtra nenhuma leitura.
-- Nenhum módulo operacional (`apps.clientes`, `apps.processos`,
-  `apps.tarefas`, `apps.agenda`, `apps.financeiro`, `apps.dashboard`,
-  `apps.modelos`) filtra listagens por `responsavel`, `equipe`,
-  `participantes` ou `criado_por`.
-- Objetos de detalhe/edição/exclusão são carregados por
-  `get_object_or_404(Model, pk=pk, ...)`, no máximo com uma condição
-  de estado (`ativo=True`, `status=...`), nunca uma condição de posse.
+- **Clientes (WI-0002)** é o primeiro módulo operacional a aplicar
+  escopo de dados: `apps/clientes/views.py` lê
+  `nivel_acesso_modulo(request.user, "clientes")` para resolver, por
+  requisição, um escopo efetivo de leitura (`todos`/`somente_seus`),
+  ajustável pelo parâmetro `?escopo=` sem estado persistente (nunca
+  amplia acima do nível máximo autorizado; um valor ausente usa o
+  padrão, um valor presente inválido — incluindo string vazia — é
+  negado com 403). Distinção aplicada: `"todos"` é escopo de
+  **visualização** (`lista`/`detalhe`/`inativos` alcançam qualquer
+  cliente autorizado do tenant), não autorização de **mutação** — um
+  usuário não administrador, mesmo com nível máximo `todos`, só alcança
+  `editar`/`desativar`/`reativar` sobre clientes de sua própria
+  responsabilidade (`Cliente.responsavel == request.user`); apenas o
+  Administrador do escritório muta qualquer cliente. Um cliente fora do
+  escopo aplicável à operação retorna 404 (nunca carregado livremente e
+  validado depois). `Cliente.responsavel` é obrigatório no schema desde
+  o WI-0002; reatribuição de responsável é restrita ao Administrador do
+  escritório, com seleção limitada a usuários ativos do tenant atual.
+- Nenhum outro módulo operacional (`apps.processos`, `apps.tarefas`,
+  `apps.agenda`, `apps.financeiro`, `apps.dashboard`, `apps.modelos`)
+  filtra listagens por `responsavel`, `equipe`, `participantes` ou
+  `criado_por`, nem carrega objetos de detalhe/edição/exclusão com
+  condição de posse — continuam usando
+  `get_object_or_404(Model, pk=pk, ...)`, no máximo com uma condição de
+  estado (`ativo=True`, `status=...`).
 - O campo `nivel` (nível de acesso técnico atual) é resolvido pelo
-  kernel, mas não é lido por nenhuma view operacional para filtrar um
-  `QuerySet`.
+  kernel; Clientes agora o lê (`nivel_acesso_modulo`) para compor o
+  escopo de leitura, conforme acima — nenhum outro módulo operacional o
+  lê para filtrar um `QuerySet`.
+- Escopo por equipe ("da equipe") permanece sem nenhuma regra
+  funcional em qualquer módulo, incluindo Clientes — existe apenas como
+  opção visualmente desabilitada ("Em breve") em
+  `templates/clientes/lista.html`/`inativos.html` e em
+  `templates/configuracoes/permissoes.html`, sem valor persistido.
 - Principal risco intra-tenant já documentado: um usuário autenticado
-  do tenant pode, nas rotas inspecionadas, carregar por identificador
-  registros existentes no schema ativo sem filtro de responsabilidade,
-  equipe ou escopo — ver
+  do tenant pode, nas rotas de módulos ainda sem escopo aplicado,
+  carregar por identificador registros existentes no schema ativo sem
+  filtro de responsabilidade, equipe ou escopo — ver
   [../security/overview.md](../security/overview.md#principais-lacunas-constatadas).
 
 ## Estado por módulo
@@ -403,30 +432,63 @@ leitura ou mutação (WI-0001, commit `da19001`). `novo` também exige
 "clientes_editar")`, ambas verificadas antes da lógica da view.
 `desativar`, `inativos` e `reativar` permanecem apenas com autorização
 de módulo — nenhuma habilitação específica existe para essas três
-operações no kernel atual. `Cliente.responsavel` é preenchido com
-`request.user` na criação. `templates/clientes/lista.html` e
-`templates/processos/lista.html` incluem o mesmo componente de busca
-(`components/search_bar.html`), marcado no próprio template como
-"Barra de busca visual — sem lógica real nesta fase"; nem
-`clientes/views.py::lista` nem `processos/views.py::lista` leem um
-parâmetro de busca da URL, confirmando que a busca é apenas visual.
-Cobertura de teste: `apps/clientes/tests/test_autorizacao.py` (26
-testes) — ver "Testes".
+operações no kernel atual.
+
+**Escopo de dados e responsabilidade (WI-0002, commit `07675f7`)**:
+`Cliente.responsavel` é obrigatório no schema (`null=False`,
+`on_delete=PROTECT`), garantido também por migration de dados
+(`0006_cliente_responsavel_obrigatorio.py`) que remove, de forma
+reproduzível, qualquer `Cliente` remanescente com `responsavel IS
+NULL` antes de tornar o campo obrigatório — a contagem desses registros
+no banco de desenvolvimento auditado era zero antes da migration.
+`lista`, `detalhe` e `inativos` resolvem um escopo efetivo de leitura
+(`todos`/`somente_seus`) por requisição, via `nivel_acesso_modulo()` e
+um parâmetro `?escopo=` opcional, sem estado persistente; o parâmetro
+nunca amplia acesso acima do nível máximo autorizado do usuário, e um
+valor ausente, vazio ou desconhecido é tratado distintamente (ausente
+usa o padrão; presente e inválido nega com 403). `editar`, `desativar`
+e `reativar` usam um `QuerySet` de mutação separado, restrito ao
+Administrador do escritório ou a `Cliente.responsavel ==
+request.user`, independente do escopo de leitura resolvido — um usuário
+não administrador com nível máximo `todos` visualiza qualquer cliente
+do tenant, mas só muta os de sua própria responsabilidade; um cliente
+fora do escopo aplicável retorna 404 em todas as operações que
+carregam objeto por `pk`. Na criação, conta não administrador tem
+`responsavel` sempre definido como `request.user`, sem campo editável
+no formulário (adulteração via `POST` é ignorada, pois o campo não
+integra o formulário dessa conta); o Administrador do escritório vê o
+campo pré-preenchido com o próprio usuário, editável, restrito a
+usuários ativos do tenant atual e pesquisável por nome (filtro
+client-side em JavaScript). Reatribuição de responsável em edição é
+exclusiva do Administrador do escritório, com a mesma restrição de
+usuários ativos. Escopo por equipe ("da equipe") existe apenas como
+placeholder visual desabilitado, em `templates/clientes/lista.html`/
+`inativos.html` e em `templates/configuracoes/permissoes.html`, sem
+nenhuma regra funcional nem valor persistido.
+
+`templates/clientes/lista.html` e `templates/processos/lista.html`
+incluem o mesmo componente de busca (`components/search_bar.html`),
+marcado no próprio template como "Barra de busca visual — sem lógica
+real nesta fase"; nem `clientes/views.py::lista` nem
+`processos/views.py::lista` leem um parâmetro de busca da URL,
+confirmando que a busca é apenas visual. Cobertura de teste:
+`apps/clientes/tests/test_autorizacao.py` (26 testes, WI-0001) e
+`apps/clientes/tests/test_escopo.py` (31 testes, WI-0002) — ver
+"Testes".
 
 #### Diferenças para o alvo canônico
 
-[clientes.md](../product/modules/clientes.md) exige que um usuário com
-atuação restrita não alcance clientes fora de seu escopo — isso
-permanece uma lacuna após o WI-0001: o `nivel`
-(`somente_seus`/`todos`) não é lido nem aplicado a nenhum `QuerySet`;
-`Cliente.responsavel` não limita listagem, detalhe ou carregamento por
-`pk`; `lista` continua filtrando apenas por `ativo=True`, e
-`detalhe`/`editar`/`desativar`/`reativar` continuam carregando o
-objeto por `get_object_or_404` sem condição de posse — autorização
-sobre objeto/IDOR intra-tenant não está resolvida.
-`desativar`/`reativar`/`inativos` não possuem habilitação específica
-no kernel atual (candidatas a habilitação futura, ver
-[../security/authorization-matrix.md](../security/authorization-matrix.md#clientes)).
+Escopo por `responsavel` está aplicado (WI-0002), atendendo à exigência
+de [clientes.md](../product/modules/clientes.md) de que um usuário com
+atuação restrita não alcance clientes fora de seu escopo. Permanecem
+como diferença: escopo por equipe não possui nenhuma regra funcional
+(apenas placeholder visual); `desativar`/`reativar`/`inativos` não
+possuem habilitação específica no kernel atual (candidatas a
+habilitação futura, ver
+[../security/authorization-matrix.md](../security/authorization-matrix.md#clientes));
+nenhuma administração de `PapelAcesso`/`HabilitacaoPapel`/
+`HabilitacaoUsuario` existe por interface de produto ou Django Admin —
+lacuna já registrada em "Achados fora do escopo" do WI-0001.
 `templates/clientes/detalhe.html` exibe uma aba "Documentos" com um
 contador fixo `(2)` no rótulo da aba, sem relação com nenhum
 `QuerySet` ou model — ao abrir a aba, o conteúdo é sempre um estado
@@ -435,10 +497,11 @@ vazio ("Nenhum documento anexado."), consistente com a ausência de
 
 #### Dependências ou bloqueios
 
-Fase A (autorização de módulo/habilitação) aplicada em Clientes via
-WI-0001; os demais módulos da Fase A permanecem pendentes. Fase B
-(escopo de dados) do roadmap permanece pendente para Clientes; nenhum
-PDR específico de Clientes está em aberto.
+Fase A (autorização de módulo/habilitação) e Fase B (escopo de dados)
+aplicadas em Clientes via WI-0001 e WI-0002, respectivamente; os
+demais módulos permanecem na Fase A (Processos, Tarefas, Agenda,
+Financeiro, Dashboard, Chat, Modelos, Laboratório, Configurações).
+Nenhum PDR específico de Clientes está em aberto.
 
 ### Processos
 
@@ -738,8 +801,16 @@ acrescentou `apps/clientes/tests/test_autorizacao.py` e executou
 `python manage.py test apps.clientes` (26 testes) e `python manage.py
 test apps.accounts` (86 testes), ambas com resultado `OK` — evidência
 completa registrada em
-`docs/delivery/work/WI-0001-autorizacao-backend-clientes.md`. As demais
-afirmações desta seção sobre `apps/accounts/tests/` continuam
+`docs/delivery/work/WI-0001-autorizacao-backend-clientes.md`. A
+implementação do WI-0002 (commit `07675f7`) acrescentou
+`apps/clientes/tests/test_escopo.py` (31 testes) e adaptou a fixture
+`_cliente()` de `test_autorizacao.py` ao novo schema (`responsavel`
+obrigatório), sem alterar nenhuma asserção existente; executou `python
+manage.py test apps.clientes` (57 testes: 26 do WI-0001 + 31 do
+WI-0002) e `python manage.py test apps.accounts` (86 testes), ambas com
+resultado `OK` — evidência completa registrada em
+`docs/delivery/work/WI-0002-escopo-responsabilidade-clientes.md`. As
+demais afirmações desta seção sobre `apps/accounts/tests/` continuam
 descrevendo o código-fonte lido na auditoria original, sem nova leitura
 nesta revisão.
 
@@ -785,34 +856,53 @@ nesta revisão.
   HTTP das sete rotas; usuário com módulo mas sem `clientes_criar`
   negado em `novo` (403, sem criar `Cliente`); usuário com módulo mas
   sem `clientes_editar` negado em `editar` (403, sem alterar
-  `Cliente`). Não cobre escopo de dados (`responsavel`/equipe/`nivel`)
-  nem autorização sobre objeto/IDOR intra-tenant — ver "Diferenças para
-  o alvo canônico" na subseção Clientes.
+  `Cliente`).
+  `apps/clientes/tests/test_escopo.py` (31 testes, WI-0002, commit
+  `07675f7`) acrescenta: listagem/inativos por `somente_seus`/`todos`/
+  Administrador; detalhe/editar/desativar/reativar de cliente próprio
+  funcionando e de cliente alheio retornando 404 sem alterar o objeto;
+  um usuário não administrador com nível máximo `todos` visualizando
+  (`lista`/`detalhe`) qualquer cliente do tenant mas recebendo 404 em
+  `editar`/`desativar`/`reativar` de cliente alheio; escalonamento de
+  escopo (`?escopo=todos` acima do máximo, `?escopo=` vazio,
+  `?escopo=da_equipe`) negado com 403; criação por conta limitada
+  forçando `responsavel = request.user` mesmo com `POST` adulterado;
+  edição por conta limitada preservando o responsável real e exibindo-o
+  corretamente (nunca o editor); reatribuição de responsável pelo
+  Administrador, incluindo rejeição de usuário inativo; impossibilidade
+  de persistir `Cliente` sem `responsavel` (`IntegrityError` a nível de
+  schema). Não cobre isolamento cross-tenant explícito (dois tenants na
+  mesma execução) — decisão registrada no próprio WI-0002 para não
+  ampliar desnecessariamente o escopo do item, apoiada na garantia
+  estrutural de schema-per-tenant já coberta em
+  [../architecture/multitenancy.md](../architecture/multitenancy.md).
 - **Cobertura parcial identificada**: `apps/clientes` — autorização de
-  módulo e das duas habilitações existentes (`clientes_criar`,
-  `clientes_editar`) é testada diretamente sobre as views, mas escopo
-  de dados, autorização sobre objeto e as demais views operacionais
-  (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos,
-  Laboratório) permanecem sem teste de autorização.
+  módulo, das duas habilitações existentes (`clientes_criar`,
+  `clientes_editar`), escopo de dados por responsável e autorização
+  sobre objeto (IDOR intra-tenant) são testados diretamente sobre as
+  views; as demais views operacionais (Processos, Tarefas, Agenda,
+  Financeiro, Dashboard, Chat, Modelos, Laboratório) permanecem sem
+  teste de autorização nem de escopo.
 - **Não foi identificado teste específico** para: escopo de dados nos
-  módulos operacionais (Clientes, Processos, Tarefas, Agenda,
+  módulos operacionais além de Clientes (Processos, Tarefas, Agenda,
   Financeiro, Dashboard, Chat, Modelos); autorização sobre objeto
-  específico (IDOR intra-tenant) fora de `apps/accounts`; isolamento
-  cross-tenant explícito; integridade cliente-processo em
-  Tarefas/Agenda; regras de negócio do Financeiro (modalidades,
-  previsto/realizado) fora do cálculo de saldo de custas.
+  específico (IDOR intra-tenant) fora de Clientes e `apps/accounts`;
+  isolamento cross-tenant explícito em qualquer módulo; integridade
+  cliente-processo em Tarefas/Agenda; regras de negócio do Financeiro
+  (modalidades, previsto/realizado) fora do cálculo de saldo de custas.
 - Uma busca por `find apps -type f \( -name "test_*.py" -o -name
-  "tests.py" \)` no HEAD auditado (`da19001`) retorna os três arquivos
-  de `apps/accounts/tests/` e `apps/clientes/tests/test_autorizacao.py`
-  — nenhum outro app do repositório possui arquivo de teste.
+  "tests.py" \)` no HEAD auditado (`07675f7`) retorna os três arquivos
+  de `apps/accounts/tests/` e os dois arquivos de
+  `apps/clientes/tests/` (`test_autorizacao.py`, `test_escopo.py`) —
+  nenhum outro app do repositório possui arquivo de teste.
 
 ## Dívida e divergências conhecidas
 
 | Área | Divergência constatada | Fonte canônica relacionada |
 | --- | --- | --- |
-| Autorização nas views | Kernel dinâmico implementado e testado (`apps/accounts/tests/`, 86 testes, `OK`); `apps/clientes/views.py` já o consulta (WI-0001, commit `da19001`), mas as demais views operacionais (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam protegidas apenas por `@login_required` | [../security/authorization-model.md](../security/authorization-model.md), [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md) |
+| Autorização nas views | Kernel dinâmico implementado e testado (`apps/accounts/tests/`, 86 testes, `OK`); `apps/clientes/views.py` já o consulta, incluindo escopo de dados (WI-0001, commit `da19001`; WI-0002, commit `07675f7`), mas as demais views operacionais (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam protegidas apenas por `@login_required` | [../security/authorization-model.md](../security/authorization-model.md), [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md) |
 | Alteração de senha ausente | `templates/configuracoes/index.html` exibe um botão "Alterar senha" sem `href`/ação de formulário; nenhuma rota, view ou form correspondente foi identificado em `apps/accounts` | [configuracoes.md](../product/modules/configuracoes.md) |
-| Escopo de dados | Helpers de equipe existem, mas nenhum módulo operacional filtra `QuerySet` por responsável, equipe ou participação | [../security/data-scope.md](../security/data-scope.md) |
+| Escopo de dados | Clientes filtra `QuerySet` por responsável (WI-0002); Processos, Tarefas, Agenda, Financeiro, Dashboard e Modelos continuam sem filtro; helpers de equipe existem mas não são consumidos por nenhum módulo, incluindo Clientes | [../security/data-scope.md](../security/data-scope.md) |
 | Participantes processuais | `ParteProcesso.tipo` (campo único) não implementa as três dimensões exigidas | [PDR-0001](../product/decisions/PDR-0001-participantes-processuais.md), [../architecture/module-map.md](../architecture/module-map.md) |
 | Delegação de tarefas | `Tarefa` não possui `criador`/`atribuidor`/`destinatario_atribuicao`/`data_atribuicao`; sem rota de atribuição a outro usuário; sem status `cancelada` | [PDR-0002](../product/decisions/PDR-0002-delegacao-direta-de-tarefas.md), [../security/authorization-matrix.md](../security/authorization-matrix.md) |
 | Categoria de custas no financeiro geral | `LancamentoFinanceiro.CATEGORIA_CHOICES` inclui `"custa_judicial"`, apesar de PDR-0003 exigir área própria (já existente como `CustaJudicial`) | [PDR-0003](../product/decisions/PDR-0003-areas-funcionais-financeiro.md), [../architecture/module-map.md](../architecture/module-map.md) |
