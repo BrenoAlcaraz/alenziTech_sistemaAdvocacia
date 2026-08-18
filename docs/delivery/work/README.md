@@ -2,7 +2,7 @@
 title: Protocolo de work items
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Protocolo de work items
@@ -211,6 +211,37 @@ incorporada a este item ou a outro.
 Um achado lateral encontrado durante a execução deve ser registrado no
 relatório do item — nunca implementado silenciosamente.
 
+## Resultado observável
+
+Antes da implementação, todo Work Item deve explicitar, em termos que o
+Product Owner reconheça sem precisar ler código:
+
+- o que o Product Owner conseguirá fazer quando o item terminar;
+- o que continuará **não** coberto — principalmente comportamento
+  adjacente que, visual ou conceitualmente, possa parecer incluído sem
+  estar.
+
+Esta declaração não substitui os critérios de aceite; ela é a tradução,
+em linguagem observável, do que esses critérios entregam e do que
+deliberadamente deixam de fora.
+
+Distinção obrigatória em relação a "Resultado esperado"
+([template.md](template.md#resultado-esperado)): **Resultado
+observável** é a tradução da entrega para linguagem de produto — o que
+o Product Owner consegue fazer, e o que continua não coberto, sem
+precisar interpretar código. **Resultado esperado** é o comportamento
+técnico resultante que a implementação e a revisão devem produzir e
+verificar. Nenhuma das duas seções substitui a outra: a primeira é lida
+por quem avalia o produto; a segunda é verificada por quem revisa a
+implementação.
+
+Quando o item altera comportamento diretamente observável ou
+exercitável pelo usuário através do produto, pode ser necessária
+validação manual dirigida por 2 a 5 cenários, além dos testes
+automatizados. A regra completa pertence a
+[../../development/quality-gates.md#gate-de-validação-manual-dirigida](../../development/quality-gates.md#gate-de-validação-manual-dirigida) —
+este documento apenas a referencia.
+
 ## Critérios de aceite
 
 Critérios de aceite devem ser:
@@ -380,6 +411,32 @@ Ao ser concluído, um Work Item deve registrar:
 - o estado final do Git.
 
 Nenhum hash de commit deve ser registrado antes de o commit existir.
+
+### Commit de implementação e fechamento documental
+
+Quando um item combina implementação funcional (código e testes) com
+fechamento documental (registro de evidência, atualização de
+`current-state.md` quando aplicável, transição para `done`), o padrão
+observado é de dois commits distintos:
+
+1. **commit de implementação** — código e testes, criado quando a
+   implementação é aprovada;
+2. **commit documental** — criado depois, para persistir o fechamento
+   (a atualização do próprio Work Item e de `current-state.md`, quando
+   aplicável), já referenciando o commit de implementação anterior.
+
+Regras:
+
+- o commit de implementação nunca inventa o hash do commit documental
+  que ainda não existe;
+- o Work Item não precisa registrar, dentro de si, o hash do commit que
+  contém o seu próprio fechamento — esse hash só é conhecido depois que
+  esse commit é criado, e o arquivo não pode se auto-referenciar antes
+  disso;
+- não é exigido um terceiro commit para este padrão;
+- dois commits não são obrigatórios para todo item — quando o trabalho
+  é puramente documental, sem implementação funcional separada, um
+  único commit pode ser suficiente.
 
 ## Quando um item está bloqueado
 

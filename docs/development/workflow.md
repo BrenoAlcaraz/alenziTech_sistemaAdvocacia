@@ -2,7 +2,7 @@
 title: Workflow de desenvolvimento
 status: canonical
 owner: development
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Workflow de desenvolvimento
@@ -178,6 +178,27 @@ commit específico e pode estar desatualizada em relação ao HEAD real no
 momento da execução. Não implementar sobre uma premissa documental
 desatualizada sem antes reconfirmá-la no código.
 
+Quando o item passa a **consumir** uma configuração, permissão,
+habilitação, feature flag, preferência, papel, nível ou mecanismo
+equivalente já existente, verificar diretamente, nesta etapa, como
+aquele mecanismo é administrado hoje, classificando-o em uma destas
+categorias:
+
+- UI de produto;
+- Django Admin;
+- configuração técnica apenas (por exemplo, apenas via ORM/shell/dado
+  de migration);
+- não configurável atualmente.
+
+Registrar o impacto dessa classificação para o Product Owner — por
+exemplo, se o item passa a exigir uma concessão que, hoje, ninguém
+consegue administrar por uma tela de produto.
+
+Essa verificação exige evidência direta. Não inferir a existência de
+UI, rota, registro no Django Admin, migration, integração ativa ou
+qualquer mecanismo de configuração quando isso puder ser confirmado
+diretamente no repositório ou no ambiente.
+
 ### Etapa 5 — Confirmar executabilidade
 
 Se a auditoria da Etapa 4 revelar que uma premissa central do item
@@ -192,6 +213,12 @@ mudou desde que ele foi escrito:
 
 Não improvisar política nem preencher lacuna de decisão com suposição —
 ver [docs/governance/documentation-policy.md#uso-por-agentes-de-ia](../governance/documentation-policy.md#uso-por-agentes-de-ia).
+
+Nesta etapa, responder também: "que comportamento poderia surpreender o
+Product Owner mesmo que todos os critérios de aceite fossem
+satisfeitos?" Essa pergunta não cria uma seção obrigatória nova — a
+resposta alimenta "Resultado observável" (especialmente o que "ainda
+não estará coberto") ou "Achados fora do escopo", conforme o caso.
 
 ### Etapa 6 — Marcar `in_progress`
 
@@ -274,6 +301,41 @@ Reportar, ao final de qualquer execução: estado do Work Item, arquivos
 alterados, testes executados e resultado, quality gates aplicados e
 resultado, achados fora do escopo, se houve commit e/ou push, e o estado
 final do Git (`git status --short`, `git diff --stat`).
+
+## Execução em múltiplas sessões
+
+Plan, Development, Review técnico e Fechamento podem ocorrer em sessões
+distintas, executadas pela mesma pessoa/agente ou por pessoas/agentes
+diferentes. Quando isso acontece:
+
+- cada sessão faz seu próprio preflight (Etapa 1), mesmo que uma sessão
+  anterior já o tenha feito;
+- um resultado relatado por uma sessão anterior (testes executados,
+  critérios verificados, diff revisado) precisa de evidência
+  reconfirmável, não de mera suposição de que "já foi feito";
+- o número de loops de Development/Review **não é fixo**; loops
+  adicionais existem por risco real, complexidade, correção necessária
+  ou achado concreto — não por hábito;
+- um número elevado de micro-revisões em um item específico não deve
+  virar padrão obrigatório para os itens seguintes.
+
+Fluxo normal, quando o item envolve implementação funcional:
+
+```text
+Plan
+ → Development
+ → Review técnico
+ → validação manual do Product Owner, quando aplicável
+ → Final Review
+ → commit de implementação
+ → fechamento documental
+ → review documental curto
+ → commit documental / push
+```
+
+Este fluxo não impõe uma quantidade obrigatória de loops entre
+Development e Review técnico — eles podem iterar quantas vezes o item
+exigir, conforme risco e complexidade reais.
 
 ## Achados fora do escopo
 

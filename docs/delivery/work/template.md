@@ -2,7 +2,7 @@
 title: Template de work item
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Template de work item
@@ -26,11 +26,29 @@ Objetivo relacionado:
 
 ## Objetivo
 
+## Resultado observável pelo Product Owner
+
+Linguagem de produto: o que o PO poderá fazer e o que ainda não estará
+coberto. Não é o mesmo que "Resultado esperado" — ver a distinção em
+[README.md](README.md#resultado-observável).
+
+### Ao concluir este WI
+
+- ...
+
+### Ainda não estará coberto
+
+- ...
+
 ## Contexto e motivação
 
 ## Evidência do estado atual
 
 ## Resultado esperado
+
+Comportamento técnico que a implementação e a revisão devem produzir e
+verificar — não repita aqui a linguagem de produto de "Resultado
+observável pelo Product Owner" acima.
 
 ## Fontes canônicas
 
@@ -71,6 +89,18 @@ Objetivo relacionado:
 ### Novos testes
 
 ### Comandos de validação
+
+### Validação manual
+
+Aplicável: SIM / NÃO
+
+Cenários previstos (2 a 5, quando aplicável):
+
+- ...
+
+Resultado real (preencher durante a execução, não antes):
+
+- ...
 
 ## Quality gates
 

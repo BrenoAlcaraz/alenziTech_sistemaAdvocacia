@@ -2,7 +2,7 @@
 title: Quality gates
 status: canonical
 owner: development
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Quality gates
@@ -199,6 +199,47 @@ Todos os comandos de teste deste projeto são **dependentes de
 ambiente** — exigem PostgreSQL acessível, pois `TenantTestCase` cria e
 destrói schemas reais durante a execução, conforme
 [testing.md#comandos](testing.md#comandos).
+
+## Gate de validação manual dirigida
+
+Obrigatório somente quando o Work Item altera comportamento diretamente
+observável ou exercitável pelo usuário através do produto (uma tela,
+uma rota, um fluxo). Não é um gate universal.
+
+Categorias genéricas de cenário, quando aplicável ao item:
+
+- caminho feliz;
+- negação principal;
+- comportamento visual crítico;
+- fronteira importante do escopo do item.
+
+Quantidade típica: 2 a 5 cenários.
+
+Não aplicável quando:
+
+- a alteração é refatoração sem mudança de comportamento;
+- a alteração é interna, sem rota, tela ou fluxo observável associado;
+- não existe, para o item em questão, um teste manual de produto
+  significativo a executar.
+
+Posição no fluxo:
+
+```text
+testes automatizados
+ → review técnico
+ → validação manual
+ → Final Review
+ → commit de implementação
+```
+
+Registro:
+
+- os cenários previstos são registrados no próprio Work Item, conforme
+  [docs/delivery/work/template.md](../delivery/work/template.md);
+- o resultado real observado é registrado na seção "Evidência de
+  execução" do Work Item.
+
+Teste manual **complementa**, mas **não substitui**, teste automatizado.
 
 ## Gate frontend / Tailwind
 

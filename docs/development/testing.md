@@ -2,7 +2,7 @@
 title: Estratégia e comandos de testes
 status: canonical
 owner: development
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Estratégia e comandos de testes
@@ -14,8 +14,13 @@ usado pelo Breno - LawSystem, o inventário completo de testes
 existentes, sua organização, os comandos de execução e as limitações
 atuais conhecidas da suíte — incluindo uma divergência já observada
 entre comentários/docstrings de parte da suíte e o código-fonte atual.
-Nenhum teste foi executado neste lote; este documento não afirma
-resultado de execução (passou/falhou) para nenhum teste.
+Nenhum teste foi executado no lote original deste documento; ele não
+afirmava resultado de execução (passou/falhou) para nenhum teste. A
+única exceção, registrada minimamente pela correção factual do WI-0001,
+é `apps/clientes/tests/test_autorizacao.py`, cuja execução (`OK`) é
+citada no inventário abaixo. Para os três arquivos de
+`apps/accounts/tests/`, este documento continua sem afirmar resultado
+de execução.
 
 ## Runner atual
 
@@ -29,7 +34,8 @@ resultado de execução (passou/falhou) para nenhum teste.
   `tox.ini` nem `setup.cfg` na raiz. `pytest`/`pytest-django` não estão
   em `requirements/base.txt`, `requirements/development.txt` nem
   `requirements/production.txt`.
-- Os três arquivos de teste existentes usam
+- Os quatro arquivos de teste existentes (três em `apps/accounts/tests/`
+  e `apps/clientes/tests/test_autorizacao.py`) usam
   `django_tenants.test.cases.TenantTestCase` (de `django-tenants`, já
   uma dependência de `requirements/base.txt`) como classe base para a
   maior parte dos casos, além de `django.test.TestCase` puro em uma
@@ -48,35 +54,38 @@ resultado de execução (passou/falhou) para nenhum teste.
 ## Inventário atual
 
 Confirmado por `find apps -type f \( -name "test_*.py" -o -name
-"tests.py" \)` no HEAD auditado, e pela leitura integral dos três
-arquivos encontrados:
+"tests.py" \)` no HEAD auditado: três arquivos de
+`apps/accounts/tests/`, lidos integralmente nesta auditoria, mais
+`apps/clientes/tests/test_autorizacao.py`, acrescentado pelo WI-0001 e
+confirmado pela mesma busca:
 
 | Arquivo | Área | Tipo de cobertura | Execução neste lote |
 | --- | --- | --- | --- |
 | `apps/accounts/tests/test_admin_tenant.py` (343 linhas) | Administrador do escritório: `usuario_admin_escritorio()`, `requer_admin_escritorio`, `tipo_conta_usuario()` | Teste Django com banco de tenant (todas as classes estendem `AdminTenantBase(TenantTestCase)`); exercita a função e o decorator diretamente sobre `User`/`PerfilUsuario`/`Group` via ORM, com `RequestFactory` para simular a requisição do decorator — não isolado de banco de dados | não executado |
 | `apps/accounts/tests/test_permissoes_kernel.py` (888 linhas) | Kernel de permissões e habilitações: `permissao_efetiva()`, `habilitacao_efetiva()`, precedência admin → individual → papel → grupo legado, multi-papel, níveis, contagem de queries | Teste de integração do kernel com models reais (`PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `HabilitacaoPapel`, `PermissaoUsuario`, `HabilitacaoUsuario`) via ORM, com banco de tenant (todas as classes estendem `KernelBase(TenantTestCase)`) e caracterização de número real de queries (`CaptureQueriesContext`) | não executado |
 | `apps/accounts/tests/test_interacoes_kernel.py` (724 linhas) | Interações do kernel (override individual + papel + grupo legado), contrato de valores de `origem`, `_maior_nivel()`, regressão de nível preservado, queries classificadas por tipo SQL, smoke HTTP de páginas | Teste de aplicação com banco de tenant (`InteracoesBase(TenantTestCase)`), incluindo queries classificadas por tipo SQL e smoke HTTP (`django.test.Client`, via `force_login`, sobre um conjunto fixo de rotas); a classe `TestMaiorNivelSeguranca` usa `django.test.TestCase` puro (sem tenant), testando `_maior_nivel()` isoladamente | não executado |
+| `apps/clientes/tests/test_autorizacao.py` (371 linhas, 26 testes) | Autorização de módulo (`tem_permissao_modulo`) e de habilitação (`tem_habilitacao`, `clientes_criar`/`clientes_editar`) nas sete views de `apps/clientes/views.py`, criado pelo WI-0001 | Teste Django com banco de tenant (`TenantTestCase`), sobre o mesmo padrão de fixtures de `apps/accounts/tests/`; cobre negação de módulo e de habilitação, ausência de mutação em operação negada, e preservação do comportamento de usuário autorizado | executado — `OK` (ver [WI-0001](../delivery/work/WI-0001-autorizacao-backend-clientes.md)) |
 
-Nenhum outro app do repositório (`apps/clientes`, `apps/processos`,
-`apps/tarefas`, `apps/financeiro`, `apps/agenda`, `apps/chat`,
-`apps/modelos`, `apps/laboratorio`, `apps/configuracoes`,
-`apps/saas_tenants`, `apps/saas_billing`, `apps/dashboard`) possui
-arquivo de teste no HEAD auditado.
+Nenhum outro app do repositório (`apps/processos`, `apps/tarefas`,
+`apps/financeiro`, `apps/agenda`, `apps/chat`, `apps/modelos`,
+`apps/laboratorio`, `apps/configuracoes`, `apps/saas_tenants`,
+`apps/saas_billing`, `apps/dashboard`) possui arquivo de teste no HEAD
+auditado.
 
 ## Organização atual
 
-O único padrão de organização de testes constatado no HEAD é
-`apps/<app>/tests/` como pacote Python (`apps/accounts/tests/`, com
-`__init__.py` implícito ao conter múltiplos arquivos `test_*.py`).
-Nenhum outro app possui essa estrutura ainda — `apps/clientes/`, por
-exemplo, não possui nenhum diretório ou arquivo de teste no HEAD
-auditado.
+O padrão de organização de testes constatado no HEAD é
+`apps/<app>/tests/` como pacote Python: `apps/accounts/tests/` (com
+`__init__.py` implícito ao conter múltiplos arquivos `test_*.py`) e,
+desde o WI-0001, `apps/clientes/tests/` (`__init__.py` explícito mais
+`test_autorizacao.py`). Nenhum outro app possui essa estrutura ainda no
+HEAD auditado.
 
 ## Comandos
 
 Confirmados por `python manage.py help test` (executado nesta
 auditoria, sem alteração de estado) e pelo uso de `TenantTestCase`
-nos três arquivos existentes.
+nos quatro arquivos existentes.
 
 - **Teste alvo** — executa um método, uma classe ou um módulo
   específico:
@@ -102,8 +111,8 @@ nos três arquivos existentes.
 Diferença: um teste alvo isola o comportamento sob investigação e é o
 mais rápido para iterar; a suíte do app cobre regressão dentro do
 próprio módulo; a suíte completa cobre regressão em todo o projeto, mas
-hoje é equivalente a `apps.accounts`, já que nenhum outro app possui
-testes.
+hoje é equivalente a `apps.accounts` + `apps.clientes`, já que nenhum
+outro app possui testes.
 
 Todos os comandos acima são **dependentes de ambiente**: exigem
 PostgreSQL acessível com as credenciais configuradas (ver
@@ -154,14 +163,15 @@ quando aplicável ao item em questão (sem implementar nada aqui):
   "Estado atual da cobertura".
 
 Estes conceitos já são exercitados, para o kernel em si, pelos três
-arquivos de `apps/accounts/tests/`; sua aplicação a views de outros
-módulos operacionais é o objeto de Work Items futuros da Fase A do
-roadmap (ver
+arquivos de `apps/accounts/tests/`; sua aplicação a views de módulos
+operacionais já ocorreu para Clientes via WI-0001
+(`apps/clientes/tests/test_autorizacao.py`) e é o objeto de Work Items
+futuros da Fase A do roadmap para os demais módulos (ver
 [docs/delivery/roadmap.md](../delivery/roadmap.md#fase-a--consolidar-autorização-nas-operações)).
 
 ## Multitenancy
 
-`TenantTestCase` (usada pelos três arquivos existentes) cria um schema
+`TenantTestCase` (usada pelos quatro arquivos existentes) cria um schema
 PostgreSQL isolado por classe de teste, o que exercita, por construção,
 o mecanismo de isolamento de schema do django-tenants a cada execução.
 Nenhum teste do HEAD auditado afirma explicitamente isolamento de dados
@@ -184,14 +194,19 @@ identificada no código, consistente com
   `TestSmokePagesAdvogado`, em `test_interacoes_kernel.py`) para um
   conjunto fixo de rotas, cuja única asserção é a ausência de HTTP 500 —
   não é uma verificação de corretude de autorização por rota.
-- Nenhum teste foi identificado para: módulos operacionais fora de
-  `apps/accounts` (Clientes, Processos, Tarefas, Agenda, Financeiro,
-  Dashboard, Chat, Modelos, Laboratório, Configurações);
-  escopo de dados; autorização sobre objeto específico (IDOR
-  intra-tenant); isolamento cross-tenant explícito.
-- Nenhum teste foi executado nesta auditoria — as afirmações acima
-  descrevem o que existe no código-fonte dos três arquivos, não o
-  resultado de rodá-los.
+- Desde o WI-0001, `apps/clientes` possui teste de autorização de
+  módulo e de habilitação (ver "Inventário atual"). Nenhum teste foi
+  identificado para os demais módulos operacionais fora de
+  `apps/accounts` (Processos, Tarefas, Agenda, Financeiro, Dashboard,
+  Chat, Modelos, Laboratório, Configurações). Para Clientes e para os
+  demais módulos, permanecem sem teste: escopo de dados; autorização
+  sobre objeto específico (IDOR intra-tenant); isolamento cross-tenant
+  explícito.
+- Os testes de `apps/accounts/tests/` não foram executados nesta
+  auditoria — as afirmações sobre esses três arquivos descrevem o que
+  existe no código-fonte, não o resultado de rodá-los. Os testes de
+  `apps/clientes/tests/test_autorizacao.py` foram executados na
+  implementação do WI-0001, com resultado `OK`.
 
 ## Divergências conhecidas na suíte
 
@@ -253,8 +268,10 @@ Ao ler ou executar esta suíte no futuro, distinguir sempre:
   sobre o resultado seria especulação, não evidência.
 
 Este documento afirma apenas "teste existe" para os três arquivos de
-`apps/accounts/tests/`. Nenhuma afirmação de "passou"/"falhou" é feita
-aqui.
+`apps/accounts/tests/`, sem afirmação de "passou"/"falhou". Para
+`apps/clientes/tests/test_autorizacao.py`, a exceção mínima registrada
+pelo WI-0001 é "teste foi executado" e "passou" (`OK`), conforme
+"Inventário atual" acima.
 
 ## Ferramentas não identificadas
 
