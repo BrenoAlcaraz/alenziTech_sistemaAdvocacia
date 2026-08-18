@@ -15,6 +15,14 @@ def noop_reverso(apps, schema_editor):
 
 class Migration(migrations.Migration):
 
+    # Non-atomic: em tenants com Cliente já referenciado por FK de outros
+    # apps (Processos, Tarefas, Agenda, Financeiro), o DELETE do RunPython
+    # abaixo enfileira eventos de trigger de integridade referencial sobre
+    # clientes_cliente; se o AlterField seguinte rodar na mesma transação,
+    # o PostgreSQL rejeita o ALTER TABLE com "pending trigger events". Não
+    # remover esta flag sem revalidar esse cenário (ver WI-0003).
+    atomic = False
+
     dependencies = [
         ('clientes', '0005_remove_cliente_departamento'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
