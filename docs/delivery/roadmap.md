@@ -2,7 +2,7 @@
 title: Roadmap de desenvolvimento
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-18
 ---
 
 # Roadmap de desenvolvimento
@@ -73,6 +73,23 @@ Resumo de [current-state.md](current-state.md):
   aberto.
 
 ## Sequência oficial
+
+As fases abaixo definem a ordem lógica de dependência (A → B → C →
+...). Essa ordem é obrigatória dentro de cada módulo: um módulo não
+avança para a fase seguinte sem que seus próprios pré-requisitos de
+fase estejam satisfeitos.
+
+O avanço pode, no entanto, ocorrer módulo a módulo: não é obrigatório
+concluir uma fase para todos os módulos antes de iniciar a fase
+seguinte em um módulo cuja fase anterior já esteja consolidada. Por
+exemplo, se a Fase A de Clientes está concluída, Clientes pode avançar
+para a Fase B mesmo que Processos, Tarefas, Agenda ou outros módulos
+ainda estejam na Fase A.
+
+Essa flexibilidade não se aplica a dependências explicitamente
+globais descritas nas fases abaixo — por exemplo, o Dashboard só
+recebe escopo depois que os módulos de origem relevantes já tiverem
+seus próprios escopos resolvidos, conforme a Fase B.
 
 ### Fase A — Consolidar autorização nas operações
 
