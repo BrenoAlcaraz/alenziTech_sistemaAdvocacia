@@ -2,11 +2,12 @@
 title: Processos
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-19
 related_pdrs:
   - PDR-0001
   - PDR-0008
   - PDR-0009
+  - PDR-0010
 ---
 
 # Processos
@@ -37,7 +38,8 @@ participantes, documentos, andamentos, vínculos e prazos.
 O Administrador do escritório deve poder acessar e gerenciar qualquer
 processo do tenant. Demais usuários devem alcançar processos conforme
 o papel de acesso, as habilitações e o escopo de dados que lhes forem
-aplicados — por exemplo, escopo por responsável ou por equipe.
+aplicados — na direção vigente, escopo por responsável. Equipe só
+poderá participar em evolução posterior expressamente decidida.
 
 Esta seção descreve necessidade funcional, não uma matriz técnica
 definitiva de permissões; essa matriz é
@@ -46,6 +48,18 @@ O estado de aplicação dessas regras no backend deve ser verificado no
 código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
 Autorização e escopo de dados devem ser aplicados no backend, não
 apenas ocultando elementos de interface.
+
+Para a versão atual,
+[PDR-0010](../decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)
+formaliza que o módulo `processos` é tratado como uma unidade binária
+de autorização: módulo habilitado dá acesso a todas as operações
+atualmente existentes, sem checagem de habilitação granular por
+operação. Escopo por `Processo.responsavel`, responsabilidade
+obrigatória e a independência do módulo Clientes na seleção de
+clientes em Processos são direção aprovada pelo mesmo PDR, para
+implementação no WI-0005 — não implementadas nesta versão. Equipe não
+concede acesso nem filtra Processos nesse escopo; `Da equipe` e
+hierarquia de equipes permanecem para evolução posterior.
 
 ## Conceitos e entidades
 
@@ -228,6 +242,7 @@ possibilidade sugerida historicamente, não uma obrigação formalizada.
 - [PDR-0001 — Participantes processuais](../decisions/PDR-0001-participantes-processuais.md)
 - [PDR-0008 — IA após o núcleo funcional](../decisions/PDR-0008-ia-apos-nucleo-funcional.md)
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
+- [PDR-0010 — Autorização, escopo e responsabilidade de Processos](../decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Política de terminologia](../../governance/terminology-policy.md)

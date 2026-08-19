@@ -2,7 +2,7 @@
 title: Roadmap de desenvolvimento
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-19
 ---
 
 # Roadmap de desenvolvimento
@@ -96,7 +96,8 @@ seus próprios escopos resolvidos, conforme a Fase B.
 Objetivo:
 
 - aplicar autorização de módulo nas views operacionais;
-- aplicar as habilitações já existentes no kernel;
+- aplicar as habilitações já existentes no kernel quando exigidas pela
+  decisão canônica vigente do módulo;
 - definir ou reutilizar a autorização da ação para operações sem
   habilitação correspondente hoje;
 - preservar o comportamento já implementado do kernel dinâmico
@@ -114,7 +115,8 @@ Pré-requisitos para sair da fase:
   `@login_required`;
 - operações sensíveis (criar, editar, arquivar, excluir, marcar como
   pago, reatribuir, adicionar participante) consultam o kernel
-  adequado (`tem_permissao_modulo()`/`tem_habilitacao()`);
+  adequado (`tem_permissao_modulo()`/`tem_habilitacao()`), conforme a
+  decisão canônica vigente de cada módulo;
 - testes negativos mínimos existem para as operações protegidas;
 - configuração administrativa de permissões (`apps/configuracoes`) não
   depende somente do caminho legado de `tipo_conta` quando o alvo
@@ -123,6 +125,16 @@ Pré-requisitos para sair da fase:
 Esta fase não escreve código de escopo de dados nem resolve a
 modelagem de participantes ou de tarefas — apenas aplica autorização
 sobre o que já existe.
+
+A regra geral desta fase permanece válida conforme as decisões
+canônicas de cada módulo. Processos possui política específica no
+[PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md):
+na versão atual, autorização binária pelo módulo `processos` satisfaz a
+Fase A. As habilitações `processos_criar`, `processos_editar` e
+`processos_andamento_adicionar` permanecem no kernel como possibilidade
+de evolução futura, sem enforcement e sem constituir dívida bloqueante
+da Fase A. Com o WI-0004 aprovado e fechado, Processos pode avançar
+verticalmente para a Fase B no WI-0005.
 
 ### Fase B — Aplicar escopo de dados
 
@@ -315,7 +327,7 @@ flowchart LR
 
 | Fase | Critério mínimo de saída |
 | --- | --- |
-| A — Autorização | Views operacionais consultam `tem_permissao_modulo()`/`tem_habilitacao()` em vez de depender apenas de `@login_required`; testes negativos mínimos existem |
+| A — Autorização | Views operacionais consultam o kernel exigido pela decisão canônica do módulo (`tem_permissao_modulo()` e, quando aplicável, `tem_habilitacao()`) em vez de depender apenas de `@login_required`; testes negativos mínimos existem. Para Processos, a autorização binária definida no PDR-0010 satisfaz este critério |
 | B — Escopo | `QuerySet`s de listagem e objetos carregados por `pk` já nascem filtrados pelo escopo do usuário, em todos os módulos operacionais; testes intra-tenant existem |
 | C — Integridade de domínio | `ParteProcesso` sustenta as três dimensões de PDR-0001; `Tarefa` sustenta os campos de PDR-0002; combinações cliente-processo inconsistentes são rejeitadas pelo servidor; transições de estado inválidas são rejeitadas |
 | D — Financeiro | Solicitações e Honorários existem como entidades próprias; modalidade de lançamento implementada dentro do que OPEN-001 já permitir decidir; categoria `"custa_judicial"` removida do financeiro geral |
@@ -336,6 +348,7 @@ flowchart LR
 | PDR-0007 — Honorários manuais antes da IA | Define o alvo de modelagem de Honorários na Fase D, como pré-requisito de dados para a sugestão de honorários da Fase G |
 | PDR-0008 — IA após núcleo funcional | Define integralmente a Fase F como pré-requisito obrigatório da Fase G; a mais impactante para a ordem geral do roadmap |
 | PDR-0009 — Sequência revisada da Fase 2 | Fonte da ordem de dependência entre rodadas que este roadmap consolida em fases; autorização e integridade antes de módulos avançados |
+| PDR-0010 — Autorização, escopo e responsabilidade de Processos | Define autorização binária por módulo como suficiente para a Fase A de Processos; habilitações granulares preservadas no kernel são evolução futura e não impedem o avanço para a Fase B após o fechamento do WI-0004 |
 | OPEN-001 — Periodicidades financeiras | Bloqueia o detalhamento final de recorrência/parcelamento na Fase D até resolução |
 | OPEN-002 — Etapas de aprovação de solicitações | Bloqueia o detalhamento final do fluxo de Solicitações na Fase D até resolução |
 
@@ -381,11 +394,13 @@ flowchart LR
 ## Próxima unidade de trabalho
 
 Pelo estado auditado em [current-state.md](current-state.md) e pelas
-dependências descritas acima, a próxima unidade de trabalho deve
-pertencer à **Fase A — Consolidar autorização nas operações**, salvo
-se uma auditoria futura revelar um bloqueio anterior real ainda não
-identificado neste lote. Este documento não define nome de branch,
-issue ou sprint para essa unidade de trabalho.
+dependências descritas acima, módulos ainda sem autorização aplicada
+continuam na **Fase A — Consolidar autorização nas operações**. No
+avanço vertical de Processos, porém, o WI-0004 satisfaz a Fase A pela
+política específica do PDR-0010; após sua aprovação e fechamento, a
+próxima unidade é o WI-0005, pertencente à **Fase B — Aplicar escopo de
+dados**. Este documento não define nome de branch, issue ou sprint para
+essas unidades de trabalho.
 
 ## Referências
 

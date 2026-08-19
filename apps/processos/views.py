@@ -1,13 +1,18 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from apps.accounts.escopo import equipe_padrao_para_usuario
+from apps.accounts.permissoes import tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_PROCESSOS
 from .models import Processo
 from .forms import ProcessoForm, ParteProcessoForm, MovimentacaoProcessualForm
 
 
 @login_required
 def lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processos = Processo.objects.select_related("cliente", "responsavel").exclude(status="arquivado")
     return render(request, "processos/lista.html", {
         "processos": processos,
@@ -18,6 +23,8 @@ def lista(request):
 
 @login_required
 def detalhe(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(
         Processo.objects.select_related("cliente", "responsavel")
                         .prefetch_related("partes", "movimentacoes"),
@@ -36,6 +43,8 @@ def detalhe(request, pk):
 
 @login_required
 def novo(request):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     if request.method == "POST":
         form = ProcessoForm(request.POST)
         if form.is_valid():
@@ -57,6 +66,8 @@ def novo(request):
 
 @login_required
 def editar(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":
         form = ProcessoForm(request.POST, instance=processo)
@@ -74,6 +85,8 @@ def editar(request, pk):
 
 @login_required
 def arquivados(request):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processos = Processo.objects.select_related("cliente", "responsavel").filter(status="arquivado")
     return render(request, "processos/arquivados.html", {
         "processos": processos,
@@ -83,6 +96,8 @@ def arquivados(request):
 
 @login_required
 def arquivar(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":
         processo.status = "arquivado"
@@ -92,6 +107,8 @@ def arquivar(request, pk):
 
 @login_required
 def reabrir(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":
         processo.status = "ativo"
@@ -101,6 +118,8 @@ def reabrir(request, pk):
 
 @login_required
 def adicionar_movimentacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":
         form = MovimentacaoProcessualForm(request.POST)
@@ -114,6 +133,8 @@ def adicionar_movimentacao(request, pk):
 
 @login_required
 def adicionar_parte(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
     processo = get_object_or_404(Processo, pk=pk)
     if request.method == "POST":
         form = ParteProcessoForm(request.POST)

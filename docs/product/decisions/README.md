@@ -37,3 +37,4 @@ efetivamente decididas.
 | PDR-0007 | Honorários manuais antes da IA | accepted | [PDR-0007-honorarios-manuais-antes-ia.md](PDR-0007-honorarios-manuais-antes-ia.md) |
 | PDR-0008 | IA após o núcleo funcional | accepted | [PDR-0008-ia-apos-nucleo-funcional.md](PDR-0008-ia-apos-nucleo-funcional.md) |
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | [PDR-0009-sequencia-fase-2.md](PDR-0009-sequencia-fase-2.md) |
+| PDR-0010 | Autorização, escopo e responsabilidade de Processos | accepted | [PDR-0010-autorizacao-escopo-responsabilidade-processos.md](PDR-0010-autorizacao-escopo-responsabilidade-processos.md) |
