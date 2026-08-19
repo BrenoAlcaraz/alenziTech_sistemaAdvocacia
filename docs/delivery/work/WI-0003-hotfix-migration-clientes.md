@@ -2,14 +2,14 @@
 title: WI-0003 — Hotfix de migration de Clientes
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-19
 ---
 
 # WI-0003 — Hotfix de migration de Clientes
 
 ## Estado
 
-in_progress
+done
 
 ## Fase do roadmap
 
@@ -378,12 +378,21 @@ events, preservando o mesmo resultado de dado (remoção do cliente sem
 responsável, campo obrigatório, `on_delete=PROTECT`) e sem alterar
 nenhum comportamento funcional de Clientes ou de qualquer outro
 módulo. Suítes de `apps.clientes` (57 testes) e `apps.accounts` (86
-testes) permanecem `OK`, sem regressão.
+testes) permanecem `OK`, sem regressão. Após o commit de fechamento
+(abaixo), a correção foi também aplicada e validada no ambiente
+externo que originalmente revelou o defeito relatado em "Contexto e
+motivação" — validação externa posterior aprovada, confirmando a
+resolução fora do schema descartável usado nesta execução.
 
 ### Commit
 
-Nenhum. Não autorizado para esta execução — arquivos deixados em stage
-para revisão.
+`86cf65d` — "fix(clientes): corrigir atomicidade da migration".
+Commit único, contendo a correção da migration
+(`apps/clientes/migrations/0006_cliente_responsavel_obrigatorio.py`,
+`atomic = False` + comentário) e este próprio Work Item
+(`docs/delivery/work/WI-0003-hotfix-migration-clientes.md`), autorizado
+e criado após a conclusão da implementação, dos testes e das
+validações registrados acima.
 
 ## Encerramento
 
@@ -395,12 +404,15 @@ para revisão.
       mudança de comportamento funcional observável);
 - [ ] roadmap atualizado somente se necessário — não necessário;
 - [x] achados laterais registrados — nenhum encontrado;
-- [x] Git final registrado — commit ainda não existe (não autorizado
-      nesta execução); branch, HEAD inicial, arquivos alterados e
-      estado de staging registrados acima.
+- [x] Git final registrado — commit `86cf65d` ("fix(clientes): corrigir
+      atomicidade da migration"), branch `docs/reorganizacao-harness`;
+      branch, HEAD inicial, arquivos alterados e commit final
+      registrados acima.
 
-Este Work Item permanece `in_progress`: a implementação, os testes e
-as validações estão concluídos e prontos para revisão, mas o estado
-`done` depende de evidência de Git (commit) ainda não autorizada nesta
-execução, conforme
-[README.md#ciclo-de-vida](README.md#ciclo-de-vida).
+Este Work Item está `done`: implementação, testes e validações foram
+concluídos e registrados acima, o commit `86cf65d` ("fix(clientes):
+corrigir atomicidade da migration") registra a evidência de Git
+exigida por
+[README.md#ciclo-de-vida](README.md#ciclo-de-vida), e a correção foi
+posteriormente aprovada também na validação externa realizada no
+ambiente que originalmente revelou o defeito.
