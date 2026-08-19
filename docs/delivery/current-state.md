@@ -2,7 +2,7 @@
 title: Estado atual do produto
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-19
 ---
 
 # Estado atual do produto
@@ -29,22 +29,19 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 ## Referência do snapshot
 
 - Branch auditada: `docs/reorganizacao-harness`.
-- Commit HEAD auditado: `07675f7` — "feat(clientes): aplicar escopo e
-  responsabilidade".
-- Data da revisão: 2026-08-18.
+- Commit HEAD auditado: `ece9ead` — "feat(processos): aplicar
+  autorização do módulo" (H1 do WI-0004).
+- Data da revisão: 2026-08-19.
 - Esta revisão é incremental: a leitura completa, arquivo por arquivo,
-  descrita abaixo permanece a realizada em `a543c3f`. Entre `da19001` e
-  `07675f7`, a única mudança de código funcional foi a implementação do
-  WI-0002 (`apps/clientes/models.py`, `apps/clientes/forms.py`,
-  `apps/clientes/views.py`, `apps/clientes/tests/test_autorizacao.py`,
-  `apps/clientes/tests/test_escopo.py`, a migration
-  `apps/clientes/migrations/0006_cliente_responsavel_obrigatorio.py`,
-  os templates `templates/clientes/lista.html`, `inativos.html`,
-  `form.html` e `templates/configuracoes/permissoes.html`), confirmada
-  por `git show --stat 07675f7`; as seções "Visão executiva", "Escopo de
-  dados", "Clientes" e "Testes" foram atualizadas para refletir essa
-  mudança — as demais seções continuam válidas sem nova leitura nesta
-  revisão.
+  descrita abaixo permanece a realizada em `a543c3f`. Entre `07675f7` e
+  `ece9ead`, a única mudança de código funcional foi a implementação do
+  WI-0004 (autorização de módulo de Processos):
+  `apps/processos/views.py`, `apps/processos/tests/__init__.py` e
+  `apps/processos/tests/test_autorizacao.py`, confirmada por `git show
+  --stat ece9ead`. As seções "Visão executiva", "Accounts e
+  autorização", "Processos" e "Testes" foram atualizadas para refletir
+  essa mudança — as demais seções continuam válidas sem nova leitura
+  nesta revisão.
 - `AGENTS.md` não foi usado como fonte para este documento, apenas
   observado como arquivo não rastreado presente no diretório de
   trabalho.
@@ -104,11 +101,11 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 | Plataforma SaaS | Parcialmente implementado | `Escritorio`, `Dominio`, `ConfiguracaoVisual`, `Plano` e `Assinatura` existem no schema público; leitura do plano é exibida em `apps.configuracoes` e `apps.dashboard` | Sem interface de produto para Platform Admin nem para gestão de plano além da leitura; na inspeção do HEAD, os models desses dois apps estão registrados apenas no Django Admin (`apps/saas_tenants/admin.py`, `apps/saas_billing/admin.py`), sem `views.py`/`urls.py`/`forms.py` em nenhum dos dois apps |
 | Multitenancy | Implementado | Isolamento por schema via `django-tenants`, `TenantMainMiddleware` primeiro na pilha, `SHARED_APPS`/`TENANT_APPS` separados | Sem estratégia de segregação de arquivos por tenant nem testes automatizados de isolamento cross-tenant identificados |
 | Accounts / autenticação | Parcialmente implementado | `auth.User` + `PerfilUsuario`; `login_view`/`logout_view` são as próprias views de sessão, sem decorator; views operacionais usam `@login_required`, rotas administrativas de `apps/configuracoes` usam `@requer_admin_escritorio` | Nenhuma rota, view ou template de alteração de senha foi identificado; `templates/configuracoes/index.html` exibe um `<button>` "Alterar senha" sem `href`/formulário/ação associada |
-| Autorização | Parcialmente implementado | Kernel dinâmico (`PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `PermissaoUsuario`, `HabilitacaoPapel`, `HabilitacaoUsuario`) implementado em `apps/accounts/permissoes.py`, com casos de teste em `apps/accounts/tests/` (86 testes, executados na implementação do WI-0001, resultado `OK`) | Clientes já aplica o kernel de autorização no backend (`tem_permissao_modulo()`/`tem_habilitacao()`, WI-0001); os demais módulos operacionais (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam com a lacuna registrada — nenhuma view fora de Clientes/`apps/accounts`/`apps/configuracoes` consulta esses helpers |
+| Autorização | Parcialmente implementado | Kernel dinâmico (`PapelAcesso`, `UsuarioPapel`, `PermissaoPapel`, `PermissaoUsuario`, `HabilitacaoPapel`, `HabilitacaoUsuario`) implementado em `apps/accounts/permissoes.py`, com casos de teste em `apps/accounts/tests/` (86 testes, executados na implementação do WI-0001, resultado `OK`) | Clientes aplica o kernel de autorização completo no backend (`tem_permissao_modulo()`/`tem_habilitacao()`, WI-0001); Processos aplica `tem_permissao_modulo()` — autorização de módulo, sem habilitação granular por decisão de produto (WI-0004, [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)); os demais módulos operacionais (Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam com a lacuna registrada — nenhuma view desses módulos consulta esses helpers |
 | Escopo de dados | Parcialmente implementado | Clientes aplica escopo de leitura (`todos`/`somente_seus`) por requisição em `lista`/`detalhe`/`inativos`, com autorização de mutação por responsabilidade (não-admin só edita/desativa/reativa clientes sob sua responsabilidade, mesmo com escopo de leitura `todos`) em `editar`/`desativar`/`reativar` (WI-0002); helpers de equipe em `apps/accounts/escopo.py` continuam não aplicados | Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat e Modelos continuam sem nenhum `QuerySet` filtrado por responsável, equipe ou participação |
 | Dashboard | Parcialmente implementado | Agrega dados reais de Clientes, Processos, Tarefas, Agenda e Financeiro, sem mocks | Agregações cobrem o tenant inteiro, sem respeitar escopo nem autorização financeira do usuário que consulta |
 | Clientes | Parcialmente implementado | CRUD funcional com `ativo`/`inativos`/`reativar`; autorização de módulo (`tem_permissao_modulo`) aplicada nas sete rotas, com `clientes_criar`/`clientes_editar` (`tem_habilitacao`) aplicadas em `novo`/`editar` (WI-0001); `Cliente.responsavel` obrigatório no schema, preenchido com `request.user` na criação por conta não-admin, selecionável apenas pelo Administrador do escritório; escopo de leitura `todos`/`somente_seus` por requisição em `lista`/`detalhe`/`inativos`; mutação (`editar`/`desativar`/`reativar`) restrita ao Administrador ou a `Cliente.responsavel == request.user`, independente do escopo de leitura; objeto fora do escopo aplicável retorna 404 (WI-0002) | Escopo por equipe ("da equipe") permanece apenas placeholder visual desabilitado, sem regra funcional nem persistência |
-| Processos | Parcialmente implementado | CRUD, movimentações, `ParteProcesso` (campo único `tipo`), `equipe` na criação | `ParteProcesso` não implementa as três dimensões de PDR-0001 (vínculo, posição estrutural, qualificação processual); sem escopo aplicado |
+| Processos | Parcialmente implementado | CRUD, movimentações, `ParteProcesso` (campo único `tipo`), `equipe` na criação; Fase A concluída com autorização binária de módulo (`tem_permissao_modulo`) aplicada nas nove rotas, sem habilitação granular por decisão de produto (WI-0004, commit `ece9ead`, [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)) | Escopo e responsabilidade ainda não implementados (WI-0005); equipe não participa desse escopo; `ParteProcesso` não implementa as três dimensões de PDR-0001 (vínculo, posição estrutural, qualificação processual) |
 | Tarefas | Parcialmente implementado | Criação de tarefa existe; na criação, `responsavel` recebe `request.user` sempre (`apps/tarefas/views.py::nova`); `TarefaForm` não expõe campo `responsavel`; status e reatribuição com preservação de `responsavel_original`/`status_original` no `POST` de edição | Delegação direta a outro usuário, prevista por PDR-0002, não está implementada; habilitação `tarefas_atribuir_outros` existe no kernel sem enforcement ou fluxo correspondente; campos `criador`/`atribuidor`/`destinatario_atribuicao`/`data_atribuicao` exigidos por PDR-0002 permanecem ausentes; sem escopo aplicado |
 | Agenda | Parcialmente implementado | Compromissos manuais e vinculados a processo/cliente, filtros por data/status | Sem validação de integridade cliente-processo; sem escopo por responsável/participante aplicado |
 | Financeiro | Parcialmente implementado | `LancamentoFinanceiro` e `CustaJudicial` existem; saldo de custas calculado no backend conforme PDR-0005 | Sem modalidade parcelado/recorrente; sem Solicitações nem Honorários como entidades próprias; sem distinção de acesso ao caixa geral |
@@ -117,7 +114,7 @@ fontes de [../README.md](../README.md#hierarquia-das-fontes-de-verdade).
 | IA / Laboratório | Não identificado | `apps.laboratorio` é um shell visual com um model de placeholder | Nenhuma funcionalidade de IA jurídica implementada; pré-requisitos do PDR-0008 ainda não consolidados |
 | Configurações | Parcialmente implementado | Perfil pessoal, gestão de usuários/equipes/permissões legadas protegida por `@requer_admin_escritorio` | Administração de `PapelAcesso`/habilitações sem interface; identidade visual sem rota de edição no tenant |
 | Arquivos/anexos | Não identificado | Únicos uploads confirmados são avatar de usuário e identidade visual do escritório | Nenhum objeto interno (cliente, processo, tarefa etc.) possui campo de upload; sem estratégia de segregação por tenant |
-| Testes | Parcialmente implementado | Casos de teste extensos do kernel de permissões em `apps/accounts/tests/` (1952 linhas, 3 arquivos); execução não verificada nesta auditoria; Clientes possui testes de autorização de módulo/habilitação (WI-0001) e de escopo/responsabilidade/IDOR (WI-0002), executados com resultado `OK` | Sem testes de escopo, de autorização por objeto ou de isolamento cross-tenant fora de Clientes; sem teste cross-tenant explícito nem para Clientes |
+| Testes | Parcialmente implementado | Casos de teste extensos do kernel de permissões em `apps/accounts/tests/` (1952 linhas, 3 arquivos); execução não verificada nesta auditoria; Clientes possui testes de autorização de módulo/habilitação (WI-0001) e de escopo/responsabilidade/IDOR (WI-0002), executados com resultado `OK`; Processos possui testes de autorização de módulo (WI-0004, 30 testes), executados com resultado `OK` | Sem testes de escopo, de autorização por objeto ou de isolamento cross-tenant fora de Clientes; sem teste de habilitação nem de escopo em Processos (fora de escopo nesta versão, por decisão de produto); sem teste cross-tenant explícito nem para Clientes |
 
 ## Plataforma e arquitetura
 
@@ -272,25 +269,38 @@ Resumo, com detalhe completo em
 - Administrador do escritório é avaliado antes de qualquer
   `PermissaoUsuario` individual — concede acesso total ao módulo no
   maior nível técnico configurado.
-- Enforcement nas views: `apps/clientes/views.py` agora consulta
+- Enforcement nas views: `apps/clientes/views.py` consulta
   `tem_permissao_modulo(user, "clientes")` nas sete rotas (`lista`,
   `detalhe`, `novo`, `editar`, `desativar`, `inativos`, `reativar`) e
   `tem_habilitacao()` em `novo` (`clientes_criar`) e `editar`
   (`clientes_editar`), negando com `raise PermissionDenied` antes de
   qualquer leitura ou mutação, conforme WI-0001 (commit `da19001`).
-  Fora de `apps/clientes`, `tem_permissao_modulo()`/`tem_habilitacao()`
-  continuam ausentes de `apps/processos`, `apps/tarefas`,
+  `apps/processos/views.py` consulta `tem_permissao_modulo(user,
+  "processos")` nas nove rotas (`lista`, `detalhe`, `novo`, `editar`,
+  `arquivados`, `arquivar`, `reabrir`, `adicionar_movimentacao`,
+  `adicionar_parte`), negando com `raise PermissionDenied` antes de
+  qualquer leitura ou mutação, conforme WI-0004 — sem consultar
+  `tem_habilitacao()`: por decisão de produto
+  ([PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)),
+  as habilitações `processos_criar`/`processos_editar`/
+  `processos_andamento_adicionar`, já existentes no kernel, não
+  restringem nenhuma operação de Processos nesta versão. Fora de
+  `apps/clientes` e `apps/processos`, `tem_permissao_modulo()`/
+  `tem_habilitacao()` continuam ausentes de `apps/tarefas`,
   `apps/agenda`, `apps/financeiro`, `apps/dashboard`, `apps/chat`,
   `apps/modelos`, `apps/laboratorio` e `apps/configuracoes` — presentes
-  apenas em `apps/accounts/permissoes.py`, em `apps/clientes/views.py`
-  e em `apps/configuracoes/views.py::permissoes` (tela que configura o
+  apenas em `apps/accounts/permissoes.py`, em `apps/clientes/views.py`,
+  em `apps/processos/views.py` e em
+  `apps/configuracoes/views.py::permissoes` (tela que configura o
   kernel, sem consumi-lo para proteger a própria tela). Classificação
   exata das views lidas: `apps/accounts/views.py::login_view`/
   `logout_view` não usam nenhum decorator de autorização (são as
   próprias views de entrada/saída de sessão); as views operacionais de
   `apps/clientes` usam `@login_required` combinado com
-  `tem_permissao_modulo()`/`tem_habilitacao()`; as demais views
-  operacionais (`apps/processos`, `apps/tarefas`, `apps/agenda`,
+  `tem_permissao_modulo()`/`tem_habilitacao()`; as views operacionais
+  de `apps/processos` usam `@login_required` combinado com
+  `tem_permissao_modulo()`, sem `tem_habilitacao()`; as demais views
+  operacionais (`apps/tarefas`, `apps/agenda`,
   `apps/financeiro`, `apps/dashboard`, `apps/chat`, `apps/modelos` e
   `apps/laboratorio`) usam exclusivamente `@login_required`; em
   `apps/configuracoes/views.py`, `index` e `editar_perfil` usam
@@ -497,11 +507,14 @@ vazio ("Nenhum documento anexado."), consistente com a ausência de
 
 #### Dependências ou bloqueios
 
-Fase A (autorização de módulo/habilitação) e Fase B (escopo de dados)
-aplicadas em Clientes via WI-0001 e WI-0002, respectivamente; os
-demais módulos permanecem na Fase A (Processos, Tarefas, Agenda,
-Financeiro, Dashboard, Chat, Modelos, Laboratório, Configurações).
-Nenhum PDR específico de Clientes está em aberto.
+Fase A (autorização conforme a política canônica do módulo) e Fase B
+(escopo de dados) aplicadas em Clientes via WI-0001 e WI-0002,
+respectivamente. Em Processos, o WI-0004 concluiu a Fase A com
+autorização binária por módulo, conforme PDR-0010 e o commit `ece9ead`;
+o módulo pode avançar para a Fase B no WI-0005, ainda não implementado.
+Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório e
+Configurações permanecem na Fase A. Nenhum PDR específico de Clientes
+está em aberto.
 
 ### Processos
 
@@ -513,11 +526,22 @@ Parcialmente implementado.
 
 `apps/processos/views.py` implementa `lista`, `detalhe`, `novo`,
 `editar`, `arquivados`, `arquivar`, `reabrir`,
-`adicionar_movimentacao`, `adicionar_parte`. `MovimentacaoProcessual`
-registra andamentos com autor. `ParteProcesso` existe com um único
-campo `tipo` (`autor`, `reu`, `terceiro`, `advogado_contrario`).
-`Processo.equipe` é pré-preenchido via `equipe_padrao_para_usuario()`
-quando o usuário pertence a exatamente uma equipe ativa.
+`adicionar_movimentacao`, `adicionar_parte`, todas com
+`@login_required` combinado com `tem_permissao_modulo(request.user,
+"processos")`, negado com `raise PermissionDenied` antes de qualquer
+leitura ou mutação (WI-0004). Por decisão de produto
+([PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)),
+nenhuma das nove rotas consulta `tem_habilitacao()`: as habilitações já
+existentes no kernel (`processos_criar`, `processos_editar`,
+`processos_andamento_adicionar`) não restringem nenhuma operação de
+Processos nesta versão — o módulo `processos` é tratado como unidade
+binária de autorização. `MovimentacaoProcessual` registra andamentos
+com autor. `ParteProcesso` existe com um único campo `tipo` (`autor`,
+`reu`, `terceiro`, `advogado_contrario`). `Processo.equipe` é
+pré-preenchido via `equipe_padrao_para_usuario()` quando o usuário
+pertence a exatamente uma equipe ativa. Cobertura de teste:
+`apps/processos/tests/test_autorizacao.py` (30 testes, WI-0004) — ver
+"Testes".
 
 #### Diferenças para o alvo canônico
 
@@ -526,14 +550,29 @@ exige três dimensões separadas (vínculo com o escritório, posição
 estrutural, qualificação processual) e suporte a múltiplos clientes
 representados, múltiplas pessoas por polo, Ministério Público e
 autoridades registradas separadamente; `ParteProcesso.tipo` não
-sustenta essas dimensões. Escopo por responsável/equipe não é
-aplicado em nenhuma rota.
+sustenta essas dimensões. Autorização de módulo está aplicada
+(WI-0004); habilitação granular (`processos_criar`/`processos_editar`/
+`processos_andamento_adicionar`) permanece deliberadamente não
+aplicada nesta versão, conforme
+[PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md).
+Essa ausência deliberada é evolução futura possível, não dívida
+bloqueante da Fase A.
+Escopo por responsável não é aplicado em nenhuma rota, e
+responsabilidade obrigatória ainda não foi implementada: ambos
+pertencem ao WI-0005. Equipe não concede acesso, não filtra Processos e
+não participa do escopo aprovado para esse item, conforme PDR-0010.
 
 #### Dependências ou bloqueios
 
 [PDR-0001](../product/decisions/PDR-0001-participantes-processuais.md)
-(modelagem de participantes, Fase C do roadmap); Fase A e B para
-autorização e escopo.
+(modelagem de participantes, Fase C do roadmap);
+[PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)
+(autorização, escopo e responsabilidade de Processos). Fase A —
+autorização binária de módulo — concluída via WI-0004 no commit
+`ece9ead`; habilitação granular não bloqueia essa conclusão. Fase B —
+escopo por responsável e responsabilidade obrigatória — é o próximo
+passo vertical, previsto para o WI-0005 e ainda não implementado;
+equipe não participa desse escopo.
 
 ### Tarefas
 
@@ -809,7 +848,14 @@ obrigatório), sem alterar nenhuma asserção existente; executou `python
 manage.py test apps.clientes` (57 testes: 26 do WI-0001 + 31 do
 WI-0002) e `python manage.py test apps.accounts` (86 testes), ambas com
 resultado `OK` — evidência completa registrada em
-`docs/delivery/work/WI-0002-escopo-responsabilidade-clientes.md`. As
+`docs/delivery/work/WI-0002-escopo-responsabilidade-clientes.md`. A
+implementação do WI-0004 (commit `ece9ead`)
+acrescentou `apps/processos/tests/test_autorizacao.py` (30 testes) e
+executou `python manage.py test apps.processos` (30 testes), `python
+manage.py test apps.accounts` (86 testes) e `python manage.py test
+apps.clientes` (57 testes), todas com resultado `OK` — evidência
+completa registrada em
+`docs/delivery/work/WI-0004-autorizacao-modulo-processos.md`. As
 demais afirmações desta seção sobre `apps/accounts/tests/` continuam
 descrevendo o código-fonte lido na auditoria original, sem nova leitura
 nesta revisão.
@@ -876,13 +922,35 @@ nesta revisão.
   ampliar desnecessariamente o escopo do item, apoiada na garantia
   estrutural de schema-per-tenant já coberta em
   [../architecture/multitenancy.md](../architecture/multitenancy.md).
+- **Cobertura identificada em Processos**:
+  `apps/processos/tests/test_autorizacao.py` (30 testes, WI-0004),
+  sobre o mesmo padrão `TenantTestCase`. Cobre: usuário autenticado sem
+  autorização de módulo negado (403) nas nove rotas (`lista`,
+  `detalhe`, `arquivados`, `novo`, `editar`, `arquivar`, `reabrir`,
+  `adicionar_movimentacao`, `adicionar_parte`), com ausência de
+  mutação comprovada em todas as operações de escrita; usuário com
+  módulo autorizado (via papel dinâmico, sem nenhuma
+  `HabilitacaoPapel`) preservando o comportamento HTTP das nove rotas,
+  incluindo criar/editar/adicionar movimentação sem
+  `processos_criar`/`processos_editar`/`processos_andamento_adicionar`
+  — comportamento esperado nesta versão, conforme
+  [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md);
+  Administrador do escritório autorizado sem depender de
+  `UsuarioPapel`/`PermissaoPapel`. Não cobre escopo de dados,
+  habilitação granular nem autorização sobre objeto (IDOR
+  intra-tenant) — fora de escopo do WI-0004, por decisão de produto e
+  por fase futura, respectivamente.
 - **Cobertura parcial identificada**: `apps/clientes` — autorização de
   módulo, das duas habilitações existentes (`clientes_criar`,
   `clientes_editar`), escopo de dados por responsável e autorização
   sobre objeto (IDOR intra-tenant) são testados diretamente sobre as
-  views; as demais views operacionais (Processos, Tarefas, Agenda,
-  Financeiro, Dashboard, Chat, Modelos, Laboratório) permanecem sem
-  teste de autorização nem de escopo.
+  views. `apps/processos` — autorização de módulo é testada
+  diretamente sobre as nove views (WI-0004); habilitação granular não
+  é testada como exigida, por decisão de produto (PDR-0010); escopo de
+  dados e autorização sobre objeto permanecem sem teste. As demais
+  views operacionais (Tarefas, Agenda, Financeiro, Dashboard, Chat,
+  Modelos, Laboratório) permanecem sem teste de autorização nem de
+  escopo.
 - **Não foi identificado teste específico** para: escopo de dados nos
   módulos operacionais além de Clientes (Processos, Tarefas, Agenda,
   Financeiro, Dashboard, Chat, Modelos); autorização sobre objeto
@@ -891,16 +959,18 @@ nesta revisão.
   cliente-processo em Tarefas/Agenda; regras de negócio do Financeiro
   (modalidades, previsto/realizado) fora do cálculo de saldo de custas.
 - Uma busca por `find apps -type f \( -name "test_*.py" -o -name
-  "tests.py" \)` no HEAD auditado (`07675f7`) retorna os três arquivos
-  de `apps/accounts/tests/` e os dois arquivos de
-  `apps/clientes/tests/` (`test_autorizacao.py`, `test_escopo.py`) —
-  nenhum outro app do repositório possui arquivo de teste.
+  "tests.py" \)` nesta execução (HEAD `ece9ead`, após a implementação do
+  WI-0004) retorna os três arquivos de
+  `apps/accounts/tests/`, os dois arquivos de `apps/clientes/tests/`
+  (`test_autorizacao.py`, `test_escopo.py`) e um arquivo de
+  `apps/processos/tests/` (`test_autorizacao.py`) — nenhum outro app do
+  repositório possui arquivo de teste.
 
 ## Dívida e divergências conhecidas
 
 | Área | Divergência constatada | Fonte canônica relacionada |
 | --- | --- | --- |
-| Autorização nas views | Kernel dinâmico implementado e testado (`apps/accounts/tests/`, 86 testes, `OK`); `apps/clientes/views.py` já o consulta, incluindo escopo de dados (WI-0001, commit `da19001`; WI-0002, commit `07675f7`), mas as demais views operacionais (Processos, Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam protegidas apenas por `@login_required` | [../security/authorization-model.md](../security/authorization-model.md), [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md) |
+| Autorização nas views | Kernel dinâmico implementado e testado (`apps/accounts/tests/`, 86 testes, `OK`); `apps/clientes/views.py` já o consulta, incluindo escopo de dados (WI-0001, commit `da19001`; WI-0002, commit `07675f7`); `apps/processos/views.py` consulta autorização de módulo, sem habilitação granular por decisão de produto (WI-0004, [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)); as demais views operacionais (Tarefas, Agenda, Financeiro, Dashboard, Chat, Modelos, Laboratório) continuam protegidas apenas por `@login_required` | [../security/authorization-model.md](../security/authorization-model.md), [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md), [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md) |
 | Alteração de senha ausente | `templates/configuracoes/index.html` exibe um botão "Alterar senha" sem `href`/ação de formulário; nenhuma rota, view ou form correspondente foi identificado em `apps/accounts` | [configuracoes.md](../product/modules/configuracoes.md) |
 | Escopo de dados | Clientes filtra `QuerySet` por responsável (WI-0002); Processos, Tarefas, Agenda, Financeiro, Dashboard e Modelos continuam sem filtro; helpers de equipe existem mas não são consumidos por nenhum módulo, incluindo Clientes | [../security/data-scope.md](../security/data-scope.md) |
 | Participantes processuais | `ParteProcesso.tipo` (campo único) não implementa as três dimensões exigidas | [PDR-0001](../product/decisions/PDR-0001-participantes-processuais.md), [../architecture/module-map.md](../architecture/module-map.md) |
