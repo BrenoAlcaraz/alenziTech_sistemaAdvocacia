@@ -2,12 +2,13 @@
 title: Processos
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-19
+last_reviewed: 2026-08-20
 related_pdrs:
   - PDR-0001
   - PDR-0008
   - PDR-0009
   - PDR-0010
+  - PDR-0011
 ---
 
 # Processos
@@ -75,7 +76,9 @@ redefine esses termos.
 
 As regras de participantes processuais são formalizadas em
 [PDR-0001 — Participantes processuais](../decisions/PDR-0001-participantes-processuais.md)
-e não são duplicadas integralmente aqui. Em síntese, um processo deve
+e complementadas pela taxonomia inicial e pela regra de representação de
+[PDR-0011](../decisions/PDR-0011-taxonomia-representacao-participantes-processos.md).
+Elas não são duplicadas integralmente aqui. Em síntese, um processo deve
 suportar:
 
 - múltiplos clientes representados pelo escritório;
@@ -89,6 +92,9 @@ suportar:
 - autoridades processuais registradas separadamente das partes;
 - reutilização do cadastro de Cliente quando o participante já é
   cliente do escritório, sem redigitação de dados;
+- criação automática de um único participante para `Processo.cliente`, mesmo
+  sem CPF/CNPJ, com estado de classificação pendente restrito a esse vínculo
+  enquanto posição e qualificação ainda não forem informadas;
 - apresentação dos participantes em grupos dinâmicos por posição
   estrutural, com adaptação para telas menores;
 - mudança de qualificação processual sem duplicar a pessoa
@@ -243,6 +249,7 @@ possibilidade sugerida historicamente, não uma obrigação formalizada.
 - [PDR-0008 — IA após o núcleo funcional](../decisions/PDR-0008-ia-apos-nucleo-funcional.md)
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
 - [PDR-0010 — Autorização, escopo e responsabilidade de Processos](../decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)
+- [PDR-0011 — Taxonomia e representação de participantes de Processos](../decisions/PDR-0011-taxonomia-representacao-participantes-processos.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Política de terminologia](../../governance/terminology-policy.md)

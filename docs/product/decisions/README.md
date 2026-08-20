@@ -2,7 +2,7 @@
 title: Registros de decisões de produto
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-20
 ---
 
 # Registros de decisões de produto
@@ -38,3 +38,4 @@ efetivamente decididas.
 | PDR-0008 | IA após o núcleo funcional | accepted | [PDR-0008-ia-apos-nucleo-funcional.md](PDR-0008-ia-apos-nucleo-funcional.md) |
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | [PDR-0009-sequencia-fase-2.md](PDR-0009-sequencia-fase-2.md) |
 | PDR-0010 | Autorização, escopo e responsabilidade de Processos | accepted | [PDR-0010-autorizacao-escopo-responsabilidade-processos.md](PDR-0010-autorizacao-escopo-responsabilidade-processos.md) |
+| PDR-0011 | Taxonomia e representação de participantes de Processos | accepted | [PDR-0011-taxonomia-representacao-participantes-processos.md](PDR-0011-taxonomia-representacao-participantes-processos.md) |

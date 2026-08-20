@@ -219,6 +219,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
         payload = {
             "nome": "Parte adversarial válida",
             "tipo": "autor",
+            "vinculo_escritorio": "outro",
             "cpf_cnpj": "529.982.247-25",
         }
         formulario = ParteProcessoForm(payload)
@@ -302,7 +303,10 @@ class TestProcessosTodosNaoAdmin(ProcessosEscopoBase):
                 f"/processos/{self.alheio.pk}/movimentacoes/nova/",
                 {"tipo": "andamento", "data": "2026-08-19T10:00", "descricao": "Invadida"},
             ),
-            (f"/processos/{self.alheio.pk}/partes/nova/", {"nome": "Invadida", "tipo": "autor"}),
+            (
+                f"/processos/{self.alheio.pk}/partes/nova/",
+                {"nome": "Invadida", "tipo": "autor", "vinculo_escritorio": "outro"},
+            ),
         ]
         for url, dados in casos:
             with self.subTest(url=url):
@@ -313,7 +317,8 @@ class TestProcessosTodosNaoAdmin(ProcessosEscopoBase):
         self.assertEqual(self.alheio.titulo, titulo)
         self.assertEqual(self.alheio.status, "ativo")
         self.assertEqual(self.alheio.movimentacoes.count(), 0)
-        self.assertEqual(self.alheio.partes.count(), 0)
+        self.assertEqual(self.alheio.partes.filter(cliente=self.cliente).count(), 1)
+        self.assertFalse(self.alheio.partes.filter(nome="Invadida").exists())
 
 
 class TestProcessosAdministradorEIntegridade(ProcessosEscopoBase):
@@ -345,6 +350,13 @@ class TestProcessosAdministradorEIntegridade(ProcessosEscopoBase):
         self.assertEqual(resposta.status_code, 302)
         self.processo.refresh_from_db()
         self.assertEqual(self.processo.responsavel_id, self.admin.pk)
+        participante_cliente = self.processo.partes.get(cliente=self.cliente)
+        self.assertTrue(
+            participante_cliente.representantes.filter(
+                tipo="interno",
+                usuario=self.admin,
+            ).exists()
+        )
 
     def test_admin_usa_todos_por_padrao_pode_reduzir_e_so_ve_elegiveis_no_form(self):
         todos = self.client.get("/processos/", HTTP_HOST=self.http_host)
