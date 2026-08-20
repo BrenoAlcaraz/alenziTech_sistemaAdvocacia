@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db import transaction
 
 from apps.accounts.decorators import (
     nome_legivel_grupo,
@@ -11,6 +12,10 @@ from apps.accounts.decorators import (
 from apps.accounts.forms import CriarUsuarioEscritorioForm, EquipeForm, MembroEquipeForm, PerfilUsuarioForm
 from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario, PermissaoPapel
 from apps.accounts.permissoes_constants import TIPOS_CONTA_CONFIGURAVEIS
+from apps.processos.services import (
+    transferir_processos_de_usuarios_sem_acesso,
+    usuarios_com_acesso_processos,
+)
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -276,19 +281,22 @@ def permissoes(request):
         if tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
             erro = "Tipo de conta inválido. Apenas Limitado e Financeiro podem ser configurados."
         else:
-            for slug, _, niveis in _MODULOS_CONFIG:
-                ativo = request.POST.get(f"ativo_{slug}") == "on"
-                if niveis:
-                    nivel = request.POST.get(f"nivel_{slug}", niveis[0][0])
-                    if nivel not in [n[0] for n in niveis]:
-                        nivel = niveis[0][0]
-                else:
-                    nivel = ""
-                PermissaoPapel.objects.update_or_create(
-                    tipo_conta=tipo_conta,
-                    modulo=slug,
-                    defaults={"ativo": ativo, "nivel": nivel},
-                )
+            with transaction.atomic():
+                usuarios_antes = usuarios_com_acesso_processos()
+                for slug, _, niveis in _MODULOS_CONFIG:
+                    ativo = request.POST.get(f"ativo_{slug}") == "on"
+                    if niveis:
+                        nivel = request.POST.get(f"nivel_{slug}", niveis[0][0])
+                        if nivel not in [n[0] for n in niveis]:
+                            nivel = niveis[0][0]
+                    else:
+                        nivel = ""
+                    PermissaoPapel.objects.update_or_create(
+                        tipo_conta=tipo_conta,
+                        modulo=slug,
+                        defaults={"ativo": ativo, "nivel": nivel},
+                    )
+                transferir_processos_de_usuarios_sem_acesso(usuarios_antes)
             tab_ativa = tipo_conta
             nome = "Limitado" if tipo_conta == "limitado" else "Financeiro"
             mensagem = f"Permissões de '{nome}' atualizadas com sucesso."

@@ -65,7 +65,7 @@ class ProcessosAutorizacaoBase(TenantTestCase):
         defaults.update(kwargs)
         return Cliente.objects.create(responsavel=responsavel, **defaults)
 
-    def _processo(self, *, responsavel=None, cliente=None, **kwargs):
+    def _processo(self, *, responsavel, cliente=None, **kwargs):
         defaults = {"titulo": "Processo Teste"}
         defaults.update(kwargs)
         return Processo.objects.create(responsavel=responsavel, cliente=cliente, **defaults)
@@ -356,7 +356,11 @@ class TestProcessosAutorizacaoAdministrador(ProcessosAutorizacaoBase):
         antes = Processo.objects.count()
         r = self.client.post(
             "/processos/novo/",
-            self._processo_payload(self.cliente, titulo="Processo Admin"),
+            self._processo_payload(
+                self.cliente,
+                titulo="Processo Admin",
+                responsavel=self.user.pk,
+            ),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)

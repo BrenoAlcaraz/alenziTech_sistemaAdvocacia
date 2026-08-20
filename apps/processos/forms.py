@@ -1,7 +1,11 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import Processo, ParteProcesso, MovimentacaoProcessual
 from apps.clientes.models import Cliente
+
+
+User = get_user_model()
 
 
 INSTANCIA_CHOICES = [
@@ -63,6 +67,37 @@ class ProcessoForm(forms.ModelForm):
                 "type": "date",
             }, format="%Y-%m-%d"),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # O schema do tenant delimita a consulta. A seleção de cliente de
+        # Processo não depende da permissão nem do escopo do módulo Clientes.
+        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
+
+
+class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        nome = obj.get_full_name()
+        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+
+
+class ProcessoResponsavelForm(ProcessoForm):
+    """Variante exclusiva do Administrador, com reatribuição explícita."""
+
+    responsavel = ResponsavelProcessoChoiceField(
+        queryset=User.objects.none(),
+        required=True,
+        label="Responsável",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    class Meta(ProcessoForm.Meta):
+        fields = ProcessoForm.Meta.fields + ["responsavel"]
+
+    def __init__(self, *args, responsaveis_queryset=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if responsaveis_queryset is not None:
+            self.fields["responsavel"].queryset = responsaveis_queryset
 
 
 class ParteProcessoForm(forms.ModelForm):

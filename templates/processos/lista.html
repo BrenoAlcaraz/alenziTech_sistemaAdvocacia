@@ -7,11 +7,21 @@
     <h1 class="text-2xl font-bold text-gray-900">Processos</h1>
     <p class="text-sm text-gray-500 mt-0.5">
       Processos ativos do escritório &bull;
-      <a href="{% url 'processos:arquivados' %}" class="text-gray-400 hover:text-gray-600 underline">Ver processos arquivados</a>
+      <a href="{% url 'processos:arquivados' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">Ver processos arquivados</a>
     </p>
   </div>
   <a href="{% url 'processos:novo' %}" class="btn-primary">+ Novo processo</a>
 </div>
+
+<form method="get" class="card px-4 py-3 mb-4 flex items-center gap-3">
+  <label for="escopo" class="text-sm font-medium text-gray-700">Visualizar</label>
+  <select id="escopo" name="escopo" class="select max-w-xs" onchange="this.form.submit()">
+    <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
+    {% if escopo_maximo == "todos" %}
+      <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+    {% endif %}
+  </select>
+</form>
 
 {# Barra de busca visual — sem lógica real nesta fase #}
 {% include "components/search_bar.html" with placeholder="Buscar por título ou número..." %}
@@ -19,7 +29,7 @@
 {# Lista de processos #}
 <div class="flex flex-col gap-3">
   {% for p in processos %}
-    <a href="{% url 'processos:detalhe' p.id %}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
+    <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
       <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate">{{ p.titulo }}</p>

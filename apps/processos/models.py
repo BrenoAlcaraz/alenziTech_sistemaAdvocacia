@@ -52,7 +52,7 @@ class Processo(models.Model):
     gratuidade_justica_status = models.CharField(max_length=20, choices=GRATUIDADE_CHOICES, default="nao_requerida")
     data_distribuicao = models.DateField(null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
-    responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
+    responsavel = models.ForeignKey(User, on_delete=models.PROTECT, related_name="processos")
     equipe = models.ForeignKey(
         "accounts.Equipe",
         on_delete=models.SET_NULL,
