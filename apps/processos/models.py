@@ -105,6 +105,71 @@ class Processo(models.Model):
                 garantir_participante_cliente(self)
 
 
+class VinculoProcessoApenso(models.Model):
+    """Vínculo simétrico entre dois Processos, armazenado uma única vez."""
+
+    processo_menor = models.ForeignKey(
+        Processo,
+        on_delete=models.CASCADE,
+        related_name="vinculos_apensos_como_menor",
+    )
+    processo_maior = models.ForeignKey(
+        Processo,
+        on_delete=models.CASCADE,
+        related_name="vinculos_apensos_como_maior",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Vínculo de processo apenso"
+        verbose_name_plural = "Vínculos de processos apensos"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    processo_menor_id__lt=models.F("processo_maior_id")
+                ),
+                name="processos_apenso_ordem_valida",
+            ),
+            models.UniqueConstraint(
+                fields=["processo_menor", "processo_maior"],
+                name="processos_apenso_par_unico",
+            ),
+        ]
+
+    def normalizar_par(self):
+        if self.processo_menor_id is None or self.processo_maior_id is None:
+            return
+        if self.processo_menor_id == self.processo_maior_id:
+            raise ValidationError(
+                {"processo_maior": "Um Processo não pode ser apenso a ele mesmo."}
+            )
+        if self.processo_menor_id > self.processo_maior_id:
+            self.processo_menor_id, self.processo_maior_id = (
+                self.processo_maior_id,
+                self.processo_menor_id,
+            )
+
+    def clean(self):
+        super().clean()
+        self.normalizar_par()
+
+    def save(self, *args, **kwargs):
+        self.normalizar_par()
+        # A constraint permanece a autoridade contra concorrência e bypass.
+        self.full_clean(validate_unique=False, validate_constraints=False)
+        super().save(*args, **kwargs)
+
+    def outro_processo(self, processo):
+        if processo.pk == self.processo_menor_id:
+            return self.processo_maior
+        if processo.pk == self.processo_maior_id:
+            return self.processo_menor
+        raise ValueError("O Processo informado não pertence a este vínculo.")
+
+    def __str__(self):
+        return f"{self.processo_menor} ↔ {self.processo_maior}"
+
+
 class MovimentacaoProcessual(models.Model):
     TIPO_CHOICES = [
         ("andamento", "Andamento"),

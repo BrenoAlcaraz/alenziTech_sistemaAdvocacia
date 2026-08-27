@@ -2,11 +2,17 @@ import re
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q, Subquery
 
 from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS
 
-from .models import ParteProcesso, Processo, RepresentanteParte
+from .models import (
+    ParteProcesso,
+    Processo,
+    RepresentanteParte,
+    VinculoProcessoApenso,
+)
 
 
 User = get_user_model()
@@ -91,6 +97,52 @@ def obter_ou_criar_representante_externo(parte, representante):
         fingerprint_externo=representante.fingerprint_externo,
         defaults=defaults,
     )
+
+
+def vincular_processos_apensos(processo_a, processo_b):
+    """Cria idempotentemente um único vínculo físico para o par A ↔ B."""
+    if processo_a.pk == processo_b.pk:
+        raise ValueError("Um Processo não pode ser apenso a ele mesmo.")
+    processo_menor_id, processo_maior_id = sorted([processo_a.pk, processo_b.pk])
+    return VinculoProcessoApenso.objects.get_or_create(
+        processo_menor_id=processo_menor_id,
+        processo_maior_id=processo_maior_id,
+    )
+
+
+def vinculos_apensos_do(processo, *, processos_visiveis=None):
+    """Centraliza a consulta simétrica e, opcionalmente, seu escopo de leitura."""
+    vinculos = VinculoProcessoApenso.objects.filter(
+        Q(processo_menor=processo) | Q(processo_maior=processo)
+    )
+    if processos_visiveis is None:
+        return vinculos
+
+    ids_visiveis = Subquery(
+        processos_visiveis.order_by().values("pk")
+    )
+    return vinculos.filter(
+        Q(
+            processo_menor=processo,
+            processo_maior_id__in=ids_visiveis,
+        )
+        | Q(
+            processo_maior=processo,
+            processo_menor_id__in=ids_visiveis,
+        )
+    )
+
+
+def ids_processos_apensos_do(processo):
+    """Retorna os IDs relacionados sem inferir hierarquia ou transitividade."""
+    vinculos = vinculos_apensos_do(processo)
+    ids_menores = vinculos.filter(processo_maior=processo).values(
+        "processo_menor_id"
+    )
+    ids_maiores = vinculos.filter(processo_menor=processo).values(
+        "processo_maior_id"
+    )
+    return ids_menores.union(ids_maiores)
 
 
 class AdministradorResponsavelIndisponivel(RuntimeError):

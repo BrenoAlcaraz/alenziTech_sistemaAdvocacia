@@ -10,6 +10,7 @@ from .models import (
     ParteProcesso,
     Processo,
     RepresentanteParte,
+    VinculoProcessoApenso,
 )
 
 
@@ -23,6 +24,18 @@ class ProcessoAdmin(admin.ModelAdmin):
 @admin.register(MovimentacaoProcessual)
 class MovimentacaoAdmin(admin.ModelAdmin):
     list_display = ["processo", "tipo", "data", "autor"]
+
+
+@admin.register(VinculoProcessoApenso)
+class VinculoProcessoApensoAdmin(admin.ModelAdmin):
+    list_display = ["processo_menor", "processo_maior", "criado_em"]
+    search_fields = [
+        "processo_menor__titulo",
+        "processo_menor__numero",
+        "processo_maior__titulo",
+        "processo_maior__numero",
+    ]
+    readonly_fields = ["criado_em"]
 
 
 @admin.register(ParteProcesso)

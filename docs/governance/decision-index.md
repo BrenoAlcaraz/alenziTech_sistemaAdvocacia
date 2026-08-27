@@ -16,7 +16,7 @@ existem e para onde apontar.
 
 Os PDR-0001 a PDR-0009 representam decisões funcionais já consolidadas
 nas fontes anteriores do projeto (histórico, planos e checkpoints). Os
-PDR-0010 e PDR-0011 registram decisões diretas posteriores do Product
+PDR-0010 a PDR-0012 registram decisões diretas posteriores do Product
 Owner. Todos foram formalizados em `docs/product/decisions/`. Os ADR-0001 a ADR-0005
 listados abaixo representam decisões arquiteturais já consolidadas nas
 mesmas fontes, mas ainda estão pendentes apenas de formalização em
@@ -39,6 +39,7 @@ decisão tomada.
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | `docs/product/decisions/PDR-0009-sequencia-fase-2.md` |
 | PDR-0010 | Autorização, escopo e responsabilidade de Processos | accepted | `docs/product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md` |
 | PDR-0011 | Taxonomia e representação de participantes de Processos | accepted | `docs/product/decisions/PDR-0011-taxonomia-representacao-participantes-processos.md` |
+| PDR-0012 | Relação simétrica de processos apensos | accepted | `docs/product/decisions/PDR-0012-relacao-simetrica-processos-apensos.md` |
 
 A decisão aceita em PDR-0003 inclui explicitamente que billing e
 assinatura SaaS permanecem no contexto compartilhado de `saas_billing`,

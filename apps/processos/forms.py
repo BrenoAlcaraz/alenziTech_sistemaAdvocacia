@@ -106,6 +106,35 @@ class ProcessoResponsavelForm(ProcessoForm):
             self.fields["responsavel"].queryset = responsaveis_queryset
 
 
+class ProcessoApensoChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        if obj.numero:
+            return f"{obj.numero} — {obj.titulo}"
+        return obj.titulo
+
+
+class AdicionarApensoForm(forms.Form):
+    processo_apenso = ProcessoApensoChoiceField(
+        queryset=Processo.objects.none(),
+        empty_label="Selecionar processo...",
+        label="Processo",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, processo_origem, processos_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.processo_origem = processo_origem
+        self.fields["processo_apenso"].queryset = processos_queryset
+
+    def clean_processo_apenso(self):
+        processo_apenso = self.cleaned_data["processo_apenso"]
+        if processo_apenso.pk == self.processo_origem.pk:
+            raise forms.ValidationError(
+                "Um Processo não pode ser apenso a ele mesmo."
+            )
+        return processo_apenso
+
+
 class ParteProcessoForm(forms.Form):
     TIPO_CHOICES = [
         ("POLO ATIVO", [

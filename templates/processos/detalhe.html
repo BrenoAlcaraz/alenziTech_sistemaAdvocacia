@@ -92,6 +92,13 @@
       </svg>
       Partes <span class="text-gray-400">({{ participantes_total }})</span>
     </a>
+    <a href="?aba=apensos"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'apensos' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71m2.25 5.82a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+      </svg>
+      Apensos <span class="text-gray-400">({{ apensos_total }})</span>
+    </a>
   </nav>
 </div>
 
@@ -209,6 +216,55 @@
 
 {% elif aba_ativa == "prazos" %}
   {% include "components/empty_state.html" with mensagem="Nenhum prazo cadastrado." %}
+
+{% elif aba_ativa == "apensos" %}
+
+  {% if pode_modificar %}
+  <form method="post" action="{% url 'processos:adicionar_apenso' processo.pk %}" class="card px-5 py-4 mb-4">
+    {% csrf_token %}
+    <p class="text-sm font-semibold text-gray-900 mb-3">Adicionar apenso</p>
+    <div class="flex items-center gap-3">
+      <div class="flex-1">{{ form_apenso.processo_apenso }}</div>
+      <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_apenso %}disabled{% endif %}>
+        Adicionar apenso
+      </button>
+    </div>
+    {% if not tem_candidatos_apenso %}
+      <p class="text-xs text-gray-400 mt-2">Nenhum outro Processo elegível para vinculação.</p>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for item in apensos %}
+      <div class="card px-5 py-4 flex items-start justify-between gap-4">
+        <a href="{% url 'processos:detalhe' item.processo.pk %}?aba=apensos" class="flex-1 min-w-0 group">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="badge-area">{{ item.processo.get_area_direito_display }}</span>
+            <span class="badge-area">{{ item.processo.get_status_display }}</span>
+          </div>
+          <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ item.processo.titulo }}</p>
+          {% if item.processo.numero %}<p class="text-xs text-gray-400 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs">
+            <div><dt class="text-gray-400">Cliente</dt><dd class="text-gray-700">{{ item.processo.cliente|default:"—" }}</dd></div>
+            <div><dt class="text-gray-400">Responsável</dt><dd class="text-gray-700">{{ item.processo.responsavel }}</dd></div>
+            <div><dt class="text-gray-400">Fase</dt><dd class="text-gray-700">{{ item.processo.get_fase_display }}</dd></div>
+            <div><dt class="text-gray-400">Vara/Juízo</dt><dd class="text-gray-700">{{ item.processo.vara_juizo|default:"—" }}</dd></div>
+          </dl>
+        </a>
+        {% if item.pode_remover %}
+        <form method="post" action="{% url 'processos:remover_apenso' processo.pk item.vinculo.pk %}" class="flex-shrink-0">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover relação</button>
+        </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="md:col-span-2">
+        {% include "components/empty_state.html" with mensagem="Nenhum processo referenciado como apenso." %}
+      </div>
+    {% endfor %}
+  </div>
 {% endif %}
 
 {% endblock %}

@@ -2,7 +2,7 @@
 title: Roadmap de desenvolvimento
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-19
+last_reviewed: 2026-08-20
 ---
 
 # Roadmap de desenvolvimento
@@ -349,6 +349,8 @@ flowchart LR
 | PDR-0008 — IA após núcleo funcional | Define integralmente a Fase F como pré-requisito obrigatório da Fase G; a mais impactante para a ordem geral do roadmap |
 | PDR-0009 — Sequência revisada da Fase 2 | Fonte da ordem de dependência entre rodadas que este roadmap consolida em fases; autorização e integridade antes de módulos avançados |
 | PDR-0010 — Autorização, escopo e responsabilidade de Processos | Define autorização binária por módulo como suficiente para a Fase A de Processos; habilitações granulares preservadas no kernel são evolução futura e não impedem o avanço para a Fase B após o fechamento do WI-0004 |
+| PDR-0011 — Taxonomia e representação de participantes de Processos | Define a evolução vertical de participantes e representantes em Processos no WI-0006, sem alterar a fronteira do WI-0005 |
+| PDR-0012 — Relação simétrica de processos apensos | Define o WI-0007 como vínculo bidirecional entre Processos independentes, sem hierarquia, propagação ou transitividade |
 | OPEN-001 — Periodicidades financeiras | Bloqueia o detalhamento final de recorrência/parcelamento na Fase D até resolução |
 | OPEN-002 — Etapas de aprovação de solicitações | Bloqueia o detalhamento final do fluxo de Solicitações na Fase D até resolução |
 
@@ -395,12 +397,11 @@ flowchart LR
 
 Pelo estado auditado em [current-state.md](current-state.md) e pelas
 dependências descritas acima, módulos ainda sem autorização aplicada
-continuam na **Fase A — Consolidar autorização nas operações**. No
-avanço vertical de Processos, porém, o WI-0004 satisfaz a Fase A pela
-política específica do PDR-0010; após sua aprovação e fechamento, a
-próxima unidade é o WI-0005, pertencente à **Fase B — Aplicar escopo de
-dados**. Este documento não define nome de branch, issue ou sprint para
-essas unidades de trabalho.
+continuam na **Fase A — Consolidar autorização nas operações**. No avanço
+vertical de Processos, WI-0005 e WI-0006 possuem implementação técnica em H1,
+mas permanecem `in_progress` até a validação manual e o fechamento documental.
+A unidade técnica seguinte dessa sequência é o WI-0007 — Apensos de Processos,
+governado pelo PDR-0012. Nenhum desses itens é marcado `done` por esta atualização.
 
 ## Referências
 

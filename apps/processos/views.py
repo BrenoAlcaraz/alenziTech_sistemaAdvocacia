@@ -2,7 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.http import Http404
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 from apps.accounts.escopo import equipe_padrao_para_usuario
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo
@@ -13,6 +15,7 @@ from apps.accounts.permissoes_constants import (
 )
 from .models import ParteProcesso, Processo, RepresentanteParte
 from .forms import (
+    AdicionarApensoForm,
     ClassificacaoParteForm,
     MovimentacaoProcessualForm,
     ParteProcessoForm,
@@ -22,8 +25,11 @@ from .forms import (
 )
 from .services import (
     cliente_do_processo_corresponde_documento,
+    ids_processos_apensos_do,
     obter_ou_criar_representante_externo,
     responsaveis_elegiveis,
+    vincular_processos_apensos,
+    vinculos_apensos_do,
     vincular_responsavel_como_advogado,
 )
 
@@ -101,6 +107,45 @@ def detalhe(request, pk):
                 "atuacao_ministerio_publico": parte.atuacao_ministerio_publico,
             })
     autoridades = list(processo.autoridades.all())
+    vinculos_apensos = list(
+        vinculos_apensos_do(
+            processo,
+            processos_visiveis=_processos_no_escopo(request, escopo),
+        ).select_related(
+            "processo_menor__cliente",
+            "processo_menor__responsavel",
+            "processo_maior__cliente",
+            "processo_maior__responsavel",
+        )
+    )
+    processos_apensos = [
+        vinculo.outro_processo(processo) for vinculo in vinculos_apensos
+    ]
+    ids_mutaveis = set(
+        _processos_mutaveis(request)
+        .filter(pk__in=[apenso.pk for apenso in processos_apensos])
+        .values_list("pk", flat=True)
+    )
+    apensos = [
+        {
+            "vinculo": vinculo,
+            "processo": apenso,
+            "pode_remover": pode_modificar and apenso.pk in ids_mutaveis,
+        }
+        for vinculo, apenso in zip(vinculos_apensos, processos_apensos)
+    ]
+    candidatos_apenso = Processo.objects.none()
+    if pode_modificar:
+        candidatos_apenso = (
+            _processos_mutaveis(request)
+            .exclude(pk=processo.pk)
+            .exclude(pk__in=ids_processos_apensos_do(processo))
+            .order_by("numero", "titulo", "pk")
+        )
+    form_apenso = AdicionarApensoForm(
+        processo_origem=processo,
+        processos_queryset=candidatos_apenso,
+    )
     return render(request, "processos/detalhe.html", {
         "processo": processo,
         "movimentacoes": processo.movimentacoes.order_by("-data"),
@@ -110,6 +155,10 @@ def detalhe(request, pk):
         "partes_outros": [p for p in partes if p.grupo_visual == "outros"],
         "autoridades": autoridades,
         "participantes_total": len(partes) + len(autoridades),
+        "apensos": apensos,
+        "apensos_total": len(apensos),
+        "form_apenso": form_apenso,
+        "tem_candidatos_apenso": candidatos_apenso.exists(),
         "form_parte": ParteProcessoForm(initial={"vara_orgao": processo.vara_juizo}),
         "form_advogado": RepresentanteParteForm(),
         "form_movimentacao": MovimentacaoProcessualForm(),
@@ -117,6 +166,49 @@ def detalhe(request, pk):
         "item_ativo": "processos",
         "pode_modificar": pode_modificar,
     })
+
+
+@login_required
+@require_POST
+def adicionar_apenso(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    with transaction.atomic():
+        mutaveis = _processos_mutaveis(request).select_for_update()
+        processo = get_object_or_404(mutaveis, pk=pk)
+        formulario = AdicionarApensoForm(
+            request.POST,
+            processo_origem=processo,
+            processos_queryset=mutaveis.exclude(pk=processo.pk),
+        )
+        if not formulario.is_valid():
+            raise Http404
+        processo_apenso = get_object_or_404(
+            mutaveis,
+            pk=formulario.cleaned_data["processo_apenso"].pk,
+        )
+        vincular_processos_apensos(processo, processo_apenso)
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=apensos")
+
+
+@login_required
+@require_POST
+def remover_apenso(request, pk, vinculo_pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    with transaction.atomic():
+        mutaveis = _processos_mutaveis(request).select_for_update()
+        processo = get_object_or_404(mutaveis, pk=pk)
+        vinculo = get_object_or_404(
+            vinculos_apensos_do(processo).select_for_update(),
+            pk=vinculo_pk,
+        )
+        processo_apenso = vinculo.outro_processo(processo)
+        get_object_or_404(mutaveis, pk=processo_apenso.pk)
+        vinculo.delete()
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=apensos")
 
 
 @login_required

@@ -39,3 +39,4 @@ efetivamente decididas.
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | [PDR-0009-sequencia-fase-2.md](PDR-0009-sequencia-fase-2.md) |
 | PDR-0010 | Autorização, escopo e responsabilidade de Processos | accepted | [PDR-0010-autorizacao-escopo-responsabilidade-processos.md](PDR-0010-autorizacao-escopo-responsabilidade-processos.md) |
 | PDR-0011 | Taxonomia e representação de participantes de Processos | accepted | [PDR-0011-taxonomia-representacao-participantes-processos.md](PDR-0011-taxonomia-representacao-participantes-processos.md) |
+| PDR-0012 | Relação simétrica de processos apensos | accepted | [PDR-0012-relacao-simetrica-processos-apensos.md](PDR-0012-relacao-simetrica-processos-apensos.md) |

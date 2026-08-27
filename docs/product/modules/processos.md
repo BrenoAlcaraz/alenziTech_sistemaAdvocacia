@@ -9,6 +9,7 @@ related_pdrs:
   - PDR-0009
   - PDR-0010
   - PDR-0011
+  - PDR-0012
 ---
 
 # Processos
@@ -146,12 +147,20 @@ ponto permanece registrado em "Pontos em aberto".
 
 ## Apensos
 
-- Um processo apenso possui identificação própria.
-- Um processo apenso permanece ligado ao processo principal.
-- A navegação a partir de um processo deve permitir acessar o processo
-  apenso ou principal relacionado.
-- Os dados de um processo apenso e de seu processo principal não devem
-  ser fundidos como se fossem o mesmo processo.
+Conforme
+[PDR-0012 — Relação simétrica de processos apensos](../decisions/PDR-0012-relacao-simetrica-processos-apensos.md),
+a primeira versão usa relação bidirecional sem hierarquia de negócio:
+
+- dois Processos existentes podem ser relacionados simetricamente;
+- ambos possuem identificação própria e permanecem independentes;
+- A exibe B e B exibe A, com navegação nos dois sentidos;
+- Cliente, responsável, equipe, status, fase, participantes, representantes,
+  autoridades, andamentos, prazos e documentos não são copiados, fundidos,
+  herdados nem propagados;
+- remover a relação não exclui nenhum Processo;
+- A ↔ B e B ↔ C não inferem A ↔ C;
+- “menor” e “maior”, quando usados na persistência, são apenas normalização
+  técnica do par e não significam principal, pai ou filho.
 
 ## IA
 
@@ -177,7 +186,7 @@ ponto permanece registrado em "Pontos em aberto".
 5. Adicionar representante a um participante.
 6. Adicionar autoridade processual.
 7. Registrar andamento e respectivo anexo.
-8. Vincular processo apenso a um processo principal.
+8. Relacionar simetricamente dois Processos como apensos.
 9. Registrar prazo processual.
 10. Consultar o histórico de um processo.
 
@@ -230,8 +239,8 @@ possibilidade sugerida historicamente, não uma obrigação formalizada.
   participante, nunca como parte do processo.
 - Uma mudança de qualificação processual não gera um novo registro de
   pessoa participante.
-- Um processo apenso possui identificação própria e permanece
-  navegável a partir do processo principal, sem fusão de dados.
+- Processos relacionados como apensos permanecem independentes e navegáveis
+  nos dois sentidos, sem hierarquia ou fusão de dados.
 - Nenhuma funcionalidade essencial do módulo exige IA para operar.
 - Quando implementado, o Assistente/Laboratório aparece no contexto
   visual do processo, condicionado aos pré-requisitos de PDR-0008.
@@ -240,7 +249,7 @@ possibilidade sugerida historicamente, não uma obrigação formalizada.
 - O usuário que incluiu o andamento é identificável.
 - O contador de inatividade utiliza a data do último andamento.
 - Fase, status e andamento são tratados como conceitos distintos.
-- Processo principal e apenso permanecem registros independentes.
+- Processos relacionados como apensos permanecem registros independentes.
 
 ## Referências canônicas
 
@@ -250,6 +259,7 @@ possibilidade sugerida historicamente, não uma obrigação formalizada.
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
 - [PDR-0010 — Autorização, escopo e responsabilidade de Processos](../decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md)
 - [PDR-0011 — Taxonomia e representação de participantes de Processos](../decisions/PDR-0011-taxonomia-representacao-participantes-processos.md)
+- [PDR-0012 — Relação simétrica de processos apensos](../decisions/PDR-0012-relacao-simetrica-processos-apensos.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Política de terminologia](../../governance/terminology-policy.md)
