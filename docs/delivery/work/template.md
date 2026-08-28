@@ -2,148 +2,112 @@
 title: Template de work item
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-27
 ---
-
-# Template de work item
-
-<!--
-Este é um template reutilizável, não um Work Item ativo. Copie este
-arquivo para WI-XXXX-slug-curto.md e preencha cada seção. Remova este
-comentário na cópia.
--->
 
 # WI-XXXX — Título
 
-## Estado
+<!-- Template V2 para novos itens. Remova este comentário na cópia. -->
 
-draft | ready | in_progress | blocked | done | superseded
+## Controle
 
-## Fase do roadmap
+Status: draft | ready | in_progress | blocked | done | superseded
 
 Fase:
-Objetivo relacionado:
 
-## Objetivo
+## Resultado observável
 
-## Resultado observável pelo Product Owner
-
-Linguagem de produto: o que o PO poderá fazer e o que ainda não estará
-coberto. Não é o mesmo que "Resultado esperado" — ver a distinção em
-[README.md](README.md#resultado-observável).
-
-### Ao concluir este WI
+### Ao concluir
 
 - ...
 
-### Ainda não estará coberto
+### Ainda fora da entrega
 
 - ...
 
-## Contexto e motivação
+## Context Pack
 
-## Evidência do estado atual
+Base HEAD:
 
-## Resultado esperado
+Modo: FAST | STANDARD | STRICT
 
-Comportamento técnico que a implementação e a revisão devem produzir e
-verificar — não repita aqui a linguagem de produto de "Resultado
-observável pelo Product Owner" acima.
+Objetivo:
 
-## Fontes canônicas
+Arquivos/áreas afetadas:
 
-## Arquivos do HEAD a auditar antes da implementação
+Fontes canônicas diretamente aplicáveis:
 
-## Escopo permitido
+Riscos:
 
-### Pode alterar
+Dependências:
 
-### Pode criar
+Estado/evidência de satisfação das dependências:
 
-### Migrations
+Testes invalidados:
 
-### Documentação
+Evidências anteriores ainda válidas:
 
-## Fora de escopo
+## Escopo
 
-> qualquer alteração útil, mas não necessária para satisfazer os
-> critérios deste item, permanece fora do escopo até ser explicitamente
-> incorporada.
+### Incluído
 
-## Regras funcionais e técnicas
+- ...
 
-## Segurança e autorização
+### Fora do escopo
 
-## Decisões abertas e bloqueios
-
-## Dependências
+- ...
 
 ## Critérios de aceite
 
 - [ ] ...
 
-## Testes esperados
+## Decisões abertas e bloqueios
 
-### Existentes a considerar
+Nenhum.
 
-### Novos testes
+## Plano de validação
 
-### Comandos de validação
+Teste alvo:
 
-### Validação manual
+Suíte do app:
 
-Aplicável: SIM / NÃO
+Consumidores invalidados:
 
-Cenários previstos (2 a 5, quando aplicável):
+Gates condicionais:
+
+Validação manual: aplicável / não aplicável
+
+Cenários, quando aplicável:
 
 - ...
 
-Resultado real (preencher durante a execução, não antes):
+## Última evidência válida
 
-- ...
+| Comando/verificação | Base/delta | Resultado | Validade |
+| --- | --- | --- | --- |
+| ... | ... | ... | ... |
 
-## Quality gates
+## Findings abertos
 
-- [ ] testes alvo executados
-- [ ] testes negativos executados, quando aplicável
-- [ ] suíte relevante executada, quando exigida pelo item
-- [ ] `git diff --check`
-- [ ] diff revisado integralmente
-- [ ] links e documentação referenciados verificados
+Nenhum.
 
-## Atualizações documentais esperadas
-
-## Achados fora do escopo
-
-Nenhum registrado.
-
-## Evidência de execução
-
-### Estado inicial
+## Git e encerramento
 
 Branch:
-HEAD:
-Git status:
 
-### Arquivos alterados
+Arquivos alterados:
 
-### Testes executados
+Validação manual — resultado:
 
-### Validações executadas
+Commit H1, se existir:
 
-### Resultado
+Commit H2, se existir:
 
-### Commit
+Estado final do Git:
 
-Preencher somente quando existir.
-
-## Encerramento
-
-- [ ] critérios de aceite verificados;
-- [ ] testes/validações registrados;
-- [ ] diff revisado;
-- [ ] escopo respeitado;
-- [ ] current-state atualizado quando aplicável;
-- [ ] roadmap atualizado somente se necessário;
-- [ ] achados laterais registrados;
-- [ ] Git final registrado.
+- [ ] critérios de aceite possuem evidência;
+- [ ] validações aplicáveis estão válidas;
+- [ ] diff e escopo foram revisados;
+- [ ] findings e bloqueios foram tratados;
+- [ ] documentação material foi atualizada;
+- [ ] Git final foi registrado.

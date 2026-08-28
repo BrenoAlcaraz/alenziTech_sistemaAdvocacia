@@ -2,63 +2,49 @@
 title: Quality gates
 status: canonical
 owner: development
-last_reviewed: 2026-08-18
+last_reviewed: 2026-08-27
 ---
 
 # Quality gates
 
 ## Objetivo
 
-Definir os critérios de validação que uma execução de trabalho neste
-repositório deve satisfazer antes de considerar um Work Item concluído,
-distinguindo o que é **obrigatório para toda implementação** do que é
-**condicional** ao tipo de alteração feita. Este documento não introduz
-nenhuma ferramenta de qualidade além das já constatadas no HEAD do
-repositório — ver "Ferramentas não estabelecidas" abaixo.
+Definir quando cada gate é disparado. A estratégia de seleção de testes e a
+validade de evidências pertencem a [testing.md](testing.md); a posição dos
+gates no ciclo pertence a [workflow.md](workflow.md).
 
-Este documento complementa, sem duplicar:
+## Registro
 
-- [workflow.md](workflow.md) — onde os quality gates entram na
-  sequência operacional (Etapa 9);
-- [testing.md](testing.md) — estratégia e comandos de teste;
-- [git-procedure.md](git-procedure.md) — verificações de Git antes de
-  staging e commit;
-- [commands.md](commands.md) — catálogo factual de todos os comandos
-  disponíveis no projeto.
+Um gate aplicado recebe `aprovado`, `reprovado` ou `não executado`.
+Registrar comando, base/delta, resultado e validade na seção **Última
+evidência válida** do WI. `Aprovado` exige execução real. Gate não
+aplicável pode ser omitido do plano; se foi esperado mas não executado,
+registrar o motivo.
 
-## Resultado de um gate
+## Matriz de disparo
 
-Todo gate aplicado a uma execução recebe exatamente um destes três
-resultados:
+| Gate | Disparador | Quando dispensável |
+| --- | --- | --- |
+| Revisão integral do diff | Toda alteração | Nunca antes de concluir o trabalho técnico |
+| `git diff --check` | Toda alteração técnica ou documental | Apenas quando não existe delta |
+| Teste alvo | Comportamento testável novo/alterado ou finding corrigido | Docs puros e mudança sem comportamento automatizável, com justificativa |
+| Suíte do app | STANDARD/STRICT com comportamento do app alterado, antes de H1 | FAST ou delta que não invalida comportamento do app |
+| Suíte de outro app | Contrato/dependência compartilhada invalidada | Ausência de consumo afetado |
+| `python manage.py check` | Mudança Django relevante (models, views, forms, urls, settings) e antes de H1 conforme modo | Docs, CSS/template puramente estático e delta Django não alterado |
+| `python manage.py makemigrations --check --dry-run` | Model ou schema Django alterado | Nenhuma mudança de model/schema |
+| Revisão da migration | Migration criada ou alterada | Migration sem delta |
+| Aplicação/teste PostgreSQL | Migration criada ou alterada | Nenhuma migration alterada |
+| Rollback/reapply | Migration de dados; migration reversível com risco de dados; risco explicitamente justificado | Schema simples já validado, sem delta posterior na migration |
+| `npm run build` | Template/classes Tailwind, `static/css/input.css`, configuração ou pipeline frontend alterados | Backend/docs ou template sem impacto nas classes compiladas |
+| Validação manual dirigida | Tela, rota ou fluxo observável alterado e cenário manual agrega evidência | Mudança interna ou coberta de forma suficiente sem interação de produto |
+| Validação documental | Markdown criado/alterado | Nenhum documento alterado |
 
-```text
-aprovado
-reprovado
-não executado
-```
+O modo FAST/STANDARD/STRICT define profundidade; o delta define quais gates
+da tabela se aplicam. Nenhum modo converte todos os gates em universais.
 
-- **aprovado** — o gate foi executado e não revelou problema.
-- **reprovado** — o gate foi executado e revelou um problema não
-  resolvido.
-- **não executado** — o gate não foi rodado nesta execução; o motivo
-  deve ser registrado (por exemplo, "fora do escopo do item", "ambiente
-  sem PostgreSQL configurado").
+## Gate de diff
 
-Não é permitido registrar "aprovado" por inferência, sem execução real
-do gate. O resultado de cada gate deve registrar, no mínimo:
-
-```text
-comando
-executado? (sim/não)
-resultado
-```
-
-Escrever apenas "OK" não é um registro válido.
-
-## Gates obrigatórios para toda implementação
-
-Aplicam-se a qualquer alteração de código, independentemente do módulo
-tocado:
+Antes de concluir trabalho técnico:
 
 ```text
 git status --short
@@ -67,48 +53,9 @@ git diff --stat
 git diff --check
 ```
 
-mais:
-
-- revisão manual do diff completo (técnica e de escopo, conforme
-  [workflow.md#etapa-10--revisar-o-diff](workflow.md#etapa-10--revisar-o-diff));
-- verificação de cada critério de aceite do Work Item contra evidência
-  real;
-- os testes alvo/relevantes do Work Item, conforme
-  [testing.md](testing.md) — ver "Gate de testes" abaixo.
-
-Nenhum gate obrigatório desta lista exige acesso a PostgreSQL, exceto os
-testes, quando o Work Item os exigir.
-
-## Gates condicionais
-
-Aplicam-se apenas quando o tipo de alteração os torna relevantes. Um
-Work Item não precisa rodar todos os gates condicionais existentes —
-apenas os que sua alteração real justifica:
-
-- `python manage.py check` — quando a alteração toca código Django
-  (models, views, forms, settings, urls); ver "Gate Django" abaixo;
-- `python manage.py makemigrations --check --dry-run` — quando a
-  alteração toca `models.py` de algum app; ver "Gate de migrations"
-  abaixo;
-- teste alvo do item — sempre que o item adicionar ou alterar
-  comportamento testável;
-- suíte do app tocado — regressão mínima quando o item altera um app
-  com testes existentes ou novos;
-- regressão de módulo dependente — quando o item altera um
-  comportamento consumido por outro módulo (por exemplo, o kernel de
-  `apps.accounts`, consumido por views operacionais);
-- suíte mais ampla do projeto — apenas quando o item toca mais de um
-  app, ou altera comportamento compartilhado;
-- migrations — revisão explícita do arquivo de migration gerado, quando
-  o item as autorizar;
-- `npm run build` (Tailwind) — quando a alteração afeta classes
-  compiladas; ver "Gate frontend / Tailwind" abaixo;
-- documentação — quando `.md` for alterado; ver "Gate de documentação"
-  abaixo.
-
-Uma alteração trivial que não exige suíte completa não deve ser forçada
-a rodá-la só porque ela existe — a suíte mais ampla é exigida apenas
-quando o próprio Work Item ou o risco real da mudança a justificar.
+Com staging autorizado, conferir também `git diff --cached`. A revisão
+manual verifica correção, escopo, arquivos gerados e ausência de alteração
+preexistente misturada.
 
 ## Gate Django
 
@@ -116,217 +63,86 @@ quando o próprio Work Item ou o risco real da mudança a justificar.
 python manage.py check
 ```
 
-Constatado como comando de validação estrutural do projeto (ver
-[commands.md#django](commands.md#django)) — verifica a configuração e os
-models do projeto, sem aplicar migrations.
+Valida carregamento/configuração estrutural; não substitui testes nem prova
+ausência de acesso ao banco. Deve rodar para mudança Django relevante e,
+em STANDARD/STRICT, antes de H1 quando esse tipo de delta existir.
 
-Este gate:
-
-- é relevante para qualquer alteração que toque models, views, forms,
-  settings ou urls de algum app Django;
-- **não substitui testes** — passar em `check` não prova que o
-  comportamento está correto, apenas que a configuração e os models são
-  estruturalmente válidos;
-- **não garante ausência absoluta de acesso ao banco** — esse
-  comportamento não deve ser presumido sem instrumentação própria da
-  chamada, conforme já registrado em
-  [commands.md#django](commands.md#django).
-
-## Gate de migrations
+## Gates de migration
 
 ```text
 python manage.py makemigrations --check --dry-run
 ```
 
-O suporte a essas flags pode ser reconfirmado a qualquer momento com
-`python manage.py help makemigrations`. Na versão do Django usada por
-este projeto, `--check` é documentado como: "Exit with a non-zero
-status if model changes are missing migrations and don't actually
-write them. Implies --dry-run."
+Uma migration já aplicada ou distribuída é imutável: nunca deve ser
+editada. Qualquer correção deve ser implementada por uma nova migration.
 
-Este gate:
+Executar quando `models.py` ou schema Django mudou. Migration nova ou
+alterada exige leitura integral do arquivo, coerência com `SHARED_APPS` /
+`TENANT_APPS` e aplicação/teste no PostgreSQL conforme o Work Item.
 
-- é um gate de **consistência de migrations** — detecta quando um model
-  foi alterado sem que a migration correspondente exista;
-- **não substitui revisão de migrations** — quando uma migration nova
-  fizer parte do escopo de um Work Item, o arquivo gerado precisa ser
-  lido e revisado explicitamente antes de ser aceito;
-- **não aplica migrations** — nem `--check`, nem `--dry-run` escrevem
-  arquivo ou tocam o banco;
-- depende do ambiente conseguir carregar o projeto (configuração válida,
-  dependências instaladas).
-
-Para este projeto, baseado em django-tenants (schema-per-tenant), este
-documento **não define** um comando universal de aplicação de
-migrations como quality gate — a aplicação de migrations depende do
-Work Item específico e dos comandos catalogados em
-[commands.md#banco--multitenancy](commands.md#banco--multitenancy)
-(`migrate_schemas --shared`, `migrate_schemas`), nunca de um gate
-genérico.
+Rollback/reapply é obrigatório principalmente para migration de dados ou
+quando reversibilidade e risco sobre dados existentes justificarem. Não se
+repete aplicação, rollback ou teste de migration sem delta na migration,
+model, configuração ou fixture relevante. Migration de schema aditiva e
+simples pode exigir aplicação e teste de estado final sem a mesma cerimônia
+de uma transformação de dados.
 
 ## Gate de testes
 
-Sequência conceitual, alinhada a
-[testing.md#estratégia-por-work-item](testing.md#estratégia-por-work-item):
+A ordem é:
 
 ```text
 teste alvo
   → suíte do app
-  → regressão de módulo dependente
-  → suíte mais ampla, quando necessária
+  → consumidores invalidados
+  → regressão ampla, somente se justificada
 ```
 
-- **teste alvo** — o(s) teste(s) novo(s) ou alterado(s) diretamente
-  ligados aos critérios de aceite do item;
-- **suíte do app** — todos os testes do app tocado, como regressão
-  mínima;
-- **regressão relevante** — a suíte de qualquer outro app que consuma o
-  comportamento alterado (por exemplo, alterar
-  `apps/accounts/permissoes.py` exige rodar `apps.accounts` e qualquer
-  módulo operacional que já o consulte);
-- **suíte mais ampla** — apenas quando o item tocar mais de um app, ou
-  alterar comportamento compartilhado por vários módulos.
-
-Uma alteração trivial e isolada, sem risco identificado fora de seu
-próprio app, não exige a suíte completa do projeto só porque ela existe.
-
-Testes negativos (autorização negada, tentativa de mutação sem
-privilégio, tentativa de acesso fora de escopo) são exigidos quando o
-item envolve segurança ou integridade de dados, conforme
-[testing.md#testes-de-autorização](testing.md#testes-de-autorização).
-
-Todos os comandos de teste deste projeto são **dependentes de
-ambiente** — exigem PostgreSQL acessível, pois `TenantTestCase` cria e
-destrói schemas reais durante a execução, conforme
-[testing.md#comandos](testing.md#comandos).
-
-## Gate de validação manual dirigida
-
-Obrigatório somente quando o Work Item altera comportamento diretamente
-observável ou exercitável pelo usuário através do produto (uma tela,
-uma rota, um fluxo). Não é um gate universal.
-
-Categorias genéricas de cenário, quando aplicável ao item:
-
-- caminho feliz;
-- negação principal;
-- comportamento visual crítico;
-- fronteira importante do escopo do item.
-
-Quantidade típica: 2 a 5 cenários.
-
-Não aplicável quando:
-
-- a alteração é refatoração sem mudança de comportamento;
-- a alteração é interna, sem rota, tela ou fluxo observável associado;
-- não existe, para o item em questão, um teste manual de produto
-  significativo a executar.
-
-Posição no fluxo:
-
-```text
-testes automatizados
- → review técnico
- → validação manual
- → Final Review
- → commit de implementação
-```
-
-Registro:
-
-- os cenários previstos são registrados no próprio Work Item, conforme
-  [docs/delivery/work/template.md](../delivery/work/template.md);
-- o resultado real observado é registrado na seção "Evidência de
-  execução" do Work Item.
-
-Teste manual **complementa**, mas **não substitui**, teste automatizado.
+Detalhes e matriz de impacto:
+[testing.md](testing.md#matriz-de-testes-por-impacto). Segurança e
+integridade exigem testes negativos e de fronteira aplicáveis.
 
 ## Gate frontend / Tailwind
 
-`static/css/output.css` **é rastreado** pelo Git — confirmável a
-qualquer momento com `git ls-files static/css/output.css`. Os scripts
-reais de `package.json` são:
+`npm run build` é condicional a mudança em classes/template que participem
+da compilação, CSS de entrada, configuração ou pipeline frontend. Alteração
+de backend, documentação ou template sem impacto nas classes compiladas não
+o dispara.
 
-```text
-npm run build
-npm run watch
-```
+`static/css/output.css` é rastreado. Se o build o modificar, a saída deve
+estar autorizada pelo escopo e ser revisada; não se inclui ruído gerado sem
+relação com o item.
 
-Quando uma alteração afetar classes compiladas do Tailwind — por
-exemplo, mudanças em `templates/`, `static/css/input.css` ou
-`tailwind.config.js` — este workflow pode exigir `npm run build` como
-gate condicional.
+## Gate de validação manual dirigida
 
-`npm run build` **pode modificar** `static/css/output.css` como efeito
-esperado do comando (arquivo de saída regenerado a partir de
-`static/css/input.css`). Esse arquivo só pode entrar no diff de uma
-execução quando:
-
-- a alteração for consequência esperada do build;
-- estiver dentro do escopo declarado do Work Item;
-- o diff resultante tiver sido revisado como qualquer outro arquivo
-  alterado.
-
-A existência do comando não constitui evidência de execução. O Work
-Item deve registrar se este gate foi executado e qual foi o resultado,
-conforme "Resultado de um gate" acima.
+Use de 2 a 5 cenários quando uma tela, rota ou fluxo observável mudou e a
+interação humana agrega evidência: caminho feliz, negação principal,
+fronteira de escopo ou comportamento visual crítico. Registre cenários e
+resultado no WI. Validação manual complementa, não substitui, testes
+automatizados.
 
 ## Gate de documentação
 
-Quando um arquivo `.md` for alterado ou criado, validar, quando
-aplicável:
+Para Markdown alterado, validar conforme aplicável:
 
-- links locais (o arquivo referenciado existe no caminho indicado);
-- presença de newline final;
-- ausência de trailing whitespace;
-- ausência de linhas contendo apenas espaços em branco;
-- ausência de caracteres NUL.
+- links locais e anchors relevantes;
+- newline final;
+- ausência de trailing whitespace, linhas só com espaços e NUL;
+- consistência entre documentos que apontam para a mesma regra.
 
-Essas verificações podem ser feitas com comandos de shell simples,
-diretamente contra os arquivos alterados. Este documento não exige nem
-propõe a criação de um script ou ferramenta nova para isso.
+Não há obrigação de criar ferramenta nova. Se existir script documental
+oficial aplicável no HEAD, use-o.
 
-## Ferramentas não estabelecidas
+## Ferramentas
 
-Este documento não trata como obrigatória nenhuma das ferramentas
-abaixo, porque nenhuma delas está declarada em `requirements/*.txt`,
-em `package.json`, nem existe como arquivo de configuração na raiz do
-repositório — verificável a qualquer momento por leitura direta desses
-arquivos:
-
-```text
-pytest
-Ruff
-Black
-isort
-mypy
-pre-commit
-tox
-coverage.py
-Docker
-Docker Compose
-GitHub Actions / CI
-Celery
-Redis
-```
-
-Caso qualquer uma dessas ferramentas seja adotada no futuro, este
-documento deve ser revisado para refletir sua presença real no HEAD —
-não antes disso.
-
-## Quality gates por Work Item
-
-Cada Work Item declara, em sua própria seção "Quality gates" (ver
-[docs/delivery/work/template.md](../delivery/work/template.md)), quais
-destes gates — obrigatórios e condicionais — se aplicam a ele
-especificamente. Este documento define o catálogo geral; o Work Item
-define o subconjunto relevante à sua execução.
+Não tratar como obrigatórias ferramentas não configuradas no repositório,
+como pytest, Ruff, Black, isort, mypy, pre-commit, tox ou CI. Sua eventual
+adoção exige atualização desta fonte.
 
 ## Referências
 
-- [workflow.md](workflow.md)
-- [testing.md](testing.md)
-- [git-procedure.md](git-procedure.md)
-- [commands.md](commands.md)
-- [docs/delivery/work/README.md](../delivery/work/README.md)
-- [docs/delivery/work/template.md](../delivery/work/template.md)
+- [Workflow](workflow.md)
+- [Estratégia de testes](testing.md)
+- [Procedimento de Git](git-procedure.md)
+- [Comandos](commands.md)
+- [Protocolo de Work Items](../delivery/work/README.md)

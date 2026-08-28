@@ -1,14 +1,7 @@
-# Instruções do repositório
+# Adaptador do executor
 
 @AGENTS.md
 
-@docs/README.md
-
-Este arquivo é apenas um adaptador fino para a ferramenta que o carrega
-como memória ou instrução de projeto.
-
-Para trabalho de implementação, siga o Work Item aplicável em
-`docs/delivery/work/` e as instruções importadas acima.
-
-Este arquivo não constitui fonte independente de produto, arquitetura,
-segurança, delivery ou desenvolvimento.
+Use o Work Item e o Context Pack ativos como contexto da execução. Este
+arquivo não adiciona regras de produto, arquitetura, segurança ou processo;
+as fontes canônicas são as referenciadas por `AGENTS.md`.

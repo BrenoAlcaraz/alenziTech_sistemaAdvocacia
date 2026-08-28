@@ -2,7 +2,7 @@
 title: Documentação do Breno - LawSystem
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-27
 ---
 
 # Documentação do Breno - LawSystem
@@ -62,36 +62,21 @@ deveria existir. Quando os dois divergem, a divergência não pode ser
 resolvida silenciosamente por uma IA — ela deve ser registrada e
 levada a uma decisão humana, conforme a [Regra de conflito](#regra-de-conflito).
 
-## Ordem de leitura por tarefa
+## Leitura por impacto
 
-### Para entender o produto
+O ponto de entrada de uma execução é [AGENTS.md](../AGENTS.md). Para trabalhar, leia o
+Work Item/Context Pack ativo e os arquivos diretamente afetados. O Context
+Pack aponta somente as fontes canônicas aplicáveis ao delta.
 
-- `docs/product/vision.md`
-- `docs/product/scope.md`
-- `docs/product/glossary.md`
-- Documento do módulo relacionado
+Documentação de módulo, PDRs/ADRs, arquitetura, segurança, estratégia
+detalhada de testes, migrations, `current-state`, roadmap e histórico são
+contexto sob demanda, não uma lista obrigatória para toda tarefa. O risco
+define a profundidade: alterações de autorização, escopo/IDOR, tenant,
+integridade sensível ou migration de dados exigem as fontes especializadas;
+alterações localizadas não exigem reconstruir todo o domínio.
 
-### Para planejar uma implementação
-
-- Documentação do produto
-- [PDRs relacionados](product/decisions/README.md)
-- Arquitetura
-- Segurança
-- Current-state
-- Tarefa ativa
-
-### Para revisar uma implementação
-
-- Tarefa ativa
-- Plano aprovado
-- Diff
-- Testes
-- Arquitetura
-- Segurança
-
-### Para consultar histórico
-
-- [docs/history/](history/README.md)
+Para consultar material sem autoridade vigente, use
+[docs/history/](history/README.md).
 
 ## Regra de conflito
 
