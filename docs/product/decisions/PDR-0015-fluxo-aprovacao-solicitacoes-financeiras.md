@@ -81,4 +81,5 @@ fluxo de referência de
 - antigo OPEN-002, removido de `docs/product/open-decisions.md` após esta
   decisão;
 - [docs/prototipos/financeiro-prototipo.html](../../prototipos/financeiro-prototipo.html)
-  (referência visual com fluxo anterior, substituído neste ponto).
+  (protótipo funcional navegável de alta fidelidade; somente o fluxo curto
+  de status foi substituído neste ponto).

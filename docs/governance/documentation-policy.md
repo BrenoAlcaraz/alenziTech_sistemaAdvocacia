@@ -2,7 +2,7 @@
 title: Política de documentação
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-31
 ---
 
 # Política de documentação
@@ -35,6 +35,19 @@ de IA no dia a dia do projeto.
 
 Estado atual (current-state), roadmap, tarefas, planos e relatórios de
 implementação.
+
+### Protótipo funcional
+
+Representação navegável de alta fidelidade da experiência e das
+funcionalidades desejadas. Registra telas, navegação, estados, relações e
+fluxos interativos que devem ser considerados na especificação e no Context
+Pack do módulo afetado. Não é material meramente ilustrativo.
+
+Detalhes técnicos propostos dentro do protótipo são orientação de design e
+devem ser conciliados com arquitetura, segurança e decisões vigentes antes
+da implementação literal. Quando uma decisão posterior alterar apenas um
+ponto do protótipo, somente esse ponto é substituído; o restante continua
+como referência funcional vigente.
 
 ### Histórica
 
@@ -81,6 +94,8 @@ PDRs e ADRs possuirão adicionalmente:
 - O current-state deve indicar o commit verificado ao qual corresponde.
 - O roadmap não deve duplicar o conteúdo de especificações.
 - Tarefas não devem redefinir silenciosamente decisões já aprovadas.
+- Funcionalidades demonstradas em protótipos devem ser preservadas, salvo
+  decisão posterior que identifique expressamente a exceção.
 - A documentação deve ser atualizada na mesma entrega do código
   relacionado a ela.
 
@@ -104,6 +119,8 @@ Agentes de IA que trabalham neste repositório devem:
 
 - Ler apenas os documentos necessários para a tarefa em questão.
 - Não usar `docs/history/` como instrução vigente.
+- Abrir e navegar o protótipo aplicável quando a tarefa afetar uma
+  funcionalidade nele demonstrada.
 - Não preencher lacunas de informação com suposições.
 - Parar diante de contradições relevantes entre documentos ou entre
   documentação e código.

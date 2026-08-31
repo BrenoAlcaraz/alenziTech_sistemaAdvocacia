@@ -37,8 +37,8 @@ o que o sistema é, como é construído e por que decisões foram tomadas.
   implementação.
 - `development/` — procedimentos operacionais de desenvolvimento, testes,
   migrations e uso de agentes de IA.
-- `prototipos/` — referências visuais não canônicas; PDRs e
-  especificações vigentes prevalecem sobre detalhes exploratórios.
+- `prototipos/` — protótipos funcionais navegáveis de alta fidelidade;
+  registram a experiência, a navegação e os fluxos desejados do produto.
 - `history/` — material documental preservado para rastreabilidade, sem
   autoridade sobre o estado atual do sistema.
 
@@ -53,11 +53,22 @@ Em ordem decrescente de autoridade:
 1. PDR ou ADR aceito e vigente.
 2. Especificação canônica do produto.
 3. Arquitetura e segurança canônicas.
-4. Tarefa ativa aprovada.
-5. Código e testes como evidência do comportamento implementado.
-6. Current-state verificado em um commit.
-7. Roadmap.
-8. Material histórico, apenas como contexto.
+4. Protótipo funcional vigente, para experiência, navegação e fluxos que
+   demonstra, salvo decisão posterior expressa.
+5. Tarefa ativa aprovada.
+6. Código e testes como evidência do comportamento implementado.
+7. Current-state verificado em um commit.
+8. Roadmap.
+9. Material histórico, apenas como contexto.
+
+Os protótipos não são meras ilustrações: devem ser abertos e navegados
+quando o trabalho afetar as funcionalidades que demonstram. Seus fluxos,
+estados, relações entre telas e comportamentos interativos integram a
+intenção vigente do produto. Sugestões técnicas internas, como nomes de
+tabelas, queries ou mecanismos de backend, continuam subordinadas às
+fontes canônicas de arquitetura e segurança. Uma exceção funcional só é
+descartada quando houver decisão posterior expressa que identifique o
+ponto substituído.
 
 O código demonstra o que existe. A especificação demonstra o que
 deveria existir. Quando os dois divergem, a divergência não pode ser
@@ -76,6 +87,10 @@ contexto sob demanda, não uma lista obrigatória para toda tarefa. O risco
 define a profundidade: alterações de autorização, escopo/IDOR, tenant,
 integridade sensível ou migration de dados exigem as fontes especializadas;
 alterações localizadas não exigem reconstruir todo o domínio.
+
+Quando a tarefa afetar uma funcionalidade demonstrada em protótipo, o
+protótipo correspondente integra o Context Pack e deve ser navegado para
+compreensão do fluxo, não apenas lido como HTML estático.
 
 Para consultar material sem autoridade vigente, use
 [docs/history/](history/README.md).

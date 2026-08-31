@@ -150,6 +150,7 @@ estar disponível a quem possui `processos_atribuir_responsavel`.
 - decisão direta do Product Owner registrada em 2026-08-31, durante a
   revisão estrutural de documentação a partir dos protótipos funcionais;
 - [docs/prototipos/processo-prototipo.html](../../prototipos/processo-prototipo.html)
-  (referência visual; a propagação entre apensos nele demonstrada não foi
-  adotada, por conflito com PDR-0012);
+  (protótipo funcional navegável de alta fidelidade; somente a propagação
+  entre apensos nele demonstrada não foi adotada, por conflito com
+  PDR-0012);
 - [PDR-0010 — Autorização, escopo e responsabilidade de Processos](PDR-0010-autorizacao-escopo-responsabilidade-processos.md).

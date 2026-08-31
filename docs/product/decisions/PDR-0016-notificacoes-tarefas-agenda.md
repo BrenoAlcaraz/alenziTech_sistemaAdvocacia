@@ -81,4 +81,5 @@ deferral anterior.
   revisão estrutural de documentação a partir dos protótipos funcionais;
 - [docs/prototipos/tarefas-prototipo.html](../../prototipos/tarefas-prototipo.html);
 - [docs/prototipos/agenda-prototipo.html](../../prototipos/agenda-prototipo.html)
-  (referência visual; não é fonte da antecedência de 15 minutos).
+  (protótipo funcional navegável de alta fidelidade; a antecedência de 15
+  minutos foi acrescentada por esta decisão).
