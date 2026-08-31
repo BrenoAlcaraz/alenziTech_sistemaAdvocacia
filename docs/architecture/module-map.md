@@ -2,7 +2,7 @@
 title: Mapa de módulos
 status: canonical
 owner: architecture
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-31
 ---
 
 # Mapa de módulos
@@ -152,16 +152,14 @@ maior profundidade no código lido:
 Acoplamentos e pontos que merecem revisão futura (ADR ou tarefa
 técnica), sustentados pelo código:
 
-- `apps.processos.models.ParteProcesso` modela partes com um campo
-  único `tipo` (`autor`, `reu`, `terceiro`, `advogado_contrario`) e sem
-  campos separados para representante, autoridade processual ou
-  qualificação processual. Isso diverge da estrutura de participantes
-  processuais exigida por
-  [PDR-0001 — Participantes processuais](../product/decisions/PDR-0001-participantes-processuais.md),
-  referenciado por
-  [docs/product/modules/processos.md](../product/modules/processos.md).
-  Esta divergência é registrada aqui como constatação; sua resolução
-  pertence a uma tarefa de modelagem futura, não a este lote.
+- `apps.processos.models.ParteProcesso` implementa o modelo de três
+  dimensões de PDR-0001/PDR-0011, com `RepresentanteParte`,
+  `AutoridadeProcessual` e `HistoricoClassificacaoParte`. Esse modelo
+  foi substituído pelo alvo simplificado de
+  [PDR-0013](../product/decisions/PDR-0013-partes-processo-modelo-simplificado.md),
+  que exige um único papel e advogado em texto livre. A resolução
+  pertence a um Work Item de simplificação; não deve ser inferida deste
+  mapa.
 - `apps.financeiro.models.LancamentoFinanceiro.CATEGORIA_CHOICES` inclui
   `"custa_judicial"` como opção de categoria, apesar de
   [docs/product/modules/financeiro.md](../product/modules/financeiro.md)
@@ -309,10 +307,9 @@ apenas pelo schema PostgreSQL ativo no momento da requisição.
   desse tipo exigiria um novo PDR; a forma dessa eventual integração
   continua genuinamente indecidida, sem que isso represente uma decisão
   aberta sobre a separação de domínios em si, que já está resolvida.
-- Modelagem de participantes processuais em `apps.processos`
-  (`ParteProcesso`) ainda não reflete a estrutura de três dimensões
-  exigida por PDR-0001 (vínculo com o escritório, posição estrutural,
-  qualificação processual) — ver
+- Modelagem de Partes em `apps.processos` ainda reflete o modelo
+  substituído de PDR-0001/PDR-0011 e não o modelo simplificado vigente
+  de PDR-0013 — ver
   [docs/product/modules/processos.md](../product/modules/processos.md).
 
 ## Referências

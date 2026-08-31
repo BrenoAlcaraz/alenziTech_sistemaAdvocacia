@@ -43,7 +43,7 @@ sistema.
 - O alcance exato de quem pode alterar cada grupo de configurações é
   definido em [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/configuracoes.md](../../delivery/current-state/configuracoes.md).
 - Autorização deve ser aplicada no backend; ocultar ou exibir um botão
   ou seção não substitui essa verificação.
 

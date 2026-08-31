@@ -4,7 +4,7 @@ title: Relação simétrica de processos apensos
 status: accepted
 owner: product-and-engineering
 decision_date: 2026-08-20
-last_reviewed: 2026-08-20
+last_reviewed: 2026-08-31
 supersedes: []
 source_files: []
 ---
@@ -53,6 +53,11 @@ representação, autorização ou responsabilidade.
 
 Uma hierarquia principal/dependente poderá ser reconsiderada futuramente, mas
 exigirá nova decisão de produto. Ela não é inferida desta relação simétrica.
+
+PDR-0013 substituiu depois o modelo de Partes, e PDR-0014 introduziu o
+conceito de integrante habilitado. Nenhuma dessas decisões altera a regra
+de independência: partes, advogados e integrantes habilitados não são
+propagados entre apensos.
 
 ## Consequências
 

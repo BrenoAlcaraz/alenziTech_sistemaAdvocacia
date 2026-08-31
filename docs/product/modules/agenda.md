@@ -2,9 +2,10 @@
 title: Agenda
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-31
 related_pdrs:
   - PDR-0009
+  - PDR-0016
 ---
 
 # Agenda
@@ -37,7 +38,7 @@ processos.
   sobre agendas individuais de outros usuários é definido em
   [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/agenda.md](../../delivery/current-state/agenda.md).
 - Nenhuma interface deve conceder acesso sem verificação equivalente no
   backend.
 - Ocultar ou exibir elementos de interface não substitui autorização.
@@ -65,8 +66,14 @@ manual. Este documento não redefine esses termos.
   dados; não são bases de dados distintas.
 - Cores são um recurso de apresentação visual, não a identidade do
   tipo de compromisso.
-- Notificações e lembretes ficam fora deste lote funcional, por não
-  estarem formalmente aprovados em nenhum PDR aceito.
+
+Conforme [PDR-0016](../decisions/PDR-0016-notificacoes-tarefas-agenda.md),
+todo compromisso e todo prazo geram notificação automática dentro do
+sistema 15 minutos antes do horário marcado, no modelo do Google Agenda,
+por meio de verificação periódica em segundo plano, sem depender de ação
+do usuário. Canais de notificação fora do sistema (e-mail, push, SMS) e
+configuração da antecedência pelo usuário continuam fora do escopo
+imediato.
 
 A sincronização automática e bidirecional entre prazo processual e
 evento de agenda — de modo que uma alteração em um lado atualize o
@@ -98,8 +105,10 @@ em aberto".
 - Integração com Google Calendar.
 - Suporte a múltiplos fusos horários.
 - Recorrência de eventos.
-- Lembretes automáticos.
-- Notificações push.
+- Canais de notificação fora do sistema (e-mail, push fora do navegador,
+  SMS) e configuração de antecedência pelo usuário. A notificação de 15
+  minutos antes, dentro do sistema, está em escopo, conforme
+  [PDR-0016](../decisions/PDR-0016-notificacoes-tarefas-agenda.md).
 
 ## Pontos em aberto
 
@@ -120,6 +129,8 @@ em aberto".
 - Um compromisso originado de processo preserva a referência à sua
   origem, mesmo após edição do evento.
 - Um prazo processual relevante pode aparecer na agenda.
+- Todo compromisso e todo prazo geram notificação dentro do sistema 15
+  minutos antes do horário marcado, sem exigir ação do usuário.
 - Autorização e escopo de dados são aplicados no backend, não apenas
   na interface.
 
@@ -127,6 +138,7 @@ em aberto".
 
 - [Glossário funcional](../glossary.md)
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
+- [PDR-0016 — Notificações de Tarefas e Agenda](../decisions/PDR-0016-notificacoes-tarefas-agenda.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Política de terminologia](../../governance/terminology-policy.md)

@@ -2,7 +2,7 @@
 title: Financeiro
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-31
 related_pdrs:
   - PDR-0003
   - PDR-0004
@@ -10,6 +10,7 @@ related_pdrs:
   - PDR-0006
   - PDR-0007
   - PDR-0009
+  - PDR-0015
 ---
 
 # Financeiro
@@ -51,7 +52,7 @@ arquitetura e à implementação.
 - O alcance exato dos papéis e habilitações financeiras é definido em
   [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/financeiro.md](../../delivery/current-state/financeiro.md).
 - Autorização deve ser aplicada no backend; ocultar ou exibir
   elementos de interface não substitui essa verificação.
 
@@ -162,15 +163,14 @@ processo, vencimento, boleto obrigatório, observação.
 processo quando aplicáveis, comprovante obrigatório, data do gasto,
 observação.
 
-Fluxo de referência:
+Fluxo, conforme
+[PDR-0015 — Fluxo de aprovação das solicitações financeiras](../decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md):
 
 ```
-solicitada → em análise → aprovada ou rejeitada → paga
+solicitada → em análise → aprovada → paga
+solicitada → em análise → rejeitada
 ```
 
-- O detalhamento final desse fluxo depende de
-  [OPEN-002](../open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras);
-  esta especificação não resolve esse ponto.
 - O solicitante acompanha o status da própria solicitação.
 - Após o pagamento, o solicitante visualiza o comprovante anexado
   pelo Financeiro.
@@ -182,6 +182,9 @@ solicitada → em análise → aprovada ou rejeitada → paga
   processado.
 - O momento exato em que uma solicitação passa a compor o indicador
   "a pagar" não é decidido por esta especificação.
+- Reabrir um lançamento pago ("marcar como não pago") é permitido a quem
+  possui a habilitação correspondente; ao reabrir, o advogado responsável
+  pela solicitação original, quando houver, é notificado.
 
 ### Honorários
 
@@ -195,6 +198,15 @@ solicitada → em análise → aprovada ou rejeitada → paga
   sugerir um cadastro correspondente, conforme
   [inteligencia-artificial.md](inteligencia-artificial.md).
 - A sugestão de IA não substitui a confirmação humana do cadastro.
+- Confirmar o recebimento de honorários é exclusivo do Administrador do
+  escritório; ao confirmar, o advogado responsável pelo processo é
+  notificado, mas não confirma ele mesmo.
+
+### Exportação
+
+- Exportação de consolidação financeira em Excel (opcional): relatório
+  por período com receitas e despesas por categoria, totais
+  pagos/recebidos, saldo, e detalhamento de custas judiciais por cliente.
 
 ## Fluxos principais
 
@@ -210,6 +222,8 @@ solicitada → em análise → aprovada ou rejeitada → paga
 10. Criar solicitação de reembolso.
 11. Processar solicitação.
 12. Cadastrar honorário manualmente.
+13. Confirmar recebimento de honorário.
+14. Exportar consolidação financeira em Excel.
 
 ## Integrações e dependências
 
@@ -240,8 +254,8 @@ solicitada → em análise → aprovada ou rejeitada → paga
   `saas_billing` e o Financeiro do tenant; uma eventual integração
   futura exige um novo PDR, conforme
   [PDR-0003](../decisions/PDR-0003-areas-funcionais-financeiro.md).
-- Gráficos, relatórios ou exportações financeiras além dos indicadores
-  mínimos definidos em PDR-0004.
+- Gráficos ou relatórios financeiros além dos indicadores mínimos
+  definidos em PDR-0004 e da exportação em Excel descrita acima.
 - Integrações bancárias, emissão de boletos por API ou conciliação
   bancária automatizada.
 
@@ -249,8 +263,6 @@ solicitada → em análise → aprovada ou rejeitada → paga
 
 - [OPEN-001](../open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão)
   — periodicidades financeiras da primeira versão.
-- [OPEN-002](../open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras)
-  — fluxo final de aprovação das solicitações financeiras.
 - Lista inicial de categorias de receita e de despesa.
 - Regras detalhadas de anexos no financeiro geral.
 - Alcance exato dos papéis e habilitações financeiras.
@@ -281,6 +293,11 @@ solicitada → em análise → aprovada ou rejeitada → paga
   processado.
 - É possível cadastrar um honorário manualmente, sem depender de
   nenhuma funcionalidade de IA.
+- Uma solicitação percorre `solicitada → em análise → aprovada → paga`,
+  ou é rejeitada em `em análise`, sem pular etapas.
+- Ao confirmar recebimento de honorário, o advogado responsável pelo
+  processo é notificado, mas a confirmação em si é exclusiva do
+  Administrador do escritório.
 
 ## Referências canônicas
 
@@ -291,6 +308,7 @@ solicitada → em análise → aprovada ou rejeitada → paga
 - [PDR-0006 — Solicitações financeiras](../decisions/PDR-0006-solicitacoes-financeiras.md)
 - [PDR-0007 — Honorários manuais antes da IA](../decisions/PDR-0007-honorarios-manuais-antes-ia.md)
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
+- [PDR-0015 — Fluxo de aprovação das solicitações financeiras](../decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Decisões de produto em aberto](../open-decisions.md)

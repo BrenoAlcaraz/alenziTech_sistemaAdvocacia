@@ -2,10 +2,11 @@
 title: Tarefas
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-31
 related_pdrs:
   - PDR-0002
   - PDR-0009
+  - PDR-0016
 ---
 
 # Tarefas
@@ -43,7 +44,7 @@ Esta tabela descreve necessidade funcional, não uma matriz técnica
 definitiva de permissões; essa matriz é
 [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
 O estado de aplicação dessas regras no backend deve ser verificado no
-código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+código e em [docs/delivery/current-state/tarefas.md](../../delivery/current-state/tarefas.md).
 Autorização e escopo de dados devem ser aplicados no backend, não
 apenas ocultando elementos de interface.
 
@@ -71,9 +72,13 @@ documento não redefine esses termos.
   responsável anterior, o novo responsável, o autor da alteração e a
   data da alteração, sem sobrescrever essa informação silenciosamente.
 - A visibilidade de tarefas segue a tabela de atores descrita acima.
-- Notificações relacionadas a tarefas são adiadas; a ausência de
-  notificações não impede o funcionamento da delegação direta.
 - Autorização e escopo de dados devem ser aplicados no backend.
+
+Conforme [PDR-0016](../decisions/PDR-0016-notificacoes-tarefas-agenda.md),
+ao concluir uma tarefa o criador é notificado — exceto quando o criador é
+a própria IA (funcionalidade futura, condicionada a PDR-0008) ou quando o
+criador é o próprio responsável que concluiu. Notificação de atribuição,
+reatribuição ou prazo de tarefa continua fora do escopo imediato.
 
 ## Fluxos principais
 
@@ -107,7 +112,9 @@ Não fazem parte deste módulo:
 - Aceite ou recusa de tarefas.
 - Gamificação.
 - Avaliação de desempenho a partir de tarefas.
-- Notificações de atribuição, reatribuição ou prazo.
+- Notificações de atribuição, reatribuição ou prazo de tarefa (a
+  notificação de conclusão ao criador está em escopo, conforme
+  [PDR-0016](../decisions/PDR-0016-notificacoes-tarefas-agenda.md)).
 
 ## Pontos em aberto
 
@@ -135,14 +142,18 @@ Não fazem parte deste módulo:
 - Ao reatribuir uma tarefa, o sistema preserva responsável anterior,
   novo responsável, autor e data da alteração, sem sobrescrita
   silenciosa.
-- A ausência de notificações não impede o funcionamento da delegação
-  direta.
+- Ao concluir uma tarefa cujo criador é diferente do responsável e não é
+  a IA, o criador recebe notificação; quando o criador é o próprio
+  responsável, ou é a IA, nenhuma notificação de conclusão é gerada.
+- A ausência de notificação de atribuição, reatribuição ou prazo não
+  impede o funcionamento da delegação direta.
 
 ## Referências canônicas
 
 - [Glossário funcional](../glossary.md)
 - [PDR-0002 — Delegação direta de tarefas](../decisions/PDR-0002-delegacao-direta-de-tarefas.md)
 - [PDR-0009 — Sequência revisada da Fase 2](../decisions/PDR-0009-sequencia-fase-2.md)
+- [PDR-0016 — Notificações de Tarefas e Agenda](../decisions/PDR-0016-notificacoes-tarefas-agenda.md)
 - [Visão do produto](../vision.md)
 - [Escopo do produto](../scope.md)
 - [Política de terminologia](../../governance/terminology-policy.md)

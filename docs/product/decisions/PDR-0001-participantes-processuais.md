@@ -2,9 +2,10 @@
 id: PDR-0001
 title: Participantes processuais
 status: accepted
+partially_superseded_by: PDR-0013
 owner: product-and-engineering
 decision_date: 2026-08-05
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-31
 supersedes: []
 source_files:
   - docs/history/source-material/2026-08-05-decisoes-funcionais-consolidadas-original.txt
@@ -14,6 +15,15 @@ source_files:
 ---
 
 # PDR-0001 — Participantes processuais
+
+> **Parcialmente substituída por [PDR-0013](PDR-0013-partes-processo-modelo-simplificado.md)
+> em 2026-08-31.** A exigência de três dimensões separadas (vínculo,
+> posição estrutural, qualificação processual), a normalização do
+> advogado como representante 1:N e a entidade própria de autoridade
+> processual para juiz deixaram de ser a direção vigente — ver PDR-0013.
+> As demais regras deste documento (multiplicidade de clientes, polos,
+> terceiros e Ministério Público; reaproveitamento do cadastro de Cliente;
+> apresentação em grupos dinâmicos) continuam válidas.
 
 ## Contexto
 

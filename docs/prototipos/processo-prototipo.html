@@ -1,0 +1,2564 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processos</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --line:#dde3ee;
+    --badge-civel:#e4e8f2;
+    --badge-ativo:#1e2947;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Roboto, -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{
+    width:88px;background:var(--navy);
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px 0;flex-shrink:0;
+  }
+  .sidebar .logo{
+    width:40px;height:40px;border-radius:10px;
+    background:var(--navy-light);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:18px;margin-bottom:28px;
+  }
+  .nav-item{
+    width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:10px 4px;margin-bottom:6px;border-radius:10px;
+    color:#8f9ac0;font-size:11px;cursor:pointer;
+  }
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  /* Main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{
+    height:64px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  }
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+  }
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1100px;width:100%;}
+
+  /* Process card */
+  .process-card{
+    background:var(--card);border-radius:16px;padding:28px 32px;
+    box-shadow:0 1px 2px rgba(20,30,60,.04);border:1px solid var(--line);
+  }
+  .badges{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+  .badge-group{display:flex;align-items:center;gap:10px;}
+  .badge{font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 12px;border-radius:7px;}
+  .badge.civel{background:var(--badge-civel);color:var(--text);}
+  .badge.ativo{background:var(--badge-ativo);color:#fff;}
+  .instancia{font-size:13px;color:var(--text-mute);font-weight:600;}
+  .btn-outline{
+    border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .btn-outline:hover{border-color:#c3cbe0;}
+  .btn-dark{
+    border:none;background:var(--navy);color:#fff;
+    padding:10px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .btn-dark:hover{background:var(--navy-light);}
+
+  /* Selo de tarefas vinculadas ao processo */
+  .tarefas-selo{display:inline-flex;align-items:center;gap:8px;background:var(--amber-soft);color:var(--amber);border:1px solid #f0dcaa;border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:16px;}
+  .habilitados-btn{display:inline-flex;align-items:center;gap:8px;background:var(--blue-soft, #e8edfc);color:var(--blue);border:1px solid #c9d6f7;border-radius:20px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:16px;margin-left:10px;}
+  .habilitados-panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:-6px 0 18px;}
+  .habilitado-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .habilitado-row:last-child{border-bottom:none;}
+  .habilitado-left{display:flex;align-items:center;gap:10px;}
+  .habilitado-avatar{width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+  .tarefas-selo:hover{border-color:#e0c483;}
+  .tarefas-selo-panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 16px;margin:-6px 0 18px;}
+  .tarefas-selo-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .tarefas-selo-item:last-child{border-bottom:none;}
+  .tarefas-selo-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .tarefas-selo-status.pendente{background:var(--blue-soft);color:var(--blue);}
+  .tarefas-selo-status.concluida{background:var(--green-soft);color:var(--green);}
+  .tarefas-selo-status.atrasada{background:var(--red-soft);color:var(--red);}
+  .tarefas-selo-link{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;display:block;text-align:right;padding:10px 0 6px;}
+  .tarefas-selo.empty{background:var(--bg);color:var(--text-mute);border-color:var(--line);cursor:default;}
+
+  .process-title{font-size:26px;font-weight:800;margin:20px 0 4px;}
+  .process-number{color:var(--blue);font-weight:600;font-size:14px;margin-bottom:22px;}
+
+  .info-row{display:grid;grid-template-columns:repeat(3, 1fr);gap:22px 40px;border-top:1px solid var(--line);padding-top:20px;}
+
+  .status-strip{display:flex;gap:12px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:22px;}
+  .status-tag{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 14px 7px 16px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .status-tag-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-mute);}
+  .status-tag.warn{border-color:#f0c6c6;background:var(--red-soft);color:var(--red);}
+  .status-tag.warn .status-tag-label{color:var(--red);opacity:.75;}
+  .vara-origem-nota{font-size:11px;color:var(--text-mute);margin-top:5px;line-height:1.4;}
+  .info-label{font-size:11px;letter-spacing:.04em;color:var(--text-mute);font-weight:700;margin-bottom:6px;}
+  .info-value{font-size:15px;font-weight:600;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:32px;margin:26px 4px 0;border-bottom:1px solid var(--line);}
+  .tab{
+    display:flex;align-items:center;gap:8px;padding:12px 2px 14px;
+    font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;
+    border-bottom:2.5px solid transparent;user-select:none;
+  }
+  .tab svg{width:16px;height:16px;}
+  .tab.active{color:var(--blue);border-color:var(--blue);}
+
+  /* Panel */
+  .panel{
+    background:var(--card);border-radius:16px;margin-top:18px;padding:32px;
+    border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);
+  }
+  .panel-view{display:none;}
+  .panel-view.active{display:block;}
+
+  /* Timeline */
+  .timeline{position:relative;padding-left:6px;}
+  .timeline::before{content:'';position:absolute;left:17px;top:6px;bottom:6px;width:2px;background:var(--line);}
+  .tl-step{position:relative;padding-left:48px;padding-bottom:32px;}
+  .tl-step:last-child{padding-bottom:0;}
+  .tl-dot{
+    position:absolute;left:0;top:0;width:36px;height:36px;border-radius:50%;
+    background:var(--blue-soft);border:2px solid var(--blue);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;z-index:1;
+  }
+  .tl-step.pending .tl-dot{background:#f2f3f7;border-color:#c3cbe0;color:#9aa3bd;}
+  .tl-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .tl-date-actions{display:flex;align-items:center;gap:10px;}
+  .tl-actions{display:flex;gap:6px;}
+  .tl-title{font-size:15.5px;font-weight:700;color:var(--text);}
+  .tl-date{font-size:12.5px;color:var(--text-mute);font-weight:600;white-space:nowrap;}
+  .tl-sub{font-size:13.5px;color:var(--text-mute);margin-top:6px;line-height:1.55;max-width:640px;}
+  .tl-tag{
+    display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.03em;
+    color:var(--blue);background:var(--blue-soft);padding:2px 8px;border-radius:5px;margin-top:8px;
+  }
+  .tl-tag.green{color:var(--green);background:var(--green-soft);}
+
+  .add-andamento{margin-top:34px;padding-top:26px;border-top:1px dashed var(--line);display:flex;justify-content:flex-end;}
+  .btn-primary{
+    background:var(--blue);color:#fff;border:none;padding:10px 18px;border-radius:9px;
+    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .btn-primary:hover{background:#2a46b8;}
+
+  /* Prazos */
+  .prazo-list{display:flex;flex-direction:column;gap:14px;}
+  .prazo-card{
+    border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .prazo-left{flex:1;min-width:240px;}
+  .prazo-title{font-size:14.5px;font-weight:700;margin-bottom:6px;}
+  .prazo-dates{font-size:12.5px;color:var(--text-mute);line-height:1.7;}
+  .prazo-dates b{color:var(--text);font-weight:700;}
+  .prazo-status{
+    display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+    padding:7px 13px;border-radius:20px;white-space:nowrap;
+  }
+  .prazo-status .dot{width:7px;height:7px;border-radius:50%;}
+  .prazo-status.ok{background:var(--green-soft);color:var(--green);}
+  .prazo-status.ok .dot{background:var(--green);}
+  .prazo-status.late{background:var(--red-soft);color:var(--red);}
+  .prazo-status.late .dot{background:var(--red);}
+  .prazo-status.upcoming{background:var(--amber-soft);color:var(--amber);}
+  .prazo-status.upcoming .dot{background:var(--amber);}
+  .prazo-agenda-note{
+    margin-top:14px;font-size:12.5px;font-weight:700;color:var(--blue);
+    display:flex;align-items:center;gap:8px;
+    background:var(--blue-soft, #e8edfc);border:1px solid #c9d6f7;border-radius:10px;padding:12px 16px;
+  }
+
+  /* Documentos */
+  .doc-list{display:flex;flex-direction:column;}
+  .doc-row{
+    display:flex;align-items:center;gap:14px;padding:15px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .doc-row:last-child{border-bottom:none;}
+  .doc-icon{
+    width:38px;height:38px;border-radius:9px;background:var(--blue-soft);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .doc-info{flex:1;min-width:0;}
+  .doc-name{font-size:14px;font-weight:700;}
+  .doc-meta{font-size:12px;color:var(--text-mute);margin-top:2px;}
+  .doc-actions{display:flex;gap:8px;flex-shrink:0;}
+
+  /* Custas Judiciais (aba do processo, conectada ao Financeiro) */
+  .custa-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;margin-bottom:12px;}
+  .custa-left{flex:1;}
+  .custa-desc{font-size:14px;font-weight:700;margin-bottom:6px;}
+  .custa-meta{font-size:12px;color:var(--text-mute);line-height:1.6;}
+  .custa-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  .custa-valor{font-size:15px;font-weight:800;}
+  .custa-status{font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap;}
+  .custa-status.pendente{background:var(--amber-soft, #fdf1de);color:var(--amber, #b7791f);}
+  .custa-status.pago{background:var(--green-soft, #e3f5ec);color:var(--green, #1f9d5c);}
+  .custa-comprovante{font-size:11.5px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .custa-form{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:18px;display:none;}
+  .custa-form .form-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .custa-form .form-field{flex:1;min-width:160px;}
+  .custa-form .form-label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;display:block;text-transform:uppercase;}
+  .custa-form .form-input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .custa-attach{border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;color:var(--text-mute);font-size:12px;cursor:pointer;}
+
+  /* Formulários mock reutilizáveis (Novo processo, Adicionar andamento, Novo apenso) */
+  .mock-form{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;display:none;}
+  .mock-form-title{font-size:14px;font-weight:800;margin-bottom:14px;}
+  .mock-form .form-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+  .mock-form .form-field{flex:1;min-width:160px;}
+  .mock-form .form-label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;display:block;text-transform:uppercase;}
+  .mock-form .form-input, .mock-form select, .mock-form textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .mock-form textarea{min-height:70px;resize:vertical;}
+  .mock-form-note{font-size:11.5px;color:var(--text-mute);font-style:italic;margin-bottom:14px;}
+  .custa-attach:hover{border-color:var(--blue);color:var(--blue);}
+  .doc-btn{
+    border:1px solid var(--line);background:#fff;color:var(--text-mute);
+    width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .doc-btn:hover{border-color:#c3cbe0;color:var(--text);}
+
+  /* Empty state (Partes) */
+  .empty-state{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:50px 20px;color:var(--text-mute);text-align:center;
+  }
+  .empty-state svg{margin-bottom:14px;color:#c3cbe0;}
+  .empty-state b{color:var(--text);font-size:14.5px;display:block;margin-bottom:4px;}
+
+  /* Partes — formulário de adição */
+  .partes-form{
+    border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:28px;
+    background:var(--bg);
+  }
+  .form-label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .form-field{flex:1;min-width:200px;}
+  .form-input, .form-select{
+    width:100%;border:1px solid var(--line);border-radius:9px;
+    padding:11px 13px;font-size:13.5px;color:var(--text);background:#fff;
+    font-family:inherit;
+  }
+  .form-select{cursor:pointer;}
+  optgroup{font-weight:700;font-style:normal;color:var(--text-mute);}
+  .adv-toggle{
+    margin-top:14px;display:flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;
+  }
+  .adv-subform{
+    margin-top:12px;padding:14px 16px;background:#fff;border:1px dashed var(--line);
+    border-radius:10px;display:flex;gap:12px;flex-wrap:wrap;
+  }
+  .form-actions{margin-top:16px;display:flex;justify-content:flex-end;}
+
+  /* Partes — colunas verticais por papel */
+  .partes-columns{display:flex;flex-direction:column;gap:26px;}
+  .partes-section-label{
+    font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--text-mute);
+    text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;
+  }
+  .partes-section-label .count{
+    background:var(--blue-soft);color:var(--blue);border-radius:20px;
+    padding:1px 9px;font-size:11px;
+  }
+  .partes-section-note{font-size:11.5px;font-weight:500;color:#9aa3bd;text-transform:none;letter-spacing:0;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+
+  /* Lista de processos */
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);margin-bottom:22px;}
+  .proc-filter-bar{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:18px;}
+  .proc-filter-field{flex:1;min-width:150px;}
+  .proc-filter-field label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;display:block;text-transform:uppercase;}
+  .proc-filter-input, .proc-filter-select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .proc-filter-clear{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;white-space:nowrap;padding:9px 4px;}
+  .filter-pill-sm{padding:8px 12px;border-radius:8px;font-size:11.5px;font-weight:600;color:var(--text-mute);background:var(--bg);border:1px solid var(--line);cursor:pointer;white-space:nowrap;}
+  .filter-pill-sm.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .proc-list-count{font-size:12.5px;color:var(--text-mute);margin-bottom:12px;}
+  .proc-card-list{display:flex;flex-direction:column;gap:12px;}
+  .proc-card-item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer;transition:border-color .12s;}
+  .proc-card-item:hover{border-color:var(--blue);}
+  .proc-card-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .proc-card-numero{font-size:12px;color:var(--text-mute);font-weight:600;}
+  .proc-card-nome{font-size:15px;font-weight:700;margin-bottom:10px;}
+  .proc-card-meta{display:flex;gap:36px;flex-wrap:wrap;}
+  .proc-card-meta-item .info-label{margin-bottom:4px;}
+  .proc-card-meta-item .info-value{font-size:13px;}
+  .back-to-list{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-to-list:hover{text-decoration:underline;}
+  .parte-card{
+    border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .parte-card:last-child{margin-bottom:0;}
+  .parte-left{display:flex;align-items:center;gap:14px;min-width:0;}
+  .parte-avatar{
+    width:40px;height:40px;border-radius:50%;background:var(--blue-soft);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;
+  }
+  .parte-info{min-width:0;}
+  .parte-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .parte-name{font-size:14.5px;font-weight:700;}
+  .parte-role-tag{
+    font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:2px 8px;border-radius:5px;
+  }
+  .parte-role-tag.autor{background:var(--green-soft);color:var(--green);}
+  .parte-role-tag.reu{background:var(--red-soft);color:var(--red);}
+  .parte-role-tag.juiz{background:#ece7fb;color:#6c4bc2;}
+  .parte-role-tag.mp{background:var(--amber-soft);color:var(--amber);}
+  .parte-role-tag.cliente{background:#ece7fb;color:#6c4bc2;}
+  .parte-doc{font-size:12px;color:var(--text-mute);margin-top:2px;}
+  .parte-adv{font-size:12px;color:var(--text-mute);font-weight:400;margin-top:4px;}
+  .parte-adv b{font-weight:500;color:#7b85a3;}
+  .parte-actions{display:flex;gap:8px;flex-shrink:0;}
+
+  /* Apensos */
+  .apenso-note{font-size:12px;color:var(--text-mute);margin-bottom:18px;line-height:1.6;}
+  .apenso-list{display:flex;flex-direction:column;gap:12px;}
+  .apenso-card{
+    border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    cursor:pointer;transition:border-color .15s;
+  }
+  .apenso-card:hover{border-color:var(--blue);}
+  .apenso-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .apenso-tipo{
+    font-size:11px;font-weight:700;letter-spacing:.03em;background:var(--blue-soft);
+    color:var(--blue);padding:3px 10px;border-radius:6px;
+  }
+  .apenso-numero{font-size:12.5px;color:var(--text-mute);font-weight:600;}
+  .apenso-nome{font-size:15px;font-weight:700;margin-bottom:12px;}
+  .apenso-meta{display:flex;gap:40px;flex-wrap:wrap;}
+  .apenso-meta-item .info-label{margin-bottom:4px;}
+  .apenso-meta-item .info-value{font-size:13.5px;}
+  .apenso-origem{
+    display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-mute);
+    margin-top:2px;
+  }
+
+  /* Nested process views (apensos) */
+  .view{display:none;}
+  .view.active{display:block;}
+  .back-link{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;
+    margin-bottom:16px;
+  }
+  .back-link:hover{text-decoration:underline;}
+  .origem-card{
+    border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    cursor:pointer;transition:border-color .15s;flex-wrap:wrap;margin-bottom:10px;
+  }
+  .origem-card:hover{border-color:var(--blue);}
+  .origem-label{font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:4px;}
+  .origem-name{font-size:14px;font-weight:700;}
+  .origem-numero{font-size:12px;color:var(--text-mute);}
+
+  @media (max-width:720px){
+    .sidebar{width:64px;}
+    .nav-item{width:48px;font-size:9px;}
+    .content{padding:18px;}
+    .info-row{grid-template-columns:1fr;gap:14px;}
+    .process-card{padding:20px;}
+    .panel{padding:20px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ================= VIEW: LISTA DE PROCESSOS ================= -->
+      <div class="view active" id="view-lista-processos">
+        <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="page-title">Processos</div>
+            <div class="page-subtitle">Todos os processos do escritório</div>
+          </div>
+          <button class="btn-dark" id="btn-novo-processo">+ Novo processo</button>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Como Permissões e Habilitações controlam esta tela</div>
+            Essa lista é a aplicação direta da Permissão "Processos" (Configurações → Permissões): se o usuário estiver em <b>"Todos"</b>, ele vê o escritório inteiro, e ganha um seletor extra pra escolher, na hora, se quer ver "Todos do escritório" ou só "Somente os meus" — mesmo tendo acesso a tudo, às vezes ele só quer a própria carteira. Se estiver em <b>"Somente os seus"</b>, ele só enxerga os processos em que está habilitado (via equipe ou individualmente) — não há o que escolher, esse seletor nem aparece. Em qualquer um dos dois casos, ele continua podendo filtrar por Matéria, Status, Cliente e <b>Equipe</b> — inclusive quem só vê os próprios processos pode filtrar pela equipe dele, útil quando faz parte de mais de uma.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Consulte <code>permissoes_papel.processos.sub_opcao</code> do usuário logado antes de renderizar a tela. Se <code>'todos'</code>: mostre o seletor "Todos do escritório / Somente os meus" (puramente um filtro <code>WHERE responsavel_id = usuario.id</code> quando "Somente os meus" estiver selecionado, sem filtro quando "Todos"). Se <code>'somente_seus'</code>: não renderize esse seletor, e aplique sempre <code>WHERE processo.id IN (SELECT processo_id FROM equipe_processos WHERE equipe_id IN (equipes do usuário)) OR processo.id IN (SELECT processo_id FROM usuario_processos WHERE usuario_id = usuario.id)</code> — mesma lógica já usada em Configurações e no Painel. O filtro de Equipe é independente disso: sempre disponível, <code>WHERE processo.id IN (SELECT processo_id FROM equipe_processos WHERE equipe_id = X)</code>, funciona em cima do que a permissão já liberou. Matéria/Status/Cliente/Busca são <code>WHERE</code> adicionais sobre esse subconjunto — nunca substituem a checagem de permissão. Clicar num card navega pra <code>/processos/:id</code>.
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Habilitações desta tela</div>
+            Uma vez com acesso ao módulo, o que o usuário pode fazer aqui depende das Habilitações de Processos configuradas pro papel dele: se pode <b>criar um processo novo</b> (botão "+ Novo processo", que nem aparece se ele não tiver essa habilitação), se pode <b>editar um processo já existente</b> (afeta se os campos dentro da página do processo ficam editáveis ou só leitura), e se pode <b>adicionar um novo andamento</b> (controla o botão "Adicionar andamento" dentro da aba Andamentos, na página de cada processo).
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Três flags independentes em <code>habilitacoes_papel.processos</code>: <code>criar_novo_processo</code>, <code>editar_processo_existente</code>, <code>adicionar_novo_andamento</code>. Todas só têm efeito se <code>permissoes_papel.processos.habilitado === true</code> (senão o grupo inteiro fica travado, igual já vimos em Configurações). Cada uma gateia um elemento de UI específico: <code>criar_novo_processo</code> → botão "+ Novo processo" nesta lista; <code>editar_processo_existente</code> → campos editáveis vs. somente leitura na página do processo; <code>adicionar_novo_andamento</code> → botão "Adicionar andamento" na aba Andamentos. Replique as três checagens no backend, não só escondendo os botões.
+          </div>
+        </div>
+
+        <div class="mock-form" id="form-novo-processo">
+          <div class="mock-form-title">Novo processo</div>
+          <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo, é só pra você conferir se os campos estão certos.</div>
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Número do processo</div>
+              <input class="form-input" placeholder="Ex: 0001234-56.2026.8.19.0001">
+            </div>
+            <div class="form-field">
+              <div class="form-label">Natureza / Matéria</div>
+              <select>
+                <option value="">Selecione</option>
+                <option>Cível</option>
+                <option>Imobiliário</option>
+                <option>Sucessório</option>
+                <option>Trabalhista</option>
+                <option>Tributário</option>
+                <option>Outros</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Estado</div>
+              <select>
+                <option value="">Selecione</option>
+                <option>Rio de Janeiro (RJ)</option>
+                <option>São Paulo (SP)</option>
+                <option>Espírito Santo (ES)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <div class="form-label">Comarca</div>
+              <input class="form-input" placeholder="Ex: Comarca da Capital">
+            </div>
+            <div class="form-field">
+              <div class="form-label">Vara</div>
+              <input class="form-input" placeholder="Ex: 4ª Vara Cível">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Valor da causa (R$)</div>
+              <input class="form-input" placeholder="Ex: 50.000,00">
+            </div>
+            <div class="form-field">
+              <div class="form-label">Cliente</div>
+              <select>
+                <option value="">Selecione um cliente cadastrado</option>
+                <option>Souza Lenzi Advogados</option>
+                <option>Maria da Silva Ferreira</option>
+                <option>Comércio XYZ Ltda</option>
+                <option>Construtora Horizonte</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">Parte contrária</div>
+              <input class="form-input" placeholder="Nome ou razão social">
+            </div>
+            <div class="form-field">
+              <div class="form-label">Vincular a um processo de origem (opcional, torna este um apenso)</div>
+              <select>
+                <option value="">Nenhum — processo independente</option>
+                <option>4444444444444 — Ação de Danos Morais</option>
+                <option>5555555555555 — Embargos à Execução</option>
+                <option>6666666666666 — Agravo de Instrumento</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field" style="flex:1 1 100%;">
+              <div class="form-label">Objeto / Descrição (opcional)</div>
+              <textarea placeholder="Breve resumo do que trata o processo"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-dark" id="btn-novo-processo-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+          </div>
+        </div>
+
+        <div class="proc-filter-bar" id="pf-escopo-bar">
+          <div class="proc-filter-field" style="flex:1 1 100%;">
+            <label>Escopo (só aparece se a Permissão de Processos estiver em "Todos")</label>
+            <div style="display:flex;gap:6px;">
+              <div class="filter-pill-sm active" data-escopo="todos">Todos do escritório</div>
+              <div class="filter-pill-sm" data-escopo="meus">Somente os meus</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="proc-filter-bar">
+          <div class="proc-filter-field">
+            <label>Buscar</label>
+            <input class="proc-filter-input" id="pf-busca" placeholder="Nome ou número...">
+          </div>
+          <div class="proc-filter-field">
+            <label>Matéria</label>
+            <select class="proc-filter-select" id="pf-materia">
+              <option value="">Todas</option>
+              <option value="civel">Cível</option>
+              <option value="tributario">Tributário</option>
+            </select>
+          </div>
+          <div class="proc-filter-field">
+            <label>Status</label>
+            <select class="proc-filter-select" id="pf-status">
+              <option value="">Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="arquivado">Arquivado</option>
+            </select>
+          </div>
+          <div class="proc-filter-field">
+            <label>Cliente</label>
+            <select class="proc-filter-select" id="pf-cliente">
+              <option value="">Todos</option>
+              <option>Souza Lenzi Advogados</option>
+              <option>Maria da Silva Ferreira</option>
+              <option>Comércio XYZ Ltda</option>
+              <option>Construtora Horizonte</option>
+            </select>
+          </div>
+          <div class="proc-filter-field">
+            <label>Equipe</label>
+            <select class="proc-filter-select" id="pf-equipe">
+              <option value="">Todas</option>
+              <option value="equipe-azul">Equipe Azul</option>
+              <option value="nenhuma">Nenhuma equipe</option>
+            </select>
+          </div>
+          <div class="proc-filter-clear" id="pf-limpar">Limpar filtros</div>
+        </div>
+
+        <div class="proc-list-count" id="proc-list-count">5 processos encontrados</div>
+        <div class="proc-card-list" id="proc-card-list">
+
+          <div class="proc-card-item" data-open="view-4444" data-nome="ação de danos morais" data-numero="4444444444444" data-materia="civel" data-status="ativo" data-cliente="Souza Lenzi Advogados" data-equipe="nenhuma" data-responsavel="sergio">
+            <div class="proc-card-top">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="proc-card-numero">nº 4444444444444</span>
+            </div>
+            <div class="proc-card-nome">Ação de Danos Morais</div>
+            <div class="proc-card-meta">
+              <div class="proc-card-meta-item"><div class="info-label">VARA/JUÍZO</div><div class="info-value">2ª Câmara</div></div>
+              <div class="proc-card-meta-item"><div class="info-label">VALOR DA CAUSA</div><div class="info-value">R$ 500.000,00</div></div>
+              <div class="proc-card-meta-item"><div class="info-label">CLIENTE</div><div class="info-value">Souza Lenzi Advogados</div></div>
+            </div>
+          </div>
+
+          <div class="proc-card-item" data-open="view-5555" data-nome="embargos à execução comércio xyz ltda" data-numero="5555555555555" data-materia="civel" data-status="ativo" data-cliente="Maria da Silva Ferreira" data-equipe="nenhuma" data-responsavel="sergio">
+            <div class="proc-card-top">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="proc-card-numero">nº 5555555555555</span>
+            </div>
+            <div class="proc-card-nome">Embargos à Execução — Comércio XYZ Ltda</div>
+            <div class="proc-card-meta">
+              <div class="proc-card-meta-item"><div class="info-label">VARA/JUÍZO</div><div class="info-value">1ª Vara Cível</div></div>
+              <div class="proc-card-meta-item"><div class="info-label">CLIENTE</div><div class="info-value">Maria da Silva Ferreira</div></div>
+            </div>
+          </div>
+
+          <div class="proc-card-item" data-open="view-6666" data-nome="agravo de instrumento decisão saneadora" data-numero="6666666666666" data-materia="civel" data-status="ativo" data-cliente="Maria da Silva Ferreira" data-equipe="nenhuma" data-responsavel="sergio">
+            <div class="proc-card-top">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="proc-card-numero">nº 6666666666666</span>
+            </div>
+            <div class="proc-card-nome">Agravo de Instrumento contra decisão saneadora</div>
+            <div class="proc-card-meta">
+              <div class="proc-card-meta-item"><div class="info-label">VARA/JUÍZO</div><div class="info-value">2ª Câmara Cível (2º Grau)</div></div>
+              <div class="proc-card-meta-item"><div class="info-label">CLIENTE</div><div class="info-value">Maria da Silva Ferreira</div></div>
+            </div>
+          </div>
+
+          <div class="proc-card-item" id="proc-card-mock-7777" data-nome="execução fiscal" data-numero="7777777777777" data-materia="tributario" data-status="ativo" data-cliente="Souza Lenzi Advogados" data-equipe="nenhuma" data-responsavel="sergio">
+            <div class="proc-card-top">
+              <span class="badge civel">TRIBUTÁRIO</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="proc-card-numero">nº 7777777777777</span>
+            </div>
+            <div class="proc-card-nome">Execução Fiscal</div>
+            <div class="proc-card-meta">
+              <div class="proc-card-meta-item"><div class="info-label">VARA/JUÍZO</div><div class="info-value">3ª Vara</div></div>
+              <div class="proc-card-meta-item"><div class="info-label">CLIENTE</div><div class="info-value">Souza Lenzi Advogados</div></div>
+            </div>
+          </div>
+
+          <div class="proc-card-item" id="proc-card-mock-8888" data-nome="ação de cobrança" data-numero="8888888888888" data-materia="civel" data-status="ativo" data-cliente="Construtora Horizonte" data-equipe="nenhuma" data-responsavel="sergio">
+            <div class="proc-card-top">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="proc-card-numero">nº 8888888888888</span>
+            </div>
+            <div class="proc-card-nome">Ação de Cobrança</div>
+            <div class="proc-card-meta">
+              <div class="proc-card-meta-item"><div class="info-label">CLIENTE</div><div class="info-value">Construtora Horizonte</div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <!-- /view-lista-processos -->
+
+      <div class="view" id="view-4444">
+
+        <div class="back-to-list" data-back="view-lista-processos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar para Processos
+        </div>
+
+      <div class="process-card">
+        <div class="badges">
+          <div class="badge-group">
+            <span class="badge civel">CÍVEL</span>
+            <span class="badge ativo">Ativo</span>
+            <span class="instancia">1ª Instância</span>
+          </div>
+          <button class="btn-outline">Arquivar processo</button>
+        </div>
+
+        <div class="process-title">Ação de Danos Morais</div>
+        <div class="process-number">4444444444444</div>
+
+        <div class="tarefas-selo" id="selo-tarefas-4444">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          2 tarefas vinculadas a este processo
+        </div>
+        <div class="tarefas-selo-panel" id="painel-tarefas-4444">
+          <div class="tarefas-selo-item">
+            <span>Protocolar contestação — Ação de Danos Morais</span>
+            <span class="tarefas-selo-status pendente">Pendente</span>
+          </div>
+          <div class="tarefas-selo-item">
+            <span>Revisar cálculo de indenização com o cliente</span>
+            <span class="tarefas-selo-status concluida">Concluída</span>
+          </div>
+          <div class="tarefas-selo-link" data-jump-tarefas>Ver todas no módulo Tarefas →</div>
+        </div>
+
+        <div class="habilitados-btn" id="btn-habilitados-4444">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          2 advogados habilitados neste processo
+        </div>
+        <div class="habilitados-panel" id="painel-habilitados-4444">
+          <div class="habilitado-row">
+            <div class="habilitado-left"><div class="habilitado-avatar">SE</div> sergio</div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked disabled> Habilitado</label>
+          </div>
+          <div class="habilitado-row">
+            <div class="habilitado-left"><div class="habilitado-avatar">FC</div> felipe.costa</div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked class="habilitado-toggle" data-usuario="felipe.costa"> Habilitado</label>
+          </div>
+          <div class="habilitado-row">
+            <div class="habilitado-left"><div class="habilitado-avatar">AG</div> ana.gabriela</div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="ana.gabriela"> Habilitado</label>
+          </div>
+          <div class="habilitado-row">
+            <div class="habilitado-left"><div class="habilitado-avatar">JS</div> joao.souza</div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="joao.souza"> Habilitado</label>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Selo de tarefas vinculadas</div>
+            Não é uma aba nova, é só um avisozinho — um selo no topo do processo mostrando quantas tarefas estão vinculadas a ele. Clicando, expande uma prévia rápida (título + status de cada uma) sem sair da página do processo; o link no final leva pro módulo Tarefas de verdade, já filtrado por este processo. Serve pra quem está vendo o processo lembrar rapidinho "ainda tenho uma pendência aberta aqui" sem precisar ir caçar no módulo Tarefas.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            O vínculo já existe: toda tarefa pode opcionalmente referenciar um <code>processo_id</code> (mesmo campo "Processo" já usado no formulário de Nova tarefa). Aqui, é só <code>SELECT * FROM tarefas WHERE processo_id = processo.id</code> — o número no selo é <code>COUNT(*)</code> desse mesmo filtro, sem distinguir pendente/concluída (conta tudo o que já existiu de tarefa ligada a esse processo). O painel expansível é só um <code>toggle</code> de visibilidade, populado com esses resultados. O link final navega pro módulo Tarefas com <code>?processo=processo.id</code> na URL, pra já chegar filtrado.
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Advogados habilitados neste processo</div>
+            Não é uma aba nova, nem um avisozinho tipo o das tarefas — é um botãozinho que abre uma checklist rápida mostrando quem no escritório está habilitado a ver/trabalhar neste processo específico, com a opção de habilitar mais gente ali mesmo. É o mesmo dado que já existe em Configurações → Detalhe do usuário → Processos habilitados, só que visto do outro lado: de "quais processos esse usuário pode ver" pra "quais usuários podem ver este processo". <b>Só aparece pra quem tem a permissão e a habilitação de Gerir "Habilitar usuário em processos"</b> — sem isso, o botão nem existe na tela, mesmo que o usuário tenha acesso normal ao processo. <b>Cascata com apensos:</b> como o processo de origem e seus apensos são diretamente ligados, habilitar (ou desabilitar) alguém aqui reflete automaticamente nos processos vinculados também — habilitar um advogado no processo principal já habilita ele nos apensos, e vice-versa. Faça o teste aqui mesmo: marque ou desmarque a ana.gabriela e veja o contador mudar também nos outros dois processos (Ação de Danos Morais / Embargos / Agravo) — é o mesmo cluster.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Reaproveita a mesma tabela <code>usuario_processos</code> já usada em Configurações — só que a query vai na direção oposta: <code>SELECT usuario_id FROM usuario_processos WHERE processo_id = X</code> (em vez de <code>WHERE usuario_id = X</code>). Marcar/desmarcar um checkbox aqui insere ou remove a linha correspondente nessa tabela — é literalmente a mesma ação de "habilitar em processos" que já existe em Configurações e no atalho do Painel do gestor, só disparada a partir daqui. O botão só renderiza se <code>usuario.is_mestre === true OU habilitacoes_papel.gerir.habilitar_usuario_processos === true</code> pro usuário logado — mesma checagem de Gerir usada em todo o resto do sistema. Lembre-se: isso só tem efeito prático se a Permissão de Processos do papel do usuário marcado estiver em "somente os seus" — se já estiver em "todos", ele já vê o processo de qualquer forma, independente dessa lista. <b>Cascata:</b> ao inserir/remover uma linha em <code>usuario_processos</code> pra um processo, replique a mesma operação pra todos os processos do mesmo cluster de origem — <code>SELECT id FROM processos WHERE processo_origem_id = X OR id = (SELECT processo_origem_id FROM processos WHERE id = X) OR processo_origem_id = (SELECT processo_origem_id FROM processos WHERE id = X)</code> (pega o processo de origem, todos os apensos dele, e os apensos-irmãos entre si) — tudo numa mesma transação, pra nunca ficar com um habilitado e outro não por engano.
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div>
+            <div class="info-label">ESTADO</div>
+            <div class="info-value">Rio de Janeiro (RJ)</div>
+          </div>
+          <div>
+            <div class="info-label">COMARCA</div>
+            <div class="info-value">Comarca da Capital</div>
+          </div>
+          <div>
+            <div class="info-label">VARA</div>
+            <div class="info-value">4ª Vara Cível</div>
+          </div>
+          <div>
+            <div class="info-label">VALOR DA CAUSA</div>
+            <div class="info-value">R$ 500.000,00</div>
+          </div>
+          <div>
+            <div class="info-label">CLIENTE</div>
+            <div class="info-value">Souza Lenzi Advogados</div>
+          </div>
+          <div>
+            <div class="info-label">PARTE CONTRÁRIA</div>
+            <div class="info-value">Comércio XYZ Ltda (+1 réu)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Por que esses campos existem</div>
+          Não são só dados de exibição — cada um alimenta diretamente outro módulo já construído: <b>Estado/Comarca/Vara</b> são exatamente o que preenche o drill-down "Processos por localidade" da Análise de dados no Painel. <b>Cliente</b> alimenta Financeiro, Tarefas e Agenda (que também referenciam processo→cliente). A <b>Parte Contrária</b> é só uma cópia de leitura rápida do que já está detalhado na aba Partes — não precisa ser preenchida separadamente. Além desses, o sistema também guarda <b>Patrocínio, Responsável e Equipe</b> nos bastidores — eles alimentam a Análise de dados e os filtros de escopo/equipe já vistos na Lista de processos, mas não precisam aparecer aqui nessa tela: quem está olhando o processo não precisa desses três dados o tempo todo, só o sistema por trás.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Campos na tabela <code>processos</code>: <code>estado</code> (sigla, ex: RJ), <code>comarca</code> (texto livre — "Comarca da Capital", "Comarca de Niterói"; pode incluir a regional se o estado tiver essa divisão, ex: "Regional Metropolitana I — Comarca de Duque de Caxias"), <code>vara</code> (texto livre, ex: "4ª Vara Cível"), <code>natureza</code> (já usado no badge). <code>Parte Contrária</code> não é um campo próprio — é derivado: <code>SELECT nome FROM partes_processo WHERE processo_id = X AND polo = 'passivo' AND cliente_id IS NULL</code> (o polo oposto ao do cliente, excluindo o próprio cliente se ele também aparecer como parte). <code>patrocinio</code> (derivado: cliente no polo ativo → "autor"; passivo → "réu"; sem vínculo direto → "terceiro"), <code>responsavel_id</code> e <code>equipe_id</code> continuam sendo salvos e consultados normalmente — só não têm campo visível nesta tela; ficam disponíveis pra quem consultar via Análise de dados ou os filtros de escopo/equipe.
+        </div>
+      </div>
+
+      <div class="status-strip">
+        <div class="status-tag"><span class="status-tag-label">Fase atual</span> Fase de Conhecimento — aguardando réplica</div>
+        <div class="status-tag"><span class="status-tag-label">Parado há</span> 11 dias</div>
+        <div class="status-tag"><span class="status-tag-label">Tempo médio entre andamentos</span> 28 dias</div>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Fase, tempo parado e tempo médio</div>
+          Não são informações do processo em si, e sim <b>etiquetas</b> — por isso ficam nessa faixa cinza, separadas do quadro branco de dados do processo (que é mais estável) e antes das abas de Andamentos/Prazos/etc. <b>Fase atual</b> diz em que momento processual ele está (conhecimento, recursal, execução, suspenso...) — inclusive detalhando o tipo de recurso quando for o caso (agravo, apelação, etc). <b>Parado há</b> mostra há quantos dias não acontece nenhum andamento novo — é o mesmo cálculo que já usamos no card "Processos paralisados" do Painel, só que aplicado a este processo específico. <b>Tempo médio entre andamentos</b> mostra o ritmo normal desse processo, servindo de referência pra saber se o tempo parado atual já é preocupante ou ainda é normal.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Nenhum desses três é um campo fixo — todos são calculados a partir da tabela <code>andamentos</code> já existente: <b>Fase atual</b> é o <code>tipo</code>/<code>título</code> do andamento mais recente, mapeado pra uma das categorias de status (conhecimento/recursal/execução/suspenso/arquivado — mesma categorização usada na Análise de dados do Painel). <b>Parado há</b> = <code>hoje - MAX(data) FROM andamentos WHERE processo_id = X</code> — coloque um destaque visual (ex: fundo vermelho, classe <code>warn</code>) quando esse número passar de um limiar configurável (ex: 30 dias), igual já fazemos no card "Processos paralisados" do Painel. <b>Tempo médio entre andamentos</b> = média das diferenças de dias entre andamentos consecutivos desse processo (<code>AVG</code> sobre os intervalos, ordenados por data) — recalcule isso a cada carregamento da tela, nunca salve um valor fixo, porque muda a cada andamento novo que entra.
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-target="panel-andamentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          Andamentos (6)
+        </div>
+        <div class="tab" data-target="panel-prazos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          Prazos (3)
+        </div>
+        <div class="tab" data-target="panel-documentos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/></svg>
+          Documentos (6)
+        </div>
+        <div class="tab" data-target="panel-partes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          Partes (4)
+        </div>
+        <div class="tab" data-target="panel-custas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Custas Judiciais (2)
+        </div>
+        <div class="tab" data-target="panel-apensos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M13 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+          Apensos (2)
+        </div>
+      </div>
+
+      <div class="panel">
+
+        <!-- ANDAMENTOS -->
+        <div class="panel-view active" id="panel-andamentos">
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              É a linha do tempo do processo: cada vez que algo relevante acontece — uma petição protocolada, uma decisão do juiz, uma citação confirmada — vira um marco aqui, em ordem cronológica. É pra qualquer pessoa do escritório entender rapidamente "em que pé está esse processo" sem precisar abrir o processo real no sistema do tribunal. <i>(No primeiro andamento abaixo, "Petição Inicial", tem uma prévia visual de uma ideia do Sergio: os ícones de visualizar/baixar aparecendo direto aqui, ao lado da data — veja a anotação completa na aba Documentos.)</i>
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>andamentos</code> (processo_id, tipo, título, data, descrição, criado_por). O botão "Adicionar andamento" só aparece se <code>habilitacoes_papel.processos.adicionar_novo_andamento === true</code> pro usuário logado. Esse mesmo histórico de andamentos alimenta várias outras partes do sistema já vistas: o Painel usa a data do último andamento pra calcular "Processos paralisados", a data do andamento tipo "Petição Inicial" pra calcular "Tempo de vida médio", e futuramente a IA vai ler o andamento de sentença pra identificar honorários de sucumbência (Financeiro) e o resultado do processo (Análise de dados).
+            </div>
+          </div>
+
+          <div class="timeline">
+
+            <div class="tl-step">
+              <div class="tl-dot">1</div>
+              <div class="tl-head">
+                <span class="tl-title">Petição Inicial</span>
+                <div class="tl-date-actions">
+                  <span class="tl-date">03/02/2026</span>
+                  <div class="tl-actions" title="Prévia da ideia do Sergio: documento anexado direto aqui, sem precisar da aba Documentos separada">
+                    <div class="doc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                    <div class="doc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                  </div>
+                </div>
+              </div>
+              <div class="tl-sub">Ajuizada a ação de indenização por danos morais, narrando os fatos, fundamentos jurídicos e requerendo condenação da parte ré ao pagamento de indenização no valor de R$ 500.000,00, além do pedido de tutela de urgência para suspensão imediata dos efeitos do ato lesivo.</div>
+            </div>
+
+            <div class="tl-step">
+              <div class="tl-dot">2</div>
+              <div class="tl-head">
+                <span class="tl-title">Decisão de Tutela</span>
+                <span class="tl-date">10/02/2026</span>
+              </div>
+              <div class="tl-sub">Juízo analisa o pedido liminar formulado na inicial, verificando a probabilidade do direito e o perigo de dano, para deferir, indeferir ou postergar a tutela de urgência para momento posterior à manifestação da parte contrária.</div>
+            </div>
+
+            <div class="tl-step">
+              <div class="tl-dot">3</div>
+              <div class="tl-head">
+                <span class="tl-title">Decisão Saneadora</span>
+                <span class="tl-date">18/02/2026</span>
+              </div>
+              <div class="tl-sub">Juiz analisa a regularidade formal do processo, verifica a presença dos pressupostos processuais e condições da ação, delimita os pontos controvertidos e determina diligência complementar antes da citação.</div>
+            </div>
+
+            <div class="tl-step">
+              <div class="tl-dot">4</div>
+              <div class="tl-head">
+                <span class="tl-title">Citação — Expedição de AR</span>
+                <span class="tl-date">21/02/2026</span>
+              </div>
+              <div class="tl-sub">Expedida carta de citação com aviso de recebimento (AR) para que a parte ré tome ciência da ação e apresente defesa no prazo legal.</div>
+              <span class="tl-tag">VIA AR</span>
+            </div>
+
+            <div class="tl-step">
+              <div class="tl-dot">5</div>
+              <div class="tl-head">
+                <span class="tl-title">Confirmação de Citação</span>
+                <span class="tl-date">05/03/2026</span>
+              </div>
+              <div class="tl-sub">AR juntado aos autos com confirmação de recebimento pela parte ré, dando início à contagem do prazo processual para apresentação de contestação.</div>
+            </div>
+
+            <div class="tl-step">
+              <div class="tl-dot">6</div>
+              <div class="tl-head">
+                <span class="tl-title">Contestação</span>
+                <span class="tl-date">08/08/2026</span>
+              </div>
+              <div class="tl-sub">Parte ré apresenta resposta à ação, impugnando os fatos narrados na inicial e os fundamentos do pedido de indenização, protocolada dentro do prazo previsto.</div>
+              <span class="tl-tag green">PROTOCOLADA NO PRAZO</span>
+            </div>
+
+          </div>
+
+          <div class="add-andamento">
+            <button class="btn-primary" id="btn-add-andamento-4444">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar andamento
+            </button>
+          </div>
+
+          <div class="mock-form" id="form-add-andamento-4444">
+            <div class="mock-form-title">Novo andamento</div>
+            <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo, é só pra você conferir se os campos estão certos.</div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Tipo de andamento</div>
+                <select>
+                  <option value="">Selecione</option>
+                  <option>Petição</option>
+                  <option>Decisão</option>
+                  <option>Despacho</option>
+                  <option>Audiência</option>
+                  <option>Sentença</option>
+                  <option>Citação/Intimação</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <div class="form-label">Data</div>
+                <input class="form-input" type="date">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">Título</div>
+                <input class="form-input" placeholder="Ex: Decisão Saneadora">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">Descrição</div>
+                <textarea placeholder="Resumo do que aconteceu neste andamento"></textarea>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">Anexar documento (opcional)</div>
+                <div class="custa-attach">Anexar arquivo — ficaria disponível junto deste andamento, conforme a ideia de unir Documentos aos Andamentos</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn-dark" id="btn-add-andamento-4444-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PRAZOS -->
+        <div class="panel-view" id="panel-prazos">
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Lista as obrigações com data-limite desse processo — responder uma intimação, protocolar um recurso, pagar uma custa. É o painel mais crítico do sistema: perder um prazo processual pode prejudicar seriamente o cliente. Esses mesmos prazos alimentam o card "Prazos a vencer" do Painel. <b>Todo prazo ainda não cumprido é sincronizado automaticamente com o módulo Agenda</b> — não é uma ação manual tipo o "Adicionar à Agenda" que existe em Tarefas, aqui acontece sozinho: assim que um prazo é criado, ele já aparece marcado no calendário do responsável, sem precisar de nenhum clique extra. Isso garante que ninguém perca um prazo por só olhar a Agenda e esquecer de conferir os processos.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>prazos</code> (processo_id, título, data_limite, status: cumprido/não_cumprido/a_vencer). Status "a vencer" não é fixo — é calculado comparando <code>data_limite</code> com hoje, igual já discutimos no Painel (hoje/amanhã/até 3 dias/até 5 dias). Um prazo pode nascer automaticamente a partir de uma Intimação lida via e-mail (Configurações) ou de um Andamento com data de vencimento associada — nesse caso, salve a origem (<code>criado_por: 'ia'</code> ou <code>'manual'</code>) pra rastreabilidade. <b>Sincronização com a Agenda:</b> sempre que um prazo é criado (e ainda não está cumprido), crie também um <code>evento_agenda</code> (tipo: <code>'prazo'</code>, data = <code>data_limite</code>, responsável = responsável do processo) vinculado por <code>prazo_id</code> — isso não é opcional nem depende de o usuário marcar nada, é automático, ao contrário do fluxo de Tarefas. Quando o prazo for marcado como cumprido, atualize o evento correspondente na Agenda pra <code>status: 'concluido'</code> também, mantendo os dois sempre coerentes.
+            </div>
+          </div>
+
+          <div class="prazo-list">
+
+            <div class="prazo-card">
+              <div class="prazo-left">
+                <div class="prazo-title">Diligência determinada em decisão saneadora</div>
+                <div class="prazo-dates">Prazo: até <b>25/02/2026</b> &nbsp;•&nbsp; Cumprido em: <b>10/03/2026</b></div>
+              </div>
+              <div class="prazo-status late"><span class="dot"></span>Prazo não cumprido</div>
+            </div>
+
+            <div class="prazo-card">
+              <div class="prazo-left">
+                <div class="prazo-title">Contestação</div>
+                <div class="prazo-dates">Prazo: até <b>10/08/2026</b> &nbsp;•&nbsp; Protocolado em: <b>08/08/2026</b></div>
+              </div>
+              <div class="prazo-status ok"><span class="dot"></span>Cumprido no prazo</div>
+            </div>
+
+            <div class="prazo-card">
+              <div class="prazo-left">
+                <div class="prazo-title">Réplica à Contestação</div>
+                <div class="prazo-dates">Prazo: até <b>02/09/2026</b> &nbsp;•&nbsp; Ainda não cumprido</div>
+              </div>
+              <div class="prazo-status upcoming"><span class="dot"></span>A vencer</div>
+            </div>
+
+          </div>
+
+          <div class="prazo-agenda-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+            Todo prazo a vencer entra automaticamente na Agenda do responsável — não precisa marcar nada
+          </div>
+        </div>
+
+        <!-- DOCUMENTOS -->
+        <div class="panel-view" id="panel-documentos">
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Guarda todos os arquivos relacionados ao processo — a petição inicial, decisões, comprovantes, contratos — num só lugar, em vez de espalhados em pastas ou e-mails. Facilita achar rapidamente um documento específico e visualizar/baixar quando precisar.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>documentos</code> (processo_id, nome, tipo, tamanho, url_storage, enviado_por, data). Armazene o arquivo em storage (ex: AWS S3), salvando só a URL/chave no banco. O botão "visualizar" pode abrir um preview inline (pra PDFs, via iframe ou lib de renderização) e "baixar" força o download direto do storage.
+            </div>
+          </div>
+
+          <div class="explain-cards">
+            <div class="explain-card" style="background:#fdf1de;border:1px solid #f0dcaa;color:#7a5510;">
+              <div class="explain-card-title">💡 Anotação do Sergio — considerar pra próxima fase</div>
+              Pensando melhor, talvez essa aba de Documentos separada nem precise existir. Cada documento já nasce vinculado a um andamento específico (a petição inicial é o documento do andamento "Petição Inicial", a decisão é o documento do andamento correspondente) — então, em vez de duplicar essa informação em duas abas, os documentos poderiam ficar anexados direto na aba Andamentos: do lado do título de cada andamento, perto da data, apareceria o mesmo ícone de olho (visualizar) e o de baixar que já usamos aqui. Só uma ideia pra avaliarmos — a aba Andamentos abaixo já mostra como isso ficaria visualmente, como referência. Se decidirmos seguir por esse caminho, essa aba de Documentos deixa de existir como algo separado.
+            </div>
+          </div>
+
+          <div class="doc-list">
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">Petição Inicial.pdf</div>
+                <div class="doc-meta">Peça processual • 03/02/2026 • 842 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">Decisão de Tutela.pdf</div>
+                <div class="doc-meta">Decisão judicial • 10/02/2026 • 310 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">Decisão Saneadora.pdf</div>
+                <div class="doc-meta">Decisão judicial • 18/02/2026 • 268 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">AR de Citação.pdf</div>
+                <div class="doc-meta">Comprovante • 05/03/2026 • 194 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">Contestação.pdf</div>
+                <div class="doc-meta">Peça processual • 08/08/2026 • 715 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+            <div class="doc-row">
+              <div class="doc-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg>
+              </div>
+              <div class="doc-info">
+                <div class="doc-name">Procuração.pdf</div>
+                <div class="doc-meta">Documento cadastral • 03/02/2026 • 120 KB</div>
+              </div>
+              <div class="doc-actions">
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PARTES -->
+        <div class="panel-view" id="panel-partes">
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Lista quem está envolvido no processo e qual papel cada um exerce — autor, réu, terceiro interessado, Ministério Público, e os advogados de cada polo (identificados pela OAB, não CPF). Se a parte já é cliente cadastrado do escritório, o advogado responsável já vem pré-preenchido automaticamente. É esse cadastro que alimenta o "Patrocínio" na Análise de dados do Painel (saber se representamos o autor, o réu, ou um terceiro).
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>partes_processo</code> (processo_id, polo: ativo/passivo/outros, papel: autor/réu/terceiro/MP/amicus/juiz, cliente_id opcional se for cliente cadastrado, advogado_oab). Se <code>cliente_id</code> estiver preenchido, o campo advogado deve auto-completar com o advogado responsável cadastrado naquele cliente. É essa mesma ligação processo↔cliente que faz o cliente aparecer nas listas de "somente os seus" de outros módulos — cliente nunca tem habilitação direta, sempre vem por consequência de um processo.
+            </div>
+          </div>
+
+          <!-- Formulário de adição -->
+          <div class="partes-form">
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">TIPO DE PARTE</div>
+                <select class="form-select">
+                  <option value="">Selecione o papel processual</option>
+                  <optgroup label="Polo Ativo">
+                    <option>Autor</option>
+                    <option>Embargante</option>
+                    <option>Recorrente</option>
+                  </optgroup>
+                  <optgroup label="Polo Passivo">
+                    <option>Réu</option>
+                    <option>Embargado</option>
+                    <option>Recorrido</option>
+                  </optgroup>
+                  <optgroup label="Outros">
+                    <option>Terceiro Interessado</option>
+                    <option>Ministério Público</option>
+                    <option>Amicus Curiae</option>
+                    <option>Juiz</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-field" style="flex:2;">
+                <div class="form-label">NOME COMPLETO OU RAZÃO SOCIAL</div>
+                <input class="form-input" placeholder="Nome completo ou razão social">
+              </div>
+              <div class="form-field">
+                <div class="form-label">CPF OU CNPJ (OPCIONAL)</div>
+                <input class="form-input" placeholder="CPF ou CNPJ (opcional)">
+              </div>
+            </div>
+            <div style="font-size:11.5px;color:#9aa3bd;margin-top:10px;">Se a parte selecionada já for um cliente cadastrado no escritório, o advogado responsável é preenchido automaticamente com os dados do Souza Lenzi Advogados.</div>
+
+            <div class="adv-toggle">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar advogado desta parte
+            </div>
+            <div class="adv-subform">
+              <div class="form-field">
+                <div class="form-label">NOME DO ADVOGADO(A)</div>
+                <input class="form-input" placeholder="Nome do advogado(a)">
+              </div>
+              <div class="form-field">
+                <div class="form-label">OAB</div>
+                <input class="form-input" placeholder="Ex: OAB/RJ 123.456">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary">+ Adicionar parte</button>
+            </div>
+          </div>
+
+          <!-- Partes cadastradas, em colunas verticais por papel -->
+          <div class="partes-columns">
+
+            <div>
+              <div class="partes-section-label">Autor <span class="count">1</span></div>
+              <div class="parte-card">
+                <div class="parte-left">
+                  <div class="parte-avatar">MS</div>
+                  <div class="parte-info">
+                    <div class="parte-name-row">
+                      <span class="parte-name">Maria da Silva Ferreira</span>
+                      <span class="parte-role-tag autor">AUTOR</span>
+                      <span class="parte-role-tag cliente">CLIENTE CADASTRADO</span>
+                    </div>
+                    <div class="parte-doc">CPF: 123.456.789-00</div>
+                    <div class="parte-adv"><b>Advogado(a):</b> Dr. Sérgio Lenzi — OAB/RJ 111.222 (Souza Lenzi Advogados, preenchido automaticamente)</div>
+                  </div>
+                </div>
+                <div class="parte-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="partes-section-label">Réu <span class="count">2</span></div>
+              <div class="parte-card">
+                <div class="parte-left">
+                  <div class="parte-avatar">CX</div>
+                  <div class="parte-info">
+                    <div class="parte-name-row">
+                      <span class="parte-name">Comércio XYZ Ltda</span>
+                      <span class="parte-role-tag reu">RÉU</span>
+                    </div>
+                    <div class="parte-doc">CNPJ: 12.345.678/0001-90</div>
+                    <div class="parte-adv"><b>Advogado(a):</b> Dra. Ana Lima — OAB/RJ 98.765</div>
+                  </div>
+                </div>
+                <div class="parte-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+              <div class="parte-card">
+                <div class="parte-left">
+                  <div class="parte-avatar">RS</div>
+                  <div class="parte-info">
+                    <div class="parte-name-row">
+                      <span class="parte-name">Roberto Santos Almeida</span>
+                      <span class="parte-role-tag reu">RÉU</span>
+                    </div>
+                    <div class="parte-doc">CPF: 987.654.321-00</div>
+                    <div class="parte-adv"><b>Advogado(a):</b> Dr. Felipe Costa — OAB/RJ 55.210</div>
+                  </div>
+                </div>
+                <div class="parte-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+              <div style="font-size:11.5px;color:#9aa3bd;margin-top:2px;">Cada réu pode ter seu próprio advogado cadastrado individualmente</div>
+            </div>
+
+            <div>
+              <div class="partes-section-label">Juiz <span class="count">1</span></div>
+              <div class="parte-card">
+                <div class="parte-left">
+                  <div class="parte-avatar">CM</div>
+                  <div class="parte-info">
+                    <div class="parte-name-row">
+                      <span class="parte-name">Dr. Carlos Menezes</span>
+                      <span class="parte-role-tag juiz">JUIZ</span>
+                    </div>
+                    <div class="parte-doc">2ª Câmara Cível</div>
+                  </div>
+                </div>
+                <div class="parte-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- APENSOS -->
+        <div class="panel-view" id="panel-custas">
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Registra todas as custas judiciais desse processo específico e é <b>totalmente conectada com o módulo Financeiro</b>: assim que qualquer usuário faz uma solicitação de pagamento pra este processo — seja aqui mesmo ou lá em Financeiro → Solicitações — ela aparece aqui automaticamente como "Pendente", visível pra <b>qualquer pessoa</b> que abrir este processo, não só quem pediu. Isso evita retrabalho: se o advogado A já pediu o pagamento de uma diligência, o advogado B vê isso aqui e não solicita de novo sem querer. Quando o financeiro confirma o pagamento, o status muda pra "Pago", a <b>data em que o pagamento foi confirmado</b> fica registrada ao lado de quem solicitou, e o comprovante/boleto anexado fica disponível pra visualizar. Também dá pra solicitar uma nova custa direto daqui — só que, diferente de criar em Financeiro, aqui não existe outra ação: a solicitação nasce e some da tela até o financeiro decidir agir, ela só fica registrada esperando lá. Um detalhe importante: lá no módulo Financeiro, a aba "Solicitações" continua mostrando só as solicitações de <b>cada usuário</b> — então uma solicitação criada aqui, pelo processo, aparece na aba Solicitações de quem a criou (do jeito que já era), mas <b>aqui nesta aba de Custas Judiciais ela é visível pra todo mundo</b>, independente de quem pediu — é essa visão compartilhada por processo que evita a duplicação.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Não é uma tabela nova — é a mesma <code>solicitacoes_pagamento</code> do Financeiro (já detalhada no financeiro-prototipo.html), só filtrada por <code>processo_id = X</code>: <code>SELECT * FROM solicitacoes_pagamento WHERE processo_id = X ORDER BY data DESC</code>. Sem filtro de <code>solicitante_id</code> — mostra de qualquer usuário, de propósito, pra servir de controle cruzado. O botão "+ Nova solicitação" aqui grava exatamente igual ao formulário de Solicitações do Financeiro (mesma transação: cria a solicitação e o lançamento correspondente com referência bidirecional) — só que pré-preenchido com este processo, sem precisar escolher de novo. A aba "Solicitações" do Financeiro continua filtrando por <code>WHERE solicitante_id = usuario.id</code> normalmente — essa regra não muda por causa de criar por aqui; a diferença é só que, nesta aba de Custas Judiciais, a query nunca filtra por solicitante, sempre mostra todo mundo. Quando o financeiro confirma o pagamento (lá no módulo Financeiro), o <code>status</code> muda pra <code>'paga'</code>, o campo <code>data_pagamento</code> é preenchido com a data da confirmação (exibida aqui ao lado da data da solicitação) e o <code>anexo_boleto</code> salvo fica disponível pra visualizar aqui também — é o mesmo registro, só três lugares diferentes olhando pra ele (Solicitações de quem pediu, Pagamentos do financeiro, e Custas Judiciais do processo).
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+            <button class="btn-dark" id="btn-nova-custa-4444">+ Nova solicitação</button>
+          </div>
+
+          <div class="custa-form" id="form-nova-custa-4444">
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Descrição da custa</div>
+                <input class="form-input" id="custa-desc-4444" placeholder="Ex: Diligência de oficial de justiça">
+              </div>
+              <div class="form-field">
+                <div class="form-label">Valor (R$)</div>
+                <input class="form-input" id="custa-valor-4444" placeholder="Ex: 350,00">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="custa-attach" id="custa-anexo-4444">Anexar boleto (opcional nesta etapa)</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn-dark" id="custa-salvar-4444" style="padding:8px 14px;font-size:12.5px;">Solicitar pagamento</button>
+              <button class="btn-outline" id="custa-cancelar-4444" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>
+            </div>
+          </div>
+
+          <div id="custa-list-4444">
+            <div class="custa-row">
+              <div class="custa-left">
+                <div class="custa-desc">Diligência de oficial de justiça — citação</div>
+                <div class="custa-meta">Solicitado por <b>felipe.costa</b> em 15/03/2026 • Pago em <b>22/03/2026</b></div>
+              </div>
+              <div class="custa-right">
+                <div class="custa-valor">R$ 350,00</div>
+                <span class="custa-status pago">PAGO</span>
+                <span class="custa-comprovante">Ver comprovante →</span>
+              </div>
+            </div>
+            <div class="custa-row">
+              <div class="custa-left">
+                <div class="custa-desc">Custas de perícia técnica</div>
+                <div class="custa-meta">Solicitado por <b>ana.gabriela</b> em 10/08/2026</div>
+              </div>
+              <div class="custa-right">
+                <div class="custa-valor">R$ 1.200,00</div>
+                <span class="custa-status pendente">PENDENTE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-view" id="panel-apensos">
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Apensos são processos com número próprio, mas que nasceram vinculados a este — embargos, agravos, incidentes. Em vez de tratar cada um como um processo isolado e desconectado, o sistema mantém o vínculo visível dos dois lados: aqui aparecem os apensos deste processo, e dentro de cada apenso, esta mesma aba mostra o processo de origem de volta.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Campo <code>processo_origem_id</code> na tabela <code>processos</code> (nulo pro processo principal, preenchido nos apensos). Pra listar apensos de um processo: <code>SELECT * FROM processos WHERE processo_origem_id = processo.id</code>. Pra mostrar o processo de origem dentro do apenso: <code>SELECT * FROM processos WHERE id = processo.processo_origem_id</code>. Cada apenso é um processo completo e independente (tem suas próprias 5 abas — Andamentos, Prazos, Documentos, Partes, Apensos), só compartilha esse vínculo de origem.
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+            <button class="btn-dark" id="btn-novo-apenso-4444">+ Novo apenso</button>
+          </div>
+
+          <div class="mock-form" id="form-novo-apenso-4444">
+            <div class="mock-form-title">Novo apenso</div>
+            <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo.</div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Número do processo (apenso)</div>
+                <input class="form-input" placeholder="Ex: 0009876-54.2026.8.19.0001">
+              </div>
+              <div class="form-field">
+                <div class="form-label">Tipo de apenso</div>
+                <select>
+                  <option value="">Selecione</option>
+                  <option>Embargos à Execução</option>
+                  <option>Agravo de Instrumento</option>
+                  <option>Recurso Especial</option>
+                  <option>Incidente Processual</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Data de distribuição</div>
+                <input class="form-input" type="date">
+              </div>
+              <div class="form-field">
+                <div class="form-label">Vara/instância deste apenso</div>
+                <input class="form-input" placeholder="Ex: 2ª Câmara Cível (2º Grau)">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="mock-form-note" style="margin:0;">Natureza, cliente e parte contrária já vêm herdados automaticamente do processo de origem (nº 4444444444444) — não precisa preencher de novo.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn-dark" id="btn-novo-apenso-4444-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+            </div>
+          </div>
+
+          <div class="apenso-note">Processos com número próprio, mas diretamente vinculados a este (embargos, agravos, apelações etc.). Ao clicar em um apenso, abre-se a mesma estrutura de abas (Andamentos, Prazos, Documentos, Partes, Apensos) referente a esse processo — e, nela, a aba Apensos traz de volta este processo como "processo de origem", além de qualquer outro apenso relacionado.</div>
+
+          <div class="apenso-list">
+
+            <div class="apenso-card" data-open="view-5555">
+              <div class="apenso-top">
+                <span class="apenso-tipo">EMBARGOS À EXECUÇÃO</span>
+                <span class="apenso-numero">nº 5555555555555</span>
+              </div>
+              <div class="apenso-nome">Embargos à Execução — Comércio XYZ Ltda</div>
+              <div class="apenso-meta">
+                <div class="apenso-meta-item">
+                  <div class="info-label">VARA/JUÍZO</div>
+                  <div class="info-value">2ª Câmara</div>
+                </div>
+                <div class="apenso-meta-item">
+                  <div class="info-label">VALOR DA CAUSA</div>
+                  <div class="info-value">R$ 45.000,00</div>
+                </div>
+                <div class="apenso-meta-item">
+                  <div class="info-label">CLIENTE</div>
+                  <div class="info-value">Souza Lenzi Advogados</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="apenso-card" data-open="view-6666">
+              <div class="apenso-top">
+                <span class="apenso-tipo">AGRAVO DE INSTRUMENTO</span>
+                <span class="apenso-numero">nº 6666666666666</span>
+              </div>
+              <div class="apenso-nome">Agravo de Instrumento contra decisão saneadora</div>
+              <div class="apenso-meta">
+                <div class="apenso-meta-item">
+                  <div class="info-label">VARA/JUÍZO</div>
+                  <div class="info-value">2ª Câmara</div>
+                </div>
+                <div class="apenso-meta-item">
+                  <div class="info-label">VALOR DA CAUSA</div>
+                  <div class="info-value">R$ 500.000,00</div>
+                </div>
+                <div class="apenso-meta-item">
+                  <div class="info-label">CLIENTE</div>
+                  <div class="info-value">Souza Lenzi Advogados</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+      <!-- /view-4444 -->
+
+      <!-- ================= VIEW: PROCESSO 5555555555555 — EMBARGOS À EXECUÇÃO ================= -->
+      <div class="view" id="view-5555">
+
+        <div class="back-to-list" data-back="view-lista-processos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar para Processos
+        </div>
+        <div class="back-link" data-back="view-4444">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao processo de origem (nº 4444444444444)
+        </div>
+
+        <div class="process-card">
+          <div class="badges">
+            <div class="badge-group">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="instancia">1ª Instância</span>
+            </div>
+            <button class="btn-outline">Arquivar processo</button>
+          </div>
+
+          <div class="process-title">Embargos à Execução</div>
+          <div class="process-number">5555555555555</div>
+
+          <div class="tarefas-selo" id="selo-tarefas-5555">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            1 tarefa vinculada a este processo
+          </div>
+          <div class="tarefas-selo-panel" id="painel-tarefas-5555">
+            <div class="tarefas-selo-item">
+              <span>Elaborar minuta de contrarrazões</span>
+              <span class="tarefas-selo-status pendente">Pendente</span>
+            </div>
+            <div class="tarefas-selo-link" data-jump-tarefas>Ver todas no módulo Tarefas →</div>
+          </div>
+
+          <div class="habilitados-btn" id="btn-habilitados-5555">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            2 advogados habilitados neste processo
+          </div>
+          <div class="habilitados-panel" id="painel-habilitados-5555">
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">SE</div> sergio</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked disabled> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">FC</div> felipe.costa</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked class="habilitado-toggle" data-usuario="felipe.costa"> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">AG</div> ana.gabriela</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="ana.gabriela"> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">JS</div> joao.souza</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="joao.souza"> Habilitado</label>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div>
+              <div class="info-label">ESTADO</div>
+              <div class="info-value">Rio de Janeiro (RJ)</div>
+            </div>
+            <div>
+              <div class="info-label">COMARCA</div>
+              <div class="info-value">Comarca da Capital</div>
+            </div>
+            <div>
+              <div class="info-label">VARA</div>
+              <div class="info-value">1ª Vara Cível</div>
+            </div>
+            <div>
+              <div class="info-label">VALOR DA CAUSA</div>
+              <div class="info-value">R$ 45.000,00</div>
+            </div>
+            <div>
+              <div class="info-label">CLIENTE</div>
+              <div class="info-value">Maria da Silva Ferreira</div>
+            </div>
+            <div>
+              <div class="info-label">PARTE CONTRÁRIA</div>
+              <div class="info-value">Comércio XYZ Ltda</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-strip">
+          <div class="status-tag warn"><span class="status-tag-label">Fase atual</span> Suspenso — aguardando julgamento dos embargos</div>
+          <div class="status-tag warn"><span class="status-tag-label">Parado há</span> 119 dias</div>
+          <div class="status-tag"><span class="status-tag-label">Tempo médio entre andamentos</span> 7 dias (antes da suspensão)</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-target="panel-and-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Andamentos (3)
+          </div>
+          <div class="tab" data-target="panel-praz-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            Prazos (2)
+          </div>
+          <div class="tab" data-target="panel-doc-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/></svg>
+            Documentos (3)
+          </div>
+          <div class="tab" data-target="panel-part-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Partes (3)
+          </div>
+          <div class="tab" data-target="panel-custas-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Custas Judiciais (1)
+          </div>
+          <div class="tab" data-target="panel-apen-5555">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M13 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+            Apensos (1)
+          </div>
+        </div>
+
+        <div class="panel">
+
+          <!-- Andamentos 5555 -->
+          <div class="panel-view active" id="panel-and-5555">
+            <div class="timeline">
+              <div class="tl-step">
+                <div class="tl-dot">1</div>
+                <div class="tl-head">
+                  <span class="tl-title">Distribuição dos Embargos</span>
+                  <span class="tl-date">15/04/2026</span>
+                </div>
+                <div class="tl-sub">Embargos à execução distribuídos por dependência ao processo de origem, questionando o valor executado e requerendo a suspensão da execução.</div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot">2</div>
+                <div class="tl-head">
+                  <span class="tl-title">Recebimento e Suspensão da Execução</span>
+                  <span class="tl-date">22/04/2026</span>
+                </div>
+                <div class="tl-sub">Juízo recebe os embargos e determina a suspensão da execução até o julgamento definitivo.</div>
+              </div>
+              <div class="tl-step pending">
+                <div class="tl-dot">3</div>
+                <div class="tl-head">
+                  <span class="tl-title">Impugnação aos Embargos</span>
+                  <span class="tl-date">20/05/2026</span>
+                </div>
+                <div class="tl-sub">Parte exequente apresenta impugnação aos termos dos embargos, protocolada dentro do prazo previsto.</div>
+                <span class="tl-tag green">PROTOCOLADA NO PRAZO</span>
+              </div>
+            </div>
+            <div class="add-andamento">
+              <button class="btn-primary" id="btn-add-andamento-5555">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Adicionar andamento
+              </button>
+            </div>
+
+            <div class="mock-form" id="form-add-andamento-5555">
+              <div class="mock-form-title">Novo andamento</div>
+              <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo.</div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Tipo de andamento</div>
+                  <select>
+                    <option value="">Selecione</option>
+                    <option>Petição</option>
+                    <option>Decisão</option>
+                    <option>Despacho</option>
+                    <option>Audiência</option>
+                    <option>Sentença</option>
+                    <option>Citação/Intimação</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Data</div>
+                  <input class="form-input" type="date">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Título</div>
+                  <input class="form-input" placeholder="Ex: Decisão dos Embargos">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Descrição</div>
+                  <textarea placeholder="Resumo do que aconteceu neste andamento"></textarea>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Anexar documento (opcional)</div>
+                  <div class="custa-attach">Anexar arquivo — ficaria disponível junto deste andamento</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="btn-add-andamento-5555-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prazos 5555 -->
+          <div class="panel-view" id="panel-praz-5555">
+            <div class="prazo-list">
+              <div class="prazo-card">
+                <div class="prazo-left">
+                  <div class="prazo-title">Impugnação aos Embargos</div>
+                  <div class="prazo-dates">Prazo: até <b>25/05/2026</b> &nbsp;•&nbsp; Protocolado em: <b>20/05/2026</b></div>
+                </div>
+                <div class="prazo-status ok"><span class="dot"></span>Cumprido no prazo</div>
+              </div>
+              <div class="prazo-card">
+                <div class="prazo-left">
+                  <div class="prazo-title">Réplica à Impugnação</div>
+                  <div class="prazo-dates">Prazo: até <b>10/06/2026</b> &nbsp;•&nbsp; Ainda não cumprido</div>
+                </div>
+                <div class="prazo-status upcoming"><span class="dot"></span>A vencer</div>
+              </div>
+            </div>
+            <div class="prazo-agenda-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Todo prazo a vencer entra automaticamente na Agenda do responsável — não precisa marcar nada
+            </div>
+          </div>
+
+          <!-- Documentos 5555 -->
+          <div class="panel-view" id="panel-doc-5555">
+            <div class="doc-list">
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Petição de Embargos.pdf</div>
+                  <div class="doc-meta">Peça processual • 15/04/2026 • 402 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Decisão de Recebimento.pdf</div>
+                  <div class="doc-meta">Decisão judicial • 22/04/2026 • 210 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Impugnação aos Embargos.pdf</div>
+                  <div class="doc-meta">Peça processual • 20/05/2026 • 318 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Partes 5555 -->
+          <div class="panel-view" id="panel-part-5555">
+            <div class="partes-columns">
+              <div>
+                <div class="partes-section-label">Embargante <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">CX</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Comércio XYZ Ltda</span>
+                        <span class="parte-role-tag autor">EMBARGANTE</span>
+                      </div>
+                      <div class="parte-doc">CNPJ: 12.345.678/0001-90</div>
+                      <div class="parte-adv"><b>Advogado(a):</b> Dra. Ana Lima — OAB/RJ 98.765</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="partes-section-label">Embargado <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">MS</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Maria da Silva Ferreira</span>
+                        <span class="parte-role-tag reu">EMBARGADO</span>
+                        <span class="parte-role-tag cliente">CLIENTE CADASTRADO</span>
+                      </div>
+                      <div class="parte-doc">CPF: 123.456.789-00</div>
+                      <div class="parte-adv"><b>Advogado(a):</b> Dr. Sérgio Lenzi — OAB/RJ 111.222 (Souza Lenzi Advogados, preenchido automaticamente)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="partes-section-label">Juiz <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">BN</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Dra. Beatriz Nogueira</span>
+                        <span class="parte-role-tag juiz">JUIZ</span>
+                      </div>
+                      <div class="parte-doc">1ª Vara Cível</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Apensos 5555 (aponta de volta pro processo de origem) -->
+          <div class="panel-view" id="panel-custas-5555">
+            <div class="section-note">Mesma lógica já explicada no processo de origem (nº 4444444444444): qualquer solicitação de pagamento pra este processo aparece aqui pra qualquer usuário, e é a mesma informação que já está em Financeiro → Solicitações.</div>
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+              <button class="btn-dark" id="btn-nova-custa-5555">+ Nova solicitação</button>
+            </div>
+
+            <div class="custa-form" id="form-nova-custa-5555">
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Descrição da custa</div>
+                  <input class="form-input" id="custa-desc-5555" placeholder="Ex: Custas de recurso">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Valor (R$)</div>
+                  <input class="form-input" id="custa-valor-5555" placeholder="Ex: 200,00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="custa-attach" id="custa-anexo-5555">Anexar boleto (opcional nesta etapa)</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="custa-salvar-5555" style="padding:8px 14px;font-size:12.5px;">Solicitar pagamento</button>
+                <button class="btn-outline" id="custa-cancelar-5555" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>
+              </div>
+            </div>
+
+            <div id="custa-list-5555">
+              <div class="custa-row">
+                <div class="custa-left">
+                  <div class="custa-desc">Custas de distribuição dos embargos</div>
+                  <div class="custa-meta">Solicitado por <b>sergio</b> em 05/04/2026</div>
+                </div>
+                <div class="custa-right">
+                  <div class="custa-valor">R$ 180,00</div>
+                  <span class="custa-status pendente">PENDENTE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-view" id="panel-apen-5555">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+              <button class="btn-dark" id="btn-novo-apenso-5555">+ Novo apenso</button>
+            </div>
+
+            <div class="mock-form" id="form-novo-apenso-5555">
+              <div class="mock-form-title">Novo apenso</div>
+              <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo.</div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Número do processo (apenso)</div>
+                  <input class="form-input" placeholder="Ex: 0009876-54.2026.8.19.0001">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Tipo de apenso</div>
+                  <select>
+                    <option value="">Selecione</option>
+                    <option>Embargos à Execução</option>
+                    <option>Agravo de Instrumento</option>
+                    <option>Recurso Especial</option>
+                    <option>Incidente Processual</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Data de distribuição</div>
+                  <input class="form-input" type="date">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Vara/instância deste apenso</div>
+                  <input class="form-input" placeholder="Ex: 1ª Vara Cível">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="mock-form-note" style="margin:0;">Natureza, cliente e parte contrária já vêm herdados automaticamente do processo de origem (nº 5555555555555) — não precisa preencher de novo.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="btn-novo-apenso-5555-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+              </div>
+            </div>
+
+            <div class="apenso-note">Processo de origem e demais apensos vinculados a este.</div>
+            <div class="origem-card" data-open="view-4444">
+              <div>
+                <div class="origem-label">PROCESSO DE ORIGEM</div>
+                <div class="origem-name">Ação de Danos Morais</div>
+                <div class="origem-numero">nº 4444444444444</div>
+              </div>
+              <span class="apenso-tipo">AÇÃO PRINCIPAL</span>
+            </div>
+            <div style="font-size:11.5px;color:#9aa3bd;margin-top:6px;">Nenhum outro apenso vinculado a este processo</div>
+          </div>
+
+        </div>
+      </div>
+      <!-- /view-5555 -->
+
+      <!-- ================= VIEW: PROCESSO 6666666666666 — AGRAVO DE INSTRUMENTO ================= -->
+      <div class="view" id="view-6666">
+
+        <div class="back-to-list" data-back="view-lista-processos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar para Processos
+        </div>
+        <div class="back-link" data-back="view-4444">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao processo de origem (nº 4444444444444)
+        </div>
+
+        <div class="process-card">
+          <div class="badges">
+            <div class="badge-group">
+              <span class="badge civel">CÍVEL</span>
+              <span class="badge ativo">Ativo</span>
+              <span class="instancia">2ª Instância</span>
+            </div>
+            <button class="btn-outline">Arquivar processo</button>
+          </div>
+
+          <div class="process-title">Agravo de Instrumento</div>
+          <div class="process-number">6666666666666</div>
+
+          <div class="tarefas-selo empty" id="selo-tarefas-6666">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Nenhuma tarefa vinculada a este processo
+          </div>
+
+          <div class="habilitados-btn" id="btn-habilitados-6666">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            2 advogados habilitados neste processo
+          </div>
+          <div class="habilitados-panel" id="painel-habilitados-6666">
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">SE</div> sergio</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked disabled> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">FC</div> felipe.costa</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" checked class="habilitado-toggle" data-usuario="felipe.costa"> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">AG</div> ana.gabriela</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="ana.gabriela"> Habilitado</label>
+            </div>
+            <div class="habilitado-row">
+              <div class="habilitado-left"><div class="habilitado-avatar">JS</div> joao.souza</div>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" class="habilitado-toggle" data-usuario="joao.souza"> Habilitado</label>
+            </div>
+          </div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 Desdobramento de vara</div>
+              Este processo é o exemplo concreto de um caso que muda de vara: quando um processo entra em fase recursal (aqui, o Agravo de Instrumento), ele continua na mesma comarca, mas deixa de tramitar na vara de 1ª instância (onde nasceu — <b>4ª Vara Cível</b>) e passa a tramitar numa câmara de 2º grau (aqui, <b>21ª Câmara de Direito Privado</b>). O campo "VARA" mostra sempre a vara <b>atual</b> — é onde o processo está tramitando agora, e é pra lá que vai qualquer andamento novo — com uma notinha logo abaixo indicando de onde ele veio. O sistema guarda os dois porque o histórico da vara de origem continua relevante pra entender a trajetória do processo, mesmo já não sendo mais onde ele corre.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Não é um campo fixo e sim um <b>histórico de varas</b>: tabela <code>processo_varas</code> (processo_id, vara, instancia, data_inicio, data_fim opcional) — toda vez que o processo muda de vara (por subida de instância, redistribuição, etc.), fecha o registro anterior (<code>data_fim</code>) e abre um novo. O campo "VARA" na tela sempre mostra o registro sem <code>data_fim</code> (o mais recente, ainda aberto). Se houver mais de um registro no histórico, mostre a notinha "Vara de origem: X" embaixo do valor, puxando o primeiro registro (<code>ORDER BY data_inicio ASC LIMIT 1</code>). Pra um processo que nunca mudou de vara (como o nº 4444444444444), só existe um registro, então a notinha nem aparece. A Análise de dados do Painel sempre usa a vara <b>atual</b> pra montar o drill-down de localidade, nunca a de origem.
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div>
+              <div class="info-label">ESTADO</div>
+              <div class="info-value">Rio de Janeiro (RJ)</div>
+            </div>
+            <div>
+              <div class="info-label">COMARCA</div>
+              <div class="info-value">Comarca da Capital</div>
+            </div>
+            <div>
+              <div class="info-label">VARA (ATUAL)</div>
+              <div class="info-value">21ª Câmara de Direito Privado</div>
+              <div class="vara-origem-nota">Vara de origem (1ª instância): <b>4ª Vara Cível</b> — o processo migrou pra esta câmara ao subir para a fase recursal</div>
+            </div>
+            <div>
+              <div class="info-label">VALOR DA CAUSA</div>
+              <div class="info-value">R$ 500.000,00</div>
+            </div>
+            <div>
+              <div class="info-label">CLIENTE</div>
+              <div class="info-value">Maria da Silva Ferreira</div>
+            </div>
+            <div>
+              <div class="info-label">PARTE CONTRÁRIA</div>
+              <div class="info-value">Comércio XYZ Ltda</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-strip">
+          <div class="status-tag warn"><span class="status-tag-label">Fase atual</span> Fase Recursal — Agravo de Instrumento</div>
+          <div class="status-tag warn"><span class="status-tag-label">Parado há</span> 157 dias</div>
+          <div class="status-tag"><span class="status-tag-label">Tempo médio entre andamentos</span> 18 dias</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-target="panel-and-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Andamentos (3)
+          </div>
+          <div class="tab" data-target="panel-praz-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            Prazos (2)
+          </div>
+          <div class="tab" data-target="panel-doc-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/></svg>
+            Documentos (3)
+          </div>
+          <div class="tab" data-target="panel-part-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Partes (3)
+          </div>
+          <div class="tab" data-target="panel-custas-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Custas Judiciais (0)
+          </div>
+          <div class="tab" data-target="panel-apen-6666">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M13 2v6h6"/><path d="M9 15h6M9 11h3"/></svg>
+            Apensos (1)
+          </div>
+        </div>
+
+        <div class="panel">
+
+          <!-- Andamentos 6666 -->
+          <div class="panel-view active" id="panel-and-6666">
+            <div class="timeline">
+              <div class="tl-step">
+                <div class="tl-dot">1</div>
+                <div class="tl-head">
+                  <span class="tl-title">Interposição do Agravo</span>
+                  <span class="tl-date">25/02/2026</span>
+                </div>
+                <div class="tl-sub">Parte ré interpõe agravo de instrumento contra a decisão saneadora, questionando a distribuição do ônus da prova.</div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot">2</div>
+                <div class="tl-head">
+                  <span class="tl-title">Decisão Monocrática</span>
+                  <span class="tl-date">15/03/2026</span>
+                </div>
+                <div class="tl-sub">Relator nega efeito suspensivo ao recurso, mantendo o andamento normal do processo originário.</div>
+              </div>
+              <div class="tl-step pending">
+                <div class="tl-dot">3</div>
+                <div class="tl-head">
+                  <span class="tl-title">Julgamento pelo Colegiado</span>
+                  <span class="tl-date">a definir</span>
+                </div>
+                <div class="tl-sub">Recurso aguardando pauta para julgamento definitivo pela 2ª Câmara Cível.</div>
+              </div>
+            </div>
+            <div class="add-andamento">
+              <button class="btn-primary" id="btn-add-andamento-6666">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                Adicionar andamento
+              </button>
+            </div>
+
+            <div class="mock-form" id="form-add-andamento-6666">
+              <div class="mock-form-title">Novo andamento</div>
+              <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo.</div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Tipo de andamento</div>
+                  <select>
+                    <option value="">Selecione</option>
+                    <option>Petição</option>
+                    <option>Decisão</option>
+                    <option>Despacho</option>
+                    <option>Audiência</option>
+                    <option>Sentença</option>
+                    <option>Citação/Intimação</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Data</div>
+                  <input class="form-input" type="date">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Título</div>
+                  <input class="form-input" placeholder="Ex: Julgamento pelo Colegiado">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Descrição</div>
+                  <textarea placeholder="Resumo do que aconteceu neste andamento"></textarea>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">Anexar documento (opcional)</div>
+                  <div class="custa-attach">Anexar arquivo — ficaria disponível junto deste andamento</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="btn-add-andamento-6666-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prazos 6666 -->
+          <div class="panel-view" id="panel-praz-6666">
+            <div class="prazo-list">
+              <div class="prazo-card">
+                <div class="prazo-left">
+                  <div class="prazo-title">Contrarrazões ao Agravo</div>
+                  <div class="prazo-dates">Prazo: até <b>10/03/2026</b> &nbsp;•&nbsp; Protocolado em: <b>08/03/2026</b></div>
+                </div>
+                <div class="prazo-status ok"><span class="dot"></span>Cumprido no prazo</div>
+              </div>
+              <div class="prazo-card">
+                <div class="prazo-left">
+                  <div class="prazo-title">Sustentação Oral</div>
+                  <div class="prazo-dates">Prazo: até <b>25/09/2026</b> &nbsp;•&nbsp; Ainda não cumprido</div>
+                </div>
+                <div class="prazo-status upcoming"><span class="dot"></span>A vencer</div>
+              </div>
+            </div>
+            <div class="prazo-agenda-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Todo prazo a vencer entra automaticamente na Agenda do responsável — não precisa marcar nada
+            </div>
+          </div>
+
+          <!-- Documentos 6666 -->
+          <div class="panel-view" id="panel-doc-6666">
+            <div class="doc-list">
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Petição de Agravo de Instrumento.pdf</div>
+                  <div class="doc-meta">Peça processual • 25/02/2026 • 356 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Decisão Monocrática.pdf</div>
+                  <div class="doc-meta">Decisão judicial • 15/03/2026 • 190 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+              <div class="doc-row">
+                <div class="doc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/><path d="M13 2v7h7"/></svg></div>
+                <div class="doc-info">
+                  <div class="doc-name">Contrarrazões.pdf</div>
+                  <div class="doc-meta">Peça processual • 08/03/2026 • 274 KB</div>
+                </div>
+                <div class="doc-actions">
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <div class="doc-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Partes 6666 -->
+          <div class="panel-view" id="panel-part-6666">
+            <div class="partes-columns">
+              <div>
+                <div class="partes-section-label">Agravante <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">CX</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Comércio XYZ Ltda</span>
+                        <span class="parte-role-tag autor">AGRAVANTE</span>
+                      </div>
+                      <div class="parte-doc">CNPJ: 12.345.678/0001-90</div>
+                      <div class="parte-adv"><b>Advogado(a):</b> Dra. Ana Lima — OAB/RJ 98.765</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="partes-section-label">Agravado <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">MS</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Maria da Silva Ferreira</span>
+                        <span class="parte-role-tag reu">AGRAVADO</span>
+                        <span class="parte-role-tag cliente">CLIENTE CADASTRADO</span>
+                      </div>
+                      <div class="parte-doc">CPF: 123.456.789-00</div>
+                      <div class="parte-adv"><b>Advogado(a):</b> Dr. Sérgio Lenzi — OAB/RJ 111.222 (Souza Lenzi Advogados, preenchido automaticamente)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="partes-section-label">Relator <span class="count">1</span></div>
+                <div class="parte-card">
+                  <div class="parte-left">
+                    <div class="parte-avatar">CM</div>
+                    <div class="parte-info">
+                      <div class="parte-name-row">
+                        <span class="parte-name">Dr. Carlos Menezes</span>
+                        <span class="parte-role-tag juiz">RELATOR</span>
+                      </div>
+                      <div class="parte-doc">2ª Câmara Cível</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Apensos 6666 -->
+          <div class="panel-view" id="panel-custas-6666">
+            <div class="section-note">Mesma lógica já explicada no processo de origem (nº 4444444444444): qualquer solicitação de pagamento pra este processo aparece aqui pra qualquer usuário, e é a mesma informação que já está em Financeiro → Solicitações.</div>
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+              <button class="btn-dark" id="btn-nova-custa-6666">+ Nova solicitação</button>
+            </div>
+
+            <div class="custa-form" id="form-nova-custa-6666">
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Descrição da custa</div>
+                  <input class="form-input" id="custa-desc-6666" placeholder="Ex: Preparo recursal">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Valor (R$)</div>
+                  <input class="form-input" id="custa-valor-6666" placeholder="Ex: 420,00">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="custa-attach" id="custa-anexo-6666">Anexar boleto (opcional nesta etapa)</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="custa-salvar-6666" style="padding:8px 14px;font-size:12.5px;">Solicitar pagamento</button>
+                <button class="btn-outline" id="custa-cancelar-6666" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>
+              </div>
+            </div>
+
+            <div id="custa-list-6666">
+              <div class="empty-day" style="padding:24px;text-align:center;color:var(--text-mute);font-size:12.5px;">Nenhuma custa judicial solicitada ainda para este processo.</div>
+            </div>
+          </div>
+
+          <div class="panel-view" id="panel-apen-6666">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+              <button class="btn-dark" id="btn-novo-apenso-6666">+ Novo apenso</button>
+            </div>
+
+            <div class="mock-form" id="form-novo-apenso-6666">
+              <div class="mock-form-title">Novo apenso</div>
+              <div class="mock-form-note">Prévia de como o formulário ficaria — este botão não cria nada de verdade neste protótipo.</div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Número do processo (apenso)</div>
+                  <input class="form-input" placeholder="Ex: 0009876-54.2026.8.19.0001">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Tipo de apenso</div>
+                  <select>
+                    <option value="">Selecione</option>
+                    <option>Embargos à Execução</option>
+                    <option>Agravo de Instrumento</option>
+                    <option>Recurso Especial</option>
+                    <option>Incidente Processual</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">Data de distribuição</div>
+                  <input class="form-input" type="date">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">Vara/instância deste apenso</div>
+                  <input class="form-input" placeholder="Ex: 2ª Câmara Cível">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="mock-form-note" style="margin:0;">Natureza, cliente e parte contrária já vêm herdados automaticamente do processo de origem (nº 6666666666666) — não precisa preencher de novo.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="btn-novo-apenso-6666-fechar" style="padding:9px 16px;font-size:13px;">Fechar prévia</button>
+              </div>
+            </div>
+
+            <div class="apenso-note">Processo de origem e demais apensos vinculados a este.</div>
+            <div class="origem-card" data-open="view-4444">
+              <div>
+                <div class="origem-label">PROCESSO DE ORIGEM</div>
+                <div class="origem-name">Ação de Danos Morais</div>
+                <div class="origem-numero">nº 4444444444444</div>
+              </div>
+              <span class="apenso-tipo">AÇÃO PRINCIPAL</span>
+            </div>
+            <div style="font-size:11.5px;color:#9aa3bd;margin-top:6px;">Nenhum outro apenso vinculado a este processo</div>
+          </div>
+
+        </div>
+      </div>
+      <!-- /view-6666 -->
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var view = tab.closest('.view');
+      view.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      view.querySelectorAll('.panel-view').forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
+  function openView(id){
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  document.querySelectorAll('[data-open]').forEach(function(el){
+    el.addEventListener('click', function(){ openView(el.dataset.open); });
+  });
+
+  document.querySelectorAll('[data-back]').forEach(function(el){
+    el.addEventListener('click', function(){ openView(el.dataset.back); });
+  });
+
+  // ===== Formulários mock (Adicionar andamento / Novo apenso): abrir/fechar =====
+  function wireMockForm(btnId, formId, fecharId){
+    var btn = document.getElementById(btnId);
+    var form = document.getElementById(formId);
+    var fechar = document.getElementById(fecharId);
+    if(!btn || !form) return;
+    btn.addEventListener('click', function(){
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
+      if(form.style.display === 'block') form.scrollIntoView({behavior:'smooth', block:'center'});
+    });
+    if(fechar) fechar.addEventListener('click', function(){ form.style.display = 'none'; });
+  }
+  ['4444','5555','6666'].forEach(function(sufixo){
+    wireMockForm('btn-add-andamento-'+sufixo, 'form-add-andamento-'+sufixo, 'btn-add-andamento-'+sufixo+'-fechar');
+    wireMockForm('btn-novo-apenso-'+sufixo, 'form-novo-apenso-'+sufixo, 'btn-novo-apenso-'+sufixo+'-fechar');
+  });
+
+  // ===== Custas Judiciais: nova solicitação (mesma lógica do Financeiro → Solicitações) =====
+  var usuarioLogadoProcesso = 'sergio';
+  function formatDataCustaBR(){
+    var hoje = new Date(2026, 7, 19);
+    var p = function(n){ return n < 10 ? '0'+n : n; };
+    return p(hoje.getDate()) + '/' + p(hoje.getMonth()+1) + '/' + hoje.getFullYear();
+  }
+  function initCustasForm(sufixo){
+    var btnAbrir = document.getElementById('btn-nova-custa-' + sufixo);
+    var form = document.getElementById('form-nova-custa-' + sufixo);
+    if(!btnAbrir || !form) return;
+
+    btnAbrir.addEventListener('click', function(){
+      form.style.display = 'block';
+      btnAbrir.style.display = 'none';
+    });
+    document.getElementById('custa-cancelar-' + sufixo).addEventListener('click', function(){
+      form.style.display = 'none';
+      btnAbrir.style.display = '';
+    });
+    document.getElementById('custa-anexo-' + sufixo).addEventListener('click', function(){
+      this.textContent = '✓ boleto.pdf anexado';
+    });
+    document.getElementById('custa-salvar-' + sufixo).addEventListener('click', function(){
+      var desc = document.getElementById('custa-desc-' + sufixo).value || 'Custa judicial';
+      var valor = document.getElementById('custa-valor-' + sufixo).value || '0,00';
+
+      var row = document.createElement('div');
+      row.className = 'custa-row';
+      row.innerHTML =
+        '<div class="custa-left">' +
+          '<div class="custa-desc">' + desc + '</div>' +
+          '<div class="custa-meta">Solicitado por <b>' + usuarioLogadoProcesso + '</b> em ' + formatDataCustaBR() + '</div>' +
+        '</div>' +
+        '<div class="custa-right">' +
+          '<div class="custa-valor">R$ ' + valor + '</div>' +
+          '<span class="custa-status pendente">PENDENTE</span>' +
+        '</div>';
+
+      var lista = document.getElementById('custa-list-' + sufixo);
+      var vazio = lista.querySelector('.empty-day');
+      if(vazio) vazio.remove();
+      lista.prepend(row);
+
+      alert('Solicitação registrada. Em Financeiro, ela aparece na sua própria aba de Solicitações (só pra você) e em "Pagamentos solicitados" pro financeiro confirmar. Aqui na aba Custas Judiciais do processo, ela fica visível pra qualquer usuário — é essa parte que evita pedido duplicado.');
+
+      document.getElementById('custa-desc-' + sufixo).value = '';
+      document.getElementById('custa-valor-' + sufixo).value = '';
+      document.getElementById('custa-anexo-' + sufixo).textContent = 'Anexar boleto (opcional nesta etapa)';
+      form.style.display = 'none';
+      btnAbrir.style.display = '';
+    });
+  }
+  ['4444','5555','6666'].forEach(initCustasForm);
+
+  document.querySelectorAll('.custa-comprovante').forEach(function(el){
+    el.addEventListener('click', function(){
+      alert('Abriria o comprovante/boleto anexado por quem confirmou o pagamento lá em Financeiro — o mesmo arquivo, só visualizado por aqui também.');
+    });
+  });
+
+  // ===== Advogados habilitados neste processo: expande/recolhe + atualiza contador + cascata origem↔apensos =====
+  var clusterProcessos = ['4444','5555','6666']; // 4444 é a origem; 5555 e 6666 são apensos dele
+
+  function atualizarContadorHabilitados(sufixo){
+    var painel = document.getElementById('painel-habilitados-' + sufixo);
+    var btn = document.getElementById('btn-habilitados-' + sufixo);
+    var total = painel.querySelectorAll('input[type=checkbox]:checked').length;
+    btn.lastChild.textContent = ' ' + total + (total === 1 ? ' advogado habilitado neste processo' : ' advogados habilitados neste processo');
+  }
+
+  clusterProcessos.forEach(function(sufixo){
+    var btn = document.getElementById('btn-habilitados-' + sufixo);
+    var painel = document.getElementById('painel-habilitados-' + sufixo);
+    if(!btn || !painel) return;
+
+    btn.addEventListener('click', function(){
+      painel.style.display = painel.style.display === 'block' ? 'none' : 'block';
+    });
+
+    painel.querySelectorAll('.habilitado-toggle').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        var usuario = cb.dataset.usuario;
+        var novoEstado = cb.checked;
+
+        // Cascata: aplica o mesmo estado pro mesmo usuário nos outros processos do cluster (origem + apensos)
+        clusterProcessos.forEach(function(outroSufixo){
+          if(outroSufixo === sufixo) return;
+          var outroCb = document.querySelector('#painel-habilitados-' + outroSufixo + ' [data-usuario="' + usuario + '"]');
+          if(outroCb && outroCb.checked !== novoEstado){
+            outroCb.checked = novoEstado;
+            atualizarContadorHabilitados(outroSufixo);
+          }
+        });
+
+        atualizarContadorHabilitados(sufixo);
+      });
+    });
+  });
+
+  // ===== Selo de tarefas vinculadas: expande/recolhe a prévia =====
+  document.querySelectorAll('.tarefas-selo').forEach(function(selo){
+    var painel = document.getElementById(selo.id.replace('selo-', 'painel-'));
+    if(!painel) return; // sem tarefas vinculadas — selo não é clicável
+    selo.addEventListener('click', function(){
+      painel.style.display = painel.style.display === 'block' ? 'none' : 'block';
+    });
+  });
+  document.querySelectorAll('[data-jump-tarefas]').forEach(function(el){
+    el.addEventListener('click', function(e){
+      e.stopPropagation();
+      alert('Levaria ao módulo Tarefas, já filtrado pelas tarefas vinculadas a este processo.');
+    });
+  });
+
+  // ===== Lista de processos: filtro ao vivo =====
+  var escopoProcessos = 'todos'; // 'todos' | 'meus' — usuário demonstrado neste protótipo: sergio
+  var usuarioLogadoProcessos = 'sergio';
+
+  function aplicarFiltroProcessos(){
+    var busca = document.getElementById('pf-busca').value.toLowerCase();
+    var materia = document.getElementById('pf-materia').value;
+    var status = document.getElementById('pf-status').value;
+    var cliente = document.getElementById('pf-cliente').value;
+    var equipe = document.getElementById('pf-equipe').value;
+    var visiveis = 0;
+
+    document.querySelectorAll('#proc-card-list .proc-card-item').forEach(function(card){
+      var ok = true;
+      if(escopoProcessos === 'meus' && card.dataset.responsavel !== usuarioLogadoProcessos) ok = false;
+      if(busca && card.dataset.nome.indexOf(busca) === -1 && card.dataset.numero.indexOf(busca) === -1) ok = false;
+      if(materia && card.dataset.materia !== materia) ok = false;
+      if(status && card.dataset.status !== status) ok = false;
+      if(cliente && card.dataset.cliente !== cliente) ok = false;
+      if(equipe && card.dataset.equipe !== equipe) ok = false;
+      card.style.display = ok ? 'block' : 'none';
+      if(ok) visiveis++;
+    });
+
+    document.getElementById('proc-list-count').textContent = visiveis + (visiveis === 1 ? ' processo encontrado' : ' processos encontrados');
+  }
+  ['pf-busca','pf-materia','pf-status','pf-cliente','pf-equipe'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', aplicarFiltroProcessos);
+    document.getElementById(id).addEventListener('change', aplicarFiltroProcessos);
+  });
+  document.querySelectorAll('#pf-escopo-bar .filter-pill-sm[data-escopo]').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      document.querySelectorAll('#pf-escopo-bar .filter-pill-sm[data-escopo]').forEach(function(p){ p.classList.remove('active'); });
+      pill.classList.add('active');
+      escopoProcessos = pill.dataset.escopo;
+      aplicarFiltroProcessos();
+    });
+  });
+  document.getElementById('pf-limpar').addEventListener('click', function(){
+    document.getElementById('pf-busca').value = '';
+    document.getElementById('pf-materia').value = '';
+    document.getElementById('pf-status').value = '';
+    document.getElementById('pf-cliente').value = '';
+    document.getElementById('pf-equipe').value = '';
+    document.querySelectorAll('#pf-escopo-bar .filter-pill-sm[data-escopo]').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelector('#pf-escopo-bar [data-escopo="todos"]').classList.add('active');
+    escopoProcessos = 'todos';
+    aplicarFiltroProcessos();
+  });
+
+  document.getElementById('btn-novo-processo').addEventListener('click', function(){
+    var form = document.getElementById('form-novo-processo');
+    form.style.display = form.style.display === 'block' ? 'none' : 'block';
+    if(form.style.display === 'block') form.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+  document.getElementById('btn-novo-processo-fechar').addEventListener('click', function(){
+    document.getElementById('form-novo-processo').style.display = 'none';
+  });
+
+  // Processos ainda sem página de detalhe construída neste protótipo (só ilustrativos na lista)
+  ['proc-card-mock-7777','proc-card-mock-8888'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(){
+      alert('Neste protótipo, só os 3 processos ligados por Apensos (nº 4444.../5555.../6666...) têm a página de detalhe totalmente construída — os demais aparecem aqui só pra ilustrar a lista completa. No sistema real, esse card abriria a mesma estrutura de 5 abas.');
+    });
+  });
+</script>
+</body>
+</html>

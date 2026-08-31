@@ -58,7 +58,7 @@ planejada:
 - O alcance exato de autorização sobre a IA é definido em
   [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/inteligencia-artificial.md](../../delivery/current-state/inteligencia-artificial.md).
 - Ocultar ou exibir um elemento de interface não substitui essa
   verificação.
 

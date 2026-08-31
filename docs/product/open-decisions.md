@@ -2,7 +2,7 @@
 title: Decisões de produto em aberto
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-31
 ---
 
 # Decisões de produto em aberto
@@ -51,46 +51,7 @@ Detalhamento e migrations de recorrência financeira.
 
 Pendente.
 
-## OPEN-002 — Etapas de aprovação das solicitações financeiras
-
-Status: open
-
-### Contexto
-
-Solicitações de pagamento e reembolso feitas por usuários sem acesso ao
-caixa geral precisam de um fluxo de status até a efetivação do
-pagamento.
-
-### Pergunta
-
-O fluxo será:
-
-solicitada → em análise → aprovada → paga
-
-ou o Financeiro poderá concluir diretamente:
-
-solicitada → paga ou rejeitada?
-
-### Opções identificadas
-
-- manter uma etapa de análise/aprovação separada da execução do
-  pagamento;
-- permitir que o Financeiro conclua diretamente entre solicitada e
-  paga ou rejeitada, sem etapa intermediária de aprovação.
-
-### Recomendação registrada nas fontes
-
-Manter uma etapa de aprovação separada da execução do pagamento.
-
-### Impacto da decisão
-
-Define a modelagem final do status das solicitações financeiras e as
-regras de transição entre estados.
-
-### Bloqueia
-
-Modelagem final do status das solicitações e regras de transição.
-
-### Decisão final
-
-Pendente.
+OPEN-002 (etapas de aprovação das solicitações financeiras) foi resolvida
+e formalizada em
+[PDR-0015 — Fluxo de aprovação das solicitações financeiras](decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md);
+não aparece mais neste documento, conforme a regra do cabeçalho.

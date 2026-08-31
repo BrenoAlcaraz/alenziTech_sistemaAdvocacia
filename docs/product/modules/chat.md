@@ -34,7 +34,7 @@ Esta especificação não afirma que comunicação em tempo real já existe.
 - O alcance exato de eventual acesso administrativo a conversas é
   definido em [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/chat.md](../../delivery/current-state/chat.md).
 - Acesso a mensagens e anexos deve ser verificado no backend; conhecer
   o identificador de uma conversa ou de um arquivo não concede acesso
   a ele.

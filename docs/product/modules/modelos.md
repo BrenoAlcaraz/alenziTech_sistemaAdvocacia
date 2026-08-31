@@ -2,7 +2,7 @@
 title: Modelos
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-13
+last_reviewed: 2026-08-31
 related_pdrs:
   - PDR-0008
 ---
@@ -28,12 +28,19 @@ Como intenção funcional, o módulo Modelos compreende:
 
 ## Atores e expectativas de acesso
 
-- Modelos pertencem ao tenant.
-- Um usuário só acessa modelos dentro de seu escopo autorizado.
+- Modelos pertencem ao tenant e o acervo é sempre institucional: qualquer
+  usuário autorizado ao módulo Modelos alcança todos os modelos do
+  tenant, não apenas os que ele mesmo cadastrou.
+- Modelos não possui a dimensão de nível "somente os seus"/"todos"
+  compartilhada por Processos, Clientes, Tarefas, Painel e Agenda —
+  decisão registrada em 2026-08-31, resolvendo o ponto que este documento
+  listava como "autoria e propriedade individual versus institucional de
+  um modelo". Modelos passa a ser tratado, para efeito dessa dimensão,
+  como Chat e Gerir: sem nível.
 - O alcance exato desse escopo é definido em
   [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/modelos.md](../../delivery/current-state/modelos.md).
 - Acesso a modelos deve ser verificado no backend; ocultar ou exibir
   um modelo na interface não substitui essa verificação.
 
@@ -102,7 +109,6 @@ futura:
 ## Pontos em aberto
 
 - Categorias e metadados dos modelos.
-- Autoria e propriedade individual versus institucional de um modelo.
 - Edição direta do modelo já cadastrado.
 - Versionamento de modelos.
 - Aprovação de modelos antes de disponibilização.
@@ -118,8 +124,8 @@ futura:
 
 - É possível cadastrar um modelo manualmente e anexar um arquivo como
   modelo, sem depender de nenhuma funcionalidade de IA.
-- Um usuário só acessa modelos dentro do seu escopo autorizado,
-  verificado no backend.
+- Um usuário autorizado ao módulo Modelos acessa todos os modelos do
+  tenant, verificado no backend — não existe restrição por autoria.
 - Reutilizar um modelo não altera o modelo original.
 - Um modelo não é confundido, na especificação nem na interface, com
   um documento de cliente ou de processo.

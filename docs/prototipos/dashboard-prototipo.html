@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --purple:#6c4bc2;
+    --purple-soft:#ece7fb;
+    --line:#dde3ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI', Roboto, -apple-system, sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:88px;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;flex-shrink:0;}
+  .sidebar .logo{width:40px;height:40px;border-radius:10px;background:var(--navy-light);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;margin-bottom:28px;}
+  .nav-item{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;margin-bottom:6px;border-radius:10px;color:#8f9ac0;font-size:11px;cursor:pointer;}
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1180px;width:100%;}
+
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:12px;}
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);}
+  .demo-badge{
+    font-size:12px;font-weight:700;color:var(--amber);background:var(--amber-soft);
+    border:1px solid #f0d9ad;padding:5px 13px;border-radius:20px;display:flex;align-items:center;gap:5px;
+  }
+
+  /* Toggle de perfil (demo) */
+  .profile-toggle{
+    display:flex;align-items:center;gap:10px;margin:18px 0 22px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;width:fit-content;
+  }
+  .profile-toggle-label{font-size:12px;color:var(--text-mute);font-weight:600;}
+  .profile-pill{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  .profile-pill div{padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--text-mute);background:#fff;}
+  .profile-pill div.active{background:var(--navy);color:#fff;}
+
+  .tabs{display:flex;gap:32px;border-bottom:1px solid var(--line);flex-wrap:wrap;margin-bottom:20px;}
+  .tab{display:flex;align-items:center;gap:8px;padding:12px 2px 14px;font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
+  .tab svg{width:16px;height:16px;}
+  .tab.active{color:var(--blue);border-color:var(--blue);}
+  .tab-badge{font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--purple);background:var(--purple-soft);padding:1px 6px;border-radius:5px;margin-left:2px;}
+
+  .view{display:none;} .view.active{display:block;}
+
+  /* Cards de resumo (visão geral) */
+  .fin-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:26px;}
+  .fin-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;display:flex;align-items:center;gap:16px;}
+  .fin-card-icon{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .icon-green{background:var(--green-soft);color:var(--green);}
+  .icon-red{background:var(--red-soft);color:var(--red);}
+  .icon-amber{background:var(--amber-soft);color:var(--amber);}
+  .icon-blue{background:var(--blue-soft);color:var(--blue);}
+  .icon-purple{background:var(--purple-soft);color:var(--purple);}
+  .icon-navy{background:#e4e8f2;color:var(--navy);}
+  .fin-value{font-size:22px;font-weight:800;}
+  .fin-label{font-size:13px;color:var(--text-mute);margin-top:1px;}
+  .fin-card[data-visibility="mestre"]{position:relative;}
+  .fin-card-wide{grid-column:1 / -1;display:flex;align-items:center;gap:0;justify-content:space-between;}
+  .fin-wide-item{display:flex;align-items:center;gap:14px;padding-right:20px;}
+  .mestre-only-note{font-size:11.5px;color:var(--text-mute);margin:-14px 0 22px;font-style:italic;}
+
+  /* Filtro da Análise de dados */
+  .analise-filter-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+  .analise-filter-field{flex:1;min-width:150px;}
+  .analise-filter-field label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;display:block;text-transform:uppercase;}
+  .analise-filter-select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .filter-pills-inline{display:flex;gap:6px;}
+  .filter-pill-sm{padding:8px 12px;border-radius:8px;font-size:11.5px;font-weight:600;color:var(--text-mute);background:var(--bg);border:1px solid var(--line);cursor:pointer;white-space:nowrap;}
+  .filter-pill-sm.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .analise-filter-clear{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;white-space:nowrap;padding:9px 4px;}
+  .loc-breadcrumb{font-size:12px;color:var(--text-mute);margin-bottom:10px;}
+  .loc-breadcrumb .loc-crumb{cursor:pointer;color:var(--blue);font-weight:600;}
+  .loc-breadcrumb .loc-crumb:hover{text-decoration:underline;}
+  .loc-breadcrumb .loc-sep{margin:0 6px;color:var(--line);}
+
+  /* Cards de atalho */
+  .shortcut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .shortcut-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;}
+  .shortcut-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .shortcut-title{font-size:14.5px;font-weight:700;}
+  .shortcut-link{font-size:12.5px;font-weight:600;color:var(--blue);cursor:pointer;white-space:nowrap;}
+  .shortcut-empty{font-size:13px;color:var(--text-mute);}
+  .shortcut-card.linkable{cursor:pointer;}
+  .shortcut-card.linkable:hover{border-color:var(--blue);}
+  .shortcut-number{font-size:26px;font-weight:800;}
+  .shortcut-number-label{font-size:12.5px;color:var(--text-mute);margin-top:2px;}
+  .shortcut-fin-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+  .shortcut-fin-row b{font-size:14px;}
+  .shortcut-fin-row.saldo{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;}
+
+  /* Body-level profile gating */
+  body.perfil-comum [data-visibility="mestre"]{display:none !important;}
+
+  /* Análise de dados */
+  .panel{background:var(--card);border-radius:16px;padding:26px 28px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);margin-bottom:18px;}
+  .panel-title{font-size:15px;font-weight:800;margin-bottom:16px;}
+  .bar-list{display:flex;flex-direction:column;gap:12px;}
+  .bar-row{display:flex;align-items:center;gap:12px;}
+  .bar-row.clickable{cursor:pointer;border-radius:8px;padding:3px 6px;margin:0 -6px;transition:background .12s;}
+  .bar-row.clickable:hover{background:var(--bg);}
+  .bar-label{font-size:12.5px;color:var(--text);width:190px;flex-shrink:0;}
+  .bar-track{flex:1;height:10px;background:var(--bg);border-radius:6px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:6px;background:var(--blue);}
+  .bar-value{font-size:12px;color:var(--text-mute);width:70px;text-align:right;flex-shrink:0;}
+
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .stat-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;text-align:center;}
+  .stat-value{font-size:24px;font-weight:800;}
+  .stat-label{font-size:12px;color:var(--text-mute);margin-top:4px;}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+
+  .mini-stat{background:var(--bg);border-radius:12px;padding:14px 16px;text-align:center;}
+  .mini-stat.clickable{cursor:pointer;border:2px solid transparent;}
+  .mini-stat.clickable:hover{border-color:var(--line);}
+  .mini-stat .n{font-size:20px;font-weight:800;}
+  .mini-stat .l{font-size:11.5px;color:var(--text-mute);margin-top:3px;}
+  .mini-stat.warn .n{color:var(--amber);}
+  .mini-stat.danger .n{color:var(--red);}
+  .mini-stat.ok .n{color:var(--green);}
+  .mini-stat.clickable{cursor:pointer;border:2px solid transparent;transition:border-color .12s;}
+  .mini-stat.clickable:hover{border-color:var(--line);}
+  .mini-stat.clickable.selected{border-color:var(--blue);background:var(--blue-soft);}
+
+  .proc-list{display:flex;flex-direction:column;margin-top:16px;}
+  .proc-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 4px;border-bottom:1px solid var(--line);}
+  .proc-row:last-child{border-bottom:none;}
+  .proc-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .proc-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .proc-name{font-size:13.5px;font-weight:700;}
+  .proc-meta{font-size:11.5px;color:var(--text-mute);margin-top:2px;}
+  .proc-link{font-size:12px;font-weight:600;color:var(--blue);white-space:nowrap;cursor:pointer;}
+  .proc-empty{font-size:12.5px;color:var(--text-mute);padding:14px 4px;}
+  .empty-day{font-size:12.5px;color:var(--text-mute);text-align:center;padding:20px 10px;}
+
+  /* Painel do gestor */
+  .section-note{font-size:11.5px;color:var(--text-mute);margin-bottom:16px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:14px 0 24px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+  .user-list{display:flex;flex-direction:column;}
+  .user-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .user-row:last-child{border-bottom:none;}
+  .user-row:hover{background:var(--bg);}
+  .user-left{display:flex;align-items:center;gap:14px;}
+  .user-avatar{width:38px;height:38px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+  .user-name{font-size:14.5px;font-weight:700;}
+  .user-role{font-size:12px;color:var(--text-mute);}
+  .user-stat{font-size:12.5px;color:var(--text-mute);text-align:right;}
+  .user-stat b{color:var(--text);font-size:14px;}
+
+  .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-link:hover{text-decoration:underline;}
+  .user-actions{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+
+  /* Habilitar em processos (atalho dentro do Painel do gestor) */
+  .proc-filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .proc-filter-field{flex:1;min-width:130px;}
+  .proc-filter-field label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:4px;display:block;text-transform:uppercase;}
+  .proc-filter-input, .proc-filter-select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .proc-checklist{border:1px solid var(--line);border-radius:9px;max-height:260px;overflow-y:auto;}
+  .proc-check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+  .proc-check-row:last-child{border-bottom:none;}
+  .proc-check-row .pc-info{flex:1;}
+  .proc-check-row .pc-nome{font-weight:600;}
+  .proc-check-row .pc-meta{font-size:11px;color:var(--text-mute);margin-top:2px;}
+  .proc-selected-count{font-size:11.5px;color:var(--text-mute);margin:8px 0 0;}
+  .habilitar-processos-panel{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
+  .btn-outline{
+    border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-outline:hover{border-color:#c3cbe0;}
+
+  .activity-list{position:relative;padding-left:6px;}
+  .activity-list::before{content:'';position:absolute;left:13px;top:4px;bottom:4px;width:2px;background:var(--line);}
+  .activity-item{position:relative;padding-left:36px;padding-bottom:20px;}
+  .activity-item:last-child{padding-bottom:0;}
+  .activity-dot{position:absolute;left:0;top:2px;width:28px;height:28px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;justify-content:center;z-index:1;}
+  .activity-time{font-size:11.5px;color:var(--text-mute);font-weight:700;margin-bottom:2px;}
+  .activity-desc{font-size:13.5px;font-weight:600;}
+
+  @media (max-width:720px){
+    .sidebar{width:64px;} .nav-item{width:48px;font-size:9px;} .content{padding:18px;}
+    .fin-cards, .shortcut-grid, .grid-2, .grid-3, .grid-4, .stats-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title">Painel</div>
+          <div class="page-subtitle">Visão geral do escritório</div>
+        </div>
+        <div class="demo-badge">★ Demo</div>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 O que é</div>
+          Esta tela do protótipo sempre mostra o Painel como o <b>mestre</b> vê — completo, com financeiro, Análise de dados e Painel do gestor. Só que o Painel de um usuário comum (Administrador, Ilimitado ou Financeiro) muda de acordo com a Permissão "Painel" (Somente os seus / Todos) configurada em Configurações → Permissões: "Todos" mostra o painel completo do escritório, igual o mestre vê; "Somente os seus" mostra uma versão com os números limitados aos processos/clientes que o usuário tem permissão de ver — a mesma lógica derivada de Processos que já vale nos outros módulos. O dono do escritório decide isso por papel, e pode ajustar individualmente na aba Individual se quiser dar a alguém específico uma visão diferente da regra geral do papel.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Consulte <code>permissoes_papel.painel.sub_opcao</code> (ou o override em <code>permissoes_usuario</code>, se existir) pro usuário logado. Se <code>'todos'</code>: renderize o painel completo, igual está aqui no protótipo. Se <code>'somente_seus'</code>: filtre os dados exibidos pelos processos/clientes que o usuário pode ver (mesmo filtro de <code>equipe_processos</code> + <code>usuario_processos</code> já usado em Processos) — o detalhamento exato de como cada card se comporta nessa versão está descrito logo abaixo, junto com os cards de resumo. O Painel em si não tem lógica própria de permissão — só lê a decisão já configurada em Configurações. No backend, a própria API que devolve esses dados deve checar essa mesma permissão antes de responder — nunca confie só em esconder no front.
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-target="tab-geral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Visão geral do escritório
+        </div>
+        <div class="tab" data-target="tab-analise">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+          Análise de dados
+        </div>
+        <div class="tab" data-target="tab-gestor" data-visibility="mestre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Painel do gestor
+        </div>
+      </div>
+
+      <!-- ===================== TAB 1: VISÃO GERAL DO ESCRITÓRIO ===================== -->
+      <div class="view active" id="tab-geral">
+
+        <div class="fin-cards">
+          <div class="fin-card linkable" title="Levaria ao módulo Clientes">
+            <div class="fin-card-icon icon-blue">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div><div class="fin-value">1</div><div class="fin-label">Clientes ativos</div></div>
+          </div>
+          <div class="fin-card linkable" title="Levaria ao módulo Processo">
+            <div class="fin-card-icon icon-navy">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-3V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1z"/></svg>
+            </div>
+            <div><div class="fin-value">5</div><div class="fin-label">Processos ativos</div></div>
+          </div>
+          <div class="fin-card linkable" title="Levaria ao módulo Tarefas">
+            <div class="fin-card-icon icon-amber">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div style="flex:1;"><div class="fin-value">3</div><div class="fin-label">Tarefas pendentes</div></div>
+            <span class="shortcut-link">Ver todas →</span>
+          </div>
+          <div class="fin-card linkable" title="Levaria ao módulo Agenda">
+            <div class="fin-card-icon icon-navy">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+            </div>
+            <div style="flex:1;"><div class="fin-value">7</div><div class="fin-label">Compromissos próximos</div></div>
+            <span class="shortcut-link">Ver agenda →</span>
+          </div>
+          <div class="fin-card fin-card-wide linkable" data-visibility="mestre" title="Levaria ao módulo Financeiro">
+            <div class="fin-wide-item">
+              <div class="fin-card-icon icon-green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+              </div>
+              <div><div class="fin-value">R$ 6.200,00</div><div class="fin-label">A receber</div></div>
+            </div>
+            <div class="fin-wide-item">
+              <div class="fin-card-icon icon-red">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+              </div>
+              <div><div class="fin-value">R$ 8.620,00</div><div class="fin-label">A pagar</div></div>
+            </div>
+            <div class="fin-wide-item">
+              <div class="fin-card-icon icon-navy">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg>
+              </div>
+              <div><div class="fin-value" style="color:var(--red);">− R$ 2.420,00</div><div class="fin-label">Diferença (saldo)</div></div>
+            </div>
+            <span class="shortcut-link" style="flex-shrink:0;">Ver financeiro →</span>
+          </div>
+          <div class="fin-card linkable" data-visibility="mestre" title="Levaria ao módulo Configurações, na tela de usuários">
+            <div class="fin-card-icon icon-purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div><div class="fin-value">4</div><div class="fin-label">Usuários ativos</div></div>
+          </div>
+        </div>
+
+        <div class="mestre-only-note" data-visibility="mestre">Este protótipo sempre mostra a visão completa (perfil mestre). Veja abaixo como cada card se comporta para um usuário comum, conforme a Permissão/Habilitação configurada para ele.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é (visão do mestre, mostrada aqui)</div>
+            Painel de resumo do escritório em números simples: quantos clientes o escritório atende, quantos processos estão em andamento, quantas tarefas o advogado logado ainda precisa fazer, quantos compromissos tem marcados em breve, a situação financeira (A receber/A pagar/Diferença) e quantos usuários estão ativos. O mestre sempre vê tudo isso completo, sem filtro nenhum.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como um usuário comum vê cada card — regra por módulo</div>
+            <b>Importante antes de tudo:</b> a Permissão de um módulo tem dois níveis — o módulo pode estar <code>habilitado: false</code> (desligado por completo) ou <code>habilitado: true</code> com uma <code>sub_opcao</code> ('somente_seus'/'todos'). Quando está desligado, o card correspondente <b>não aparece de forma nenhuma</b> — não mostra "0", simplesmente não é renderizado, como se aquela informação não existisse pra esse usuário. Só quando o módulo está ligado é que a sub_opção decide se conta tudo ou só o que ele está habilitado.<br><br>
+            <b>Clientes ativos:</b> some se <code>permissoes_papel.clientes.habilitado === false</code>. Se ligado: <code>'todos'</code> conta o escritório inteiro; <code>'somente_seus'</code> conta só os clientes vinculados a processos em que ele está habilitado (cliente nunca é habilitação direta, é sempre consequência de acesso a processo).<br><br>
+            <b>Processos ativos:</b> some se <code>permissoes_papel.processos.habilitado === false</code>. Se ligado: mesma lógica de <code>'todos'</code>/<code>'somente_seus'</code> aplicada aos processos (via equipe ou individualmente).<br><br>
+            <b>Tarefas pendentes:</b> some se <code>permissoes_papel.tarefas.habilitado === false</code>. Se ligado: <code>'todos'</code> conta as tarefas pendentes de qualquer usuário; <code>'somente_seus'</code> conta só as dele mesmo.<br><br>
+            <b>Compromissos próximos:</b> some se <code>permissoes_papel.agenda.habilitado === false</code>. Mesma lógica de sub_opção aplicada à Agenda quando ligado.<br><br>
+            <b>Card financeiro:</b> some se <code>permissoes_papel.financeiro.habilitado === false</code>. Se ligado com <code>sub_opcao === 'acesso_dados'</code>, mostra os valores normais (A receber/A pagar/Diferença); se <code>'apenas_solicitacoes'</code>, mostra "Solicitações de pagamento requeridas: N" em vez de valores financeiros.<br><br>
+            <b>Usuários ativos:</b> não depende de Permissão de módulo — aparece pra qualquer usuário com a habilitação <code>habilitacoes_papel.gerir.criar_novo_usuario === true</code>.<br><br>
+            <b>Navegação:</b> cada card visível é um link/botão clicável que redireciona para o módulo correspondente: "Clientes ativos" → módulo Clientes; "Processos ativos" → módulo Processo; "Tarefas pendentes" → módulo Tarefas; "Compromissos próximos" → módulo Agenda; o card financeiro → módulo Financeiro (na aba certa: Pagamentos se tem acesso a dados, Solicitações se só tem solicitações); "Usuários ativos" → módulo Configurações, tela de usuários — sempre já filtrado pelo mesmo escopo que o card estava mostrando. Esse padrão se repete em praticamente todo o Painel — vale criar um componente reutilizável (ex: <code>&lt;CardClicavel rota="/clientes"&gt;</code>) em vez de reescrever a navegação em cada card.
+          </div>
+        </div>
+
+        <!-- Movimentação processual (movida de Análise de dados) -->
+        <div class="panel" style="margin-top:18px;">
+          <div class="panel-title">Movimentação processual</div>
+          <div class="grid-4">
+            <div class="mini-stat ok clickable selected" data-mov="24h"><div class="n">4</div><div class="l">Movimentados nas últimas 24h</div></div>
+            <div class="mini-stat ok clickable" data-mov="7dias"><div class="n">15</div><div class="l">Movimentados nos últimos 7 dias</div></div>
+          </div>
+
+          <div class="proc-list" data-mov-list="24h">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Ação de Danos Morais — nº 4444444444444</div>
+                  <div class="proc-meta">Última movimentação: hoje, 08:15 • Contestação protocolada</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-mov-list="7dias" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Embargos à Execução — nº 5555555555555</div>
+                  <div class="proc-meta">Última movimentação: há 3 dias • Impugnação aos embargos</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Agravo de Instrumento — nº 6666666666666</div>
+                  <div class="proc-meta">Última movimentação: há 5 dias • Decisão monocrática</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Mostra quais processos tiveram algum andamento registrado recentemente (nas últimas 24 horas ou nos últimos 7 dias). Andamento é qualquer evento novo no processo — uma decisão do juiz, uma petição protocolada, uma citação confirmada. Esse painel ajuda o advogado a saber rapidamente "o que mudou" no escritório sem precisar abrir processo por processo pra checar.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Já existe a tabela de andamentos (a timeline que fizemos no módulo Processo). Filtre: <code>andamentos.data >= now() - 24h</code> para o primeiro grupo, e <code>andamentos.data >= now() - 7 dias</code> para o segundo. Agrupe por processo (<code>DISTINCT</code>) pra não contar duas vezes um processo que teve dois andamentos no período.
+            <br><br><b>Depende de Processos estar ligado:</b> este painel inteiro só renderiza se <code>permissoes_papel.processos.habilitado === true</code> — se o módulo Processos estiver desligado pra esse papel (ex: o Financeiro, que normalmente não precisa desse dado), o painel de Movimentação processual não aparece de forma nenhuma, junto com Paralisados/Prazos a vencer/Intimações (mesma regra explicada nos cards deles).
+            <br><br><b>Navegação:</b> ao clicar no mini-card (ex: "24h"), abra abaixo dele a seção com a lista dos processos daquele grupo (nome/número/motivo, pegando o andamento mais recente de cada um como "motivo"). Cada processo da lista precisa ser clicável — ao clicar, redirecione o usuário direto para o módulo Processo, já carregando a página daquele processo específico (rota tipo <code>/processos/:id</code>).
+          </div>
+        </div>
+
+        <!-- Processos paralisados (novo grupo, separado da movimentação recente) -->
+        <div class="panel">
+          <div class="panel-title">Processos paralisados</div>
+          <div class="grid-3">
+            <div class="mini-stat warn clickable selected" data-mov="1mes"><div class="n">9</div><div class="l">Sem movimento há mais de 1 mês</div></div>
+            <div class="mini-stat danger clickable" data-mov="3meses"><div class="n">4</div><div class="l">Sem movimento há mais de 3 meses</div></div>
+            <div class="mini-stat danger clickable" data-mov="6meses"><div class="n">2</div><div class="l">Sem movimento há mais de 6 meses</div></div>
+          </div>
+
+          <div class="proc-list" data-mov-list="1mes">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Execução Fiscal — nº 7777777777777</div>
+                  <div class="proc-meta">Última movimentação: há 38 dias • Aguardando penhora</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-mov-list="3meses" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Ação de Cobrança — nº 8888888888888</div>
+                  <div class="proc-meta">Última movimentação: há 97 dias • Aguardando julgamento</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-mov-list="6meses" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div>
+                  <div class="proc-name">Inventário — nº 9999999999999</div>
+                  <div class="proc-meta">Última movimentação: há 210 dias • Aguardando partilha</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            É o oposto da movimentação: mostra os processos "parados" — sem nenhum andamento registrado há mais de 1, 3 ou 6 meses. Um processo parado pode significar um prazo perdido, um processo esquecido, ou simplesmente que está aguardando decisão do juiz — mas o escritório precisa saber disso pra não deixar nada passar despercebido.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Para cada processo, calcule <code>hoje - MAX(andamentos.data)</code> (a data do último andamento). Se essa diferença for maior que 30 dias, entra no grupo "+1 mês"; maior que 90, "+3 meses"; maior que 180, "+6 meses" — a contagem é cumulativa (um processo de 6 meses parado também conta nos outros dois grupos, é a forma mais simples e mais útil de mostrar). Processos arquivados/encerrados não devem entrar nessa contagem.
+            <br><br><b>Depende de Processos estar ligado:</b> mesma regra do painel de Movimentação — some junto se <code>permissoes_papel.processos.habilitado === false</code>.
+            <br><br><b>Navegação:</b> mesmo padrão dos demais painéis clicáveis — ao clicar no mini-card, mostre a lista de processos daquele grupo; ao clicar num processo da lista, redirecione para o módulo Processo na página daquele processo específico (<code>/processos/:id</code>).
+          </div>
+        </div>
+
+        <!-- Prazos a vencer (movida de Análise de dados) -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title">Prazos a vencer</div>
+          <div class="grid-4">
+            <div class="mini-stat danger clickable selected" data-prazo="hoje"><div class="n">2</div><div class="l">Vencem hoje</div></div>
+            <div class="mini-stat warn clickable" data-prazo="amanha"><div class="n">1</div><div class="l">Vencem amanhã</div></div>
+            <div class="mini-stat warn clickable" data-prazo="3dias"><div class="n">5</div><div class="l">Vencem em até 3 dias</div></div>
+            <div class="mini-stat clickable" data-prazo="5dias"><div class="n">8</div><div class="l">Vencem em até 5 dias</div></div>
+          </div>
+
+          <div class="proc-list" data-prazo-list="hoje">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+                <div>
+                  <div class="proc-name">Réplica à Contestação — Ação de Danos Morais nº 4444444444444</div>
+                  <div class="proc-meta">Prazo final: hoje, 19/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+                <div>
+                  <div class="proc-name">Pagamento de custas — Execução Fiscal nº 7777777777777</div>
+                  <div class="proc-meta">Prazo final: hoje, 19/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-prazo-list="amanha" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+                <div>
+                  <div class="proc-name">Especificação de provas — Ação de Cobrança nº 8888888888888</div>
+                  <div class="proc-meta">Prazo final: amanhã, 20/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-prazo-list="3dias" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+                <div>
+                  <div class="proc-name">Impugnação aos Embargos — Embargos à Execução nº 5555555555555</div>
+                  <div class="proc-meta">Prazo final: 22/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+
+          <div class="proc-list" data-prazo-list="5dias" style="display:none;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-navy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+                <div>
+                  <div class="proc-name">Contrarrazões — Agravo de Instrumento nº 6666666666666</div>
+                  <div class="proc-meta">Prazo final: 24/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Mostra os processos com prazo processual vencendo em breve — hoje, amanhã, em até 3 dias ou em até 5 dias. Prazo processual é uma data-limite que a lei ou o juiz determina para o advogado fazer alguma coisa (responder, recorrer, pagar uma custa, etc.). Perder um prazo pode prejudicar seriamente o cliente e até gerar responsabilidade para o advogado — por isso este é um dos painéis mais importantes de todo o sistema.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Puxe da tabela de prazos (mesma da aba Prazos do módulo Processo) todos com <code>status != 'cumprido'</code> e calcule <code>prazo.data - hoje</code>. Diferença <code>== 0</code> → "hoje"; <code>== 1</code> → "amanhã"; entre 0 e 3 → "até 3 dias"; entre 0 e 5 → "até 5 dias" (contagem cumulativa, igual ao painel de paralisados). Por ser crítico, vale considerar no futuro notificação por push/e-mail além de só mostrar aqui no painel.
+            <br><br><b>Depende de Processos estar ligado:</b> mesma regra dos painéis anteriores — some junto se <code>permissoes_papel.processos.habilitado === false</code>.
+            <br><br><b>Navegação:</b> mesmo padrão — clicar no mini-card lista os processos daquele prazo; clicar num processo da lista leva direto para a página dele no módulo Processo.
+          </div>
+        </div>
+
+        <!-- Intimações -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title">Intimações</div>
+          <div class="section-note" style="margin-bottom:16px;">Intimações recebidas por e-mail (do e-mail cadastrado pelo usuário lá em Configurações) exigindo alguma manifestação ou movimento nos próximos dias. <span style="color:var(--blue);cursor:pointer;font-weight:600;" title="Levaria ao módulo Configurações, na tela de cadastro do e-mail de intimações">Gerenciar e-mail de intimações (Configurações) →</span></div>
+
+          <div class="proc-list" style="margin-top:0;">
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                <div>
+                  <div class="proc-name">Ação de Danos Morais — nº 4444444444444</div>
+                  <div class="proc-meta">Intimado para réplica à contestação • Prazo para manifestação: hoje, 19/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                <div>
+                  <div class="proc-name">Embargos à Execução — nº 5555555555555</div>
+                  <div class="proc-meta">Intimado para especificar provas • Prazo para manifestação: 22/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+            <div class="proc-row">
+              <div class="proc-left">
+                <div class="proc-icon icon-navy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+                <div>
+                  <div class="proc-name">Execução Fiscal — nº 7777777777777</div>
+                  <div class="proc-meta">Intimado para indicar bens à penhora • Prazo para manifestação: 25/08/2026</div>
+                </div>
+              </div>
+              <span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            O cadastro do e-mail e toda a lógica de identificar intimações já foi explicada no módulo Configurações. Aqui no Painel, essa aba apenas <b>replica o resultado</b>: mostra as intimações já identificadas que ainda exigem alguma manifestação nos próximos dias, pra o advogado ver isso de relance junto com o resto do resumo do escritório, sem precisar abrir o Configurações pra checar.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Não implemente nada da leitura de e-mail aqui — isso já está todo em Configurações. O Painel só faz uma leitura simples na mesma tabela já criada lá: <code>SELECT * FROM intimacoes WHERE usuario_id = X AND prazo_manifestacao BETWEEN hoje AND hoje+N dias ORDER BY prazo_manifestacao</code>, e exibe.
+            <br><br><b>Depende de Processos estar ligado:</b> intimação é sempre sobre um processo, então esse painel some junto se <code>permissoes_papel.processos.habilitado === false</code> — igual Movimentação/Paralisados/Prazos a vencer. Faz sentido na prática: o exemplo mais comum de papel sem acesso a Processos é o Financeiro puro (alguém que só cuida do caixa do escritório) — essa pessoa não precisa saber quais processos estão parados, com prazo vencendo, ou com intimação pendente.
+            <br><br><b>Navegação:</b> "Gerenciar e-mail de intimações" leva para o módulo Configurações, na tela de conexão de e-mail. Clicar em "Ver processo →" numa intimação leva direto para o módulo Processo, na página do processo vinculado àquela intimação.
+          </div>
+        </div>
+
+      </div>
+      <!-- /tab-geral -->
+
+      <!-- ===================== TAB 2: ANÁLISE DE DADOS ===================== -->
+      <div class="view" id="tab-analise">
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Quando esta aba aparece, e como filtrar</div>
+            Análise de dados é toda derivada de Processos — então, igual os outros painéis que dependem de processo, ela só aparece se o módulo Processos estiver ligado pra esse usuário (<code>permissoes_papel.processos.habilitado</code>). Se estiver desligado, a aba nem aparece. Se estiver ligado com <code>'somente_seus'</code>, os dados já vêm naturalmente restritos aos processos em que ele está habilitado — sem escolha. Se estiver com <code>'todos'</code>, ele ganha um controle extra pra decidir, pra cada consulta, se quer ver os dados de <b>todo o escritório</b> ou <b>só os processos dele mesmo</b> — porque mesmo tendo acesso a tudo, às vezes ele quer só a própria carteira. Além disso, cada uma das análises abaixo (natureza, localidade, status, patrocínio) pode ser filtrada por <b>Cliente</b>, <b>Equipe</b> e — só pra quem está no escopo "Todos" — por <b>Usuário</b>, pra fatiar os dados exatamente como precisar (ex: "desse cliente específico, quantos processos são imobiliários e onde estão tramitando").
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            A aba inteira só renderiza se <code>permissoes_papel.processos.habilitado === true</code>. Dentro dela, se <code>sub_opcao === 'todos'</code>, mostre o seletor de escopo (Todos do escritório / Somente os meus) — ele é só um filtro adicional de <code>WHERE responsavel_id = usuario.id</code> quando "Somente os meus" está selecionado; se <code>sub_opcao === 'somente_seus'</code>, aplique esse filtro sempre, sem mostrar o seletor (não tem o que escolher). Os filtros de Cliente/Equipe/Usuário são <code>WHERE</code> adicionais sobre a mesma base de processos (<code>cliente_id = X</code>, <code>processo IN (SELECT processo_id FROM equipe_processos WHERE equipe_id = Y)</code>, <code>responsavel_id = Z</code>) — o filtro por Usuário só deve aparecer/funcionar quando o escopo estiver em "Todos" (não faz sentido filtrar por outro usuário se você já só vê os seus). Todas as 4 análises abaixo (natureza/localidade/status/patrocínio) devem reagir aos mesmos filtros ao mesmo tempo — um único estado de filtro compartilhado, recalculando as 4 de uma vez a cada mudança.
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="analise-filter-row">
+            <div class="analise-filter-field">
+              <label>Escopo</label>
+              <div class="filter-pills-inline">
+                <div class="filter-pill-sm active" data-escopo="todos">Todos do escritório</div>
+                <div class="filter-pill-sm" data-escopo="meus">Somente os meus</div>
+              </div>
+            </div>
+            <div class="analise-filter-field">
+              <label>Cliente</label>
+              <select class="analise-filter-select" id="an-f-cliente"><option value="">Todos</option></select>
+            </div>
+            <div class="analise-filter-field">
+              <label>Equipe</label>
+              <select class="analise-filter-select" id="an-f-equipe"><option value="">Todas</option></select>
+            </div>
+            <div class="analise-filter-field" id="an-f-usuario-field">
+              <label>Usuário</label>
+              <select class="analise-filter-select" id="an-f-usuario"><option value="">Todos</option></select>
+            </div>
+            <div class="analise-filter-clear" id="an-f-limpar">Limpar filtros</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Processos por natureza</div>
+            <div class="bar-list" id="bars-natureza"></div>
+            <div class="proc-list" id="lista-natureza" style="display:none;"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Processos por localidade</div>
+            <div class="loc-breadcrumb" id="loc-breadcrumb"></div>
+            <div class="bar-list" id="bars-localidade"></div>
+            <div class="proc-list" id="lista-localidade" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Mostra como os processos do escritório se distribuem por área do direito (natureza) e por onde estão tramitando. <b>Localidade agora é hierárquica</b>: primeiro mostra os Estados onde o escritório tem processos — mas se todos os processos filtrados estiverem no mesmo Estado, esse nível nem aparece, já indo direto pras Cidades (não faz sentido mostrar "100% no Rio de Janeiro, 0% nos demais"). Clicar num Estado mostra as Cidades dentro dele; clicar numa Cidade mostra as Varas onde os processos estão distribuídos ali (ex: "3º Juizado Especial Cível", "4ª Vara Cível", "1ª Vara de Família"...). O mesmo princípio de pular o nível quando só existe uma opção vale pra Cidade também — se um Estado só tiver processos numa única cidade, pula direto pra Varas.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Cada processo tem <code>natureza</code>, <code>estado</code>, <code>cidade</code> e <code>vara</code> (a comarca/vara cadastrada na página do processo). Natureza é um <code>GROUP BY</code> simples, igual antes. Localidade agora é <b>três níveis com auto-skip</b>: 1) agrupe o subconjunto filtrado por <code>estado</code> — se <code>COUNT(DISTINCT estado) === 1</code>, pule automaticamente pra dentro desse estado sem renderizar a lista de estados; 2) dentro do estado (selecionado ou pulado), agrupe por <code>cidade</code> — mesma lógica de skip se só houver uma cidade; 3) dentro da cidade, agrupe por <code>vara</code> e mostre a lista final (essa não tem skip, sempre mostra, já que é o nível mais específico). Mantenha um breadcrumb (Estado / Cidade) clicável pra voltar — só mostre um segmento do breadcrumb como clicável se aquele nível tinha mais de uma opção (senão não faz sentido "voltar" pra uma lista de 1 item só).
+            <br><br><b>Navegação (passo a passo, exemplo com "Direito Imobiliário"):</b> 1) Ao clicar na barra/linha "Direito Imobiliário", faça uma query <code>SELECT * FROM processos WHERE natureza = 'imobiliario'</code> (combinada com os filtros ativos) e abra, logo abaixo, uma seção listando todos os processos retornados (mesmo componente de lista usado nos painéis de Movimentação/Prazos). 2) Cada processo dessa lista precisa ser individualmente clicável. 3) Ao clicar num processo específico da lista, redirecione o usuário direto para o módulo Processo, já carregando a página daquele processo (rota tipo <code>/processos/:id</code>) — não para uma lista geral, e sim para o processo exato que ele clicou. Esse mesmo padrão de 3 passos se repete em Vara (nível final de Localidade), status, patrocínio, movimentação, paralisados, prazos, intimações.
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Processos por status</div>
+            <div class="grid-3" id="stats-status"></div>
+            <div class="proc-list" id="lista-status" style="display:none;"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Processos por patrocínio</div>
+            <div class="bar-list" id="bars-patrocinio"></div>
+            <div class="proc-list" id="lista-patrocinio" style="display:none;"></div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            "Status" mostra em que fase cada processo está (aguardando decisão, em recurso, sendo executado, ou parado/suspenso). "Patrocínio" mostra em quantos processos o escritório representa o autor (quem processou), o réu (quem foi processado), ou um terceiro interessado — ajuda a entender o perfil da carteira de clientes. Também clicável, do mesmo jeito que natureza e localidade, e reage aos mesmos filtros de Escopo/Cliente/Equipe/Usuário do topo da aba.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Status é o mesmo campo definido no módulo Processo (paralisado, suspenso, fase de conhecimento, fase recursal, execução, arquivado) — mesmo <code>GROUP BY</code>, sobre o mesmo subconjunto filtrado. Patrocínio vem do módulo Partes: para cada processo, verifique se o cliente cadastrado do escritório está marcado como Autor, Réu ou Terceiro Interessado (usando o mesmo campo "é cliente cadastrado" que já implementamos nas Partes) e conte por essa categoria.
+            <br><br><b>Navegação:</b> mesmo padrão de 3 passos do card de natureza/localidade acima — clicar na categoria lista os processos filtrados, clicar num processo da lista abre ele direto no módulo Processo.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Tempo e resultados</div>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-value">8 meses e 12 dias</div><div class="stat-label">Tempo de vida médio dos processos ativos</div></div>
+            <div class="stat-card"><div class="stat-value">8 dias</div><div class="stat-label">Tempo médio entre andamentos processuais</div></div>
+            <div class="stat-card"><div class="stat-value">12 / 7 / 3</div><div class="stat-label">Julgados procedentes / parcialmente procedentes / improcedentes a favor</div></div>
+          </div>
+        </div>
+
+        <div class="explain-cards" style="margin-bottom:0;">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            "Tempo de vida médio" mostra há quanto tempo, em média, os processos ativos estão tramitando desde que começaram — processos muito antigos podem indicar algo travado. "Tempo médio entre andamentos" mostra a velocidade com que os processos costumam se mexer. "Julgados procedentes/parcialmente/improcedentes" é o histórico de vitórias, vitórias parciais e derrotas do escritório em processos já sentenciados — um indicador de desempenho.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Tempo de vida médio: para cada processo ativo, calcule <code>hoje - data_peticao_inicial</code> (data do andamento tipo "Petição Inicial") e tire a média. Tempo médio entre andamentos: para cada processo, calcule a diferença de dias entre andamentos consecutivos (ordenados por data) e tire a média geral. Resultados: crie um campo <code>resultado_sentenca</code> no processo (nulo até ser julgado; "procedente"/"parcialmente_procedente"/"improcedente" quando julgado a favor ou contra) — preenchido manualmente pelo advogado ou identificado pela IA a partir do andamento de sentença, igual discutimos no card de Honorários Advocatícios do módulo Financeiro.
+          </div>
+        </div>
+
+      </div>
+      <!-- /tab-analise -->
+
+      <!-- ===================== TAB 3: PAINEL DO GESTOR ===================== -->
+      <div class="view" id="tab-gestor" data-visibility="mestre">
+
+        <div id="gestor-lista-view">
+          <div class="section-note">Disponível para o mestre e para quem tiver a Permissão de Gerir ligada. Mostra todos os usuários do escritório e, ao clicar em cada um, sua atividade no sistema no dia.</div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              É a área que o dono do escritório (ou quem ele autorizar) usa pra acompanhar o trabalho de cada pessoa da equipe. A lista mostra quantas ações cada um fez hoje; ao clicar num usuário (ex: ana.gabriela), aparece a atividade dela do dia — o que exatamente ela andou fazendo no sistema. É um painel de gestão de equipe, não uma ferramenta de trabalho do dia a dia do advogado. <b>Não é mais exclusivo do mestre</b>: aparece pra todo mundo que tem a Permissão "Gerir" ligada em Configurações — é justamente aqui que essa pessoa vai exercer a gerência dos usuários do sistema. Os botões "Ir para Habilitações" e "Ir para Permissões" (dentro da atividade de cada usuário) levam direto pra <b>aba Individual</b> de Configurações — não pra aba do papel que esse usuário exerce (ex: Administrador). A diferença importa: mexer aqui altera só essa pessoa; mexer na aba do papel afetaria todo mundo que tem aquele papel.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Essa tela só renderiza se <code>usuario.is_mestre === true</code> OU <code>permissoes_papel.gerir.habilitado === true</code> pro usuário logado — a mesma Permissão "Gerir" que já controla o acesso à área de gerência em outros lugares do sistema (Tarefas → "Tarefas de outros usuários"/"Delegadas por mim" seguem o mesmo princípio). Toda ação relevante do sistema (login, abrir processo, criar andamento, confirmar pagamento, editar parte, etc.) precisa gravar um registro numa tabela de log/auditoria (ex: <code>logs_atividade</code>) com: usuário, tipo de ação, descrição, timestamp, e opcionalmente o registro afetado (FK genérica ou um campo JSON com o contexto). A lista de usuários mostra <code>COUNT(*)</code> de logs por usuário no dia; ao clicar num usuário, busque <code>WHERE usuario_id = X AND data = hoje</code> ordenado por timestamp. Essa mesma tabela também serve de base pra auditoria de segurança no futuro (quem editou o quê e quando).
+              <br><br><b>Navegação:</b> clicar num usuário da lista não muda de módulo — abre, dentro do próprio Painel do gestor, a página de atividade daquele usuário (troca de "lista" para "detalhe", como já está no protótipo). Os botões "Ir para Habilitações" e "Ir para Permissões" dentro dessa página de detalhe levam para fora, para o módulo Configurações — especificamente pra <code>aba Individual</code> daquele usuário (<code>/configuracoes/habilitacoes?tab=individual&usuario=X</code>), nunca pra aba do papel dele. Isso evita o erro de alguém achar que está ajustando só uma pessoa e sem querer alterar a regra geral de todo o papel Administrador (ou Ilimitado, ou Financeiro).
+            </div>
+          </div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 Atalhos na página de detalhe do usuário</div>
+              Além de ir pra Habilitações/Permissões (aba Individual), a página de detalhe de cada usuário tem mais quatro atalhos: <b>"Grupos"</b> leva pra gerência de Equipes já mostrando quais equipes esse usuário faz parte, com a possibilidade de adicionar ou remover ele de alguma equipe ali mesmo. <b>"Habilitar em processos"</b> abre, ali mesmo, a lista de todos os processos em que aquele usuário já está habilitado (e permite marcar mais) — é a mesma funcionalidade que já existe em Configurações, só que trazida como atalho pra não precisar sair do Painel do gestor pra fazer esse ajuste pontual. <b>"Ir para Tarefas"</b> e <b>"Ir para Agenda"</b> levam direto pra esses módulos já filtrados pelas tarefas/agenda daquele usuário específico, útil quando o gestor quer entender rapidamente a carga de trabalho de alguém.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              "Grupos" redireciona pra <code>/configuracoes/equipes?usuario=usuario_id</code> — a mesma tela de Equipes já construída, só que com um destaque/filtro mostrando as equipes desse usuário específico primeiro, de onde o mestre pode adicionar (<code>equipe_membros</code> insert) ou remover (delete) ele de qualquer equipe. "Habilitar em processos" reaproveita exatamente o mesmo componente já construído em Configurações → Detalhe do usuário (filtro por Cliente/Matéria/Data/Busca sobre a lista completa de processos, com checklist que persiste a seleção independente do filtro, salvando em <code>usuario_processos</code>) — não é uma funcionalidade nova, é o mesmo componente renderizado aqui como atalho, pra evitar duplicar lógica. "Ir para Tarefas" e "Ir para Agenda" são navegação simples: redirecionam pra <code>/tarefas?responsavel=usuario_id</code> e <code>/agenda?usuario=usuario_id</code> respectivamente, já com o filtro de usuário aplicado na URL.
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="user-list">
+              <div class="user-row" data-open-user="user-sergio">
+                <div class="user-left">
+                  <div class="user-avatar">SE</div>
+                  <div>
+                    <div class="user-name">sergio</div>
+                    <div class="user-role">Perfil mestre</div>
+                  </div>
+                </div>
+                <div class="user-stat"><b>12</b> ações hoje</div>
+              </div>
+              <div class="user-row" data-open-user="user-ana">
+                <div class="user-left">
+                  <div class="user-avatar">AG</div>
+                  <div>
+                    <div class="user-name">ana.gabriela</div>
+                    <div class="user-role">Financeiro</div>
+                  </div>
+                </div>
+                <div class="user-stat"><b>7</b> ações hoje</div>
+              </div>
+              <div class="user-row" data-open-user="user-felipe">
+                <div class="user-left">
+                  <div class="user-avatar">FC</div>
+                  <div>
+                    <div class="user-name">felipe.costa</div>
+                    <div class="user-role">Advogado</div>
+                  </div>
+                </div>
+                <div class="user-stat"><b>4</b> ações hoje</div>
+              </div>
+              <div class="user-row" data-open-user="user-joao">
+                <div class="user-left">
+                  <div class="user-avatar">JS</div>
+                  <div>
+                    <div class="user-name">joao.souza</div>
+                    <div class="user-role">Advogado</div>
+                  </div>
+                </div>
+                <div class="user-stat"><b>0</b> ações hoje</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhe de atividade — sergio -->
+        <div class="view" id="user-sergio">
+          <div class="back-link" data-back-user="gestor-lista-view">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para lista de usuários
+          </div>
+          <div class="panel-title" style="font-size:18px;">Atividade de sergio — hoje</div>
+          <div class="user-actions">
+            <button class="btn-outline" title="Levaria à aba Individual de Habilitações, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Habilitações
+            </button>
+            <button class="btn-outline" title="Levaria à aba Individual de Permissões, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Ir para Permissões
+            </button>
+            <button class="btn-outline" title="Levaria à gerência de Equipes, mostrando as equipes de sergio — permite adicionar ou remover">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Grupos
+            </button>
+            <button class="btn-outline" id="btn-toggle-habilitar-sergio" title="Ver/editar os processos em que sergio está habilitado">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+              Habilitar em processos
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Tarefas, filtrado pelas tarefas de sergio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Tarefas
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Agenda, filtrado pela agenda de sergio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Ir para Agenda
+            </button>
+          </div>
+
+          <div class="habilitar-processos-panel" id="painel-habilitar-sergio" style="display:none;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Processos habilitados — sergio</div>
+            <div class="proc-filter-bar">
+              <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="sergio-f-cliente"><option value="">Todos</option></select></div>
+              <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="sergio-f-materia"><option value="">Todas</option></select></div>
+              <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="sergio-f-data"></div>
+              <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="sergio-f-busca"></div>
+            </div>
+            <div class="proc-checklist" id="sergio-processos-list"></div>
+            <div class="proc-selected-count" id="sergio-selected-count">0 processos selecionados</div>
+            <div style="margin-top:12px;"><button class="btn-dark" style="padding:8px 14px;font-size:12.5px;">Salvar</button></div>
+          </div>
+
+          <div class="panel">
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></div>
+                <div class="activity-time">09:12</div>
+                <div class="activity-desc">Login no sistema</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div class="activity-time">09:40</div>
+                <div class="activity-desc">Abriu o processo nº 4444444444444 — Ação de Danos Morais</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+                <div class="activity-time">10:15</div>
+                <div class="activity-desc">Adicionou andamento (Contestação) na Ação de Danos Morais</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+                <div class="activity-time">11:02</div>
+                <div class="activity-desc">Criou solicitação de pagamento — Custas de diligência (Execução Fiscal)</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                <div class="activity-time">14:30</div>
+                <div class="activity-desc">Editou parte no processo nº 5555555555555 — Embargos à Execução</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhe de atividade — ana.gabriela -->
+        <div class="view" id="user-ana">
+          <div class="back-link" data-back-user="gestor-lista-view">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para lista de usuários
+          </div>
+          <div class="panel-title" style="font-size:18px;">Atividade de ana.gabriela — hoje</div>
+          <div class="user-actions">
+            <button class="btn-outline" title="Levaria à aba Individual de Habilitações, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Habilitações
+            </button>
+            <button class="btn-outline" title="Levaria à aba Individual de Permissões, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Ir para Permissões
+            </button>
+            <button class="btn-outline" title="Levaria à gerência de Equipes, mostrando as equipes de ana.gabriela — permite adicionar ou remover">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Grupos
+            </button>
+            <button class="btn-outline" id="btn-toggle-habilitar-ana" title="Ver/editar os processos em que ana.gabriela está habilitada">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+              Habilitar em processos
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Tarefas, filtrado pelas tarefas de ana.gabriela">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Tarefas
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Agenda, filtrado pela agenda de ana.gabriela">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Ir para Agenda
+            </button>
+          </div>
+
+          <div class="habilitar-processos-panel" id="painel-habilitar-ana" style="display:none;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Processos habilitados — ana.gabriela</div>
+            <div class="proc-filter-bar">
+              <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="ana-f-cliente"><option value="">Todos</option></select></div>
+              <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="ana-f-materia"><option value="">Todas</option></select></div>
+              <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="ana-f-data"></div>
+              <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="ana-f-busca"></div>
+            </div>
+            <div class="proc-checklist" id="ana-processos-list"></div>
+            <div class="proc-selected-count" id="ana-selected-count">0 processos selecionados</div>
+            <div style="margin-top:12px;"><button class="btn-dark" style="padding:8px 14px;font-size:12.5px;">Salvar</button></div>
+          </div>
+
+          <div class="panel">
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></div>
+                <div class="activity-time">08:55</div>
+                <div class="activity-desc">Login no sistema</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="activity-time">09:20</div>
+                <div class="activity-desc">Confirmou pagamento — Custas iniciais (Ação de Cobrança)</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+                <div class="activity-time">13:10</div>
+                <div class="activity-desc">Lançou despesa — Conta de luz do escritório</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhe de atividade — felipe.costa -->
+        <div class="view" id="user-felipe">
+          <div class="back-link" data-back-user="gestor-lista-view">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para lista de usuários
+          </div>
+          <div class="panel-title" style="font-size:18px;">Atividade de felipe.costa — hoje</div>
+          <div class="user-actions">
+            <button class="btn-outline" title="Levaria à aba Individual de Habilitações, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Habilitações
+            </button>
+            <button class="btn-outline" title="Levaria à aba Individual de Permissões, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Ir para Permissões
+            </button>
+            <button class="btn-outline" title="Levaria à gerência de Equipes, mostrando as equipes de felipe.costa — permite adicionar ou remover">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Grupos
+            </button>
+            <button class="btn-outline" id="btn-toggle-habilitar-felipe" title="Ver/editar os processos em que felipe.costa está habilitado">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+              Habilitar em processos
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Tarefas, filtrado pelas tarefas de felipe.costa">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Tarefas
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Agenda, filtrado pela agenda de felipe.costa">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Ir para Agenda
+            </button>
+          </div>
+
+          <div class="habilitar-processos-panel" id="painel-habilitar-felipe" style="display:none;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Processos habilitados — felipe.costa</div>
+            <div class="proc-filter-bar">
+              <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="felipe-f-cliente"><option value="">Todos</option></select></div>
+              <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="felipe-f-materia"><option value="">Todas</option></select></div>
+              <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="felipe-f-data"></div>
+              <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="felipe-f-busca"></div>
+            </div>
+            <div class="proc-checklist" id="felipe-processos-list"></div>
+            <div class="proc-selected-count" id="felipe-selected-count">0 processos selecionados</div>
+            <div style="margin-top:12px;"><button class="btn-dark" style="padding:8px 14px;font-size:12.5px;">Salvar</button></div>
+          </div>
+
+          <div class="panel">
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></div>
+                <div class="activity-time">10:02</div>
+                <div class="activity-desc">Login no sistema</div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>
+                <div class="activity-time">10:20</div>
+                <div class="activity-desc">Abriu o processo nº 6666666666666 — Agravo de Instrumento</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhe de atividade — joao.souza -->
+        <div class="view" id="user-joao">
+          <div class="back-link" data-back-user="gestor-lista-view">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para lista de usuários
+          </div>
+          <div class="panel-title" style="font-size:18px;">Atividade de joao.souza — hoje</div>
+          <div class="user-actions">
+            <button class="btn-outline" title="Levaria à aba Individual de Habilitações, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Habilitações
+            </button>
+            <button class="btn-outline" title="Levaria à aba Individual de Permissões, já filtrada neste usuário — não a aba do papel dele">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Ir para Permissões
+            </button>
+            <button class="btn-outline" title="Levaria à gerência de Equipes, mostrando as equipes de joao.souza — permite adicionar ou remover">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Grupos
+            </button>
+            <button class="btn-outline" id="btn-toggle-habilitar-joao" title="Ver/editar os processos em que joao.souza está habilitado">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+              Habilitar em processos
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Tarefas, filtrado pelas tarefas de joao.souza">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Ir para Tarefas
+            </button>
+            <button class="btn-outline" title="Levaria ao módulo Agenda, filtrado pela agenda de joao.souza">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+              Ir para Agenda
+            </button>
+          </div>
+
+          <div class="habilitar-processos-panel" id="painel-habilitar-joao" style="display:none;">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px;">Processos habilitados — joao.souza</div>
+            <div class="proc-filter-bar">
+              <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="joao-f-cliente"><option value="">Todos</option></select></div>
+              <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="joao-f-materia"><option value="">Todas</option></select></div>
+              <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="joao-f-data"></div>
+              <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="joao-f-busca"></div>
+            </div>
+            <div class="proc-checklist" id="joao-processos-list"></div>
+            <div class="proc-selected-count" id="joao-selected-count">0 processos selecionados</div>
+            <div style="margin-top:12px;"><button class="btn-dark" style="padding:8px 14px;font-size:12.5px;">Salvar</button></div>
+          </div>
+
+          <div class="panel">
+            <div class="section-note" style="margin-bottom:0;">Nenhuma atividade registrada hoje.</div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /tab-gestor -->
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Movimentação processual / Processos paralisados: clicar num mini-stat mostra a lista de processos daquela categoria (escopado ao painel clicado)
+  document.querySelectorAll('[data-mov]').forEach(function(stat){
+    stat.addEventListener('click', function(){
+      var panel = stat.closest('.panel');
+      panel.querySelectorAll('[data-mov]').forEach(function(s){ s.classList.remove('selected'); });
+      stat.classList.add('selected');
+      panel.querySelectorAll('[data-mov-list]').forEach(function(list){ list.style.display = 'none'; });
+      panel.querySelector('[data-mov-list="'+stat.dataset.mov+'"]').style.display = 'flex';
+    });
+  });
+
+  // Prazos a vencer: clicar num mini-stat mostra a lista de processos daquele prazo
+  document.querySelectorAll('[data-prazo]').forEach(function(stat){
+    stat.addEventListener('click', function(){
+      document.querySelectorAll('[data-prazo]').forEach(function(s){ s.classList.remove('selected'); });
+      stat.classList.add('selected');
+      document.querySelectorAll('[data-prazo-list]').forEach(function(list){ list.style.display = 'none'; });
+      document.querySelector('[data-prazo-list="'+stat.dataset.prazo+'"]').style.display = 'flex';
+    });
+  });
+
+  // Alterna entre as 3 abas do topo
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('#tab-geral, #tab-analise, #tab-gestor').forEach(function(v){ v.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
+  // Painel do gestor: abrir/fechar atividade de cada usuário
+  document.querySelectorAll('[data-open-user]').forEach(function(row){
+    row.addEventListener('click', function(){
+      document.getElementById('gestor-lista-view').style.display = 'none';
+      document.getElementById(row.dataset.openUser).classList.add('active');
+    });
+  });
+  document.querySelectorAll('[data-back-user]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#tab-gestor .view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById(btn.dataset.backUser).style.display = 'block';
+    });
+  });
+
+  // ===== Habilitar em processos (atalho dentro do Painel do gestor) =====
+  var todosProcessosGestor = [
+    { numero:'4444444444444', nome:'Ação de Danos Morais', cliente:'Maria da Silva Ferreira', materia:'Cível', data:'2026-02-03' },
+    { numero:'5555555555555', nome:'Embargos à Execução', cliente:'Comércio XYZ Ltda', materia:'Cível', data:'2026-04-15' },
+    { numero:'6666666666666', nome:'Agravo de Instrumento', cliente:'Comércio XYZ Ltda', materia:'Cível', data:'2026-02-25' },
+    { numero:'7777777777777', nome:'Execução Fiscal', cliente:'Souza Lenzi Advogados', materia:'Tributário', data:'2026-03-10' }
+  ];
+  function formatDataBRGestor(iso){ var p = iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+  function initGestorProcessFilter(prefix, jaHabilitados){
+    var clienteSel = document.getElementById(prefix+'-f-cliente');
+    var materiaSel = document.getElementById(prefix+'-f-materia');
+    var clientesUnicos = [...new Set(todosProcessosGestor.map(function(p){ return p.cliente; }))];
+    var materiasUnicas = [...new Set(todosProcessosGestor.map(function(p){ return p.materia; }))];
+    clientesUnicos.forEach(function(c){ var o=document.createElement('option'); o.textContent=c; clienteSel.appendChild(o); });
+    materiasUnicas.forEach(function(m){ var o=document.createElement('option'); o.textContent=m; materiaSel.appendChild(o); });
+
+    var selecionados = new Set(jaHabilitados);
+
+    function render(){
+      var fCliente = clienteSel.value;
+      var fMateria = materiaSel.value;
+      var fData = document.getElementById(prefix+'-f-data').value;
+      var fBusca = document.getElementById(prefix+'-f-busca').value.toLowerCase();
+
+      var filtrados = todosProcessosGestor.filter(function(p){
+        if(fCliente && p.cliente !== fCliente) return false;
+        if(fMateria && p.materia !== fMateria) return false;
+        if(fData && p.data !== fData) return false;
+        if(fBusca && p.nome.toLowerCase().indexOf(fBusca) === -1 && p.numero.indexOf(fBusca) === -1) return false;
+        return true;
+      });
+
+      var list = document.getElementById(prefix+'-processos-list');
+      list.innerHTML = '';
+      if(filtrados.length === 0){
+        list.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-mute);text-align:center;">Nenhum processo encontrado com esses filtros.</div>';
+      }
+      filtrados.forEach(function(p){
+        var row = document.createElement('label');
+        row.className = 'proc-check-row';
+        row.innerHTML =
+          '<input type="checkbox" '+(selecionados.has(p.numero) ? 'checked' : '')+'>' +
+          '<div class="pc-info"><div class="pc-nome">'+p.nome+' — nº '+p.numero+'</div>' +
+          '<div class="pc-meta">'+p.cliente+' • '+p.materia+' • '+formatDataBRGestor(p.data)+'</div></div>';
+        row.querySelector('input').addEventListener('change', function(){
+          if(this.checked) selecionados.add(p.numero); else selecionados.delete(p.numero);
+          document.getElementById(prefix+'-selected-count').textContent = selecionados.size + (selecionados.size === 1 ? ' processo selecionado' : ' processos selecionados');
+        });
+        list.appendChild(row);
+      });
+    }
+
+    [clienteSel, materiaSel].forEach(function(el){ el.addEventListener('change', render); });
+    document.getElementById(prefix+'-f-data').addEventListener('change', render);
+    document.getElementById(prefix+'-f-busca').addEventListener('input', render);
+
+    document.getElementById(prefix+'-selected-count').textContent = selecionados.size + (selecionados.size === 1 ? ' processo selecionado' : ' processos selecionados');
+    render();
+  }
+
+  initGestorProcessFilter('sergio', ['4444444444444','5555555555555','6666666666666','7777777777777']);
+  initGestorProcessFilter('ana', []);
+  initGestorProcessFilter('felipe', ['6666666666666']);
+  initGestorProcessFilter('joao', []);
+
+  [['sergio'],['ana'],['felipe'],['joao']].forEach(function(arr){
+    var prefix = arr[0];
+    document.getElementById('btn-toggle-habilitar-'+prefix).addEventListener('click', function(){
+      var painel = document.getElementById('painel-habilitar-'+prefix);
+      painel.style.display = painel.style.display === 'none' ? 'block' : 'none';
+    });
+  });
+
+  // ===== Análise de dados: dataset + filtros (Escopo/Cliente/Equipe/Usuário) =====
+  var todosProcessosAnalise = [
+    { numero:'4444444444444', nome:'Ação de Danos Morais', natureza:'civel', estado:'RJ', cidade:'Rio de Janeiro', vara:'4ª Vara Cível', status:'conhecimento', patrocinio:'autor', cliente:'Maria da Silva Ferreira', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'5555555555555', nome:'Embargos à Execução', natureza:'civel', estado:'RJ', cidade:'Rio de Janeiro', vara:'4ª Vara Empresarial', status:'suspenso', patrocinio:'reu', cliente:'Comércio XYZ Ltda', equipe:'Equipe Azul', usuario:'felipe.costa' },
+    { numero:'6666666666666', nome:'Agravo de Instrumento', natureza:'civel', estado:'RJ', cidade:'Rio de Janeiro', vara:'4ª Vara Cível', status:'recursal', patrocinio:'reu', cliente:'Comércio XYZ Ltda', equipe:'Equipe Azul', usuario:'felipe.costa' },
+    { numero:'7777777777777', nome:'Execução Fiscal', natureza:'trabalhista', estado:'SP', cidade:'São Paulo', vara:'5ª Vara Cível', status:'execucao', patrocinio:'reu', cliente:'Souza Lenzi Advogados', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890123', nome:'Ação de Despejo por Falta de Pagamento', natureza:'imobiliario', estado:'RJ', cidade:'Rio de Janeiro', vara:'3º Juizado Especial Cível', status:'conhecimento', patrocinio:'autor', cliente:'Maria da Silva Ferreira', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890124', nome:'Ação Revisional de Aluguel', natureza:'imobiliario', estado:'RJ', cidade:'Rio de Janeiro', vara:'2ª Vara Cível', status:'arquivado', patrocinio:'autor', cliente:'João Pedro Almeida', equipe:'Nenhuma', usuario:'joao.souza' },
+    { numero:'1234567890125', nome:'Arrolamento de Bens', natureza:'sucessorio', estado:'RJ', cidade:'Niterói', vara:'1ª Vara Cível de Niterói', status:'conhecimento', patrocinio:'autor', cliente:'João Pedro Almeida', equipe:'Nenhuma', usuario:'joao.souza' },
+    { numero:'9999999999999', nome:'Inventário', natureza:'sucessorio', estado:'RJ', cidade:'Rio de Janeiro', vara:'1ª Vara de Família', status:'paralisado', patrocinio:'terceiro', cliente:'Comércio XYZ Ltda', equipe:'Equipe Azul', usuario:'felipe.costa' },
+    { numero:'8888888888888', nome:'Ação de Cobrança', natureza:'civel', estado:'RJ', cidade:'Niterói', vara:'2ª Vara Cível de Niterói', status:'conhecimento', patrocinio:'autor', cliente:'Construtora Horizonte', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890126', nome:'Reclamação Trabalhista', natureza:'trabalhista', estado:'ES', cidade:'Vitória', vara:'1ª Vara do Trabalho de Vitória', status:'conhecimento', patrocinio:'reu', cliente:'Construtora Horizonte', equipe:'Nenhuma', usuario:'ana.gabriela' },
+    { numero:'1234567890127', nome:'Mandado de Segurança', natureza:'outros', estado:'RJ', cidade:'Rio de Janeiro', vara:'1ª Vara Empresarial', status:'recursal', patrocinio:'autor', cliente:'Souza Lenzi Advogados', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890128', nome:'Ação de Despejo — Imóvel Comercial', natureza:'imobiliario', estado:'RJ', cidade:'Rio de Janeiro', vara:'3º Juizado Especial Cível', status:'conhecimento', patrocinio:'autor', cliente:'Maria da Silva Ferreira', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890129', nome:'Usucapião', natureza:'imobiliario', estado:'RJ', cidade:'Rio de Janeiro', vara:'4ª Vara Cível', status:'conhecimento', patrocinio:'autor', cliente:'João Pedro Almeida', equipe:'Nenhuma', usuario:'joao.souza' },
+    { numero:'1234567890130', nome:'Inventário — Bens Imóveis', natureza:'sucessorio', estado:'RJ', cidade:'Niterói', vara:'1ª Vara Cível de Niterói', status:'execucao', patrocinio:'autor', cliente:'Construtora Horizonte', equipe:'Nenhuma', usuario:'ana.gabriela' },
+    { numero:'1234567890131', nome:'Ação Trabalhista — Verbas Rescisórias', natureza:'trabalhista', estado:'RJ', cidade:'Niterói', vara:'1ª Vara do Trabalho de Niterói', status:'conhecimento', patrocinio:'reu', cliente:'Comércio XYZ Ltda', equipe:'Equipe Azul', usuario:'felipe.costa' },
+    { numero:'1234567890132', nome:'Ação Revisional de Contrato', natureza:'civel', estado:'RJ', cidade:'Rio de Janeiro', vara:'2ª Vara Cível', status:'suspenso', patrocinio:'reu', cliente:'Maria da Silva Ferreira', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890133', nome:'Partilha de Bens', natureza:'sucessorio', estado:'RJ', cidade:'Rio de Janeiro', vara:'1ª Vara de Família', status:'arquivado', patrocinio:'autor', cliente:'João Pedro Almeida', equipe:'Nenhuma', usuario:'joao.souza' },
+    { numero:'1234567890134', nome:'Mandado de Segurança — Licença', natureza:'outros', estado:'RJ', cidade:'Rio de Janeiro', vara:'1ª Vara Empresarial', status:'conhecimento', patrocinio:'terceiro', cliente:'Souza Lenzi Advogados', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890135', nome:'Ação de Cobrança — Aluguel', natureza:'imobiliario', estado:'RJ', cidade:'Niterói', vara:'2ª Vara Cível de Niterói', status:'recursal', patrocinio:'autor', cliente:'Maria da Silva Ferreira', equipe:'Nenhuma', usuario:'sergio' },
+    { numero:'1234567890136', nome:'Rescisão Contratual Trabalhista', natureza:'trabalhista', estado:'SP', cidade:'São Paulo', vara:'2ª Vara do Trabalho de SP', status:'conhecimento', patrocinio:'reu', cliente:'Comércio XYZ Ltda', equipe:'Equipe Azul', usuario:'felipe.costa' }
+  ];
+
+  var natLabel = {imobiliario:'Direito Imobiliário', sucessorio:'Direito Sucessório', civel:'Cível diverso', trabalhista:'Trabalhista', outros:'Outros'};
+  var statusLabel = {conhecimento:'Fase de conhecimento', recursal:'Fase recursal', execucao:'Execução', paralisado:'Paralisado', suspenso:'Suspenso', arquivado:'Arquivado'};
+  var patLabel = {autor:'Representamos o Autor', reu:'Representamos o Réu', terceiro:'Representamos Terceiro'};
+  var corPorIndice = ['', 'var(--purple)', 'var(--green)', 'var(--amber)', 'var(--text-mute)'];
+
+  var analiseEscopo = 'todos'; // 'todos' | 'meus'
+  var usuarioLogadoAnalise = 'sergio'; // usuário demonstrado neste protótipo
+  var drillEstado = null;
+  var drillCidade = null;
+
+  // Popula os selects de Cliente/Equipe/Usuário a partir do próprio dataset
+  (function popularFiltrosAnalise(){
+    var clientes = [...new Set(todosProcessosAnalise.map(function(p){ return p.cliente; }))].sort();
+    var equipes = [...new Set(todosProcessosAnalise.map(function(p){ return p.equipe; }))].sort();
+    var usuarios = [...new Set(todosProcessosAnalise.map(function(p){ return p.usuario; }))].sort();
+    clientes.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; document.getElementById('an-f-cliente').appendChild(o); });
+    equipes.forEach(function(e){ var o=document.createElement('option'); o.value=e; o.textContent=e; document.getElementById('an-f-equipe').appendChild(o); });
+    usuarios.forEach(function(u){ var o=document.createElement('option'); o.value=u; o.textContent=u; document.getElementById('an-f-usuario').appendChild(o); });
+  })();
+
+  function getProcessosFiltrados(){
+    var fCliente = document.getElementById('an-f-cliente').value;
+    var fEquipe = document.getElementById('an-f-equipe').value;
+    var fUsuario = document.getElementById('an-f-usuario').value;
+    return todosProcessosAnalise.filter(function(p){
+      if(analiseEscopo === 'meus' && p.usuario !== usuarioLogadoAnalise) return false;
+      if(fCliente && p.cliente !== fCliente) return false;
+      if(fEquipe && p.equipe !== fEquipe) return false;
+      if(analiseEscopo === 'todos' && fUsuario && p.usuario !== fUsuario) return false;
+      return true;
+    });
+  }
+
+  function renderBarPanel(containerId, campo, labels){
+    var processos = getProcessosFiltrados();
+    var container = document.getElementById(containerId);
+    var painel = containerId.replace('bars-', '');
+    if(processos.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhum processo com esses filtros.</div>';
+      return;
+    }
+    var contagem = {};
+    processos.forEach(function(p){ contagem[p[campo]] = (contagem[p[campo]] || 0) + 1; });
+    var chaves = Object.keys(contagem).sort(function(a,b){ return contagem[b] - contagem[a]; });
+    container.innerHTML = chaves.map(function(chave, i){
+      var n = contagem[chave];
+      var pct = Math.round((n / processos.length) * 100);
+      var cor = i === 0 ? '' : ('background:' + corPorIndice[i % corPorIndice.length] + ';');
+      return '<div class="bar-row clickable" data-panel="'+painel+'" data-cat="'+chave+'">' +
+        '<div class="bar-label">'+(labels[chave] || chave)+'</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;'+cor+'"></div></div>' +
+        '<div class="bar-value">'+n+' ('+pct+'%)</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderStatusPanel(){
+    var processos = getProcessosFiltrados();
+    var container = document.getElementById('stats-status');
+    if(processos.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhum processo com esses filtros.</div>';
+      return;
+    }
+    var contagem = {};
+    processos.forEach(function(p){ contagem[p.status] = (contagem[p.status] || 0) + 1; });
+    var ordem = ['conhecimento','recursal','execucao','paralisado','suspenso','arquivado'];
+    container.innerHTML = ordem.filter(function(s){ return contagem[s]; }).map(function(s){
+      var warnClass = (s === 'paralisado' || s === 'suspenso') ? ' warn' : '';
+      return '<div class="mini-stat'+warnClass+' clickable" data-panel="status" data-cat="'+s+'"><div class="n">'+contagem[s]+'</div><div class="l">'+statusLabel[s]+'</div></div>';
+    }).join('');
+  }
+
+  function renderTodaAnalise(){
+    renderBarPanel('bars-natureza', 'natureza', natLabel);
+    renderLocalidadePanel();
+    renderBarPanel('bars-patrocinio', 'patrocinio', patLabel);
+    renderStatusPanel();
+    ['lista-natureza','lista-status','lista-patrocinio'].forEach(function(id){
+      document.getElementById(id).style.display = 'none';
+    });
+    wireBarClicks();
+  }
+
+  // ===== Localidade: drill-down Estado → Cidade → Vara, com auto-skip quando só há 1 opção =====
+  function renderLocBars(container, processos, campo, drillNivel){
+    var contagem = {};
+    processos.forEach(function(p){ contagem[p[campo]] = (contagem[p[campo]] || 0) + 1; });
+    var chaves = Object.keys(contagem).sort(function(a,b){ return contagem[b] - contagem[a]; });
+    container.innerHTML = chaves.map(function(chave, i){
+      var n = contagem[chave];
+      var pct = Math.round((n / processos.length) * 100);
+      var cor = i === 0 ? '' : ('background:' + corPorIndice[i % corPorIndice.length] + ';');
+      return '<div class="bar-row clickable" data-loc-drill="'+(drillNivel||'')+'" data-loc-value="'+chave+'">' +
+        '<div class="bar-label">'+chave+'</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;'+cor+'"></div></div>' +
+        '<div class="bar-value">'+n+' ('+pct+'%)</div>' +
+      '</div>';
+    }).join('');
+
+    container.querySelectorAll('.bar-row').forEach(function(row){
+      row.addEventListener('click', function(){
+        var nivel = row.dataset.locDrill;
+        var valor = row.dataset.locValue;
+        if(nivel === 'estado'){
+          drillEstado = valor; drillCidade = null; renderLocalidadePanel();
+        } else if(nivel === 'cidade'){
+          drillCidade = valor; renderLocalidadePanel();
+        } else {
+          // Nível Vara: mostra a lista de processos daquela vara
+          var processosFiltrados = getProcessosFiltrados();
+          var estadoAtual = drillEstado || [...new Set(processosFiltrados.map(function(p){ return p.estado; }))][0];
+          var cidadeAtual = drillCidade;
+          var lista = processosFiltrados.filter(function(p){ return p.estado === estadoAtual && p.cidade === cidadeAtual && p.vara === valor; });
+          var listaContainer = document.getElementById('lista-localidade');
+          listaContainer.innerHTML = lista.map(function(p){
+            return '<div class="proc-row">' +
+              '<div class="proc-left">' +
+                '<div class="proc-icon icon-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>' +
+                '<div><div class="proc-name">' + p.nome + ' — nº ' + p.numero + '</div></div>' +
+              '</div>' +
+              '<span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>' +
+            '</div>';
+          }).join('') || '<div class="empty-day">Nenhum processo nesta vara.</div>';
+          listaContainer.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  function wireLocBreadcrumb(){
+    document.querySelectorAll('.loc-crumb').forEach(function(el){
+      el.addEventListener('click', function(){
+        var back = el.dataset.locBack;
+        if(back === 'estado'){ drillEstado = null; drillCidade = null; }
+        else if(back === 'cidade'){ drillCidade = null; }
+        renderLocalidadePanel();
+      });
+    });
+  }
+
+  function renderLocalidadePanel(){
+    var processos = getProcessosFiltrados();
+    var container = document.getElementById('bars-localidade');
+    var breadcrumb = document.getElementById('loc-breadcrumb');
+    document.getElementById('lista-localidade').style.display = 'none';
+
+    if(processos.length === 0){
+      breadcrumb.innerHTML = '';
+      container.innerHTML = '<div class="empty-day">Nenhum processo com esses filtros.</div>';
+      return;
+    }
+
+    var estados = [...new Set(processos.map(function(p){ return p.estado; }))];
+    var estadoAtual = drillEstado || (estados.length === 1 ? estados[0] : null);
+
+    if(estadoAtual === null){
+      breadcrumb.innerHTML = '';
+      renderLocBars(container, processos, 'estado', 'estado');
+      return;
+    }
+
+    var processosEstado = processos.filter(function(p){ return p.estado === estadoAtual; });
+    var cidades = [...new Set(processosEstado.map(function(p){ return p.cidade; }))];
+    var cidadeAtual = drillCidade || (cidades.length === 1 ? cidades[0] : null);
+
+    if(cidadeAtual === null){
+      breadcrumb.innerHTML = (estados.length > 1 ? '<span class="loc-crumb" data-loc-back="estado">Estados</span><span class="loc-sep">›</span>' : '') + estadoAtual;
+      renderLocBars(container, processosEstado, 'cidade', 'cidade');
+      wireLocBreadcrumb();
+      return;
+    }
+
+    var processosCidade = processosEstado.filter(function(p){ return p.cidade === cidadeAtual; });
+    breadcrumb.innerHTML =
+      (estados.length > 1 ? '<span class="loc-crumb" data-loc-back="estado">Estados</span><span class="loc-sep">›</span>' : '') +
+      (cidades.length > 1 ? '<span class="loc-crumb" data-loc-back="cidade">'+estadoAtual+'</span>' : estadoAtual) +
+      '<span class="loc-sep">›</span>' + cidadeAtual;
+    renderLocBars(container, processosCidade, 'vara', null);
+    wireLocBreadcrumb();
+  }
+
+  function wireBarClicks(){
+    document.querySelectorAll('#tab-analise .bar-row[data-panel], #tab-analise .mini-stat[data-panel]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var painel = el.dataset.panel;
+        var cat = el.dataset.cat;
+        var campoPorPainel = { natureza:'natureza', status:'status', patrocinio:'patrocinio' };
+        var processos = getProcessosFiltrados().filter(function(p){ return p[campoPorPainel[painel]] === cat; });
+        var container = document.getElementById('lista-' + painel);
+
+        container.innerHTML = processos.map(function(p){
+          return '<div class="proc-row">' +
+            '<div class="proc-left">' +
+              '<div class="proc-icon icon-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></div>' +
+              '<div><div class="proc-name">' + p.nome + ' — nº ' + p.numero + '</div></div>' +
+            '</div>' +
+            '<span class="proc-link" title="Levaria ao módulo Processo, na página deste processo">Ver processo →</span>' +
+          '</div>';
+        }).join('') || '<div class="empty-day">Nenhum processo nesta categoria.</div>';
+
+        container.style.display = 'block';
+      });
+    });
+
+  }
+
+  document.querySelectorAll('#tab-analise .filter-pill-sm[data-escopo]').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      document.querySelectorAll('#tab-analise .filter-pill-sm[data-escopo]').forEach(function(p){ p.classList.remove('active'); });
+      pill.classList.add('active');
+      analiseEscopo = pill.dataset.escopo;
+      document.getElementById('an-f-usuario-field').style.display = analiseEscopo === 'todos' ? 'block' : 'none';
+      if(analiseEscopo === 'meus') document.getElementById('an-f-usuario').value = '';
+      drillEstado = null; drillCidade = null;
+      renderTodaAnalise();
+    });
+  });
+  ['an-f-cliente','an-f-equipe','an-f-usuario'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', function(){
+      drillEstado = null; drillCidade = null;
+      renderTodaAnalise();
+    });
+  });
+  document.getElementById('an-f-limpar').addEventListener('click', function(){
+    document.getElementById('an-f-cliente').value = '';
+    document.getElementById('an-f-equipe').value = '';
+    document.getElementById('an-f-usuario').value = '';
+    document.querySelectorAll('#tab-analise .filter-pill-sm[data-escopo]').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelector('#tab-analise .filter-pill-sm[data-escopo="todos"]').classList.add('active');
+    analiseEscopo = 'todos';
+    document.getElementById('an-f-usuario-field').style.display = 'block';
+    drillEstado = null; drillCidade = null;
+    renderTodaAnalise();
+  });
+
+  renderTodaAnalise();
+</script>
+</body>
+</html>

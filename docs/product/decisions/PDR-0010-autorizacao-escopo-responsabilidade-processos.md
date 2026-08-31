@@ -25,7 +25,7 @@ ou equipe. Nenhuma dessas camadas está aplicada nas views de
 (`lista`, `detalhe`, `novo`, `editar`, `arquivados`, `arquivar`,
 `reabrir`, `adicionar_movimentacao`, `adicionar_parte`) usam
 exclusivamente `@login_required`, conforme
-[docs/delivery/current-state.md#processos](../../delivery/current-state.md#processos).
+[docs/delivery/current-state/processos.md](../../delivery/current-state/processos.md).
 
 ## Problema
 
@@ -186,8 +186,8 @@ PDR estiver vigente.
 - Implementação de código de escopo, responsabilidade obrigatória,
   migration ou reatribuição automática — pertence a Work Item futuro.
 - Qualquer alteração ao módulo Clientes.
-- Modelagem de `ParteProcesso` conforme
-  [PDR-0001](PDR-0001-participantes-processuais.md).
+- Modelagem de `ParteProcesso`, atualmente regida por
+  [PDR-0013](PDR-0013-partes-processo-modelo-simplificado.md).
 - IA e Laboratório, conforme
   [PDR-0008](PDR-0008-ia-apos-nucleo-funcional.md).
 - Equipe como base de escopo.

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --purple:#6c4bc2;
+    --purple-soft:#ece7fb;
+    --line:#dde3ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI', Roboto, -apple-system, sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:88px;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;flex-shrink:0;}
+  .sidebar .logo{width:40px;height:40px;border-radius:10px;background:var(--navy-light);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;margin-bottom:28px;}
+  .nav-item{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;margin-bottom:6px;border-radius:10px;color:#8f9ac0;font-size:11px;cursor:pointer;}
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1180px;width:100%;}
+
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);}
+  .btn-dark{background:var(--navy);color:#fff;border:none;padding:11px 18px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .btn-outline{border:1px solid var(--line);background:#fff;color:var(--text);padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-outline:hover{border-color:#c3cbe0;}
+
+  .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-link:hover{text-decoration:underline;}
+
+  .form-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 28px;max-width:640px;}
+  .form-label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .form-field{flex:1;min-width:200px;}
+  .form-input, .form-select, .form-textarea{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+    font-size:13.5px;color:var(--text);background:#fff;font-family:inherit;
+  }
+  .form-textarea{resize:vertical;min-height:70px;}
+  .form-select{cursor:pointer;}
+  .form-actions{margin-top:6px;display:flex;gap:10px;}
+  .agenda-note{font-size:11.5px;color:var(--text-mute);margin:-6px 0 16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;line-height:1.6;}
+  .form-select[multiple]{padding:6px;}
+  .form-select[multiple] option{padding:8px 10px;border-radius:6px;}
+  .form-select[multiple] option:checked{background:var(--blue-soft);color:var(--blue);}
+  .select-all-link{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;margin-top:8px;display:inline-block;}
+  .select-all-link:hover{text-decoration:underline;}
+
+  .layout{display:flex;gap:22px;align-items:flex-start;}
+  .cal-col{flex:1.4;min-width:0;}
+  .side-col{flex:1;min-width:320px;}
+
+  /* Calendário */
+  .cal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .cal-nav-btn{width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-mute);}
+  .cal-nav-btn:hover{border-color:#c3cbe0;color:var(--text);}
+  .cal-month-label{font-size:17px;font-weight:800;text-transform:capitalize;}
+  .cal-today-btn{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;background:var(--blue-soft);padding:6px 12px;border-radius:8px;}
+
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;}
+  .cal-weekday{text-align:center;font-size:11px;font-weight:700;color:var(--text-mute);text-transform:uppercase;padding:4px 0;}
+
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-day{
+    aspect-ratio:1/1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:6px 4px 5px;cursor:pointer;border:2px solid transparent;position:relative;
+  }
+  .cal-day.empty{cursor:default;}
+  .cal-day:not(.empty):hover{background:var(--bg);}
+  .cal-day.today{border-color:var(--blue);}
+  .cal-day.selected{background:var(--blue-soft);border-color:var(--blue);}
+  .cal-day-num{font-size:13px;font-weight:700;}
+  .cal-day.empty .cal-day-num{color:#c3cbe0;font-weight:500;}
+  .cal-dots{display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;justify-content:center;max-width:36px;}
+  .cal-dot{width:6px;height:6px;border-radius:50%;}
+  .dot-reuniao{background:var(--green);}
+  .dot-audiencia{background:var(--red);}
+  .dot-prazo{background:var(--amber);}
+  .dot-pagamento{background:var(--blue);}
+
+  .cal-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--text-mute);}
+  .cal-legend span{display:inline-flex;align-items:center;gap:6px;}
+
+  /* Lista lateral do dia selecionado */
+  .side-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;}
+  .side-card-title{font-size:15px;font-weight:800;margin-bottom:4px;text-transform:capitalize;}
+  .side-card-count{font-size:12px;color:var(--text-mute);margin-bottom:16px;}
+
+  .compromisso-card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+  .compromisso-card:last-child{margin-bottom:0;}
+  .compromisso-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
+  .compromisso-name{font-size:14.5px;font-weight:700;}
+  .compromisso-tags{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.02em;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .tag-reuniao{background:var(--green-soft);color:var(--green);}
+  .tag-audiencia{background:var(--red-soft);color:var(--red);}
+  .tag-prazo{background:var(--amber-soft);color:var(--amber);}
+  .tag-pagamento{background:var(--blue-soft);color:var(--blue);}
+  .tag-status{background:#e4e8f2;color:var(--text);}
+  .tag-concluido{background:var(--green-soft);color:var(--green);}
+  .tag-cancelado{background:var(--red-soft);color:var(--red);}
+  .compromisso-desc{font-size:12.5px;color:var(--text-mute);margin-bottom:8px;}
+  .compromisso-meta{font-size:12px;color:var(--text-mute);line-height:1.9;}
+  .compromisso-meta b{color:var(--text);font-weight:700;}
+  .compromisso-actions{display:flex;gap:14px;margin-top:10px;}
+  .compromisso-actions a{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .compromisso-actions a.cancel{color:var(--red);}
+  .empty-day{font-size:13px;color:var(--text-mute);text-align:center;padding:30px 10px;}
+
+  /* Abas abaixo da agenda: Novidades / Adicionados por outros */
+  .below-tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin:30px 0 18px;}
+  .below-tab{display:flex;align-items:center;gap:8px;padding:12px 2px 14px;font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
+  .below-tab svg{width:16px;height:16px;}
+  .below-tab.active{color:var(--blue);border-color:var(--blue);}
+  .below-tab .count-pill{font-size:10.5px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:20px;padding:1px 8px;}
+  .below-view{display:none;}
+  .below-view.active{display:block;}
+  .demo-viewas{display:flex;align-items:center;gap:10px;margin-top:26px;font-size:12.5px;color:var(--text-mute);}
+  .demo-viewas-label{font-weight:600;}
+  .below-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;}
+  .novidade-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line);}
+  .novidade-row:last-child{border-bottom:none;}
+  .novidade-left{display:flex;gap:12px;min-width:0;}
+  .novidade-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .icon-red{background:var(--red-soft);}
+  .icon-green{background:var(--green-soft);}
+  .icon-amber{background:var(--amber-soft);}
+  .icon-blue{background:var(--blue-soft);}
+  .novidade-name{font-size:14px;font-weight:700;}
+  .novidade-meta{font-size:12px;color:var(--text-mute);margin-top:3px;line-height:1.7;}
+  .novidade-meta b{color:var(--text);font-weight:700;}
+  .novidade-right{flex-shrink:0;text-align:right;}
+  .novidade-link{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .novidade-created{font-size:11px;color:var(--text-mute);margin-top:4px;}
+
+  .section-note{font-size:11.5px;color:var(--text-mute);margin-bottom:18px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+
+  .recorrente-box{display:flex;gap:12px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:10px;}
+
+  .bell{position:relative;cursor:pointer;}
+  .bell-badge{display:none;position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+  .bell-dropdown{display:none;position:absolute;top:32px;right:-10px;width:300px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(20,30,60,.12);padding:6px;z-index:50;text-align:left;}
+  .tab-badge-mestre{font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--purple);background:var(--purple-soft);padding:1px 6px;border-radius:5px;}
+
+  .user-picker{display:flex;gap:12px;flex-wrap:wrap;}
+  .user-picker-item{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    border:2px solid var(--line);border-radius:12px;padding:14px 20px;cursor:pointer;background:var(--card);
+  }
+  .user-picker-item:hover{border-color:#c3cbe0;}
+  .user-picker-item.selected{border-color:var(--blue);background:var(--blue-soft);}
+  .user-picker-avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .user-picker-name{font-size:12.5px;font-weight:700;}
+
+  @media (max-width:900px){
+    .layout{flex-direction:column;}
+    .side-col{min-width:0;width:100%;}
+  }
+  @media (max-width:720px){
+    .sidebar{width:64px;} .nav-item{width:48px;font-size:9px;} .content{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell" id="bell-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="bell-badge" id="bell-badge">0</span>
+          <div class="bell-dropdown" id="bell-dropdown"></div>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title">Agenda</div>
+          <div class="page-subtitle">Compromissos, audiências e prazos do escritório</div>
+        </div>
+        <button class="btn-dark" id="btn-novo-compromisso">+ Novo compromisso</button>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Como as Permissões/Habilitações controlam este módulo</div>
+          A Agenda segue a mesma lógica geral do resto do sistema. A Permissão "Agenda" (Somente os seus / Todos) define se o usuário só enxerga o próprio calendário ou o de qualquer pessoa do escritório — quando é "Todos", ele ganha acesso à aba "Agenda de outros usuários", lá embaixo. Já a Habilitação "Adicionar compromisso para outros" (dentro de Agenda, em Habilitações) decide se, ao criar um compromisso, ele pode marcar pra outras pessoas ou só pra si mesmo — se estiver desligada, o campo "Agenda de" vem travado só nele mesmo.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Consulte <code>permissoes_papel.agenda.sub_opcao</code> do usuário logado: se <code>'todos'</code>, libere a aba "Agenda de outros usuários" (adicionalmente gateada pela habilitação de Gerir "Habilitar terceiros" ou "Adicionar compromisso para outros", dependendo de como for modelado — mesma ideia já usada em Tarefas pra "Tarefas de outros usuários"); se <code>'somente_seus'</code>, esconda essa aba. Consulte também <code>habilitacoes_papel.agenda.adicionar_para_outros</code>: se <code>false</code>, no formulário "Novo compromisso" o campo "Agenda de" deve vir travado só no próprio usuário. Replique as duas checagens no backend — nunca confie só em esconder no frontend.
+        </div>
+      </div>
+
+      <!-- Formulário: Novo compromisso -->
+      <div class="form-panel" id="form-panel" style="display:none;">
+        <div class="back-link" id="form-cancelar-top">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+
+        <div class="agenda-note">É possível criar o compromisso na sua própria agenda, na de outro usuário, ou em várias agendas ao mesmo tempo — basta marcar cada uma na lista, ou usar o atalho "Selecionar todos".</div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">AGENDA DE</div>
+            <div id="f-agenda-de-list" style="border:1px solid var(--line);border-radius:9px;padding:6px 4px;">
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="sergio" checked> sergio (eu)</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="ana.gabriela"> ana.gabriela</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="felipe.costa"> felipe.costa</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="joao.souza"> joao.souza</label>
+            </div>
+            <div class="select-all-link" id="f-agenda-de-all">Selecionar todos</div>
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Marcando mais de uma pessoa</div>
+            Dá pra criar o mesmo compromisso pra várias pessoas ao mesmo tempo — útil pra reunião de equipe, por exemplo, em vez de criar um por um. Esse campo só aparece liberado (com as outras pessoas selecionáveis) se o usuário tiver a habilitação "Adicionar compromisso para outros"; sem ela, ele só consegue marcar compromisso pra si mesmo.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Ao renderizar o formulário, cheque <code>habilitacoes_papel.agenda.adicionar_para_outros</code> do usuário logado: se <code>false</code>, troque a lista de checkboxes por um campo fixo (só o próprio usuário). Ao salvar, para cada usuário marcado, crie uma linha em <code>eventos_agenda</code> (não um evento com múltiplos responsáveis — uma linha por pessoa, com <code>responsavel_id</code>, <code>criado_por: usuario_logado.id</code>, <code>data_criacao: hoje</code>). No backend, mesmo que o frontend esconda o campo, a rota de criação deve recusar (403) se <code>responsavel_id !== usuario_logado.id</code> e a habilitação estiver desligada.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-label">TIPO</div>
+            <select class="form-select" id="f-tipo">
+              <option value="reuniao">Reunião</option>
+              <option value="audiencia">Audiência</option>
+              <option value="prazo">Prazo</option>
+              <option value="pagamento">Pagamento</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">TÍTULO</div>
+            <input class="form-input" id="f-titulo" placeholder="Ex: Audiência de instrução, Reunião com cliente...">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-label">DATA</div>
+            <input class="form-input" type="date" id="f-data">
+          </div>
+          <div class="form-field">
+            <div class="form-label">INÍCIO</div>
+            <input class="form-input" type="time" id="f-inicio">
+          </div>
+          <div class="form-field">
+            <div class="form-label">FIM <span style="font-weight:400;">(opcional)</span></div>
+            <input class="form-input" type="time" id="f-fim">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-label">PROCESSO <span style="font-weight:400;">(opcional)</span></div>
+            <select class="form-select" id="f-processo">
+              <option value="">Nenhum</option>
+              <option>Ação de Danos Morais nº 4444444444444</option>
+              <option>Embargos à Execução nº 5555555555555</option>
+              <option>Agravo de Instrumento nº 6666666666666</option>
+              <option>Execução Fiscal nº 7777777777777</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <div class="form-label">LOCAL <span style="font-weight:400;">(opcional)</span></div>
+            <input class="form-input" id="f-local" placeholder="Ex: Fórum Central, sala de reuniões...">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">RECORRÊNCIA</div>
+            <div style="display:flex;gap:20px;font-size:13px;padding:4px 0;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-recorrencia-tipo" value="unico" checked> Compromisso único</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-recorrencia-tipo" value="periodico"> Periódico</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="recorrente-box" id="f-recorrencia-campos" style="display:none;">
+          <div class="form-field">
+            <div class="form-label">FREQUÊNCIA</div>
+            <select class="form-select" id="f-recorrencia-freq">
+              <option value="semanal">Semanal</option>
+              <option value="mensal">Mensal</option>
+              <option value="personalizada">Personalizada (a cada X dias)</option>
+            </select>
+          </div>
+          <div class="form-field" id="f-recorrencia-dias-campo" style="display:none;">
+            <div class="form-label">A CADA QUANTOS DIAS</div>
+            <input class="form-input" id="f-recorrencia-dias" placeholder="Ex: 10">
+          </div>
+          <div class="form-field">
+            <div class="form-label">REPETIR POR QUANTAS VEZES</div>
+            <input class="form-input" id="f-recorrencia-vezes" value="4">
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Compromisso periódico</div>
+            Serve pra compromissos que se repetem sempre — uma reunião de equipe toda semana, o vencimento mensal de uma obrigação, um retorno periódico com um cliente. Em vez de criar manualmente todo mês, o sistema já gera as próximas ocorrências de uma vez, cada uma como um compromisso independente no calendário (pode ser concluída, cancelada ou reagendada isoladamente, sem afetar as demais).
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Gere um <code>recorrencia_id</code> compartilhado e crie de uma vez as N ocorrências pedidas (não uma por vez via cron) — cada uma com a <code>data</code> avançando pela frequência escolhida (semanal = +7 dias, mensal = +1 mês, personalizada = +X dias) a partir da primeira. Todas nascem com <code>status: 'agendado'</code>, nunca já concluídas. Cada ocorrência é um evento independente em <code>eventos_agenda</code> — só compartilham o <code>recorrencia_id</code> pra referência (não é um evento "mestre" com sub-itens).
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">DESCRIÇÃO <span style="font-weight:400;">(opcional)</span></div>
+            <textarea class="form-textarea" id="f-desc"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-dark" id="f-criar">Criar compromisso</button>
+          <button class="btn-outline" id="form-cancelar-bottom">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="layout">
+        <div class="cal-col">
+          <div class="cal-card">
+            <div class="cal-head">
+              <div class="cal-nav-btn" id="cal-prev">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="cal-month-label" id="cal-month-label">Agosto de 2026</div>
+                <div class="cal-today-btn" id="cal-today">Hoje</div>
+              </div>
+              <div class="cal-nav-btn" id="cal-next">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+
+            <div class="cal-weekdays">
+              <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div><div class="cal-weekday">Ter</div>
+              <div class="cal-weekday">Qua</div><div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div><div class="cal-weekday">Sáb</div>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+
+            <div class="cal-legend">
+              <span><span class="cal-dot dot-reuniao"></span>Reunião</span>
+              <span><span class="cal-dot dot-audiencia"></span>Audiência</span>
+              <span><span class="cal-dot dot-prazo"></span>Prazo</span>
+              <span><span class="cal-dot dot-pagamento"></span>Pagamento</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-col">
+          <div class="side-card">
+            <div class="side-card-title" id="side-date-label">19 de agosto</div>
+            <div class="side-card-count" id="side-date-count">2 compromissos</div>
+            <div id="side-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seletor de demonstração: ver as notificações abaixo como outro usuário -->
+      <div class="demo-viewas">
+        <span class="demo-viewas-label">Ver notificações abaixo como:</span>
+        <select class="form-select" id="viewas-select" style="width:auto;display:inline-block;">
+          <option value="sergio">sergio (mestre)</option>
+          <option value="ana.gabriela">ana.gabriela</option>
+          <option value="felipe.costa">felipe.costa</option>
+          <option value="joao.souza">joao.souza</option>
+        </select>
+      </div>
+
+      <!-- Abas: Novidades (últimas 24h) / Adicionado por terceiro / Delegados por mim / Agenda de outros usuários -->
+      <div class="below-tabs">
+        <div class="below-tab active" data-below-target="below-novidades">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Novos na sua agenda (últimas 24h)
+          <span class="count-pill" id="count-novidades">0</span>
+        </div>
+        <div class="below-tab" data-below-target="below-outros">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Adicionado por terceiro
+          <span class="count-pill" id="count-outros">0</span>
+        </div>
+        <div class="below-tab" data-below-target="below-delegados">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          Delegados por mim
+          <span class="count-pill" id="count-delegados">0</span>
+        </div>
+        <div class="below-tab" data-below-target="below-mestre">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Agenda de outros usuários
+        </div>
+      </div>
+
+      <div class="below-view active" id="below-novidades">
+        <div class="below-panel" id="lista-novidades"></div>
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Notifica todos os compromissos que entraram na agenda do usuário nas últimas 24 horas, não importa quem criou — pode ser ele mesmo, um colega, ou a IA (identificando um prazo a partir de um andamento do processo, por exemplo). É a forma rápida de ver "o que apareceu de novo pra mim" sem precisar navegar o calendário inteiro procurando.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Filtre <code>eventos_agenda WHERE responsavel_id = usuario.id AND data_criacao >= now() - 24h</code>, sem filtrar por <code>criado_por</code> — o objetivo é pegar qualquer origem. Ordene por <code>data_criacao DESC</code>. O contador no badge é só o <code>COUNT()</code> desse mesmo filtro.
+          </div>
+        </div>
+      </div>
+      <div class="below-view" id="below-outros">
+        <div class="below-panel" id="lista-outros"></div>
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Mostra os compromissos que <b>outra pessoa</b> colocou na sua agenda — qualquer colega do escritório, não só quem está acima na hierarquia. Um advogado com papel Ilimitado pode perfeitamente marcar um compromisso na agenda de outro colega do mesmo papel, não só o mestre ou um superior organizando a agenda de baixo.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Filtre <code>eventos_agenda WHERE responsavel_id = usuario.id AND criado_por != usuario.id</code> — qualquer criador diferente do próprio responsável entra aqui, sem checar hierarquia. Igual fizemos em Tarefas, não precisa de nenhuma lógica de <code>superior_id</code> pra essa aba funcionar.
+          </div>
+        </div>
+      </div>
+
+      <div class="below-view" id="below-delegados">
+        <div class="below-panel" id="lista-delegados"></div>
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            É o espelho da aba anterior: aqui o usuário vê todos os compromissos que <b>ele mesmo</b> colocou na agenda de outras pessoas, e pode acompanhar o status de cada um (agendado, concluído, cancelado) — útil pra quem organiza a agenda da equipe saber se o que foi marcado pra alguém realmente aconteceu.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Filtre <code>eventos_agenda WHERE criado_por = usuario.id AND responsavel_id != usuario.id</code> — o oposto exato do filtro da aba "Adicionado por terceiro". Essa aba só aparece pra quem tem a habilitação "Adicionar compromisso para outros" ligada (a mesma que libera o campo "Agenda de" no formulário) — só faz sentido ver o que você delegou se você pode delegar.
+          </div>
+        </div>
+      </div>
+
+      <div class="below-view" id="below-mestre">
+        <div class="section-note">Disponível para quem tem a Permissão "Agenda" em "Todos" e a habilitação de Gerir correspondente. Veja a agenda de qualquer usuário do escritório e adicione compromissos diretamente nela.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Permite consultar (e adicionar compromissos n)a agenda de qualquer pessoa do escritório — útil pro gestor organizar a rotina de alguém, ou verificar rapidamente a disponibilidade de um colega antes de marcar algo. Não é mais exclusivo do mestre: qualquer usuário com a Permissão "Agenda" em "Todos" (e a habilitação de Gerir correspondente) enxerga essa aba.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Essa aba só renderiza se <code>permissoes_papel.agenda.sub_opcao === 'todos'</code> — mesma checagem já usada pra liberar o card "Compromissos próximos" completo no Painel. Ao selecionar um usuário no seletor, busque <code>eventos_agenda WHERE responsavel_id = usuario_selecionado.id</code>. O botão "+ Novo compromisso nesta agenda" reaproveita o mesmo formulário de criação, só que com o campo "Agenda de" pré-preenchido e travado nesse usuário.
+          </div>
+        </div>
+
+        <div class="user-picker" id="user-picker">
+          <div class="user-picker-item" data-user="sergio">
+            <div class="user-picker-avatar">SE</div>
+            <div class="user-picker-name">sergio</div>
+          </div>
+          <div class="user-picker-item" data-user="ana.gabriela">
+            <div class="user-picker-avatar">AG</div>
+            <div class="user-picker-name">ana.gabriela</div>
+          </div>
+          <div class="user-picker-item" data-user="felipe.costa">
+            <div class="user-picker-avatar">FC</div>
+            <div class="user-picker-name">felipe.costa</div>
+          </div>
+          <div class="user-picker-item" data-user="joao.souza">
+            <div class="user-picker-avatar">JS</div>
+            <div class="user-picker-name">joao.souza</div>
+          </div>
+        </div>
+
+        <div id="mestre-empty" class="empty-day" style="padding:40px 10px;">Selecione um usuário acima para ver a agenda dele.</div>
+
+        <div id="mestre-agenda-view" style="display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 14px;">
+            <div style="font-size:15px;font-weight:800;">Agenda de <span id="mestre-agenda-nome">—</span></div>
+            <button class="btn-dark" id="btn-add-mestre">+ Novo compromisso nesta agenda</button>
+          </div>
+
+          <div class="layout">
+            <div class="cal-col">
+              <div class="cal-card">
+                <div class="cal-head">
+                  <div class="cal-nav-btn" id="cal-prev-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:12px;">
+                    <div class="cal-month-label" id="cal-month-label-2">Agosto de 2026</div>
+                  </div>
+                  <div class="cal-nav-btn" id="cal-next-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </div>
+                <div class="cal-weekdays">
+                  <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div><div class="cal-weekday">Ter</div>
+                  <div class="cal-weekday">Qua</div><div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div><div class="cal-weekday">Sáb</div>
+                </div>
+                <div class="cal-grid" id="cal-grid-2"></div>
+                <div class="cal-legend">
+                  <span><span class="cal-dot dot-reuniao"></span>Reunião</span>
+                  <span><span class="cal-dot dot-audiencia"></span>Audiência</span>
+                  <span><span class="cal-dot dot-prazo"></span>Prazo</span>
+                  <span><span class="cal-dot dot-pagamento"></span>Pagamento</span>
+                </div>
+              </div>
+            </div>
+            <div class="side-col">
+              <div class="side-card">
+                <div class="side-card-title" id="side-date-label-2">—</div>
+                <div class="side-card-count" id="side-date-count-2">0 compromissos</div>
+                <div id="side-list-2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Dados de exemplo (chave: "YYYY-M-D", mês 0-indexado) =====
+  var eventos = {
+    "2026-6-4": [
+      { tipo:"reuniao", nome:"reuniao vr", inicio:"23:49", fim:"23:49", responsavel:"sergio", local:"casa vr", status:"agendado" }
+    ],
+    "2026-6-8": [
+      { tipo:"audiencia", nome:"audiencia sl", descricao:"teste", inicio:"04:45", responsavel:"sergio", processo:"ação de danos morais", local:"forum capital", status:"agendado" }
+    ],
+    "2026-7-19": [
+      { tipo:"prazo", nome:"Réplica à Contestação", inicio:"—", responsavel:"sergio", processo:"Ação de Danos Morais nº 4444444444444", status:"agendado" },
+      { tipo:"pagamento", nome:"Pagamento de custas — Execução Fiscal", inicio:"—", responsavel:"ana.gabriela", processo:"Execução Fiscal nº 7777777777777", status:"agendado" }
+    ],
+    "2026-7-20": [
+      { tipo:"prazo", nome:"Especificação de provas", inicio:"—", responsavel:"sergio", processo:"Ação de Cobrança nº 8888888888888", status:"agendado" }
+    ],
+    "2026-7-21": [
+      { tipo:"audiencia", nome:"Audiência de Instrução e Julgamento", inicio:"14:00", fim:"15:30", responsavel:"sergio", processo:"Ação de Danos Morais nº 4444444444444", local:"Fórum Central — 2ª Câmara Cível", status:"agendado" }
+    ],
+    "2026-7-22": [
+      { tipo:"prazo", nome:"Impugnação aos Embargos", inicio:"—", responsavel:"sergio", processo:"Embargos à Execução nº 5555555555555", status:"agendado" }
+    ],
+    "2026-7-24": [
+      { tipo:"prazo", nome:"Contrarrazões", inicio:"—", responsavel:"felipe.costa", processo:"Agravo de Instrumento nº 6666666666666", status:"agendado" }
+    ],
+    "2026-7-25": [
+      { tipo:"reuniao", nome:"Reunião com cliente — Maria da Silva Ferreira", descricao:"Alinhamento sobre andamento do processo", inicio:"10:00", fim:"11:00", responsavel:"sergio", local:"Escritório — Sala 2", status:"agendado", criadoPor:"sergio", dataCriacao:"2026-08-19" }
+    ],
+    "2026-7-27": [
+      { tipo:"pagamento", nome:"Salário — Dr. Felipe Costa", inicio:"—", responsavel:"ana.gabriela", status:"agendado" }
+    ],
+    "2026-8-3": [
+      { tipo:"reuniao", nome:"Reunião de alinhamento mensal", inicio:"09:30", fim:"10:30", responsavel:"sergio", local:"Escritório — Sala de reuniões", status:"agendado" }
+    ],
+    "2026-8-21": [
+      { tipo:"prazo", nome:"Prazo processual identificado automaticamente", descricao:"Detectado a partir da movimentação do processo", inicio:"—", responsavel:"sergio", processo:"Ação de Danos Morais nº 4444444444444", status:"agendado", criadoPor:"IA (assistente jurídico)", dataCriacao:"2026-08-19" },
+      { tipo:"reuniao", nome:"Reunião de acompanhamento com sócio", inicio:"15:00", fim:"15:30", responsavel:"felipe.costa", local:"Escritório — Sala 1", status:"agendado", criadoPor:"sergio", dataCriacao:"2026-08-19" }
+    ],
+    "2026-8-26": [
+      { tipo:"audiencia", nome:"Audiência de Conciliação", inicio:"11:00", fim:"12:00", responsavel:"sergio", processo:"Execução Fiscal nº 7777777777777", local:"Fórum Central — 3ª Vara", status:"agendado", criadoPor:"felipe.costa", dataCriacao:"2026-08-19" }
+    ],
+    "2026-8-28": [
+      { tipo:"pagamento", nome:"Revisão de honorários com cliente", inicio:"—", responsavel:"sergio", status:"agendado", criadoPor:"ana.gabriela", dataCriacao:"2026-08-19" }
+    ]
+  };
+
+  var notificacoesConcluidos = [];
+  var proximaRecorrenciaId = 0;
+
+  var meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  var hoje = new Date(2026, 7, 19); // 19/08/2026
+  var usuarioLogado = "sergio";
+  var viewYear = hoje.getFullYear();
+  var viewMonth = hoje.getMonth();
+  var selectedKey = viewYear + "-" + viewMonth + "-" + hoje.getDate();
+
+  var tagLabel = { reuniao:"Reunião", audiencia:"Audiência", prazo:"Prazo", pagamento:"Pagamento" };
+
+  function pad(n){ return n < 10 ? "0"+n : n; }
+
+  function renderCalendar(){
+    document.getElementById('cal-month-label').textContent = meses[viewMonth] + " de " + viewYear;
+    var grid = document.getElementById('cal-grid');
+    grid.innerHTML = "";
+
+    var firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    for(var i=0; i<firstDay; i++){
+      var empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    for(var d=1; d<=daysInMonth; d++){
+      var key = viewYear + "-" + viewMonth + "-" + d;
+      var cell = document.createElement('div');
+      cell.className = 'cal-day';
+      cell.dataset.key = key;
+
+      var isToday = (viewYear === hoje.getFullYear() && viewMonth === hoje.getMonth() && d === hoje.getDate());
+      if(isToday) cell.classList.add('today');
+      if(key === selectedKey) cell.classList.add('selected');
+
+      var numEl = document.createElement('div');
+      numEl.className = 'cal-day-num';
+      numEl.textContent = d;
+      cell.appendChild(numEl);
+
+      var dayEvents = (eventos[key] || []).filter(eventoVisivel);
+      if(dayEvents.length){
+        var dotsEl = document.createElement('div');
+        dotsEl.className = 'cal-dots';
+        var seenTypes = {};
+        dayEvents.forEach(function(ev){
+          if(seenTypes[ev.tipo]) return;
+          seenTypes[ev.tipo] = true;
+          var dot = document.createElement('span');
+          dot.className = 'cal-dot dot-' + ev.tipo;
+          dotsEl.appendChild(dot);
+        });
+        cell.appendChild(dotsEl);
+      }
+
+      cell.addEventListener('click', function(){
+        selectedKey = this.dataset.key;
+        renderCalendar();
+        renderSideList();
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+
+  var statusTagLabel = {agendado:'Agendado', concluido:'Concluído', cancelado:'Cancelado'};
+
+  function renderSideList(){
+    var parts = selectedKey.split('-');
+    var y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
+    var dateObj = new Date(y, m, d);
+    var dayNames = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+    document.getElementById('side-date-label').textContent = d + " de " + meses[m].toLowerCase() + " — " + dayNames[dateObj.getDay()];
+
+    var list = (eventos[selectedKey] || []).filter(eventoVisivel);
+    document.getElementById('side-date-count').textContent = list.length + (list.length === 1 ? " compromisso" : " compromissos");
+
+    var container = document.getElementById('side-list');
+    container.innerHTML = "";
+
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhum compromisso neste dia.</div>';
+      return;
+    }
+
+    list.forEach(function(ev){
+      var card = document.createElement('div');
+      card.className = 'compromisso-card';
+
+      var metaLines = [];
+      metaLines.push('<b>Início:</b> ' + ev.inicio + (ev.fim ? ('&nbsp;&nbsp;<b>Fim:</b> ' + ev.fim) : ''));
+      if(ev.responsavel) metaLines.push('<b>Responsável:</b> ' + ev.responsavel);
+      if(ev.processo) metaLines.push('<b>Processo:</b> ' + ev.processo);
+      if(ev.local) metaLines.push('<b>Local:</b> ' + ev.local);
+
+      var status = ev.status || 'agendado';
+      card.innerHTML =
+        '<div class="compromisso-top">' +
+          '<div class="compromisso-name">' + ev.nome + '</div>' +
+          '<div class="compromisso-tags">' +
+            '<span class="tag tag-' + ev.tipo + '">' + tagLabel[ev.tipo] + '</span>' +
+            '<span class="tag tag-status">' + statusTagLabel[status] + '</span>' +
+          '</div>' +
+        '</div>' +
+        (ev.descricao ? '<div class="compromisso-desc">' + ev.descricao + '</div>' : '') +
+        '<div class="compromisso-meta">' + metaLines.join('<br>') + '</div>' +
+        (status === 'agendado' ? '<div class="compromisso-actions"><a class="concluir">Concluir</a><a class="cancel">Cancelar</a></div>' : '');
+
+      container.appendChild(card);
+
+      if(status === 'agendado'){
+        card.querySelector('.concluir').addEventListener('click', function(){
+          ev.status = 'concluido';
+          ev.dataConclusao = hoje.getFullYear() + "-" + pad(hoje.getMonth()+1) + "-" + pad(hoje.getDate());
+          if(ev.criadoPor && ev.criadoPor !== ev.responsavel && ev.criadoPor !== 'IA (assistente jurídico)'){
+            notificacoesConcluidos.unshift({ titulo: ev.nome, concluidoPor: ev.responsavel, destinatario: ev.criadoPor });
+          }
+          renderCalendar(); renderSideList(); renderBell();
+        });
+        card.querySelector('.cancel').addEventListener('click', function(){
+          ev.status = 'cancelado';
+          renderCalendar(); renderSideList();
+        });
+      }
+    });
+  }
+
+  // ===== Agenda de outros usuários (aba MESTRE): mini-calendário filtrado por usuário =====
+  var viewYear2 = hoje.getFullYear();
+  var viewMonth2 = hoje.getMonth();
+  var selectedKey2 = viewYear2 + "-" + viewMonth2 + "-" + hoje.getDate();
+  var filtroUsuario = null;
+
+  function eventosDoUsuarioNoDia(key, usuario){
+    var dia = eventos[key];
+    if(!dia) return [];
+    return dia.filter(function(ev){ return ev.responsavel === usuario && eventoVisivel(ev); });
+  }
+
+  function renderCalendar2(){
+    if(!filtroUsuario) return;
+    document.getElementById('cal-month-label-2').textContent = meses[viewMonth2] + " de " + viewYear2;
+    var grid = document.getElementById('cal-grid-2');
+    grid.innerHTML = "";
+
+    var firstDay = new Date(viewYear2, viewMonth2, 1).getDay();
+    var daysInMonth = new Date(viewYear2, viewMonth2 + 1, 0).getDate();
+
+    for(var i=0; i<firstDay; i++){
+      var empty = document.createElement('div');
+      empty.className = 'cal-day empty';
+      grid.appendChild(empty);
+    }
+
+    for(var d=1; d<=daysInMonth; d++){
+      var key = viewYear2 + "-" + viewMonth2 + "-" + d;
+      var cell = document.createElement('div');
+      cell.className = 'cal-day';
+      cell.dataset.key = key;
+
+      var isToday = (viewYear2 === hoje.getFullYear() && viewMonth2 === hoje.getMonth() && d === hoje.getDate());
+      if(isToday) cell.classList.add('today');
+      if(key === selectedKey2) cell.classList.add('selected');
+
+      var numEl = document.createElement('div');
+      numEl.className = 'cal-day-num';
+      numEl.textContent = d;
+      cell.appendChild(numEl);
+
+      var dayEvents = eventosDoUsuarioNoDia(key, filtroUsuario);
+      if(dayEvents.length){
+        var dotsEl = document.createElement('div');
+        dotsEl.className = 'cal-dots';
+        var seenTypes = {};
+        dayEvents.forEach(function(ev){
+          if(seenTypes[ev.tipo]) return;
+          seenTypes[ev.tipo] = true;
+          var dot = document.createElement('span');
+          dot.className = 'cal-dot dot-' + ev.tipo;
+          dotsEl.appendChild(dot);
+        });
+        cell.appendChild(dotsEl);
+      }
+
+      cell.addEventListener('click', function(){
+        selectedKey2 = this.dataset.key;
+        renderCalendar2();
+        renderSideList2();
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+
+  function renderSideList2(){
+    if(!filtroUsuario) return;
+    var parts = selectedKey2.split('-');
+    var y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
+    var dateObj = new Date(y, m, d);
+    var dayNames = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+    document.getElementById('side-date-label-2').textContent = d + " de " + meses[m].toLowerCase() + " — " + dayNames[dateObj.getDay()];
+
+    var list = eventosDoUsuarioNoDia(selectedKey2, filtroUsuario);
+    document.getElementById('side-date-count-2').textContent = list.length + (list.length === 1 ? " compromisso" : " compromissos");
+
+    var container = document.getElementById('side-list-2');
+    container.innerHTML = "";
+
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhum compromisso neste dia.</div>';
+      return;
+    }
+
+    list.forEach(function(ev){
+      var card = document.createElement('div');
+      card.className = 'compromisso-card';
+      var metaLines = [];
+      metaLines.push('<b>Início:</b> ' + ev.inicio + (ev.fim ? ('&nbsp;&nbsp;<b>Fim:</b> ' + ev.fim) : ''));
+      if(ev.processo) metaLines.push('<b>Processo:</b> ' + ev.processo);
+      if(ev.local) metaLines.push('<b>Local:</b> ' + ev.local);
+      if(ev.criadoPor) metaLines.push('<b>Criado por:</b> ' + ev.criadoPor);
+
+      var status = ev.status || 'agendado';
+      card.innerHTML =
+        '<div class="compromisso-top">' +
+          '<div class="compromisso-name">' + ev.nome + '</div>' +
+          '<div class="compromisso-tags">' +
+            '<span class="tag tag-' + ev.tipo + '">' + tagLabel[ev.tipo] + '</span>' +
+            '<span class="tag tag-status">' + statusTagLabel[status] + '</span>' +
+          '</div>' +
+        '</div>' +
+        (ev.descricao ? '<div class="compromisso-desc">' + ev.descricao + '</div>' : '') +
+        '<div class="compromisso-meta">' + metaLines.join('<br>') + '</div>' +
+        (status === 'agendado' ? '<div class="compromisso-actions"><a class="concluir">Concluir</a><a class="cancel">Cancelar</a></div>' : '');
+
+      container.appendChild(card);
+
+      if(status === 'agendado'){
+        card.querySelector('.concluir').addEventListener('click', function(){
+          ev.status = 'concluido';
+          ev.dataConclusao = hoje.getFullYear() + "-" + pad(hoje.getMonth()+1) + "-" + pad(hoje.getDate());
+          if(ev.criadoPor && ev.criadoPor !== ev.responsavel && ev.criadoPor !== 'IA (assistente jurídico)'){
+            notificacoesConcluidos.unshift({ titulo: ev.nome, concluidoPor: ev.responsavel, destinatario: ev.criadoPor });
+          }
+          renderCalendar2(); renderSideList2(); renderBell();
+        });
+        card.querySelector('.cancel').addEventListener('click', function(){
+          ev.status = 'cancelado';
+          renderCalendar2(); renderSideList2();
+        });
+      }
+    });
+  }
+
+  document.querySelectorAll('.user-picker-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      document.querySelectorAll('.user-picker-item').forEach(function(i){ i.classList.remove('selected'); });
+      item.classList.add('selected');
+      filtroUsuario = item.dataset.user;
+      document.getElementById('mestre-agenda-nome').textContent = filtroUsuario;
+      document.getElementById('mestre-empty').style.display = 'none';
+      document.getElementById('mestre-agenda-view').style.display = 'block';
+      viewYear2 = hoje.getFullYear(); viewMonth2 = hoje.getMonth();
+      selectedKey2 = viewYear2 + "-" + viewMonth2 + "-" + hoje.getDate();
+      renderCalendar2();
+      renderSideList2();
+    });
+  });
+
+  document.getElementById('cal-prev-2').addEventListener('click', function(){
+    viewMonth2--; if(viewMonth2 < 0){ viewMonth2 = 11; viewYear2--; }
+    renderCalendar2();
+  });
+  document.getElementById('cal-next-2').addEventListener('click', function(){
+    viewMonth2++; if(viewMonth2 > 11){ viewMonth2 = 0; viewYear2++; }
+    renderCalendar2();
+  });
+
+  // Botão "+ Novo compromisso nesta agenda": abre o formulário principal já com esse usuário selecionado
+  var formAbertoDoMestre = false;
+  document.getElementById('btn-add-mestre').addEventListener('click', function(){
+    formAbertoDoMestre = true;
+    document.querySelector('#below-mestre .layout').style.display = 'none';
+    document.querySelectorAll('#f-agenda-de-list input[type=checkbox]').forEach(function(cb){ cb.checked = (cb.value === filtroUsuario); });
+    document.getElementById('form-panel').style.display = 'block';
+  });
+
+  document.getElementById('cal-prev').addEventListener('click', function(){
+    viewMonth--; if(viewMonth < 0){ viewMonth = 11; viewYear--; }
+    renderCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', function(){
+    viewMonth++; if(viewMonth > 11){ viewMonth = 0; viewYear++; }
+    renderCalendar();
+  });
+  document.getElementById('cal-today').addEventListener('click', function(){
+    viewYear = hoje.getFullYear(); viewMonth = hoje.getMonth();
+    selectedKey = viewYear + "-" + viewMonth + "-" + hoje.getDate();
+    renderCalendar();
+    renderSideList();
+  });
+
+  // "Agenda de": lista de checkboxes + atalho "Selecionar todos"
+  var todosUsuarios = ["sergio","ana.gabriela","felipe.costa","joao.souza"];
+
+  document.getElementById('f-agenda-de-all').addEventListener('click', function(){
+    document.querySelectorAll('#f-agenda-de-list input[type=checkbox]').forEach(function(cb){ cb.checked = true; });
+  });
+
+  function getUsuariosSelecionados(){
+    return Array.prototype.filter.call(
+      document.querySelectorAll('#f-agenda-de-list input[type=checkbox]'), function(cb){ return cb.checked; }
+    ).map(function(cb){ return cb.value; });
+  }
+
+  document.querySelectorAll('input[name="f-recorrencia-tipo"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      var isPeriodico = document.querySelector('input[name="f-recorrencia-tipo"]:checked').value === 'periodico';
+      document.getElementById('f-recorrencia-campos').style.display = isPeriodico ? 'flex' : 'none';
+    });
+  });
+  document.getElementById('f-recorrencia-freq').addEventListener('change', function(){
+    document.getElementById('f-recorrencia-dias-campo').style.display = this.value === 'personalizada' ? 'block' : 'none';
+  });
+
+  document.getElementById('btn-novo-compromisso').addEventListener('click', function(){
+    formAbertoDoMestre = false;
+    document.querySelectorAll('#f-agenda-de-list input[type=checkbox]').forEach(function(cb){ cb.checked = (cb.value === 'sergio'); });
+    document.querySelector('.content > .layout').style.display = 'none';
+    document.getElementById('form-panel').style.display = 'block';
+  });
+  function fecharFormCompromisso(){
+    document.getElementById('form-panel').style.display = 'none';
+    if(formAbertoDoMestre){
+      document.querySelector('#below-mestre .layout').style.display = 'flex';
+    } else {
+      document.querySelector('.content > .layout').style.display = 'flex';
+    }
+  }
+  document.getElementById('form-cancelar-top').addEventListener('click', fecharFormCompromisso);
+  document.getElementById('form-cancelar-bottom').addEventListener('click', fecharFormCompromisso);
+
+  document.getElementById('f-criar').addEventListener('click', function(){
+    var dataVal = document.getElementById('f-data').value; // yyyy-mm-dd
+    if(!dataVal){ fecharFormCompromisso(); return; }
+
+    var usuariosSelecionados = getUsuariosSelecionados();
+    if(usuariosSelecionados.length === 0){ usuariosSelecionados = ["sergio"]; }
+    var tipo = document.getElementById('f-tipo').value;
+    var titulo = document.getElementById('f-titulo').value || "Novo compromisso";
+    var inicio = document.getElementById('f-inicio').value || "—";
+    var fim = document.getElementById('f-fim').value;
+    var processo = document.getElementById('f-processo').value;
+    var local = document.getElementById('f-local').value;
+    var desc = document.getElementById('f-desc').value;
+
+    var hojeStr = hoje.getFullYear() + "-" + pad(hoje.getMonth()+1) + "-" + pad(hoje.getDate());
+
+    var ehPeriodico = document.querySelector('input[name="f-recorrencia-tipo"]:checked').value === 'periodico';
+    var freq = document.getElementById('f-recorrencia-freq').value;
+    var diasPersonalizado = parseInt(document.getElementById('f-recorrencia-dias').value) || 10;
+    var vezes = ehPeriodico ? (parseInt(document.getElementById('f-recorrencia-vezes').value) || 1) : 1;
+    var recorrenciaId = ehPeriodico ? ('rec' + (++proximaRecorrenciaId)) : null;
+
+    function somarDiasISO(iso, dias){
+      var p = iso.split('-');
+      var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+      d.setDate(d.getDate() + dias);
+      return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+    }
+    function somarMesesISO(iso, meses){
+      var p = iso.split('-');
+      var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+      d.setMonth(d.getMonth() + meses);
+      return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+    }
+
+    var dataOcorrencia = dataVal;
+    var ultimaKey = null;
+    for(var i = 0; i < vezes; i++){
+      var dParts = dataOcorrencia.split('-');
+      var key = parseInt(dParts[0]) + "-" + (parseInt(dParts[1]) - 1) + "-" + parseInt(dParts[2]);
+      ultimaKey = key;
+      if(!eventos[key]) eventos[key] = [];
+      usuariosSelecionados.forEach(function(usuario){
+        var novoEvento = { tipo:tipo, nome:titulo, inicio:inicio, responsavel:usuario, status:"agendado", criadoPor:usuarioLogado, dataCriacao:hojeStr };
+        if(fim) novoEvento.fim = fim;
+        if(processo) novoEvento.processo = processo;
+        if(local) novoEvento.local = local;
+        if(desc) novoEvento.descricao = desc;
+        if(recorrenciaId) novoEvento.recorrenciaId = recorrenciaId;
+        eventos[key].push(novoEvento);
+      });
+      if(freq === 'semanal') dataOcorrencia = somarDiasISO(dataOcorrencia, 7);
+      else if(freq === 'mensal') dataOcorrencia = somarMesesISO(dataOcorrencia, 1);
+      else dataOcorrencia = somarDiasISO(dataOcorrencia, diasPersonalizado);
+    }
+
+    var dParts = dataVal.split('-');
+    var key = parseInt(dParts[0]) + "-" + (parseInt(dParts[1]) - 1) + "-" + parseInt(dParts[2]);
+
+    // Vai para o mês/dia do novo compromisso e mostra na lista, pra confirmar visualmente que entrou na agenda certa
+    viewYear = parseInt(dParts[0]);
+    viewMonth = parseInt(dParts[1]) - 1;
+    selectedKey = key;
+
+    if(formAbertoDoMestre && filtroUsuario){
+      viewYear2 = parseInt(dParts[0]);
+      viewMonth2 = parseInt(dParts[1]) - 1;
+      selectedKey2 = key;
+      renderCalendar2();
+      renderSideList2();
+    }
+
+    fecharFormCompromisso();
+    renderCalendar();
+    renderSideList();
+    renderNovidadesEOutros();
+    renderBell();
+
+    document.querySelector('input[name="f-recorrencia-tipo"][value="unico"]').checked = true;
+    document.getElementById('f-recorrencia-campos').style.display = 'none';
+    document.getElementById('f-recorrencia-freq').value = 'semanal';
+    document.getElementById('f-recorrencia-dias').value = '';
+    document.getElementById('f-recorrencia-dias-campo').style.display = 'none';
+    document.getElementById('f-recorrencia-vezes').value = '4';
+  });
+
+  function formatDataCriacao(dataCriacao){
+    var p = dataCriacao.split('-');
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function formatDataEvento(key){
+    var p = key.split('-');
+    return pad(parseInt(p[2])) + "/" + pad(parseInt(p[1])+1) + "/" + p[0];
+  }
+  function diasAtras(dataCriacao){
+    var p = dataCriacao.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+    return Math.round((hoje - d) / (1000*60*60*24));
+  }
+
+  function buildNovidadeRow(ev, key){
+    var row = document.createElement('div');
+    row.className = 'novidade-row';
+    var dias = diasAtras(ev.dataCriacao);
+    var diasLabel = dias === 0 ? "hoje" : (dias === 1 ? "há 1 dia" : "há " + dias + " dias");
+    row.innerHTML =
+      '<div class="novidade-left">' +
+        '<div class="novidade-icon icon-' + (ev.tipo === 'audiencia' ? 'red' : ev.tipo === 'reuniao' ? 'green' : ev.tipo === 'prazo' ? 'amber' : 'blue') + '">' +
+          '<span class="cal-dot dot-' + ev.tipo + '"></span>' +
+        '</div>' +
+        '<div>' +
+          '<div class="novidade-name">' + ev.nome + '</div>' +
+          '<div class="novidade-meta">' +
+            '<b>Compromisso em:</b> ' + formatDataEvento(key) + (ev.inicio && ev.inicio !== '—' ? (' às ' + ev.inicio) : '') + '<br>' +
+            '<b>Criado por:</b> ' + ev.criadoPor +
+          '</div>' +
+          '<div class="novidade-created">Adicionado ' + diasLabel + ' — ' + formatDataCriacao(ev.dataCriacao) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="novidade-right"><span class="novidade-link" data-jump="' + key + '">Ver no calendário →</span></div>';
+    return row;
+  }
+
+  function eventoVisivel(ev){
+    if(ev.status === 'concluido' && ev.dataConclusao && diasAtras(ev.dataConclusao) > 7) return false;
+    return true;
+  }
+
+  function renderNovidadesEOutros(){
+    var novidades = [];
+    var outros = [];
+    var delegados = [];
+
+    for(var key in eventos){
+      eventos[key].forEach(function(ev){
+        if(!eventoVisivel(ev)) return;
+        if(ev.responsavel === usuarioLogado && ev.dataCriacao){
+          var dias = diasAtras(ev.dataCriacao);
+          // Aproximação de "últimas 24h": criado no dia de hoje (o protótipo não guarda horário, só data)
+          if(dias === 0) novidades.push({ev:ev, key:key});
+          if(ev.criadoPor && ev.criadoPor !== usuarioLogado) outros.push({ev:ev, key:key});
+        }
+        if(ev.criadoPor === usuarioLogado && ev.responsavel !== usuarioLogado){
+          delegados.push({ev:ev, key:key});
+        }
+      });
+    }
+
+    var listaNovidades = document.getElementById('lista-novidades');
+    listaNovidades.innerHTML = '';
+    if(novidades.length === 0){
+      listaNovidades.innerHTML = '<div class="empty-day">Nenhum compromisso novo nas últimas 24h.</div>';
+    } else {
+      novidades.forEach(function(item){ listaNovidades.appendChild(buildNovidadeRow(item.ev, item.key)); });
+    }
+    document.getElementById('count-novidades').textContent = novidades.length;
+
+    var listaOutros = document.getElementById('lista-outros');
+    listaOutros.innerHTML = '';
+    if(outros.length === 0){
+      listaOutros.innerHTML = '<div class="empty-day">Nenhum compromisso foi adicionado à sua agenda por outra pessoa até agora.</div>';
+    } else {
+      outros.forEach(function(item){ listaOutros.appendChild(buildNovidadeRow(item.ev, item.key)); });
+    }
+    document.getElementById('count-outros').textContent = outros.length;
+
+    var listaDelegados = document.getElementById('lista-delegados');
+    listaDelegados.innerHTML = '';
+    if(delegados.length === 0){
+      listaDelegados.innerHTML = '<div class="empty-day">Você ainda não adicionou compromissos na agenda de outras pessoas.</div>';
+    } else {
+      delegados.forEach(function(item){ listaDelegados.appendChild(buildNovidadeRow(item.ev, item.key)); });
+    }
+    document.getElementById('count-delegados').textContent = delegados.length;
+
+    document.querySelectorAll('.novidade-link').forEach(function(link){
+      link.addEventListener('click', function(){
+        var parts = link.dataset.jump.split('-');
+        viewYear = parseInt(parts[0]); viewMonth = parseInt(parts[1]); selectedKey = link.dataset.jump;
+        renderCalendar(); renderSideList();
+        window.scrollTo({top:0, behavior:'smooth'});
+      });
+    });
+  }
+
+  // ===== Sino de notificações: avisa quem delegou quando o responsável conclui =====
+  function renderBell(){
+    var minhas = notificacoesConcluidos.filter(function(n){ return n.destinatario === usuarioLogado; });
+    var badge = document.getElementById('bell-badge');
+    badge.style.display = minhas.length > 0 ? 'block' : 'none';
+    badge.textContent = minhas.length;
+
+    var dropdown = document.getElementById('bell-dropdown');
+    if(minhas.length === 0){
+      dropdown.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-mute);text-align:center;">Nenhuma notificação.</div>';
+    } else {
+      dropdown.innerHTML = minhas.map(function(n){
+        return '<div style="padding:10px 12px;border-bottom:1px solid var(--line);font-size:12.5px;">' +
+          '<b>' + n.concluidoPor + '</b> concluiu o compromisso que você agendou:<br>' +
+          '<span style="color:var(--text-mute);">"' + n.titulo + '"</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
+  document.getElementById('bell-icon').addEventListener('click', function(e){
+    e.stopPropagation();
+    var dropdown = document.getElementById('bell-dropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', function(){
+    document.getElementById('bell-dropdown').style.display = 'none';
+  });
+
+
+  document.querySelectorAll('.below-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.below-tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.below-view').forEach(function(v){ v.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.belowTarget).classList.add('active');
+    });
+  });
+
+  renderCalendar();
+  renderSideList();
+  renderNovidadesEOutros();
+  renderBell();
+
+  document.getElementById('viewas-select').addEventListener('change', function(){
+    usuarioLogado = this.value;
+    renderNovidadesEOutros();
+    renderBell();
+  });
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 title: Matriz de autorização
 status: canonical
 owner: security
-last_reviewed: 2026-08-19
+last_reviewed: 2026-08-31
 ---
 
 # Matriz de autorização
@@ -64,7 +64,8 @@ segundo estas dimensões:
   confirmação humana, quando aplicável;
 - **classificação** — ver [seção 8](#classificação-das-linhas), coluna
   obrigatória em cada tabela;
-- **observação ou pendência** — referências a OPEN-001/OPEN-002, ausência
+- **observação ou pendência** — referências a OPEN-001 ou aos PDRs
+  aplicáveis (incluindo PDR-0015, que resolveu o antigo OPEN-002), ausência
   de habilitação, mapeamento de `nivel` ainda não formalizado, modelagem
   futura, divergência entre código e produto, ou requisito ainda não
   decidido.
@@ -269,13 +270,13 @@ Chaves e níveis confirmados em `apps/accounts/permissoes_constants.py`.
 | Módulo funcional | Chave técnica atual | Níveis atuais | Quantidade de habilitações atuais | Estado do enforcement |
 | --- | --- | --- | --- | --- |
 | Dashboard / Painel | `painel` | `somente_seus`, `todos` | 0 | Não aplicado — view usa apenas `@login_required` |
-| Clientes | `clientes` | `somente_seus`, `todos` | 2 (`clientes_criar`, `clientes_editar`) | Não aplicado nas views |
-| Processos | `processos` | `somente_seus`, `todos` | 5 (`processos_criar`, `processos_editar`, `processos_andamento_adicionar`, `processos_usar_ia`, `processos_usar_laboratorio`) | Autorização binária de módulo aplicada nas nove views; habilitações granulares não exigidas nesta versão por PDR-0010; escopo/responsabilidade pendentes para o WI-0005 |
+| Clientes | `clientes` | `somente_seus`, `todos` | 2 (`clientes_criar`, `clientes_editar`) | Autorização de módulo e habilitação aplicadas nas sete views (WI-0001); escopo de leitura por `responsavel` e autorização de mutação por posse aplicados (WI-0002) — ver seção "Clientes" abaixo |
+| Processos | `processos` | `somente_seus`, `todos` | 5 (`processos_criar`, `processos_editar`, `processos_andamento_adicionar`, `processos_usar_ia`, `processos_usar_laboratorio`) | Autorização binária de módulo e escopo por `responsavel` aplicados; mutações restritas ao Administrador ou responsável (WI-0004/WI-0005). Habilitações granulares existentes não são exigidas nesta versão por PDR-0010. Alvo canônico: [PDR-0014](../product/decisions/PDR-0014-responsavel-integrantes-processos.md) aprova uma sexta habilitação, `processos_atribuir_responsavel`, ainda não presente no kernel — pendente de Work Item |
 | Tarefas | `tarefas` | `somente_seus`, `todos` | 1 (`tarefas_atribuir_outros`) | Não aplicado; adicionalmente, não há rota ou campo de formulário que exponha a atribuição a outro usuário |
 | Agenda | `agenda` | `somente_seus`, `todos` | 1 (`agenda_criar_para_outros`) | Não aplicado; o campo de formulário existe, mas a habilitação não é consultada |
 | Financeiro | `financeiro` | `solicitacoes`, `dados` | 0 | Não aplicado; módulo não possui nenhuma habilitação no kernel atual |
 | Chat | `chat` | `""` (sem nível) | 0 | Não aplicado — view usa apenas `@login_required` |
-| Modelos | `modelos` | `somente_seus`, `todos` | 2 (`modelos_criar`, `modelos_editar_estilo`) | Não aplicado nas views |
+| Modelos | `modelos` | `somente_seus`, `todos` (estado constatado no kernel) | 2 (`modelos_criar`, `modelos_editar_estilo`) | Não aplicado nas views. Alvo canônico (decisão de 2026-08-31, ver [modelos.md](../product/modules/modelos.md)): remover `modelos` de `NIVEIS_POR_MODULO`, tratando o módulo como Chat/Gerir (sem nível) — mudança de kernel ainda não implementada |
 | Gerir (Configurações/administração) | `gerir` | `""` (sem nível) | 4 (`gerir_criar_usuario`, `gerir_habilitar_usuario_processos`, `gerir_criar_equipe`, `gerir_habilitar_terceiros`) | Parcial — `@requer_admin_escritorio` protege as rotas administrativas por um controle binário de papel, sem consultar `tem_permissao_modulo`/`tem_habilitacao` do módulo `gerir` |
 | Inteligência Artificial / Laboratório | Sem chave própria no kernel — as habilitações relacionadas (`processos_usar_ia`, `processos_usar_laboratorio`) vivem sob o módulo `processos`, conforme [../architecture/module-map.md](../architecture/module-map.md) | — (contado em Processos) | (contado em Processos) | Não aplicável — `apps.laboratorio` não consulta nenhuma permissão ou habilitação |
 
@@ -319,19 +320,29 @@ Observações:
 
 Rotas auditadas: `apps/clientes/views.py` (`lista`, `detalhe`, `novo`,
 `editar`, `desativar`, `inativos`, `reativar`), todas `@login_required`.
+Autorização de módulo e habilitação aplicadas por
+[WI-0001](../delivery/work/WI-0001-autorizacao-backend-clientes.md)
+(commit `da19001`); escopo de leitura, autorização de mutação por posse
+e responsabilidade obrigatória aplicados por
+[WI-0002](../delivery/work/WI-0002-escopo-responsabilidade-clientes.md)
+(commit `07675f7`).
 
 | Operação | Aut. módulo | Nível técnico | Habilitação | Escopo necessário | Aut. objeto | Integridade | Estado constatado | Alvo canônico | Classificação | Observação ou pendência |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Listar (ativos) | Chave `clientes` no kernel | `somente_seus`/`todos`, definidos para `clientes` | Não se aplica a uma listagem (`clientes_criar`/`clientes_editar` são específicas de criar/editar) | Por `Cliente.responsavel`, conforme [clientes.md](../product/modules/clientes.md) | Não aplicável — listagem, não objeto único | Não aplicável | `lista` não chama `tem_permissao_modulo`; `QuerySet` filtra apenas por `ativo=True`, sem filtro de `responsavel` | Um usuário com atuação restrita não deveria alcançar clientes fora de seu escopo | Lacuna constatada | — |
-| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica no kernel atual para "visualizar" | Idem acima | `get_object_or_404(Cliente, pk=pk, ativo=True)` | Não aplicável | Objeto carregado sem condição de posse além de `ativo=True` | Objeto deveria ser carregado já restrito ao escopo do usuário | Lacuna constatada | — |
-| Criar | Idem | Idem | `clientes_criar` existe no kernel | Não aplicável à criação em si | Não aplicável | Vínculo `responsavel` preenchido com `request.user` quando ausente no formulário | `apps/clientes/views.py::novo` não chama `tem_habilitacao`; habilitação existente não é consultada | Habilitação deveria ser exigida quando existir chave correspondente no kernel | Lacuna constatada | — |
-| Editar | Idem | Idem | `clientes_editar` existe no kernel | Idem ao escopo de leitura acima | `get_object_or_404(Cliente, pk=pk, ativo=True)` | Mutação exige `POST` (via `ClienteForm`) | `apps/clientes/views.py::editar` não chama `tem_habilitacao`; objeto carregado sem condição de posse | Habilitação deveria ser exigida; objeto deveria ser carregado dentro do escopo | Lacuna constatada | — |
-| Desativar | Idem | Idem | Sem habilitação específica no kernel atual | Idem ao escopo de leitura acima | `get_object_or_404(Cliente, pk=pk, ativo=True)` | `desativar` exige `POST`; muda apenas `ativo=False` | Objeto carregado sem condição de posse | Objeto deveria ser carregado dentro do escopo do usuário | Lacuna constatada | Candidata a habilitação futura — ver ["Operações sem habilitação correspondente"](#operações-sem-habilitação-correspondente) |
-| Listar inativos | Idem | Idem | Sem habilitação específica no kernel atual | Idem ao escopo de leitura acima | Não aplicável | Não aplicável | `inativos` filtra apenas por `ativo=False`, sem filtro de `responsavel` | Idem à listagem de ativos | Lacuna constatada | — |
-| Reativar | Idem | Idem | Sem habilitação específica no kernel atual | Idem ao escopo de leitura acima | `get_object_or_404(Cliente, pk=pk, ativo=False)` | `reativar` exige `POST` | Objeto carregado sem condição de posse | Objeto deveria ser carregado dentro do escopo do usuário | Lacuna constatada | Candidata a habilitação futura |
+| Listar (ativos) | `tem_permissao_modulo(user, "clientes")`, aplicado | `somente_seus`/`todos`, resolvido por `nivel_acesso_modulo()` e consumido via `?escopo=` opcional | Não se aplica a uma listagem | Por `Cliente.responsavel`: escopo efetivo (padrão = nível máximo do usuário; `?escopo=` nunca amplia acima do máximo) filtra o `QuerySet` | Não aplicável — listagem | Não aplicável | `QuerySet` já nasce filtrado pelo escopo efetivo resolvido por requisição | Satisfeito | Aplicado | — |
+| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica no kernel atual para "visualizar" | Idem à listagem (escopo de leitura) | `get_object_or_404` sobre `QuerySet` já restrito ao escopo de leitura; fora do escopo → 404 | Não aplicável | Objeto carregado já dentro do `QuerySet` de leitura restrito | Satisfeito | Aplicado | Um usuário com nível máximo `todos` visualiza qualquer cliente do tenant — "todos" é alcance de visualização, não autorização de mutação |
+| Criar | Idem | Idem | `clientes_criar`, aplicada (`tem_habilitacao`) | Não aplicável à criação em si | Não aplicável | `responsavel` sempre `request.user` para conta não administradora (campo não integra o formulário; `POST` adulterado é ignorado); Administrador escolhe o responsável, pré-preenchido consigo, restrito a usuários ativos do tenant; `responsavel` obrigatório no schema (`null=False`, `on_delete=PROTECT`) | Aplicado | Satisfeito | Aplicado | — |
+| Editar | Idem | Idem | `clientes_editar`, aplicada (`tem_habilitacao`) | Mutação usa `QuerySet` distinto do de leitura: Administrador alcança qualquer cliente; demais usuários, apenas `Cliente.responsavel == request.user`, independente do escopo de leitura resolvido | `get_object_or_404` sobre o `QuerySet` de mutação; fora do escopo → 404 | Reatribuição de `responsavel` exclusiva do Administrador, restrita a usuários ativos do tenant | Aplicado | Satisfeito | Aplicado | — |
+| Desativar | Idem | Idem | Sem habilitação específica no kernel atual | Idem à mutação de "Editar" | Idem à mutação de "Editar" | `desativar` exige `POST`; muda apenas `ativo=False` | Aplicado (módulo + posse); sem habilitação dedicada | Habilitação específica é evolução futura, não bloqueio | Aplicado (escopo); habilitação pendente | Candidata a habilitação futura — ver ["Operações sem habilitação correspondente"](#operações-sem-habilitação-correspondente) |
+| Listar inativos | Idem | Idem | Sem habilitação específica no kernel atual | Idem à listagem de ativos (escopo de leitura) | Não aplicável | Não aplicável | `QuerySet` já nasce filtrado pelo escopo efetivo, sobre `ativo=False` | Satisfeito | Aplicado | — |
+| Reativar | Idem | Idem | Sem habilitação específica no kernel atual | Idem à mutação de "Editar" | Idem à mutação de "Editar", sobre `ativo=False` | `reativar` exige `POST` | Aplicado (módulo + posse); sem habilitação dedicada | Habilitação específica é evolução futura, não bloqueio | Aplicado (escopo); habilitação pendente | Candidata a habilitação futura |
 
 Observações:
 
+- Escopo por equipe ("Da equipe") existe apenas como placeholder visual
+  desabilitado, sem regra funcional nem valor persistido; um
+  `?escopo=da_equipe` (ou qualquer valor fora de
+  `somente_seus`/`todos`) é negado no backend com 403.
 - Integridade com processos vinculados: [clientes.md](../product/modules/clientes.md)
   exige que o servidor rejeite uma associação cliente-processo
   inconsistente. A criação de processo (`ProcessoForm`) associa um
@@ -339,35 +350,44 @@ Observações:
   relevante de integridade ocorre em Tarefas e Agenda (ver seções
   correspondentes), onde `cliente` e `processo` são campos
   independentes.
-- Nenhuma operação de Clientes depende de habilitação item por item no
-  código atual, embora `clientes_criar`/`clientes_editar` existam como
-  chaves candidatas.
+- Cobertura de teste: `apps/clientes/tests/test_autorizacao.py` (26
+  testes, WI-0001) e `apps/clientes/tests/test_escopo.py` (31 testes,
+  WI-0002).
 
 ### Processos
 
 Rotas auditadas: `apps/processos/views.py` (`lista`, `detalhe`, `novo`,
 `editar`, `arquivados`, `arquivar`, `reabrir`, `adicionar_movimentacao`,
-`adicionar_parte`), todas com `@login_required` e checagem inicial de
+`adicionar_parte`, `adicionar_advogado`, `alterar_classificacao_parte`,
+`remover_advogado`, `adicionar_apenso`, `remover_apenso`), todas com
+`@login_required` e checagem inicial de
 `tem_permissao_modulo(request.user, "processos")`.
 
 | Operação | Aut. módulo | Nível técnico | Habilitação | Escopo necessário | Aut. objeto | Integridade | Estado constatado | Alvo canônico | Classificação | Observação ou pendência |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Listar | Chave `processos` no kernel | `somente_seus`/`todos`, definidos para `processos` | Não se aplica a uma listagem | Por `Processo.responsavel`; equipe não participa do escopo aprovado para o WI-0005 | Não aplicável | Não aplicável | `lista` chama `tem_permissao_modulo` antes da consulta; o `QuerySet` ainda não filtra por `responsavel` | Autorização binária de módulo aplicada; na Fase B, escopo de leitura por responsável (`somente_seus`/`todos`) | Constatado no código (módulo) / Evolução planejada (escopo) | `Da equipe` e hierarquia de equipes ficam fora do WI-0005 |
-| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica no kernel atual para "visualizar" | Idem acima | `get_object_or_404(Processo, pk=pk)` ainda sem condição de responsabilidade | Não aplicável | `detalhe` chama `tem_permissao_modulo` antes de carregar o objeto; o objeto ainda não é restringido por responsabilidade | Na Fase B, objeto carregado dentro do escopo de leitura por responsável | Constatado no código (módulo) / Evolução planejada (escopo) | — |
-| Criar | Idem | Idem | `processos_criar` existe no kernel, sem enforcement nesta versão por PDR-0010 | Não aplicável à criação em si | Não aplicável | `equipe_padrao_para_usuario()` sugere a equipe apenas quando o usuário pertence a exatamente uma equipe ativa | `novo` chama `tem_permissao_modulo` antes da lógica da view e não chama `tem_habilitacao`, conforme PDR-0010 | Módulo autorizado é suficiente nesta versão; responsabilidade obrigatória e elegibilidade pertencem ao WI-0005 | Constatado no código | Habilitação preservada como evolução futura, não lacuna nem bloqueio da Fase A |
-| Editar | Idem | Idem | `processos_editar` existe no kernel, sem enforcement nesta versão por PDR-0010 | Por `Processo.responsavel`; `todos` amplia leitura, não mutação | `get_object_or_404(Processo, pk=pk)` ainda sem condição de responsabilidade | Mutação exige `POST` | `editar` chama `tem_permissao_modulo` antes de carregar o objeto e não chama `tem_habilitacao`; a mutação ainda não é restringida por responsabilidade | Na Fase B, não-admin só modifica processo sob sua responsabilidade; Administrador modifica qualquer processo do tenant | Constatado no código (módulo) / Evolução planejada (escopo e responsabilidade) | Habilitação preservada como evolução futura, não lacuna nem bloqueio da Fase A |
-| Arquivar | Idem | Idem | Sem habilitação específica no kernel atual | Por `Processo.responsavel`; `todos` não amplia mutação | `get_object_or_404(Processo, pk=pk)` ainda sem condição de responsabilidade | `arquivar` exige `POST`; muda `status` para `arquivado` sem validar transição a partir de qualquer status anterior | `arquivar` chama `tem_permissao_modulo` antes de carregar ou alterar o objeto; responsabilidade e transição ainda não são validadas | Na Fase B, não-admin só modifica processo sob sua responsabilidade; validação de transição pertence à fase de integridade | Constatado no código (módulo) / Evolução planejada (responsabilidade) / Lacuna constatada (transição) | Candidata a habilitação futura |
-| Reabrir | Idem | Idem | Sem habilitação específica no kernel atual | Idem à mutação acima | `get_object_or_404(Processo, pk=pk)` ainda sem condição de responsabilidade | `reabrir` exige `POST`; muda `status` para `ativo` sem validar transição | `reabrir` chama `tem_permissao_modulo` antes de carregar ou alterar o objeto; responsabilidade e transição ainda não são validadas | Idem acima | Constatado no código (módulo) / Evolução planejada (responsabilidade) / Lacuna constatada (transição) | Candidata a habilitação futura |
-| Adicionar movimentação | Idem | Idem | `processos_andamento_adicionar` existe no kernel, sem enforcement nesta versão por PDR-0010 | Por `Processo.responsavel`; `todos` não amplia mutação | Processo ainda carregado por `get_object_or_404(Processo, pk=pk)` sem condição de responsabilidade | `autor` preenchido com `request.user`; mutação exige `POST` | `adicionar_movimentacao` chama `tem_permissao_modulo` antes de carregar o processo e não chama `tem_habilitacao`; responsabilidade ainda não é validada | Na Fase B, não-admin só adiciona movimentação a processo sob sua responsabilidade | Constatado no código (módulo) / Evolução planejada (responsabilidade) | Habilitação preservada como evolução futura, não lacuna nem bloqueio da Fase A |
-| Adicionar participante | Idem | Idem | Sem habilitação específica no kernel atual (não há item dedicado a "parte"/"participante" além de `processos_andamento_adicionar`, que é sobre andamentos) | Por `Processo.responsavel`; `todos` não amplia mutação | Processo ainda carregado por `get_object_or_404(Processo, pk=pk)` sem condição de responsabilidade | Mutação exige `POST`; `ParteProcesso` atual usa um único campo `tipo` (`autor`/`reu`/`terceiro`/`advogado_contrario`) | `adicionar_parte` chama `tem_permissao_modulo` antes de carregar o processo; responsabilidade ainda não é validada e PDR-0001 continua não implementado | Na Fase B, não-admin só modifica processo sob sua responsabilidade; modelagem de participantes permanece na fase de integridade | Constatado no código (módulo) / Evolução planejada (responsabilidade) / Lacuna constatada (modelagem) | Equipe não concede acesso; modelagem de dados pendente não é resolvida pelo WI-0005 |
+| Listar ativos/arquivados | Chave `processos` no kernel, aplicada | `somente_seus`/`todos`, resolvido por `nivel_acesso_modulo()` e consumido via `?escopo=` opcional | Não se aplica a uma listagem | Por `Processo.responsavel`; equipe não participa do escopo aprovado | Não aplicável | Não aplicável | `QuerySet` nasce de `_processos_no_escopo`; `somente_seus` filtra por responsável e `todos` nunca pode ser solicitado acima do nível máximo | Satisfeito | Aplicado | `Da equipe` e hierarquia de equipes permanecem fora do escopo vigente |
+| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica para visualizar | Idem acima | `get_object_or_404` sobre `_processos_no_escopo`; fora do escopo → 404 | Não aplicável | Objeto e relações visíveis são carregados dentro do escopo de leitura | Satisfeito | Aplicado | `todos` amplia leitura, não mutação |
+| Criar | Idem | Idem | `processos_criar` existe, sem enforcement nesta versão por PDR-0010 | Não aplicável à criação | Não aplicável | Não-admin recebe `request.user` como responsável; Administrador escolhe responsável elegível; `responsavel` é obrigatório e protegido | Aplicado sem `tem_habilitacao`, conforme PDR-0010 | Satisfeito | Aplicado | Equipe pode ser apenas pré-preenchida; não concede acesso |
+| Editar / reatribuir responsável | Idem | Idem | `processos_editar` existe, sem enforcement por PDR-0010; `processos_atribuir_responsavel` foi aprovado por PDR-0014, mas ainda não existe | Mutação: Administrador ou `Processo.responsavel == request.user` | `get_object_or_404` sobre `_processos_mutaveis`; fora da fronteira → 404 | Só o Administrador vê o formulário atual de responsável e escolhe usuário elegível | Escopo de mutação aplicado; via delegável de PDR-0014 ainda ausente | Aplicado (escopo) / Evolução planejada (habilitação de reatribuição) | `todos` não amplia mutação |
+| Arquivar / reabrir | Idem | Idem | Sem habilitação granular exigida nesta versão | Idem à mutação | Idem à mutação | Exige `POST`; alterna `ativo`/`arquivado`, sem validar o estado de origem | Escopo aplicado; transição ainda aceita chamada repetida/estado de origem não validado | Aplicado (escopo) / Lacuna constatada (transição) | Segue autorização binária de PDR-0010/PDR-0014 |
+| Adicionar movimentação | Idem | Idem | `processos_andamento_adicionar` existe, sem enforcement por PDR-0010 | Idem à mutação | Processo carregado em `_processos_mutaveis` | Exige `POST`; `autor = request.user` | Escopo aplicado | Aplicado | Habilitação preservada como evolução futura |
+| Gerenciar partes/advogados/classificação | Idem | Idem | Sem habilitação granular específica exigida nesta versão | Idem à mutação | Processo carregado em `_processos_mutaveis` | Exige `POST`; código atual aplica o modelo de três dimensões de WI-0006 | Escopo aplicado; modelo implementado diverge do alvo simplificado de PDR-0013 | Aplicado (escopo) / Divergência canônica (modelo) | Work Item de simplificação pendente |
+| Adicionar / remover apenso | Idem | Idem | Sem habilitação granular específica | Ambos os Processos precisam pertencer a `_processos_mutaveis` | Origem e alvo são carregados dentro da fronteira de mutação | Exige `POST`, transação, par simétrico único e rejeição de autorrelação | Aplicado conforme PDR-0012; leitura de cards/contadores respeita escopo | Aplicado | Nenhuma propriedade é propagada entre apensos |
 | Usar Assistente/Laboratório, quando aplicável | `apps.laboratorio` não verifica nenhuma autorização de módulo de processo | Não aplicável — o Laboratório não lê `nivel` de processo | `processos_usar_laboratorio` existe no kernel | Escopo do processo de origem | Não aplicável — não há carregamento de processo na view atual | Não aplicável | `apps/laboratorio/views.py::index` apenas renderiza um template estático; nenhuma habilitação é consultada | Módulo/processo autorizado, escopo do processo e habilitação deveriam ser verificados, conforme [PDR-0008](../product/decisions/PDR-0008-ia-apos-nucleo-funcional.md) | Evolução planejada | Depende dos pré-requisitos de PDR-0008 |
 
 Observações:
 
-- PDR-0001 exige suportar múltiplos clientes representados, múltiplas
-  pessoas por polo, terceiros, Ministério Público e autoridades — a
-  modelagem atual (`ParteProcesso.tipo`) não sustenta essas dimensões;
-  esta matriz registra a divergência, não a resolve.
+- [PDR-0013](../product/decisions/PDR-0013-partes-processo-modelo-simplificado.md)
+  substitui PDR-0001/PDR-0011 por um único campo de papel e advogado em
+  texto livre para `ParteProcesso`. A modelagem atualmente implementada
+  (três dimensões, `RepresentanteParte`, `HistoricoClassificacaoParte`)
+  segue o modelo substituído — divergência registrada aqui, pendente de
+  Work Item de simplificação, não de PDR-0001.
+- [PDR-0014](../product/decisions/PDR-0014-responsavel-integrantes-processos.md)
+  aprova a habilitação `processos_atribuir_responsavel` (ainda não
+  presente no kernel) e uma relação N:N de integrante habilitado
+  (`usuario_processos`, ainda não implementada), distinta de responsável
+  e de equipe — nenhuma das duas existe no código auditado.
 - IA condicionada ao PDR-0008: nenhuma operação de IA jurídica está
   implementada; a interface de Assistente/Laboratório não deve ser
   tratada como um produto de IA separado, apenas como a interface
@@ -376,13 +396,15 @@ Observações:
   `Equipe.equipe_pai` já existir no model — hierarquia de equipes
   continua em aberto, conforme [equipes.md](../product/modules/equipes.md),
   e fica fora do WI-0005.
-- Autorização binária por módulo (sem habilitações granulares) é a
-  decisão vigente para esta versão de Processos, conforme
+- Autorização binária por módulo (sem habilitações granulares, exceto a
+  reatribuição futura aprovada em PDR-0014) é a decisão vigente para esta versão de Processos, conforme
   [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md);
-  escopo por responsável e responsabilidade obrigatória são direção
-  aprovada para o WI-0005. Equipe não concede acesso, não filtra
+  escopo por responsável e responsabilidade obrigatória estão aplicados
+  no HEAD pelo WI-0005. Equipe não concede acesso, não filtra
   Processos e não participa desse escopo; `Da equipe` permanece para
-  evolução posterior.
+  evolução posterior. PDR-0014 abre a única exceção aprovada a essa
+  autorização binária, restrita a atribuir/reatribuir responsável
+  principal, condicionada a `processos_atribuir_responsavel`.
 
 ### Tarefas
 
@@ -518,19 +540,21 @@ ou "Solicitação de reembolso" foi encontrado em `apps/financeiro/` —
 existem no kernel, associados ao módulo `financeiro` em
 `PermissaoPapel`/`PermissaoUsuario`, mas o mapeamento definitivo entre
 esses valores e as operações abaixo deverá ser formalizado na
-implementação da matriz e, quando aplicável, após a resolução de
-OPEN-002 — esta matriz não fixa essa associação.
+implementação da matriz — esta matriz não fixa essa associação. O fluxo
+de estados já foi resolvido por
+[PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md).
 
 | Operação | Aut. módulo | Nível técnico | Habilitação | Escopo necessário | Aut. objeto | Integridade | Estado constatado | Alvo canônico | Classificação | Observação ou pendência |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Criar solicitação de pagamento | Módulo `financeiro`; mapeamento a um nível técnico específico não formalizado | Os níveis técnicos `solicitacoes` e `dados` existem no kernel, mas o mapeamento definitivo entre esses valores e esta operação deverá ser formalizado na implementação da matriz e, quando aplicável, após a resolução de OPEN-002 | Sem habilitação específica no kernel atual | O próprio solicitante, conforme [PDR-0006](../product/decisions/PDR-0006-solicitacoes-financeiras.md) | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Nenhum model, view ou rota foi encontrado para esta operação | Usuário sem acesso ao caixa geral deveria conseguir criar a solicitação, sem visualizar receitas/despesas completas | Evolução planejada | Modelagem de Solicitação pendente |
+| Criar solicitação de pagamento | Módulo `financeiro`; mapeamento a um nível técnico específico não formalizado | Os níveis técnicos `solicitacoes` e `dados` existem no kernel, mas o mapeamento definitivo entre esses valores e esta operação deverá ser formalizado na implementação da matriz | Sem habilitação específica no kernel atual | O próprio solicitante, conforme [PDR-0006](../product/decisions/PDR-0006-solicitacoes-financeiras.md) | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Nenhum model, view ou rota foi encontrado para esta operação | Usuário sem acesso ao caixa geral deveria conseguir criar a solicitação, sem visualizar receitas/despesas completas | Evolução planejada | Modelagem de Solicitação pendente |
 | Criar solicitação de reembolso | Idem | Idem | Idem | Idem | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Idem acima | Idem acima | Evolução planejada | Modelagem de Solicitação pendente |
 | Acompanhar status da própria solicitação | Idem | Idem | Idem | O próprio solicitante | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Idem acima | O solicitante deveria conseguir acompanhar o status da própria solicitação, conforme PDR-0006 | Evolução planejada | Modelagem de Solicitação pendente |
-| Processar solicitação (analisar/aprovar/rejeitar/pagar) | Módulo `financeiro`; mapeamento a um nível técnico específico não formalizado | Os níveis técnicos `solicitacoes` e `dados` existem no kernel, mas o mapeamento definitivo entre esses valores e esta operação deverá ser formalizado na implementação da matriz e, quando aplicável, após a resolução de OPEN-002 | Sem habilitação específica no kernel atual | Administrador do escritório e usuário com habilitação financeira, conforme PDR-0006 | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Nenhum model, view ou rota foi encontrado para esta operação | Administrador do escritório e usuário com habilitação financeira deveriam processar a solicitação | Evolução planejada | Bloqueado por OPEN-002 (etapas de aprovação) |
+| Processar solicitação (analisar/aprovar/rejeitar/pagar) | Módulo `financeiro`; mapeamento a um nível técnico específico não formalizado | Os níveis técnicos `solicitacoes` e `dados` existem no kernel, mas o mapeamento definitivo entre esses valores e esta operação deverá ser formalizado na implementação da matriz | Sem habilitação específica no kernel atual | Administrador do escritório e usuário com habilitação financeira, conforme PDR-0006 | Não aplicável — operação não implementada | Não aplicável — operação não implementada | Nenhum model, view ou rota foi encontrado para esta operação | Administrador do escritório e usuário com habilitação financeira deveriam processar a solicitação seguindo PDR-0015 | Evolução planejada | Fluxo de estados resolvido; modelagem e autorização das transições pendentes |
 
-Esta matriz não resolve [OPEN-002](../product/open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras)
-(etapas finais de aprovação) — o número e a semântica exatos dos
-estados intermediários permanecem em aberto.
+[PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md)
+já resolve o fluxo de estados (`solicitada → em análise → aprovada →
+paga`, ou `rejeitada` em `em análise`); esta matriz ainda não formaliza
+quem pode mover uma solicitação entre esses estados.
 
 #### Honorários
 
@@ -604,8 +628,8 @@ Rotas auditadas: `apps/modelos/views.py` (`lista`, `novo`, `detalhe`,
 
 | Operação | Aut. módulo | Nível técnico | Habilitação | Escopo necessário | Aut. objeto | Integridade | Estado constatado | Alvo canônico | Classificação | Observação ou pendência |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Listar | Chave `modelos` no kernel | `somente_seus`/`todos`, definidos para `modelos` | Não se aplica a uma listagem | Por `ModeloPeca.criado_por`, conforme [modelos.md](../product/modules/modelos.md) | Não aplicável | Não aplicável | `lista` não chama `tem_permissao_modulo`; `QuerySet` filtra apenas por busca textual (`q`), nunca por `criado_por` | Um usuário deveria acessar apenas modelos dentro de seu escopo autorizado | Lacuna constatada | — |
-| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica no kernel atual para "visualizar" | Idem acima | `get_object_or_404(ModeloPeca, pk=pk)` | Não aplicável | Objeto carregado sem condição de posse | Objeto deveria ser carregado já restrito ao escopo do usuário | Lacuna constatada | — |
+| Listar | Chave `modelos` no kernel | `somente_seus`/`todos`, definidos para `modelos` (estado constatado no kernel) | Não se aplica a uma listagem | Nenhum — acervo institucional, todo modelo do tenant, conforme decisão de 2026-08-31 em [modelos.md](../product/modules/modelos.md); `ModeloPeca.criado_por` não deve filtrar a listagem | Não aplicável | Não aplicável | `lista` não chama `tem_permissao_modulo`; `QuerySet` filtra apenas por busca textual (`q`), nunca por `criado_por` | Módulo `modelos` autorizado deveria ser suficiente para listar todo o acervo do tenant; `modelos` deveria sair de `NIVEIS_POR_MODULO` | Lacuna constatada (autorização de módulo) / Evolução planejada (remoção do nível) | — |
+| Visualizar (detalhe) | Idem | Idem | Sem habilitação específica no kernel atual para "visualizar" | Idem acima | `get_object_or_404(ModeloPeca, pk=pk)` | Não aplicável | Objeto carregado sem condição de posse | Objeto deveria ser carregado apenas com verificação de autorização de módulo, sem restrição por `criado_por` | Lacuna constatada | — |
 | Criar | Idem | Idem | `modelos_criar` existe no kernel | Não aplicável à criação em si | Não aplicável | `criado_por` preenchido com `request.user` | `apps/modelos/views.py::novo` não chama `tem_habilitacao` | Habilitação deveria ser exigida quando existir chave correspondente | Lacuna constatada | — |
 | Editar | Idem | Idem | Sem habilitação específica no kernel atual para edição geral (`modelos_editar_estilo` refere-se a `EstiloEscritorio`, não a `ModeloPeca`) | Idem ao escopo de leitura acima | `get_object_or_404(ModeloPeca, pk=pk)` | Mutação exige `POST` | Objeto carregado sem condição de posse | Objeto deveria ser carregado dentro do escopo do usuário | Lacuna constatada | — |
 | Importar | Idem | Idem | Sem habilitação específica no kernel atual (`importar` não está entre os itens de `modelos`) | Não aplicável à criação em si | Não aplicável | `criado_por` preenchido com `request.user` | `ImportarModeloPecaForm` valida extensão (`.pdf`/`.docx`) e tamanho máximo (10 MB) antes de extrair texto | Validação de arquivo já existe; habilitação não é exigida | Lacuna constatada | Candidata a reaproveitar `modelos_criar` |
@@ -613,6 +637,12 @@ Rotas auditadas: `apps/modelos/views.py` (`lista`, `novo`, `detalhe`,
 
 Observações:
 
+- Decisão de 2026-08-31 ([modelos.md](../product/modules/modelos.md))
+  determina remover `modelos` de `NIVEIS_POR_MODULO`, tratando o módulo
+  como Chat/Gerir (sem nível), já que nenhuma view aplica `somente_seus`/
+  `todos` para Modelos hoje e o acervo é sempre institucional. Mudança de
+  kernel ainda não implementada — até lá, o campo técnico permanece
+  presente, mas não deve ser reativado nas views.
 - `modelos_editar_estilo` é uma habilitação existente no kernel sem
   nenhuma view ou rota correspondente — `EstiloEscritorio` (tom de voz e
   instruções gerais do escritório) não possui `views.py`/`urls.py`
@@ -713,14 +743,16 @@ Observações:
 | Financeiro (todas as áreas) | Listar, criar, editar, marcar pago, cancelar, reabrir, excluir lançamento; listar/criar custa | Módulo `financeiro` não possui nenhum item em `ITENS_POR_MODULO` | Depende apenas de módulo + escopo + autorização da ação; os valores de nível técnico `solicitacoes`/`dados` já existem no kernel para este módulo, mas seu mapeamento definitivo a operações específicas não está formalizado; candidata a habilitação futura caso operações específicas (por exemplo, "cancelar lançamento") precisem de controle mais fino |
 | Chat | Acessar lista, acessar conversa, enviar mensagem | Módulo `chat` não possui nenhum item em `ITENS_POR_MODULO` | Depende apenas de módulo + escopo (participação na conversa) |
 | Dashboard | Visualizar painel, indicadores, indicadores financeiros | Módulo `painel` não possui nenhum item em `ITENS_POR_MODULO` | Depende apenas de módulo + escopo agregado dos módulos de origem |
-| Processos | Arquivar, reabrir, adicionar participante | `ITENS_POR_MODULO["processos"]` cobre criar/editar/andamento/IA/laboratório, mas não arquivar/reabrir/participante | Na versão atual, dependem apenas da autorização binária do módulo, conforme [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md); habilitações específicas permanecem evolução futura e não bloqueiam a Fase A |
+| Processos | Reabrir, adicionar participante | `ITENS_POR_MODULO["processos"]` cobre criar/editar/andamento/IA/laboratório, mas não reabrir/participante | Na versão atual, dependem apenas da autorização binária do módulo, conforme [PDR-0010](../product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md); habilitações específicas permanecem evolução futura e não bloqueiam a Fase A |
+| Processos | Arquivar | `ITENS_POR_MODULO["processos"]` não tem chave dedicada | Na versão atual, segue autorização binária do módulo e fronteira de mutação por responsabilidade, conforme PDR-0010/PDR-0014; não reaproveita `processos_editar` sem nova decisão |
+| Processos | Atribuir/reatribuir responsável principal | `ITENS_POR_MODULO["processos"]` não tem `processos_atribuir_responsavel` ainda | Resolvido por [PDR-0014](../product/decisions/PDR-0014-responsavel-integrantes-processos.md): nova chave `processos_atribuir_responsavel`, pendente de adição ao kernel e de Work Item de implementação |
 | Clientes | Desativar, reativar, listar inativos | `ITENS_POR_MODULO["clientes"]` cobre apenas criar/editar | Não decidido — candidata a habilitação futura ou tratamento como parte de `clientes_editar` |
 | Tarefas | Iniciar, concluir, reabrir, excluir, atribuir a si mesmo | `ITENS_POR_MODULO["tarefas"]` cobre apenas `tarefas_atribuir_outros` | Depende apenas de módulo + escopo (responsável atual); "atribuir a outros" já possui chave, mas não está implementada na interface |
 | Agenda | Editar, concluir, cancelar, reabrir, excluir | `ITENS_POR_MODULO["agenda"]` cobre apenas `agenda_criar_para_outros` | Depende apenas de módulo + escopo (responsável/participante) |
 | Modelos | Visualizar, importar, reutilizar | `ITENS_POR_MODULO["modelos"]` cobre apenas criar e editar estilo | Não decidido — "importar" candidata a reaproveitar `modelos_criar`; "reutilizar" não decidido, pois a operação em si não está implementada |
 | Configurações | Editar o próprio perfil, visualizar configurações | Sem chave de habilitação — controlado por identidade do próprio usuário (`request.user`) | Depende apenas de autenticação; não é candidata a habilitação, por não envolver escopo de terceiros |
 
-## Habilitações sem enforcement constatado
+## Enforcement constatado das habilitações
 
 | Chave de habilitação | Módulo | Finalidade funcional | Uso constatado nas views |
 | --- | --- | --- | --- |
@@ -729,8 +761,8 @@ Observações:
 | `processos_andamento_adicionar` | Processos | Habilitar adição de andamento/movimentação | Não encontrado em uso |
 | `processos_usar_ia` | Processos | Habilitar uso de IA jurídica no contexto do processo | Não encontrado em uso; funcionalidade de IA não implementada |
 | `processos_usar_laboratorio` | Processos | Habilitar uso do Assistente/Laboratório | Não encontrado em uso; `apps/laboratorio/views.py` não consulta habilitação alguma |
-| `clientes_criar` | Clientes | Habilitar criação de cliente | Não encontrado em uso |
-| `clientes_editar` | Clientes | Habilitar edição de cliente | Não encontrado em uso |
+| `clientes_criar` | Clientes | Habilitar criação de cliente | Aplicada em `apps/clientes/views.py::novo` |
+| `clientes_editar` | Clientes | Habilitar edição de cliente | Aplicada em `apps/clientes/views.py::editar` |
 | `tarefas_atribuir_outros` | Tarefas | Habilitar atribuição de tarefa a outro usuário | Não encontrado em uso; `TarefaForm` não expõe campo `responsavel`, portanto não há ponto no código onde esta habilitação poderia ser consultada |
 | `modelos_criar` | Modelos | Habilitar criação de modelo | Não encontrado em uso |
 | `modelos_editar_estilo` | Modelos | Habilitar edição do estilo do escritório (`EstiloEscritorio`) | Não encontrado em uso; adicionalmente, não há view/rota para `EstiloEscritorio` |
@@ -740,10 +772,9 @@ Observações:
 | `gerir_criar_equipe` | Gerir | Habilitar criação de equipe | Não encontrado em uso; `nova_equipe` usa `@requer_admin_escritorio`, não `tem_habilitacao` |
 | `gerir_habilitar_terceiros` | Gerir | Finalidade funcional não detalhada além do nome da chave | Não encontrado em uso |
 
-Nenhuma das 15 habilitações definidas em `ITEM_CHOICES`
-(`apps/accounts/permissoes_constants.py`) foi encontrada em uso fora de
-`apps/accounts/permissoes.py` e dos testes de `apps/accounts/tests/`,
-conforme já registrado em [authorization-model.md](authorization-model.md).
+Das 15 habilitações definidas em `ITEM_CHOICES`
+(`apps/accounts/permissoes_constants.py`), apenas `clientes_criar` e
+`clientes_editar` foram encontradas em uso nas views operacionais.
 Para `processos_criar`, `processos_editar` e
 `processos_andamento_adicionar`, essa ausência de enforcement é a
 política deliberada da versão atual definida pelo
@@ -755,7 +786,8 @@ lacuna nem dívida bloqueante da Fase A de Processos.
 
 | Módulo | Valores atuais de `nivel` | Interpretação técnica atual | Limite canônico |
 | --- | --- | --- | --- |
-| Processos, Clientes, Tarefas, Modelos, Painel, Agenda | `somente_seus`, `todos` | Resolvido por `permissao_efetiva()`/`nivel_acesso_modulo()`, em `apps/accounts/permissoes.py`; não lido por nenhuma view operacional para filtrar um `QuerySet` | Não deve ser tratado como escopo já aplicado nem como autorização de ação; mistura, sem decompor, possíveis noções de "quantos registros o usuário alcança" |
+| Processos, Clientes, Tarefas, Painel, Agenda | `somente_seus`, `todos` | Resolvido por `permissao_efetiva()`/`nivel_acesso_modulo()`; lido por Clientes e Processos para filtrar `QuerySet`s, ainda ignorado por Tarefas, Painel e Agenda | Em Clientes e Processos representa escopo de leitura aplicado; não autoriza mutação. Nos demais módulos não prova escopo aplicado |
+| Modelos | `somente_seus`, `todos` (estado constatado; não lido por nenhuma view) | Idem acima | Alvo canônico (decisão de 2026-08-31): remover `modelos` de `NIVEIS_POR_MODULO` e tratar o módulo como Chat/Gerir — acervo sempre institucional, sem dimensão de nível; mudança de kernel pendente |
 | Financeiro | `solicitacoes`, `dados` | Os nomes desses valores guardam semelhança com a distinção entre acesso limitado a solicitações e acesso pleno a dados financeiros descrita em [financeiro.md](../product/modules/financeiro.md), mas essa correspondência não é uma decisão canônica formalizada nem é lida por `apps/financeiro/views.py` | Não deve ser tratado como o mecanismo que já implementa a separação de acesso ao caixa geral exigida por PDR-0006; o mapeamento definitivo entre esses valores e as operações do módulo, se vier a existir, deverá ser formalizado na implementação da matriz |
 | Chat, Gerir | `""` (vazio) | Módulos sem escopo de dados por nível — apenas a autorização de módulo (`ativo`) se aplica, conforme `NIVEIS_POR_MODULO` | Não se aplica decomposição de nível a estes módulos; qualquer futura granularidade em `gerir` deveria usar habilitação, não nível |
 
@@ -769,15 +801,15 @@ conforme [data-scope.md](data-scope.md).
 
 | Área | Estado constatado | Alvo canônico | Tipo de trabalho futuro |
 | --- | --- | --- | --- |
-| Autorização de módulo | Kernel resolve corretamente via `permissao_efetiva()`; Clientes e as nove views de Processos chamam `tem_permissao_modulo`; os demais módulos operacionais ainda não aplicam o helper | Toda view operacional deveria verificar autorização de módulo antes de processar a requisição | Aplicação do kernel nas views restantes (Rodada 2.1, [PDR-0009](../product/decisions/PDR-0009-sequencia-fase-2.md)); Fase A de Processos satisfeita pelo WI-0004 conforme PDR-0010 |
+| Autorização de módulo | Kernel resolve corretamente via `permissao_efetiva()`; Clientes e todas as views de Processos chamam `tem_permissao_modulo`; os demais módulos operacionais ainda não aplicam o helper | Toda view operacional deveria verificar autorização de módulo antes de processar a requisição | Aplicação do kernel nas views restantes; Fase A de Processos satisfeita pelo WI-0004 conforme PDR-0010 |
 | Habilitações | 15 itens definidos e cobertos por testes do kernel; Clientes consome suas habilitações de criar/editar; Processos preserva suas chaves granulares sem enforcement por decisão do PDR-0010 | Habilitação deve gatear operações sensíveis quando exigida pela decisão canônica vigente do módulo | Aplicação de `tem_habilitacao()` nas views correspondentes conforme a política de cada módulo; as chaves granulares de Processos são evolução futura e não bloqueiam sua Fase A |
-| Escopo | Helpers de equipe existem (`apps/accounts/escopo.py`), mas não filtram nenhum `QuerySet`; `nivel` não é lido como escopo | `QuerySet`s de listagem e objetos por `pk` deveriam nascer filtrados pelo escopo do usuário | Implementação de filtros de escopo por responsável/equipe/participante em cada módulo operacional |
-| Objetos por ID | `get_object_or_404` sem condição de posse em Clientes, Processos, Tarefas, Agenda, Financeiro e Modelos | Objeto deveria ser carregado dentro do `QuerySet` já restrito por escopo | Reescrever consultas de detalhe/edição/exclusão para reutilizar o escopo da listagem |
+| Escopo | Clientes e Processos filtram leitura por `nivel`/responsável e usam fronteira distinta para mutação; helpers de equipe existem (`apps/accounts/escopo.py`), mas não formam escopo | `QuerySet`s de listagem e objetos por `pk` deveriam nascer filtrados pelo escopo do usuário | Implementação nos módulos restantes; preservar o padrão já aplicado em Clientes e Processos |
+| Objetos por ID | Clientes e Processos carregam objetos dentro de `QuerySet`s de leitura/mutação restritos; Tarefas, Agenda, Financeiro e Modelos ainda usam `get_object_or_404` sem condição de posse | Objeto deveria ser carregado dentro do `QuerySet` já restrito por escopo | Reescrever consultas dos módulos restantes para reutilizar o escopo da listagem |
 | Dashboard | Agrega dados de todo o tenant sem filtro por usuário | Indicadores deveriam refletir apenas o escopo do usuário que consulta | Aplicar escopo ao Dashboard depois de os módulos de origem já aplicarem escopo (ordem recomendada nas fontes históricas subordinadas) |
 | Financeiro | Módulo sem habilitações; `nivel` `solicitacoes`/`dados` não lido; nenhuma distinção entre usuário com/sem acesso ao caixa geral; solicitações e honorários não modelados como entidades próprias | Usuário sem acesso ao caixa geral deveria ver apenas suas próprias solicitações ([PDR-0006](../product/decisions/PDR-0006-solicitacoes-financeiras.md)), sem visualizar totais completos | Implementar modelagem de Solicitação e de Honorário, e formalizar o mecanismo de controle de acesso ao caixa geral (podendo ou não reaproveitar o campo `nivel` já existente) |
 | Integridade cliente-processo | Preenchimento automático de `cliente` a partir de `processo.cliente` quando ausente, em Tarefas e Agenda; nenhuma rejeição de combinação inconsistente enviada por `POST` | O servidor deveria rejeitar um vínculo cliente-processo inconsistente, mesmo com requisição manipulada | Validação de integridade em `TarefaForm`/`CompromissoForm` e nas views associadas |
 | Sidebar/interface | `templates/components/sidebar.html` exibe todos os módulos a qualquer usuário autenticado, sem condicionar a `tem_permissao_modulo`, conforme [authorization-model.md](authorization-model.md) | A interface deveria refletir, não substituir, a autorização real resolvida no backend | Condicionar itens de menu à autorização de módulo já resolvida no backend, sem que essa condicional seja a única barreira |
-| Testes negativos | Testes extensivos do kernel em `apps/accounts/tests/`; Clientes cobre autorização e escopo; Processos cobre autorização binária de módulo nas nove views (WI-0004), sem escopo por ainda pertencer ao WI-0005; testes de fumaça (`_SmokeBase`) verificam apenas ausência de HTTP 500 | Deveria existir teste negativo por módulo e, quando a fase de escopo estiver implementada, um usuário sem escopo não deveria alcançar registro de outro usuário do mesmo tenant | Criação dos testes ainda ausentes nos demais módulos e dos testes de escopo de Processos no WI-0005 |
+| Testes negativos | Testes extensivos do kernel em `apps/accounts/tests/`; Clientes cobre autorização e escopo; Processos cobre autorização binária, escopo/responsabilidade, participantes e apensos; testes de fumaça (`_SmokeBase`) verificam apenas ausência de HTTP 500 | Deveria existir teste negativo por módulo e, quando a fase de escopo estiver implementada, um usuário sem escopo não deveria alcançar registro de outro usuário do mesmo tenant | Criação dos testes ainda ausentes nos demais módulos; PDR-0013/PDR-0014 exigirão novos testes quando implementados |
 | Arquivos | Nenhum objeto interno (Cliente, Processo, Tarefa, etc.) possui campo de upload; avatar de usuário e identidade visual não têm checagem de autorização dedicada além de `@login_required`/`@requer_admin_escritorio` | Um arquivo vinculado a um registro pai deveria exigir a mesma autorização que o registro pai | Definir estratégia de segregação e autorização de arquivos quando anexos de objetos internos forem introduzidos |
 | IA | `apps.laboratorio` é um shell visual sem lógica de negócio; nenhuma permissão ou habilitação é consultada | IA jurídica só deveria operar após os pré-requisitos do [PDR-0008](../product/decisions/PDR-0008-ia-apos-nucleo-funcional.md) estarem consolidados, e nunca ampliar o escopo já autorizado ao usuário | Implementação futura da IA jurídica condicionada à consolidação do núcleo funcional descrita nesta matriz |
 
@@ -789,10 +821,6 @@ Esta matriz preserva, sem resolver, os seguintes pontos:
   [open-decisions.md](../product/open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão);
   afeta a modelagem de autorização de futuras ocorrências recorrentes e
   parceladas.
-- **OPEN-002** — etapas de aprovação das solicitações financeiras,
-  conforme
-  [open-decisions.md](../product/open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras);
-  afeta quem processa cada transição de estado de uma solicitação.
 - **Regra final por módulo para múltiplas equipes** — um usuário pode
   pertencer a mais de uma `Equipe` (`MembroEquipe` não é `unique` por
   usuário), mas nenhuma regra de produto aprovada define como o escopo

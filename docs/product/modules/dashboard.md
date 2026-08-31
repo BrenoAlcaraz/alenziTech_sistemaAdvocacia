@@ -39,7 +39,7 @@ futuro, não desta especificação.
 - O alcance exato é definido em
   [docs/security/authorization-matrix.md](../../security/authorization-matrix.md).
   O estado de aplicação dessas regras no backend deve ser verificado no
-  código e em [docs/delivery/current-state.md](../../delivery/current-state.md).
+  código e em [docs/delivery/current-state/dashboard.md](../../delivery/current-state/dashboard.md).
 - O backend deve filtrar agregações e registros de origem; ocultar ou
   exibir um card na interface não substitui essa filtragem.
 

@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --purple:#6c4bc2;
+    --purple-soft:#ece7fb;
+    --line:#dde3ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI', Roboto, -apple-system, sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:88px;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;flex-shrink:0;}
+  .sidebar .logo{width:40px;height:40px;border-radius:10px;background:var(--navy-light);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;margin-bottom:28px;}
+  .nav-item{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;margin-bottom:6px;border-radius:10px;color:#8f9ac0;font-size:11px;cursor:pointer;}
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:900px;width:100%;}
+
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);margin-bottom:22px;}
+
+  .btn-dark{background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .btn-dark:disabled{background:#c3cbe0;cursor:not-allowed;}
+  .btn-outline{border:1px solid var(--line);background:#fff;color:var(--text);padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-outline:hover{border-color:#c3cbe0;}
+  .btn-outline.danger{color:var(--red);border-color:#f0c6c6;}
+  .btn-outline.danger:hover{background:var(--red-soft);}
+  .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-link:hover{text-decoration:underline;}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 26px;margin-bottom:18px;}
+
+  /* Card de perfil */
+  .profile-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line);}
+  .profile-row:last-child{border-bottom:none;padding-bottom:0;}
+  .profile-row:first-child{padding-top:0;}
+  .profile-left{display:flex;align-items:center;gap:14px;}
+  .profile-avatar{width:48px;height:48px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;}
+  .profile-name{font-size:15px;font-weight:700;}
+  .profile-sub{font-size:12.5px;color:var(--text-mute);}
+  .icon-badge{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .icon-badge.blue{background:var(--blue-soft);color:var(--blue);}
+  .icon-badge.red{background:var(--red-soft);color:var(--red);}
+
+  /* Contador de usuários / plano */
+  .plan-label{font-size:12px;color:var(--text-mute);margin-bottom:2px;}
+  .usage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .usage-count{font-size:16px;font-weight:800;}
+  .usage-bar-track{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;margin-bottom:20px;}
+  .usage-bar-fill{height:100%;background:var(--blue);border-radius:6px;}
+  .usage-bar-fill.full{background:var(--red);}
+
+  /* Lista de usuários */
+  .user-row{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line);}
+  .user-row:last-child{border-bottom:none;}
+  .user-left{display:flex;gap:14px;}
+  .user-left.clickable-user{cursor:pointer;border-radius:10px;padding:4px 6px;margin:-4px -6px;}
+  .user-left.clickable-user:hover{background:var(--bg);}
+  .user-left.clickable-self{cursor:pointer;border-radius:10px;padding:4px 6px;margin:-4px -6px;}
+  .user-left.clickable-self:hover{background:var(--bg);}
+  .attach-box{border:1.5px dashed var(--line);border-radius:12px;padding:16px;text-align:center;color:var(--text-mute);font-size:13px;cursor:pointer;}
+  .attach-box:hover{border-color:var(--blue);color:var(--blue);}
+  .attach-box.small{padding:12px;font-size:12px;}
+
+  /* Filtro de processos (reutilizado em Equipes e Detalhe do usuário) */
+  .proc-filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .proc-filter-field{flex:1;min-width:130px;}
+  .proc-filter-field label{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:4px;display:block;text-transform:uppercase;}
+  .proc-filter-input, .proc-filter-select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;font-family:inherit;background:#fff;}
+  .proc-checklist{border:1px solid var(--line);border-radius:9px;max-height:260px;overflow-y:auto;}
+  .proc-check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;}
+  .proc-check-row:last-child{border-bottom:none;}
+  .proc-check-row .pc-info{flex:1;}
+  .proc-check-row .pc-nome{font-weight:600;}
+  .proc-check-row .pc-meta{font-size:11px;color:var(--text-mute);margin-top:2px;}
+  .proc-selected-count{font-size:11.5px;color:var(--text-mute);margin:8px 0 18px;}
+  .demo-viewas{display:flex;align-items:center;gap:10px;margin-bottom:20px;font-size:12.5px;color:var(--text-mute);}
+  .demo-viewas-label{font-weight:600;}
+  .sim-panel{display:flex;flex-wrap:wrap;gap:16px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:22px;}
+  .sim-item{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .sim-item input{width:15px;height:15px;accent-color:var(--navy);}
+  .user-avatar{width:40px;height:40px;border-radius:50%;background:#a89f95;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+  .user-name{font-size:14.5px;font-weight:700;}
+  .user-name .you-tag{font-size:11.5px;font-weight:500;color:var(--text-mute);}
+  .user-meta{font-size:12px;color:var(--text-mute);line-height:1.7;margin-top:2px;}
+  .user-meta i{font-style:italic;}
+  .user-trash{color:var(--text-mute);cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;}
+  .user-trash:hover{background:var(--red-soft);color:var(--red);}
+  .ghost-slot{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--line);opacity:.4;}
+  .ghost-slot:last-child{border-bottom:none;}
+  .ghost-avatar{width:40px;height:40px;border-radius:50%;border:2px dashed var(--line);flex-shrink:0;}
+  .ghost-text{font-size:12.5px;color:var(--text-mute);font-style:italic;}
+
+  /* Administração / linhas com botão Gerenciar */
+  .admin-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line);}
+  .admin-row:last-child{border-bottom:none;}
+  .admin-row:first-child{padding-top:0;}
+  .admin-title{font-size:14.5px;font-weight:700;}
+  .admin-desc{font-size:12.5px;color:var(--text-mute);margin-top:2px;}
+  .section-label{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text-mute);margin-bottom:10px;text-transform:uppercase;}
+
+  /* Form */
+  .form-label{font-size:13px;font-weight:600;margin-bottom:6px;display:block;}
+  .form-hint{font-size:11.5px;color:var(--text-mute);margin-top:6px;line-height:1.6;}
+  .form-input, .form-select, .form-textarea{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+    font-size:13.5px;color:var(--text);background:#fff;font-family:inherit;margin-bottom:18px;
+  }
+  .form-textarea{resize:vertical;min-height:70px;}
+  .form-select{cursor:pointer;}
+  .form-actions{display:flex;gap:10px;margin-top:8px;}
+
+  /* Tabela Equipes */
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--text-mute);text-transform:uppercase;padding:10px 8px;border-bottom:1px solid var(--line);}
+  td{padding:14px 8px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  .status-pill{font-size:11px;font-weight:700;background:var(--green-soft);color:var(--green);padding:3px 10px;border-radius:20px;}
+  .table-link{color:var(--blue);font-weight:600;cursor:pointer;font-size:12.5px;}
+  .table-link + .table-link{margin-left:12px;}
+
+  /* Permissões / Habilitações */
+  .role-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:20px;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+  .role-tab{padding:12px 18px;font-size:13.5px;font-weight:600;color:var(--text-mute);cursor:pointer;border-bottom:2.5px solid transparent;}
+  .role-tab.active{color:var(--text);border-color:var(--navy);font-weight:700;}
+  .perm-intro{font-size:13px;color:var(--text-mute);margin-bottom:20px;}
+
+  .perm-item{padding:16px 0;border-bottom:1px solid var(--line);}
+  .perm-item:last-child{border-bottom:none;}
+  .perm-item.ghost{opacity:.4;}
+  .perm-head{display:flex;align-items:center;justify-content:space-between;}
+  .perm-title{font-size:14.5px;font-weight:600;}
+  .perm-sub{display:flex;gap:20px;margin-top:10px;}
+  .radio-opt{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text);cursor:pointer;}
+  .radio-opt input{accent-color:var(--navy);width:15px;height:15px;}
+
+  .switch{width:38px;height:22px;border-radius:20px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+  .switch.on{background:var(--navy);}
+  .switch.disabled{cursor:not-allowed;background:#e4e8f2;}
+  .switch-knob{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .15s;}
+  .switch.on .switch-knob{left:19px;}
+
+  .hab-group-label{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--text-mute);text-transform:uppercase;margin:22px 0 6px;}
+  .hab-group-label:first-child{margin-top:0;}
+  .hab-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);}
+  .hab-item:last-child{border-bottom:none;}
+  .hab-item-title{font-size:13.5px;}
+  .hab-group-ghost .hab-group-label{opacity:.5;}
+  .hab-group-ghost-note{font-size:11px;color:#9aa3bd;font-style:italic;margin-left:8px;}
+  .hab-group-collapsed{padding:12px 0;color:#9aa3bd;font-size:12.5px;font-style:italic;border-bottom:1px solid var(--line);}
+
+  .individual-user-row{display:flex;align-items:center;gap:14px;padding:16px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .individual-user-row:last-child{border-bottom:none;}
+  .individual-user-row:hover{background:var(--bg);}
+  .individual-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg);border:1px solid var(--line);color:var(--text-mute);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+
+  .view{display:none;} .view.active{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Config.
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="demo-viewas">
+        <span class="demo-viewas-label">Ver Configurações como:</span>
+        <select class="proc-filter-select" id="viewas-select" style="width:auto;display:inline-block;">
+          <option value="mestre">Mestre</option>
+          <option value="nao-mestre">Não-mestre (Administrador/Ilimitado/Financeiro)</option>
+        </select>
+      </div>
+
+      <!-- ===================== VIEW PRINCIPAL ===================== -->
+      <div class="view active" id="view-principal">
+        <div class="page-title">Configurações</div>
+        <div class="page-subtitle">Gestão de usuários do escritório e da sua conta</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            É o painel de administração do escritório: aqui o dono gerencia usuários, equipes, os dados do escritório e — o mais importante — <b>quem pode ver e fazer o quê</b> no sistema. Ao contratar a plataforma, o escritório recebe automaticamente 1 usuário <b>Mestre</b> — o dono, com acesso ilimitado a absolutamente tudo, inclusive dados de todos os outros usuários, e que <b>nunca pode ser excluído</b>. Por isso ele nem aparece nas telas de Permissões/Habilitações — não há nada a restringir nele. É o mestre quem cria os demais usuários (até o limite do plano), sempre com um dos 3 papéis configuráveis: <b>Administrador</b>, <b>Ilimitado</b> e <b>Financeiro</b>. Esses 3 têm o que podem ver e editar configurado pelo mestre, e servem de "regra geral" que todo usuário novo daquele papel segue por padrão.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Cada usuário tem um campo <code>papel</code> (<code>mestre</code> / <code>administrador</code> / <code>limitado</code> / <code>financeiro</code>). O usuário mestre é criado automaticamente no fluxo de contratação/pagamento do plano (<code>is_mestre=true</code>), ignora toda checagem de permissão (sempre passa), e a rota/ação de excluir usuário deve bloquear explicitamente qualquer tentativa de apagar um usuário com <code>is_mestre=true</code> — tanto no botão do frontend (nem mostrar a lixeira pra ele) quanto no backend (retornar erro se alguém tentar via API). Para os outros 3 papéis, crie uma tabela <code>permissoes_papel</code> (papel, módulo, habilitado, sub_opcao) e uma <code>habilitacoes_papel</code> (papel, módulo, ação, habilitado) — completamente independentes entre si (editar as linhas do papel <code>administrador</code> nunca deve alterar as do <code>limitado</code> ou <code>financeiro</code>).
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="profile-avatar">SE</div>
+              <div>
+                <div class="profile-name">sergio</div>
+                <div class="profile-sub">sergio</div>
+              </div>
+            </div>
+            <button class="btn-outline" id="btn-editar-perfil">Editar perfil</button>
+          </div>
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="icon-badge blue">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div>
+                <div class="profile-name" style="font-size:14px;">Senha de acesso</div>
+                <div class="profile-sub">Exige confirmar a senha atual</div>
+              </div>
+            </div>
+            <button class="btn-outline">Alterar senha</button>
+          </div>
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="icon-badge red">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              </div>
+              <div>
+                <div class="profile-name" style="font-size:14px;">Sair do sistema</div>
+                <div class="profile-sub">Encerra sua sessão neste dispositivo</div>
+              </div>
+            </div>
+            <button class="btn-outline danger">Sair</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="usage-head" style="margin-bottom:4px;">
+            <div class="plan-label" style="margin-bottom:0;">Plano Profissional</div>
+            <span class="table-link" id="btn-upgrade-plano">Fazer upgrade de plano →</span>
+          </div>
+          <div class="usage-head">
+            <div class="usage-count" id="usage-count">5 de 10 usuários ativos</div>
+            <button class="btn-dark" id="btn-novo-usuario">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+              Novo usuário
+            </button>
+          </div>
+          <div class="usage-bar-track"><div class="usage-bar-fill" id="usage-bar" style="width:50%;"></div></div>
+
+          <div id="user-list">
+            <div class="user-row">
+              <div class="user-left clickable-user" data-user-detail="ana">
+                <div class="user-avatar">AL</div>
+                <div>
+                  <div class="user-name">Ana Gabriela Lenzi</div>
+                  <div class="user-meta">@ana.gabriela<br>Papel: Ilimitado<br>Cargo: Recepcionista<br>Equipes: <i>Nenhuma equipe vinculada</i></div>
+                </div>
+              </div>
+              <div class="user-trash"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+            </div>
+
+            <div class="user-row">
+              <div class="user-left clickable-user" data-user-detail="felipe">
+                <div class="user-avatar">FC</div>
+                <div>
+                  <div class="user-name">Felipe Costa</div>
+                  <div class="user-meta">@felipe.costa<br>Papel: Ilimitado<br>Cargo: Advogado<br>Equipes: Equipe Azul</div>
+                </div>
+              </div>
+              <div class="user-trash"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+            </div>
+
+            <div class="user-row">
+              <div class="user-left clickable-user" data-user-detail="joao">
+                <div class="user-avatar">JS</div>
+                <div>
+                  <div class="user-name">João Souza</div>
+                  <div class="user-meta">@joao.souza<br>Papel: Ilimitado<br>Cargo: Advogado<br>Equipes: Equipe Azul</div>
+                </div>
+              </div>
+              <div class="user-trash"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+            </div>
+
+            <div class="user-row">
+              <div class="user-left">
+                <div class="user-avatar">SE</div>
+                <div>
+                  <div class="user-name">sergio <span class="you-tag">(você)</span></div>
+                  <div class="user-meta">@sergio<br>Papel: Sem papel definido<br>Cargo: Não informado<br>Equipes: <i>Nenhuma equipe vinculada</i></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="user-row">
+              <div class="user-left clickable-user" data-user-detail="teste">
+                <div class="user-avatar">TF</div>
+                <div>
+                  <div class="user-name">teste financeiro</div>
+                  <div class="user-meta">@teste<br>Papel: Financeiro<br>Cargo: teste<br>Equipes: <i>Nenhuma equipe vinculada</i></div>
+                </div>
+              </div>
+              <div class="user-trash"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+            </div>
+          </div>
+
+          <div id="ghost-slots">
+            <div class="ghost-slot"><div class="ghost-avatar"></div><div class="ghost-text">Vaga disponível no plano — clique em "Novo usuário" para preencher</div></div>
+            <div class="ghost-slot"><div class="ghost-avatar"></div><div class="ghost-text">Vaga disponível no plano — clique em "Novo usuário" para preencher</div></div>
+            <div class="ghost-slot"><div class="ghost-avatar"></div><div class="ghost-text">Vaga disponível no plano — clique em "Novo usuário" para preencher</div></div>
+            <div class="ghost-slot"><div class="ghost-avatar"></div><div class="ghost-text">Vaga disponível no plano — clique em "Novo usuário" para preencher</div></div>
+            <div class="ghost-slot"><div class="ghost-avatar"></div><div class="ghost-text">Vaga disponível no plano — clique em "Novo usuário" para preencher</div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-label">Administração</div>
+          <div class="admin-row">
+            <div>
+              <div class="admin-title">Equipes</div>
+              <div class="admin-desc">Organize a estrutura interna do escritório</div>
+            </div>
+            <button class="btn-outline" id="btn-abrir-equipes">Gerenciar</button>
+          </div>
+          <div class="admin-row">
+            <div>
+              <div class="admin-title">Permissões</div>
+              <div class="admin-desc">Definir o que cada tipo de conta pode visualizar e acessar</div>
+            </div>
+            <button class="btn-outline" id="btn-abrir-permissoes">Gerenciar</button>
+          </div>
+          <div class="admin-row">
+            <div>
+              <div class="admin-title">Habilitações</div>
+              <div class="admin-desc">Definir atuação de cada usuário</div>
+            </div>
+            <button class="btn-outline" id="btn-abrir-habilitacoes">Gerenciar</button>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:0;">
+          <div class="admin-row" style="border-bottom:none;">
+            <div>
+              <div class="admin-title">Dados do escritório</div>
+              <div class="admin-desc" id="dados-escritorio-status">Dados do escritório ainda não preenchidos.</div>
+            </div>
+            <button class="btn-outline" id="btn-abrir-dados">Editar dados do escritório</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-principal -->
+
+      <!-- ===================== VIEW PRINCIPAL — NÃO-MESTRE ===================== -->
+      <div class="view" id="view-principal-nm">
+        <div class="page-title">Configurações</div>
+        <div class="page-subtitle">Gestão de usuários do escritório e da sua conta</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Esta é a mesma tela de Configurações, só que do ponto de vista de um usuário que <b>não</b> é mestre — vale igual pra Administrador, Ilimitado ou Financeiro, a diferença de conteúdo aqui vem sempre das Permissões/Habilitações daquele papel, nunca do papel em si. Editar o próprio perfil, trocar senha e sair do sistema estão sempre disponíveis pra qualquer usuário. Mas o card de uso do plano (contagem de usuários, botão Novo usuário) e as opções de Administração (Equipes, Permissões, Habilitações) só aparecem se o módulo <b>Gerir</b> estiver permitido pra esse usuário, e mesmo assim cada pedaço específico só aparece se a habilitação correspondente também estiver ligada. Sem isso, o usuário vê uma versão bem mais enxuta: só o próprio nome (que ele pode clicar pra ver os processos em que está habilitado) e, em Equipes, só as equipes das quais ele mesmo faz parte.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Ao carregar essa tela, consulte <code>habilitacoes_papel</code> (ou <code>habilitacoes_usuario</code>, se houver override individual) pro papel do usuário logado, checando especificamente: <code>gerir.habilitado</code>, <code>gerir.criar_novo_usuario</code>, <code>gerir.criar_grupos</code>, <code>gerir.habilitar_usuarios_em_processos</code>, <code>gerir.habilitar_terceiros</code>. Cada bloco da tela é renderizado condicionalmente a partir dessas flags — veja o simulador abaixo pra testar as combinações. Nunca esconda só no frontend: as rotas de API de Equipes/Permissões/Habilitações também precisam checar essas mesmas flags no backend antes de responder.
+          </div>
+        </div>
+
+        <div class="sim-panel">
+          <div class="sim-item"><input type="checkbox" id="sim-gerir"> <label for="sim-gerir"><b>Gerir permitido (Permissões)</b></label></div>
+          <div class="sim-item"><input type="checkbox" id="sim-criar-usuario"> <label for="sim-criar-usuario">Criar novo usuário</label></div>
+          <div class="sim-item"><input type="checkbox" id="sim-criar-grupos"> <label for="sim-criar-grupos">Criar grupos</label></div>
+          <div class="sim-item"><input type="checkbox" id="sim-hab-processos"> <label for="sim-hab-processos">Habilitar usuários em processos</label></div>
+          <div class="sim-item"><input type="checkbox" id="sim-hab-terceiros"> <label for="sim-hab-terceiros">Habilitar terceiros</label></div>
+        </div>
+        <div class="form-hint" id="sim-hint" style="margin-top:-14px;margin-bottom:18px;color:var(--amber);">⚠️ Marque "Gerir permitido" primeiro — as 4 opções abaixo dele só têm efeito com o Gerir ligado (assim como no sistema real).</div>
+
+        <div class="panel" style="background:var(--bg);border-style:dashed;">
+          <div class="admin-title" style="margin-bottom:12px;font-size:13px;">O que acontece em cada hipótese</div>
+          <div style="font-size:12.5px;color:var(--text-mute);line-height:2;">
+            <b>Gerir desligado</b> → nenhuma das 4 opções abaixo faz efeito, mesmo que estejam marcadas — ele só vê o próprio nome e "Minhas equipes".<br>
+            <b>Gerir ligado, mais nada</b> → mesma visão enxuta de quando Gerir está desligado (o Gerir sozinho não libera nada — ele só é o "portão" pras habilitações específicas).<br>
+            <b>Gerir + Criar novo usuário</b> → aparece o card de uso do plano completo (contagem + lista de usuários + botão Novo usuário).<br>
+            <b>Gerir + Criar grupos</b> → "Equipes" vira gerenciamento completo (Nova equipe, Editar, Membros), em vez de só "Minhas equipes".<br>
+            <b>Gerir + Habilitar usuários em processos</b> → aparece a linha "Permissões" em Administração.<br>
+            <b>Gerir + Habilitar terceiros</b> → aparece a linha "Habilitações" em Administração.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="profile-avatar">FC</div>
+              <div>
+                <div class="profile-name">felipe.costa</div>
+                <div class="profile-sub">felipe.costa</div>
+              </div>
+            </div>
+            <button class="btn-outline">Editar perfil</button>
+          </div>
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="icon-badge blue">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div>
+                <div class="profile-name" style="font-size:14px;">Senha de acesso</div>
+                <div class="profile-sub">Exige confirmar a senha atual</div>
+              </div>
+            </div>
+            <button class="btn-outline">Alterar senha</button>
+          </div>
+          <div class="profile-row">
+            <div class="profile-left">
+              <div class="icon-badge red">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              </div>
+              <div>
+                <div class="profile-name" style="font-size:14px;">Sair do sistema</div>
+                <div class="profile-sub">Encerra sua sessão neste dispositivo</div>
+              </div>
+            </div>
+            <button class="btn-outline danger">Sair</button>
+          </div>
+        </div>
+
+        <!-- Uso do plano — só aparece com Gerir + Criar novo usuário -->
+        <div class="panel" id="nm-panel-plano" style="display:none;">
+          <div class="usage-head" style="margin-bottom:4px;">
+            <div class="plan-label" style="margin-bottom:0;">Plano Profissional</div>
+          </div>
+          <div class="usage-head">
+            <div class="usage-count">5 de 10 usuários ativos</div>
+            <button class="btn-dark">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+              Novo usuário
+            </button>
+          </div>
+          <div class="usage-bar-track"><div class="usage-bar-fill" style="width:50%;"></div></div>
+          <div class="admin-desc">Lista de usuários do escritório (mesmo comportamento da tela do mestre).</div>
+        </div>
+
+        <!-- Versão enxuta — sem Gerir/Criar novo usuário -->
+        <div class="panel" id="nm-panel-simples">
+          <div class="user-row" style="border-bottom:none;">
+            <div class="user-left clickable-self" id="nm-meu-nome">
+              <div class="user-avatar">FC</div>
+              <div>
+                <div class="user-name">felipe.costa <span class="you-tag">(você)</span></div>
+                <div class="user-meta">Clique para ver os processos em que você está habilitado</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="nm-panel-admin" style="margin-bottom:0;">
+          <div class="section-label">Administração</div>
+
+          <!-- Equipes: gerenciar (com Gerir+Criar grupos) ou somente as suas -->
+          <div class="admin-row" id="nm-equipes-full" style="display:none;">
+            <div>
+              <div class="admin-title">Equipes</div>
+              <div class="admin-desc">Organize a estrutura interna do escritório</div>
+            </div>
+            <button class="btn-outline" id="nm-btn-equipes">Gerenciar</button>
+          </div>
+          <div class="admin-row" id="nm-equipes-restrito">
+            <div>
+              <div class="admin-title">Minhas equipes</div>
+              <div class="admin-desc">Equipe Azul</div>
+            </div>
+          </div>
+
+          <div class="admin-row" id="nm-permissoes-row" style="display:none;">
+            <div>
+              <div class="admin-title">Permissões</div>
+              <div class="admin-desc">Definir o que cada tipo de conta pode visualizar e acessar</div>
+            </div>
+            <button class="btn-outline" id="nm-btn-permissoes">Gerenciar</button>
+          </div>
+
+          <div class="admin-row" id="nm-habilitacoes-row" style="display:none;border-bottom:none;">
+            <div>
+              <div class="admin-title">Habilitações</div>
+              <div class="admin-desc">Definir atuação de cada usuário</div>
+            </div>
+            <button class="btn-outline" id="nm-btn-habilitacoes">Gerenciar</button>
+          </div>
+        </div>
+
+      </div>
+      <!-- /view-principal-nm -->
+
+      <!-- ===================== UPGRADE DE PLANO ===================== -->
+      <div class="view" id="view-upgrade-plano">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Upgrade de plano</div>
+        <div class="page-subtitle">Aumente o limite de usuários e processos do seu escritório.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            O sistema é vendido por assinatura mensal, com planos que limitam quantos usuários e quantos processos o escritório pode ter. Quando o escritório cresce e esbarra no limite (ex: já usou os 10 usuários do plano atual), o dono pode fazer upgrade pra um plano maior direto por aqui, sem precisar entrar em contato com o suporte — o novo limite passa a valer imediatamente após o pagamento.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Cada plano é um registro em <code>planos</code> (nome, limite_usuarios, limite_processos, preco_mensal, stripe_price_id). O escritório (tenant) tem um <code>plano_id</code> atual. Ao clicar "Assinar", redirecione pro checkout do Stripe/Pagar.me (ou abra o formulário de troca de cartão se já tiver assinatura ativa) usando o <code>stripe_price_id</code> do plano escolhido. No webhook de confirmação de pagamento, atualize o <code>plano_id</code> do tenant. Toda checagem de limite (ex: ao tentar criar um novo usuário) deve consultar o plano atual em tempo real — nunca hardcode o número 10 em lugar nenhum do código.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="hab-item"><div><div class="hab-item-title" style="font-weight:700;">Plano Essencial</div><div class="admin-desc">5 usuários · 25 processos</div></div><button class="btn-outline">R$ 99/mês</button></div>
+          <div class="hab-item" style="background:var(--blue-soft);margin:0 -26px;padding-left:26px;padding-right:26px;"><div><div class="hab-item-title" style="font-weight:700;">Plano Profissional <span class="status-pill" style="margin-left:6px;">Atual</span></div><div class="admin-desc">10 usuários · 50 processos</div></div><button class="btn-outline" disabled>Plano atual</button></div>
+          <div class="hab-item"><div><div class="hab-item-title" style="font-weight:700;">Plano Empresarial</div><div class="admin-desc">30 usuários · 150 processos</div></div><button class="btn-dark">R$ 499/mês</button></div>
+        </div>
+      </div>
+      <!-- /view-upgrade-plano -->
+
+      <!-- ===================== EDITAR PERFIL ===================== -->
+      <div class="view" id="view-editar-perfil">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Editar perfil</div>
+        <div class="page-subtitle">Atualize sua foto, nome e cargo exibidos no sistema.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Cada usuário edita os dados de exibição da própria conta: o nome que aparece pro resto do escritório, o cargo (informação descritiva, não altera o papel/permissões dele) e uma foto de perfil, que substitui as iniciais usadas hoje como avatar em todo o sistema (sidebar, listas de usuários, atividade, etc.).
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Campos <code>nome_completo</code>, <code>cargo</code> e <code>foto_url</code> na tabela de usuários. Upload de imagem: envie o arquivo pro storage (ex: AWS S3) num endpoint dedicado, salve só a URL retornada em <code>foto_url</code>. Faça resize/crop no upload (ex: 200×200) pra manter os avatars leves e consistentes. Em todo componente de avatar do sistema, troque a lógica de "iniciais do nome" por <code>foto_url ? &lt;img&gt; : iniciais</code> — mantendo as iniciais como fallback pra quem não tem foto.
+          </div>
+        </div>
+
+        <div class="panel">
+          <label class="form-label">Foto de perfil</label>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;">
+            <div class="profile-avatar" id="ep-avatar-preview" style="width:64px;height:64px;font-size:20px;">SE</div>
+            <div class="attach-box small" id="ep-upload-foto" style="flex:1;">Anexar foto de perfil</div>
+          </div>
+
+          <label class="form-label">Nome completo</label>
+          <input class="form-input" value="sergio">
+
+          <label class="form-label">Cargo</label>
+          <input class="form-input" placeholder="Ex: Sócio, Advogado, Gerente">
+
+          <div class="form-actions">
+            <button class="btn-dark">Salvar</button>
+            <button class="btn-outline" data-back="view-principal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-editar-perfil -->
+
+      <!-- ===================== DETALHE DO USUÁRIO (processos individuais) ===================== -->
+      <div class="view" id="view-usuario-detalhe">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+
+        <div class="profile-row" style="border-bottom:none;margin-bottom:18px;">
+          <div class="profile-left">
+            <div class="profile-avatar" id="ud-avatar">—</div>
+            <div>
+              <div class="profile-name" id="ud-nome">—</div>
+              <div class="profile-sub" id="ud-sub">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="explain-cards" id="ud-explain-mestre">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Aqui o mestre vê quais processos este usuário está individualmente habilitado a acessar, e pode marcar mais processos mesmo que ele não esteja em nenhuma equipe. Isso é independente da equipe: um usuário pode estar numa equipe (que já dá acesso a um conjunto de processos) <b>e também</b> ter outros processos habilitados avulsamente, fora dos que a equipe dele enxerga — útil quando alguém precisa colaborar pontualmente num caso que não é da área da sua equipe.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Tabela <code>usuario_processos</code> (usuario_id, processo_id) — separada de <code>equipe_processos</code>. Na hora de resolver quais processos um usuário com permissão "somente os seus" pode ver, combine as duas fontes: <code>SELECT processo_id FROM equipe_processos WHERE equipe_id IN (equipes do usuário) UNION SELECT processo_id FROM usuario_processos WHERE usuario_id = usuario.id</code>. Isso garante que o acesso do usuário é a soma do que a equipe libera com o que foi habilitado individualmente pra ele.
+          </div>
+        </div>
+
+        <div class="explain-cards" id="ud-explain-proprio" style="display:none;">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Esta é a visão do próprio usuário sobre si mesmo: ele está vendo quais processos ele mesmo está habilitado a acessar — os que a equipe dele já libera, mais os que foram habilitados individualmente pra ele. Diferente da tela do mestre, aqui é só consulta: um usuário comum não pode se auto-habilitar em mais processos, essa marcação continua sendo exclusiva de quem tem a habilitação "Habilitar usuário em processos" em Gerir.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Mesma query de leitura da versão do mestre (<code>equipe_processos</code> UNION <code>usuario_processos</code>, filtrando pelo próprio <code>usuario.id</code> do usuário logado), mas os checkboxes e o botão "Salvar" devem ficar <b>desabilitados/somente leitura</b> nesta tela quando não for o mestre (ou alguém habilitado em Gerir) olhando — é uma consulta do próprio acesso, não uma ferramenta de auto-gestão.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="admin-title" style="margin-bottom:4px;" id="ud-panel-title">Processos habilitados</div>
+          <div class="admin-desc" style="margin-bottom:16px;" id="ud-panel-desc">Marque os processos que este usuário pode acessar individualmente, além dos que a equipe dele já libera. Use os filtros pra localizar rapidamente por cliente, matéria ou data.</div>
+
+          <div class="proc-filter-bar">
+            <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="ud-f-cliente"><option value="">Todos</option></select></div>
+            <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="ud-f-materia"><option value="">Todas</option></select></div>
+            <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="ud-f-data"></div>
+            <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="ud-f-busca"></div>
+          </div>
+          <div class="proc-checklist" id="ud-processos-list"></div>
+          <div class="proc-selected-count" id="ud-selected-count">0 processos selecionados</div>
+
+          <div class="form-actions" style="margin-top:16px;">
+            <button class="btn-dark">Salvar</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-usuario-detalhe -->
+
+      <!-- ===================== NOVO USUÁRIO ===================== -->
+      <div class="view" id="view-novo-usuario">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Novo usuário</div>
+        <div class="page-subtitle">Crie uma conta para alguém do escritório.</div>
+
+        <div class="panel">
+          <label class="form-label">Nome de usuário</label>
+          <input class="form-input" placeholder="nome.sobrenome">
+
+          <label class="form-label">E-mail</label>
+          <input class="form-input" placeholder="usuario@escritorio.com">
+
+          <label class="form-label">Nome completo</label>
+          <input class="form-input" placeholder="Nome completo">
+
+          <label class="form-label">Cargo <span style="font-weight:400;color:var(--text-mute);">(descritivo)</span></label>
+          <input class="form-input" placeholder="Ex.: Advogado, Financeiro, Gerente">
+
+          <label class="form-label">Papel no escritório</label>
+          <select class="form-select">
+            <option>Selecione um papel</option>
+            <option>Administrador</option>
+            <option>Ilimitado</option>
+            <option>Financeiro</option>
+          </select>
+          <div class="form-hint" style="margin-top:-12px;margin-bottom:18px;">Tipos de conta disponíveis: Administrador, Ilimitado e Financeiro. O cargo profissional é informado separadamente. Cada papel segue o padrão de permissões e habilitações definido em Configurações → Permissões/Habilitações — ajustável individualmente depois, se necessário.</div>
+
+          <label class="form-label">Senha inicial</label>
+          <input class="form-input" type="password" placeholder="Senha inicial" style="margin-bottom:6px;">
+
+          <div class="form-actions">
+            <button class="btn-dark">Criar usuário</button>
+            <button class="btn-outline" data-back="view-principal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-novo-usuario -->
+
+      <!-- ===================== EQUIPES ===================== -->
+      <div class="view" id="view-equipes">
+        <div id="equipes-lista-view">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div>
+              <div class="page-title" style="font-size:22px;">Equipes</div>
+              <div class="page-subtitle" style="margin-bottom:0;">Organize a estrutura interna do escritório.</div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button class="btn-dark" id="btn-nova-equipe">+ Nova equipe</button>
+              <button class="btn-outline" data-back="view-principal">Voltar</button>
+            </div>
+          </div>
+
+          <div class="explain-cards" style="margin-top:20px;">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Equipe é um agrupamento de usuários dentro do escritório (ex: "Equipe Tributário", "Equipe Cível"). Ao criar uma equipe, o mestre escolhe exatamente <b>quais processos</b> e <b>quais clientes</b> ela tem acesso. Mas essa atribuição só funciona junto com o que está configurado em Permissões: se o papel dos membros estiver como "somente os seus", eles só vão enxergar os processos/clientes atribuídos à equipe deles; se estiver como "todos", eles enxergam tudo do escritório independente do que foi atribuído à equipe — a atribuição da equipe só passa a filtrar de fato quando a permissão está restrita.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>equipes</code> (nome, equipe_pai_id opcional, status) + tabela de associação <code>equipe_membros</code> (equipe_id, usuario_id, é_gerente: bool) + <code>equipe_processos</code> (equipe_id, processo_id) + <code>equipe_clientes</code> (equipe_id, cliente_id). Na hora de resolver o que um usuário pode ver num módulo com sub_opção <code>'somente_seus'</code>, o filtro do backend deve ser: <code>WHERE processo.id IN (SELECT processo_id FROM equipe_processos WHERE equipe_id IN (SELECT equipe_id FROM equipe_membros WHERE usuario_id = usuario.id))</code> — e se a sub_opção for <code>'todos'</code>, ignore esse filtro completamente.
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:0;padding:0;overflow:hidden;">
+            <table>
+              <thead>
+                <tr><th>Nome</th><th>Equipe pai</th><th>Membros</th><th>Gerentes</th><th>Status</th><th>Ações</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:700;">Equipe Azul</td>
+                  <td>—</td>
+                  <td>2</td>
+                  <td>1</td>
+                  <td><span class="status-pill">Ativa</span></td>
+                  <td><span class="table-link" id="link-membros-azul">Membros</span><span class="table-link" id="link-editar-azul">Editar</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Formulário: Nova equipe / Editar equipe -->
+        <div id="equipes-form-view" style="display:none;">
+          <div class="back-link" id="equipes-form-voltar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para Equipes
+          </div>
+          <div class="page-title" style="font-size:22px;" id="equipes-form-titulo">Nova equipe</div>
+
+          <div class="panel">
+            <label class="form-label">Nome da equipe</label>
+            <input class="form-input" id="equipe-nome" placeholder="Ex: Equipe Tributário">
+
+            <label class="form-label">Equipe pai <span style="font-weight:400;color:var(--text-mute);">(opcional)</span></label>
+            <select class="form-select" id="equipe-pai">
+              <option value="">Nenhuma</option>
+              <option>Equipe Azul</option>
+            </select>
+
+            <div class="form-hint" style="margin-top:-4px;">Defina abaixo a quais processos esta equipe tem acesso (efetivo apenas quando o papel dos membros estiver com a permissão "somente os seus").</div>
+
+            <div class="explain-cards" style="margin-top:16px;">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que é</div>
+                Em vez de procurar processo por processo numa lista enorme, o mestre pode filtrar por cliente, matéria (Imobiliário, Cível, Penal, Sucessório, Trabalhista...) ou data pra achar rapidamente o grupo de processos que quer atribuir à equipe — por exemplo, filtrar por "Matéria: Tributário" pra marcar de uma vez todos os processos tributários pra uma equipe de tributaristas.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Lista todos os processos do escritório com filtros combináveis (<code>WHERE cliente_id = X AND natureza = Y AND data BETWEEN...</code>), igual já fizemos na aba Peças do módulo Modelos. Importante: os checkboxes marcados devem persistir mesmo quando o filtro muda o que está visível — guarde a seleção num Set de IDs de processo em memória (ou state), não dependa de quais checkboxes estão fisicamente na tela no momento de salvar.
+              </div>
+            </div>
+
+            <label class="form-label">Processos desta equipe</label>
+            <div class="proc-filter-bar">
+              <div class="proc-filter-field"><label>Cliente</label><select class="proc-filter-select" id="equipe-f-cliente"><option value="">Todos</option></select></div>
+              <div class="proc-filter-field"><label>Matéria</label><select class="proc-filter-select" id="equipe-f-materia"><option value="">Todas</option></select></div>
+              <div class="proc-filter-field"><label>Data</label><input class="proc-filter-input" type="date" id="equipe-f-data"></div>
+              <div class="proc-filter-field"><label>Buscar</label><input class="proc-filter-input" placeholder="Nome ou número..." id="equipe-f-busca"></div>
+            </div>
+            <div class="proc-checklist" id="equipe-processos-list"></div>
+            <div class="proc-selected-count" id="equipe-selected-count">0 processos selecionados</div>
+
+            <div class="form-actions">
+              <button class="btn-dark">Salvar</button>
+              <button class="btn-outline" id="equipes-form-cancelar">Cancelar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Membros da equipe -->
+        <div id="equipes-membros-view" style="display:none;">
+          <div class="back-link" id="equipes-membros-voltar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para Equipes
+          </div>
+          <div class="page-title" style="font-size:22px;">Membros — Equipe Azul</div>
+
+          <div class="panel">
+            <div class="user-row">
+              <div class="user-left">
+                <div class="user-avatar">FC</div>
+                <div>
+                  <div class="user-name">Felipe Costa</div>
+                  <div class="user-meta">@felipe.costa<br>Gerente da equipe</div>
+                </div>
+              </div>
+            </div>
+            <div class="user-row">
+              <div class="user-left">
+                <div class="user-avatar">JS</div>
+                <div>
+                  <div class="user-name">João Souza</div>
+                  <div class="user-meta">@joao.souza<br>Membro</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /view-equipes -->
+
+      <!-- ===================== DADOS DO ESCRITÓRIO ===================== -->
+      <div class="view" id="view-dados">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Dados do escritório</div>
+        <div class="page-subtitle">Atualize as informações básicas exibidas no sistema.</div>
+
+        <div class="panel">
+          <label class="form-label">Nome do escritório</label>
+          <input class="form-input" value="Souza Lenzi Advogados">
+
+          <label class="form-label">Nome fantasia</label>
+          <input class="form-input" placeholder="Nome fantasia">
+
+          <label class="form-label">CNPJ</label>
+          <input class="form-input" placeholder="00.000.000/0000-00">
+
+          <label class="form-label">E-mail</label>
+          <input class="form-input" placeholder="contato@escritorio.com">
+
+          <label class="form-label">Telefone</label>
+          <input class="form-input" placeholder="(00) 00000-0000">
+
+          <label class="form-label">Endereço</label>
+          <textarea class="form-textarea" placeholder="Endereço completo do escritório" style="margin-bottom:6px;"></textarea>
+
+          <div class="form-actions">
+            <button class="btn-dark">Salvar</button>
+            <button class="btn-outline" data-back="view-principal">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="admin-title" style="margin-bottom:16px;">E-mail de intimações</div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              É o e-mail que os tribunais (como o PJe) usam pra avisar o escritório sobre novidades nos processos — intimações. Ao conectar esse e-mail aqui, o sistema passa a ler a caixa de entrada automaticamente, identifica quais mensagens são intimações judiciais, e organiza numa lista dentro do Painel — sem que o advogado precise caçar isso manualmente e correr o risco de perder um prazo por não ter visto o e-mail a tempo.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Fluxo de conexão via OAuth do Gmail/Outlook (mais seguro que pedir senha diretamente) ou IMAP com senha de app como alternativa. Salve o token de acesso vinculado ao escritório (não ao usuário individual, já que é um e-mail institucional). Um worker em background (ex: a cada 15 min) lê a caixa de entrada, filtra e-mails com padrão de remetente/assunto de tribunal (ex: <code>@pje.jus.br</code>, palavras-chave como "intimação"), usa IA (ou regex pra começar) pra extrair número do processo, o que foi intimado a fazer e o prazo, e grava na tabela <code>intimacoes</code> (vinculando ao processo pelo número extraído). O Painel só lê essa tabela — toda a complexidade de leitura/parsing do e-mail fica contida aqui em Configurações.
+            </div>
+          </div>
+
+          <label class="form-label">E-mail cadastrado <span style="font-weight:400;color:var(--text-mute);">(opcional)</span></label>
+          <input class="form-input" placeholder="intimacoes@escritorio.com">
+          <div class="form-hint" style="margin-top:-12px;margin-bottom:18px;">Nenhum e-mail conectado ainda. Ao salvar, você será redirecionado para autorizar o acesso à caixa de entrada.</div>
+
+          <div class="form-actions">
+            <button class="btn-dark">Conectar e-mail</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-dados -->
+
+      <!-- ===================== PERMISSÕES ===================== -->
+      <div class="view" id="view-permissoes">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Permissões</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Permissão define <b>o que cada papel pode enxergar</b> no sistema. Desligar o interruptor de um módulo (ex: Processos) faz esse módulo inteiro sumir da tela de todo mundo com aquele papel. Cada aba de papel (Administrador/Ilimitado/Financeiro) é 100% independente das outras — mexer numa nunca afeta as demais.<br><br>
+            O que "Somente os seus" / "Todos" quer dizer, módulo por módulo:<br>
+            • <b>Processos</b>: "Todos" = todos os processos do escritório; "Somente os seus" = só os processos em que ele está habilitado — seja pela equipe dele, seja individualmente (na tela de cada usuário em Configurações).<br>
+            • <b>Clientes</b>: não existe habilitação direta a um cliente. O usuário é habilitado a <i>processos</i>; como cada processo tem um cliente vinculado, ele só enxerga um cliente <b>por consequência</b> de ter acesso a pelo menos um processo daquele cliente. "Todos" = todos os clientes do escritório.<br>
+            • <b>Financeiro</b>: "Apenas solicitações" = só o submódulo Solicitações (ele pede pagamento de custas sem ver o financeiro do escritório); "Acesso a dados" = visão financeira completa (Pagamentos).<br>
+            • <b>Tarefas</b>: "Somente os seus" = só as tarefas dele; "Todos" = tarefas de todos os usuários.<br>
+            • <b>Modelo de peça</b>: "Somente os seus" = só as peças que ele mesmo criou; "Todos" = peças criadas por qualquer pessoa do escritório.<br>
+            • <b>Painel</b> e <b>Agenda</b> seguem a mesma lógica entre si: "Todos" = dados/agenda do escritório inteiro; "Somente os seus" = limitado aos processos e clientes que ele está autorizado a ver.<br>
+            • <b>Gerir</b>: liga/desliga simples, sem sub-opção — controla se o usuário tem acesso à área de gerência; o que ele pode fazer lá dentro é definido em Habilitações.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Cada linha é um registro em <code>permissoes_papel</code>: <code>{papel, modulo, habilitado: bool, sub_opcao}</code> (<code>'somente_seus' | 'todos'</code>, ou pro Financeiro <code>'apenas_solicitacoes' | 'acesso_dados'</code>). No frontend, toda rota/menu do módulo só renderiza se <code>habilitado === true</code>. No backend, toda query precisa aplicar o filtro de <code>sub_opcao</code>: <code>'somente_seus'</code> filtra por <code>equipe_processos</code> UNION <code>usuario_processos</code> (ver card de Equipes); Clientes nunca tem filtro próprio — deriva de <code>SELECT DISTINCT cliente_id FROM processos WHERE id IN (processos que o usuário pode ver)</code>. Nunca confie só em esconder no frontend — a API tem que aplicar esse mesmo filtro, senão um usuário "somente os seus" acessa dado de outro só trocando o ID na URL.<br><br>
+            <b>Vínculo crítico com Habilitações:</b> se <code>habilitado === false</code> pra um módulo+papel aqui em Permissões, o usuário não tem NENHUMA forma de acessar as ações daquele módulo em Habilitações — não é só um efeito visual, é uma trava real de acesso. Ao renderizar a tela de Habilitações, sempre consulte primeiro esta tabela antes de mostrar qualquer toggle daquele módulo.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="role-tabs" id="perm-tabs">
+            <div class="role-tab active" data-role="administrador">Administrador</div>
+            <div class="role-tab" data-role="limitado">Ilimitado</div>
+            <div class="role-tab" data-role="financeiro">Financeiro</div>
+            <div class="role-tab" data-role="individual">Individual</div>
+          </div>
+
+          <!-- ADMINISTRADOR -->
+          <div class="role-view active" data-role-view="administrador">
+            <div class="perm-intro">Defina o que o papel administrador pode visualizar e editar no sistema.</div>
+
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Processos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-processos" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-processos">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Clientes</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-clientes">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-clientes" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Financeiro</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-fin" checked>Apenas solicitações</label><label class="radio-opt"><input type="radio" name="p-adm-fin">Acesso a dados</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Tarefas</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-tarefas">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-tarefas" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Modelo de peça</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-modelo">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-modelo" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Chat</span><div class="switch on"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Painel</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-painel" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-painel">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Agenda</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-adm-agenda">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-adm-agenda" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Gerir</span><div class="switch on"><div class="switch-knob"></div></div></div></div>
+          </div>
+
+          <!-- LIMITADO -->
+          <div class="role-view" data-role-view="limitado" style="display:none;">
+            <div class="perm-intro">Defina o que o papel limitado pode visualizar e editar no sistema.</div>
+
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Processos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-processos" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-processos">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Clientes</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-clientes" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-clientes">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Financeiro</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-fin" checked>Apenas solicitações</label><label class="radio-opt"><input type="radio" name="p-lim-fin">Acesso a dados</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Tarefas</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-tarefas" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-tarefas">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Modelo de peça</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-modelo">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-modelo" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Chat</span><div class="switch on"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Painel</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-painel" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-painel">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Agenda</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-lim-agenda" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-lim-agenda">Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Gerir</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+          </div>
+
+          <!-- FINANCEIRO -->
+          <div class="role-view" data-role-view="financeiro" style="display:none;">
+            <div class="perm-intro">Defina o que o papel financeiro pode visualizar e editar no sistema.</div>
+
+            <div class="perm-item ghost"><div class="perm-head"><span class="perm-title">Processos</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Clientes</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-fin-clientes">Somente os seus</label><label class="radio-opt"><input type="radio" name="p-fin-clientes" checked>Todos</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Financeiro</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-fin-fin">Apenas solicitações</label><label class="radio-opt"><input type="radio" name="p-fin-fin" checked>Acesso a dados</label></div>
+            </div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Tarefas</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-fin-tarefas" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-fin-tarefas">Todos</label></div>
+            </div>
+            <div class="perm-item ghost"><div class="perm-head"><span class="perm-title">Modelo de peça</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Chat</span><div class="switch on"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item ghost"><div class="perm-head"><span class="perm-title">Painel</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+            <div class="perm-item"><div class="perm-head"><span class="perm-title">Agenda</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-fin-agenda" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-fin-agenda">Todos</label></div>
+            </div>
+            <div class="perm-item ghost"><div class="perm-head"><span class="perm-title">Gerir</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+          </div>
+
+          <!-- INDIVIDUAL -->
+          <div class="role-view" data-role-view="individual" style="display:none;">
+            <div id="perm-individual-list">
+              <div class="perm-intro">Selecione um usuário para definir as permissões individuais dele.</div>
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 O que é</div>
+                  As abas Administrador/Ilimitado/Financeiro definem a <b>regra geral</b> que todo usuário daquele papel segue por padrão, e que todo usuário NOVO criado com esse papel também herda automaticamente. Aqui na aba Individual, o mestre sobrescreve pontualmente só uma pessoa.<br><br>
+                  <b>Exemplo concreto:</b> imagine dois usuários com o mesmo papel, ambos Financeiro. Por padrão os dois seguem exatamente a regra da aba Financeiro. Se o mestre quiser que só um deles tenha uma liberdade a mais (ou a menos) que o outro, ele mexe na aba Individual <i>daquele usuário específico</i> — o outro usuário Financeiro continua seguindo a regra geral normalmente, sem ser afetado. E se amanhã for criado um Financeiro novo, ele nasce seguindo a regra geral da aba Financeiro, não o ajuste individual de ninguém.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  Ao criar um usuário, copie (ou apenas referencie) as permissões do papel dele como ponto de partida. Se o mestre editar algo aqui na aba Individual, grave um registro em <code>permissoes_usuario</code> (usuario_id, módulo, habilitado, sub_opcao) — na hora de checar permissão em qualquer lugar do sistema, consulte primeiro se existe override em <code>permissoes_usuario</code> para aquele usuário+módulo; se não existir, caia no padrão de <code>permissoes_papel</code>.
+                </div>
+              </div>
+              <div class="individual-user-row"><div class="individual-avatar">AL</div>Ana Gabriela Lenzi</div>
+              <div class="individual-user-row"><div class="individual-avatar">FC</div>Felipe Costa</div>
+              <div class="individual-user-row"><div class="individual-avatar">JS</div>João Souza</div>
+              <div class="individual-user-row"><div class="individual-avatar">TF</div>teste financeiro</div>
+            </div>
+            <div id="perm-individual-detail" style="display:none;">
+              <div class="back-link" id="perm-individual-voltar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Voltar para lista de usuários
+              </div>
+              <div class="perm-intro">Permissões individuais de <b id="perm-individual-nome">—</b> (parte do mesmo padrão dos papéis Administrador/Ilimitado/Financeiro, ajustável usuário a usuário).</div>
+              <div class="perm-item"><div class="perm-head"><span class="perm-title">Processos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+                <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-ind-processos" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-ind-processos">Todos</label></div>
+              </div>
+              <div class="perm-item"><div class="perm-head"><span class="perm-title">Clientes</span><div class="switch on"><div class="switch-knob"></div></div></div>
+                <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-ind-clientes" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-ind-clientes">Todos</label></div>
+              </div>
+              <div class="perm-item"><div class="perm-head"><span class="perm-title">Financeiro</span><div class="switch on"><div class="switch-knob"></div></div></div>
+                <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-ind-fin" checked>Apenas solicitações</label><label class="radio-opt"><input type="radio" name="p-ind-fin">Acesso a dados</label></div>
+              </div>
+              <div class="perm-item"><div class="perm-head"><span class="perm-title">Painel</span><div class="switch on"><div class="switch-knob"></div></div></div>
+                <div class="perm-sub"><label class="radio-opt"><input type="radio" name="p-ind-painel" checked>Somente os seus</label><label class="radio-opt"><input type="radio" name="p-ind-painel">Todos</label></div>
+              </div>
+              <div class="perm-item"><div class="perm-head"><span class="perm-title">Gerir</span><div class="switch disabled"><div class="switch-knob"></div></div></div></div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top:14px;">
+            <button class="btn-dark">Salvar</button>
+            <button class="btn-outline" data-back="view-principal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-permissoes -->
+
+      <!-- ===================== HABILITAÇÕES ===================== -->
+      <div class="view" id="view-habilitacoes">
+        <div class="back-link" data-back="view-principal">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+        <div class="page-title" style="font-size:22px;">Habilitações</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Se Permissão é "o que o usuário pode <b>ver</b>", Habilitação é "o que ele pode <b>fazer</b>" dentro do que já pode ver. As duas telas são umbilicalmente ligadas: se um módulo estiver desligado em Permissões para um papel (ex: Processos desligado pro Financeiro), esse grupo aparece "em fantasma" aqui, travado, com a nota "permissão desligada" — não dá nem pra ver o que poderia ser habilitado. Quando a permissão do módulo está em "somente os seus" (restrita), algumas ações de habilitação mudam de rótulo pra deixar isso explícito (ex: "Criar novo processo" vira "Apenas ver").<br><br>
+            O que cada grupo de Habilitação libera, módulo por módulo:<br>
+            • <b>Processos</b>: Criar novo processo, Editar processo já criado, Adicionar novo andamento. <i>(IA ativada e Laboratório jurídico ativado são reservados para uma funcionalidade de IA futura — não fazem parte do escopo atual, só estão na tela como placeholder.)</i><br>
+            • <b>Clientes</b>: Adicionar novo cliente, Editar cliente já existente, Excluir cliente.<br>
+            • <b>Tarefas</b>: se pode criar tarefa só pra si mesmo, ou também atribuir tarefas a terceiros.<br>
+            • <b>Modelo de peça</b>: se pode criar/adicionar um modelo novo, ou só visualizar e replicar os que já existem.<br>
+            • <b>Agenda</b>: mesma lógica de Tarefas — anotar compromisso só pra si mesmo, ou também pra terceiros.<br>
+            • <b>Gerir</b> (só aparece se "Gerir" estiver ligado em Permissões): Criar novo usuário, Habilitar usuário em processos, Criar grupos, e Habilitar terceiros — este último significa <b>delegar a outra pessoa o acesso a essa própria área de Gerir</b>, permitindo que ela também crie usuários, habilite processos e crie grupos. O mestre já tem tudo isso nativamente; aqui ele decide se estende essa capacidade de gerência pra mais alguém.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Antes de renderizar cada grupo de Habilitações (Processos, Clientes, Tarefas...), consulte primeiro <code>permissoes_papel</code> pra aquele papel+módulo. Se <code>habilitado === false</code>, renderize o grupo colapsado/travado (só o título + "permissão desligada"), sem nem mostrar os toggles — igual já fizemos aqui no protótipo pros grupos Processos/Modelo de peças/Gerir na aba Financeiro, e Gerir na aba Ilimitado. Cada ação vira uma linha em <code>habilitacoes_papel</code>: <code>{papel, modulo, acao, habilitado: bool}</code> — ex: <code>{papel:'administrador', modulo:'clientes', acao:'excluir', habilitado:true}</code>. No backend, toda operação de escrita (criar, editar, <b>excluir</b>) precisa checar essa tabela antes de executar — de novo, nunca só no frontend.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="role-tabs" id="hab-tabs">
+            <div class="role-tab active" data-role="administrador">Administrador</div>
+            <div class="role-tab" data-role="limitado">Ilimitado</div>
+            <div class="role-tab" data-role="financeiro">Financeiro</div>
+            <div class="role-tab" data-role="individual">Individual</div>
+          </div>
+
+          <!-- ADMINISTRADOR -->
+          <div class="hab-role-view active" data-hab-role="administrador">
+            <div class="hab-group-label">Processos</div>
+            <div class="hab-item"><span class="hab-item-title">Criar novo processo</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Editar processo já criado</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar novo andamento</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">IA ativada</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Laboratório jurídico ativado</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Clientes</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar novo cliente</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Editar cliente já existente</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Excluir cliente</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Tarefas</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar para todos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Modelo de peças</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar modelo</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Apenas replicar</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Agenda</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar compromisso para outros</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Gerir</div>
+            <div class="hab-item"><span class="hab-item-title">Criar novo usuário</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Habilitar usuários em processos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Criar grupos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Habilitar terceiros</span><div class="switch on"><div class="switch-knob"></div></div></div>
+          </div>
+
+          <!-- LIMITADO -->
+          <div class="hab-role-view" data-hab-role="limitado" style="display:none;">
+            <div class="hab-group-label">Processos</div>
+            <div class="hab-item"><span class="hab-item-title">Apenas ver</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Apenas ver</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar novo andamento</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">IA ativada</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Laboratório jurídico ativado</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Clientes</div>
+            <div class="hab-item"><span class="hab-item-title">Apenas ver</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Apenas ver</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Excluir cliente</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Tarefas</div>
+            <div class="hab-item"><span class="hab-item-title">Apenas para o próprio usuário</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Modelo de peças</div>
+            <div class="hab-item"><span class="hab-item-title">Apenas consultar</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Apenas replicar</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Agenda</div>
+            <div class="hab-item"><span class="hab-item-title">Apenas para usuário</span><div class="switch disabled"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Gerir <span class="hab-group-ghost-note">permissão desligada</span></div>
+          </div>
+
+          <!-- FINANCEIRO -->
+          <div class="hab-role-view" data-hab-role="financeiro" style="display:none;">
+            <div class="hab-group-label">Processos <span class="hab-group-ghost-note">permissão desligada</span></div>
+
+            <div class="hab-group-label">Clientes</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar novo cliente</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Editar cliente já existente</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            <div class="hab-item"><span class="hab-item-title">Excluir cliente</span><div class="switch"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Tarefas</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar para todos</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Modelo de peças <span class="hab-group-ghost-note">permissão desligada</span></div>
+
+            <div class="hab-group-label">Agenda</div>
+            <div class="hab-item"><span class="hab-item-title">Adicionar compromisso para outros</span><div class="switch on"><div class="switch-knob"></div></div></div>
+
+            <div class="hab-group-label">Gerir <span class="hab-group-ghost-note">permissão desligada</span></div>
+          </div>
+
+          <!-- INDIVIDUAL -->
+          <div class="hab-role-view" data-hab-role="individual" style="display:none;">
+            <div id="hab-individual-list">
+              <div class="perm-intro">Selecione um usuário para definir as habilitações individuais dele.</div>
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 O que é</div>
+                  Mesma lógica da aba Individual de Permissões: os papéis definem o padrão herdado por todo usuário novo, e aqui o mestre ajusta pontualmente as ações liberadas pra uma pessoa específica, sem mexer nas demais do mesmo papel.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  Mesmo padrão de override por usuário: <code>habilitacoes_usuario</code> (usuario_id, módulo, ação, habilitado) tem prioridade sobre <code>habilitacoes_papel</code> na hora de resolver o que aquele usuário específico pode fazer.
+                </div>
+              </div>
+              <div class="individual-user-row"><div class="individual-avatar">AL</div>Ana Gabriela Lenzi</div>
+              <div class="individual-user-row"><div class="individual-avatar">FC</div>Felipe Costa</div>
+              <div class="individual-user-row"><div class="individual-avatar">JS</div>João Souza</div>
+              <div class="individual-user-row"><div class="individual-avatar">TF</div>teste financeiro</div>
+            </div>
+            <div id="hab-individual-detail" style="display:none;">
+              <div class="back-link" id="hab-individual-voltar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Voltar para lista de usuários
+              </div>
+              <div class="perm-intro">Habilitações individuais de <b id="hab-individual-nome">—</b>.</div>
+              <div class="hab-group-label">Processos</div>
+              <div class="hab-item"><span class="hab-item-title">Criar novo processo</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="hab-item"><span class="hab-item-title">Editar processo já criado</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="hab-item"><span class="hab-item-title">Adicionar novo andamento</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="hab-item"><span class="hab-item-title">IA ativada</span><div class="switch on"><div class="switch-knob"></div></div></div>
+              <div class="hab-item"><span class="hab-item-title">Laboratório jurídico ativado</span><div class="switch on"><div class="switch-knob"></div></div></div>
+            </div>
+          </div>
+
+          <div class="form-actions" style="margin-top:18px;">
+            <button class="btn-dark">Salvar</button>
+            <button class="btn-outline" data-back="view-principal">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <!-- /view-habilitacoes -->
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Navegação entre views (back-links e botões que abrem sub-telas)
+  var currentHome = 'view-principal';
+  function openView(id){
+    document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  document.querySelectorAll('[data-back]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var target = el.dataset.back === 'view-principal' ? currentHome : el.dataset.back;
+      openView(target);
+    });
+  });
+  document.getElementById('btn-novo-usuario').addEventListener('click', function(){ openView('view-novo-usuario'); });
+
+  // Ver como: Mestre / Não-mestre
+  document.getElementById('viewas-select').addEventListener('change', function(){
+    currentHome = this.value === 'mestre' ? 'view-principal' : 'view-principal-nm';
+    openView(currentHome);
+  });
+
+  // Simulador de habilitações (aba Não-mestre)
+  function updateNmVisibility(){
+    var gerir = document.getElementById('sim-gerir').checked;
+    var criarUsuario = document.getElementById('sim-criar-usuario').checked;
+    var criarGrupos = document.getElementById('sim-criar-grupos').checked;
+    var habProcessos = document.getElementById('sim-hab-processos').checked;
+    var habTerceiros = document.getElementById('sim-hab-terceiros').checked;
+
+    ['sim-criar-usuario','sim-criar-grupos','sim-hab-processos','sim-hab-terceiros'].forEach(function(id){
+      document.getElementById(id).disabled = !gerir;
+      document.getElementById(id).closest('.sim-item').style.opacity = gerir ? '1' : '.4';
+    });
+    document.getElementById('sim-hint').style.display = gerir ? 'none' : 'block';
+
+    document.getElementById('nm-panel-plano').style.display = (gerir && criarUsuario) ? 'block' : 'none';
+    document.getElementById('nm-panel-simples').style.display = (gerir && criarUsuario) ? 'none' : 'block';
+
+    document.getElementById('nm-equipes-full').style.display = (gerir && criarGrupos) ? 'flex' : 'none';
+    document.getElementById('nm-equipes-restrito').style.display = (gerir && criarGrupos) ? 'none' : 'flex';
+
+    document.getElementById('nm-permissoes-row').style.display = (gerir && habProcessos) ? 'flex' : 'none';
+    document.getElementById('nm-habilitacoes-row').style.display = (gerir && habTerceiros) ? 'flex' : 'none';
+  }
+  ['sim-gerir','sim-criar-usuario','sim-criar-grupos','sim-hab-processos','sim-hab-terceiros'].forEach(function(id){
+    document.getElementById(id).addEventListener('change', updateNmVisibility);
+  });
+  updateNmVisibility();
+
+  document.getElementById('nm-meu-nome').addEventListener('click', function(){
+    var d = { avatar:'FC', nome:'felipe.costa', sub:'@felipe.costa · Papel: Ilimitado · Cargo: Advogado · Equipe Azul', processos:['5555555555555','7777777777777'] };
+    document.getElementById('ud-avatar').textContent = d.avatar;
+    document.getElementById('ud-nome').textContent = d.nome;
+    document.getElementById('ud-sub').textContent = d.sub;
+    udProcFiltro.setSelecionados(d.processos);
+    setUdContext(true);
+    currentHome = 'view-principal-nm';
+    openView('view-usuario-detalhe');
+  });
+  document.getElementById('nm-btn-equipes').addEventListener('click', function(){ openView('view-equipes'); });
+  document.getElementById('nm-btn-permissoes').addEventListener('click', function(){ openView('view-permissoes'); });
+  document.getElementById('nm-btn-habilitacoes').addEventListener('click', function(){ openView('view-habilitacoes'); });
+
+  document.getElementById('btn-editar-perfil').addEventListener('click', function(){ openView('view-editar-perfil'); });
+  document.getElementById('btn-upgrade-plano').addEventListener('click', function(){ openView('view-upgrade-plano'); });
+  document.getElementById('ep-upload-foto').addEventListener('click', function(){
+    this.textContent = '✓ Foto selecionada (aguardando salvar)';
+  });
+
+  // ===== Componente reutilizável: seletor de processos com filtro (Equipes e Detalhe do usuário) =====
+  var todosProcessos = [
+    { numero:'4444444444444', nome:'Ação de Danos Morais', cliente:'Maria da Silva Ferreira', materia:'Cível', data:'2026-02-03' },
+    { numero:'5555555555555', nome:'Embargos à Execução', cliente:'Comércio XYZ Ltda', materia:'Cível', data:'2026-04-15' },
+    { numero:'6666666666666', nome:'Agravo de Instrumento', cliente:'Comércio XYZ Ltda', materia:'Cível', data:'2026-02-25' },
+    { numero:'7777777777777', nome:'Execução Fiscal', cliente:'Souza Lenzi Advogados', materia:'Tributário', data:'2026-03-10' },
+    { numero:'1234567890123', nome:'Ação de Despejo por Falta de Pagamento', cliente:'Maria da Silva Ferreira', materia:'Imobiliário', data:'2026-06-20' },
+    { numero:'9999999999999', nome:'Inventário', cliente:'Comércio XYZ Ltda', materia:'Sucessório', data:'2026-03-28' }
+  ];
+
+  function formatDataBR(iso){ var p = iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+
+  function initProcessFilter(prefix){
+    var clienteSel = document.getElementById(prefix+'-f-cliente');
+    var materiaSel = document.getElementById(prefix+'-f-materia');
+    var clientesUnicos = [...new Set(todosProcessos.map(function(p){ return p.cliente; }))];
+    var materiasUnicas = [...new Set(todosProcessos.map(function(p){ return p.materia; }))];
+    clientesUnicos.forEach(function(c){ var o=document.createElement('option'); o.textContent=c; clienteSel.appendChild(o); });
+    materiasUnicas.forEach(function(m){ var o=document.createElement('option'); o.textContent=m; materiaSel.appendChild(o); });
+
+    var selecionados = new Set();
+
+    function render(){
+      var fCliente = clienteSel.value;
+      var fMateria = materiaSel.value;
+      var fData = document.getElementById(prefix+'-f-data').value;
+      var fBusca = document.getElementById(prefix+'-f-busca').value.toLowerCase();
+
+      var filtrados = todosProcessos.filter(function(p){
+        if(fCliente && p.cliente !== fCliente) return false;
+        if(fMateria && p.materia !== fMateria) return false;
+        if(fData && p.data !== fData) return false;
+        if(fBusca && p.nome.toLowerCase().indexOf(fBusca) === -1 && p.numero.indexOf(fBusca) === -1) return false;
+        return true;
+      });
+
+      var list = document.getElementById(prefix+'-processos-list');
+      list.innerHTML = '';
+      if(filtrados.length === 0){
+        list.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-mute);text-align:center;">Nenhum processo encontrado com esses filtros.</div>';
+      }
+      filtrados.forEach(function(p){
+        var row = document.createElement('label');
+        row.className = 'proc-check-row';
+        row.innerHTML =
+          '<input type="checkbox" data-numero="'+p.numero+'" '+(selecionados.has(p.numero) ? 'checked' : '')+'>' +
+          '<div class="pc-info"><div class="pc-nome">'+p.nome+' — nº '+p.numero+'</div>' +
+          '<div class="pc-meta">'+p.cliente+' • '+p.materia+' • '+formatDataBR(p.data)+'</div></div>';
+        row.querySelector('input').addEventListener('change', function(){
+          if(this.checked) selecionados.add(p.numero); else selecionados.delete(p.numero);
+          document.getElementById(prefix+'-selected-count').textContent = selecionados.size + (selecionados.size === 1 ? ' processo selecionado' : ' processos selecionados');
+        });
+        list.appendChild(row);
+      });
+    }
+
+    [clienteSel, materiaSel].forEach(function(el){ el.addEventListener('change', render); });
+    document.getElementById(prefix+'-f-data').addEventListener('change', render);
+    document.getElementById(prefix+'-f-busca').addEventListener('input', render);
+
+    return {
+      render: render,
+      setSelecionados: function(numeros){
+        selecionados = new Set(numeros);
+        document.getElementById(prefix+'-selected-count').textContent = selecionados.size + (selecionados.size === 1 ? ' processo selecionado' : ' processos selecionados');
+        render();
+      }
+    };
+  }
+
+  var equipeProcFiltro = initProcessFilter('equipe');
+  equipeProcFiltro.render();
+  var udProcFiltro = initProcessFilter('ud');
+  udProcFiltro.render();
+
+  // Detalhe do usuário: processos habilitados individualmente
+  var usuariosDetalhe = {
+    ana:    { avatar:'AL', nome:'Ana Gabriela Lenzi', sub:'@ana.gabriela · Papel: Ilimitado · Cargo: Recepcionista', processos:[] },
+    felipe: { avatar:'FC', nome:'Felipe Costa', sub:'@felipe.costa · Papel: Ilimitado · Cargo: Advogado · Equipe Azul', processos:['5555555555555','7777777777777'] },
+    joao:   { avatar:'JS', nome:'João Souza', sub:'@joao.souza · Papel: Ilimitado · Cargo: Advogado · Equipe Azul', processos:['5555555555555'] },
+    teste:  { avatar:'TF', nome:'teste financeiro', sub:'@teste · Papel: Financeiro · Cargo: teste', processos:[] }
+  };
+
+  // Alterna a tela de Processos habilitados entre a visão do mestre (vendo outro usuário)
+  // e a visão do próprio usuário (se vendo, somente leitura)
+  function setUdContext(isProprio){
+    document.getElementById('ud-explain-mestre').style.display = isProprio ? 'none' : 'flex';
+    document.getElementById('ud-explain-proprio').style.display = isProprio ? 'flex' : 'none';
+    document.getElementById('ud-panel-title').textContent = isProprio ? 'Meus processos habilitados' : 'Processos habilitados';
+    document.getElementById('ud-panel-desc').textContent = isProprio
+      ? 'Estes são os processos que você pode acessar — pela sua equipe e/ou habilitados individualmente pra você. Consulta apenas; quem gerencia habilitações pode alterar essa lista.'
+      : 'Marque os processos que este usuário pode acessar individualmente, além dos que a equipe dele já libera. Use os filtros pra localizar rapidamente por cliente, matéria ou data.';
+    document.querySelectorAll('#ud-processos-list input, #ud-f-cliente, #ud-f-materia, #ud-f-data, #ud-f-busca').forEach(function(el){ el.disabled = isProprio; });
+    var salvarBtn = document.querySelector('#view-usuario-detalhe .form-actions .btn-dark');
+    if(salvarBtn) salvarBtn.style.display = isProprio ? 'none' : 'inline-flex';
+  }
+
+  document.querySelectorAll('.clickable-user').forEach(function(el){
+    el.addEventListener('click', function(){
+      var d = usuariosDetalhe[el.dataset.userDetail];
+      document.getElementById('ud-avatar').textContent = d.avatar;
+      document.getElementById('ud-nome').textContent = d.nome;
+      document.getElementById('ud-sub').textContent = d.sub;
+      udProcFiltro.setSelecionados(d.processos);
+      setUdContext(false);
+      openView('view-usuario-detalhe');
+    });
+  });
+  document.getElementById('btn-abrir-equipes').addEventListener('click', function(){ openView('view-equipes'); });
+
+  // Navegação interna de Equipes: lista / formulário / membros
+  function equipesShow(id){
+    document.querySelectorAll('#equipes-lista-view, #equipes-form-view, #equipes-membros-view').forEach(function(v){ v.style.display = 'none'; });
+    document.getElementById(id).style.display = 'block';
+  }
+  document.getElementById('btn-nova-equipe').addEventListener('click', function(){
+    document.getElementById('equipes-form-titulo').textContent = 'Nova equipe';
+    document.getElementById('equipe-nome').value = '';
+    equipeProcFiltro.setSelecionados([]);
+    equipesShow('equipes-form-view');
+  });
+  document.getElementById('link-editar-azul').addEventListener('click', function(){
+    document.getElementById('equipes-form-titulo').textContent = 'Editar equipe — Equipe Azul';
+    document.getElementById('equipe-nome').value = 'Equipe Azul';
+    equipeProcFiltro.setSelecionados(['5555555555555','7777777777777']);
+    equipesShow('equipes-form-view');
+  });
+  document.getElementById('equipes-form-voltar').addEventListener('click', function(){ equipesShow('equipes-lista-view'); });
+  document.getElementById('equipes-form-cancelar').addEventListener('click', function(){ equipesShow('equipes-lista-view'); });
+  document.getElementById('link-membros-azul').addEventListener('click', function(){ equipesShow('equipes-membros-view'); });
+  document.getElementById('equipes-membros-voltar').addEventListener('click', function(){ equipesShow('equipes-lista-view'); });
+  document.getElementById('btn-abrir-permissoes').addEventListener('click', function(){ openView('view-permissoes'); });
+  document.getElementById('btn-abrir-habilitacoes').addEventListener('click', function(){ openView('view-habilitacoes'); });
+  document.getElementById('btn-abrir-dados').addEventListener('click', function(){ openView('view-dados'); });
+
+  // Abas de papel dentro de Permissões
+  document.querySelectorAll('#perm-tabs .role-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('#perm-tabs .role-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.role-view').forEach(function(v){ v.style.display = 'none'; });
+      document.querySelector('.role-view[data-role-view="' + tab.dataset.role + '"]').style.display = 'block';
+    });
+  });
+
+  // Abas de papel dentro de Habilitações
+  document.querySelectorAll('#hab-tabs .role-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('#hab-tabs .role-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.hab-role-view').forEach(function(v){ v.style.display = 'none'; });
+      document.querySelector('.hab-role-view[data-hab-role="' + tab.dataset.role + '"]').style.display = 'block';
+    });
+  });
+
+  // Switches clicáveis (exceto os desabilitados/fantasma)
+  document.querySelectorAll('.switch:not(.disabled)').forEach(function(sw){
+    sw.addEventListener('click', function(){ sw.classList.toggle('on'); });
+  });
+
+  // Individual — Permissões: selecionar usuário abre o detalhe
+  document.querySelectorAll('#perm-individual-list .individual-user-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      document.getElementById('perm-individual-list').style.display = 'none';
+      document.getElementById('perm-individual-detail').style.display = 'block';
+      document.getElementById('perm-individual-nome').textContent = row.textContent.trim();
+    });
+  });
+  document.getElementById('perm-individual-voltar').addEventListener('click', function(){
+    document.getElementById('perm-individual-detail').style.display = 'none';
+    document.getElementById('perm-individual-list').style.display = 'block';
+  });
+
+  // Individual — Habilitações: selecionar usuário abre o detalhe
+  document.querySelectorAll('#hab-individual-list .individual-user-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      document.getElementById('hab-individual-list').style.display = 'none';
+      document.getElementById('hab-individual-detail').style.display = 'block';
+      document.getElementById('hab-individual-nome').textContent = row.textContent.trim();
+    });
+  });
+  document.getElementById('hab-individual-voltar').addEventListener('click', function(){
+    document.getElementById('hab-individual-detail').style.display = 'none';
+    document.getElementById('hab-individual-list').style.display = 'block';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modelos de Peças</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --purple:#6c4bc2;
+    --purple-soft:#ece7fb;
+    --teal:#1591a6;
+    --teal-soft:#e1f2f5;
+    --line:#dde3ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI', Roboto, -apple-system, sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:88px;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;flex-shrink:0;}
+  .sidebar .logo{width:40px;height:40px;border-radius:10px;background:var(--navy-light);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;margin-bottom:28px;}
+  .nav-item{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;margin-bottom:6px;border-radius:10px;color:#8f9ac0;font-size:11px;cursor:pointer;}
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1180px;width:100%;}
+
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);margin-bottom:22px;}
+
+  .tabs{display:flex;gap:32px;border-bottom:1px solid var(--line);margin-bottom:22px;}
+  .tab{display:flex;align-items:center;gap:8px;padding:12px 2px 14px;font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;border-bottom:2.5px solid transparent;}
+  .tab svg{width:16px;height:16px;}
+  .tab.active{color:var(--blue);border-color:var(--blue);}
+  .tab-badge{font-size:9.5px;font-weight:800;letter-spacing:.03em;background:var(--navy);color:#fff;padding:2px 7px;border-radius:6px;margin-left:6px;}
+  .tab-badge-ia{font-size:9.5px;font-weight:800;letter-spacing:.03em;background:var(--blue);color:#fff;padding:2px 7px;border-radius:6px;margin-left:6px;}
+  .ia-analisando{color:var(--blue);font-style:italic;}
+  .ia-preenchido-nota{font-size:11px;color:var(--blue);font-weight:600;margin-top:6px;display:flex;align-items:center;gap:5px;}
+
+  /* Tarefas Repetitivas */
+  .caso-card{background:var(--card, #fff);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+  .caso-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .caso-card-titulo{font-size:13px;font-weight:800;}
+  .caso-remover{font-size:11.5px;font-weight:700;color:var(--red);cursor:pointer;}
+  .caso-attach{border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;color:var(--text-mute);font-size:12px;cursor:pointer;}
+  .caso-attach:hover{border-color:var(--blue);color:var(--blue);}
+  .rep-resultado{display:none;background:var(--green-soft);border:1px solid #bfe4d0;border-radius:12px;padding:16px 18px;margin-top:18px;font-size:13px;color:#0f5c3f;}
+  .view{display:none;} .view.active{display:block;}
+
+  .btn-dark{background:var(--navy);color:#fff;border:none;padding:10px 16px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .btn-outline{border:1px solid var(--line);background:#fff;color:var(--text);padding:9px 15px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-outline:hover{border-color:#c3cbe0;}
+  .btn-outline.selected{border-color:var(--blue);background:var(--blue-soft);color:var(--blue);}
+  .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-link:hover{text-decoration:underline;}
+
+  /* Filtros */
+  .filter-bar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:18px;}
+  .filter-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .filter-field{flex:1;min-width:150px;}
+  .filter-label{font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .filter-input, .filter-select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--text);background:#fff;font-family:inherit;}
+  .filter-select{cursor:pointer;}
+  .filter-clear{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;white-space:nowrap;padding:9px 4px;}
+
+  /* Lista de peças */
+  .peca-count{font-size:12.5px;color:var(--text-mute);margin-bottom:12px;}
+  .peca-list{display:flex;flex-direction:column;gap:12px;}
+  .peca-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  .peca-left{flex:1;min-width:260px;}
+  .peca-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .peca-name{font-size:14.5px;font-weight:700;}
+  .peca-tag{font-size:10px;font-weight:700;letter-spacing:.02em;padding:3px 9px;border-radius:6px;}
+  .tag-tipo{background:var(--blue-soft);color:var(--blue);}
+  .tag-materia-imobiliario{background:var(--teal-soft);color:var(--teal);}
+  .tag-materia-civel{background:var(--purple-soft);color:var(--purple);}
+  .tag-materia-penal{background:var(--red-soft);color:var(--red);}
+  .tag-materia-sucessorio{background:var(--amber-soft);color:var(--amber);}
+  .tag-materia-trabalhista{background:var(--green-soft);color:var(--green);}
+  .peca-resumo{font-size:12.5px;color:var(--text-mute);line-height:1.6;margin-bottom:8px;}
+  .peca-meta{font-size:11.5px;color:var(--text-mute);}
+  .peca-right{display:flex;gap:8px;flex-shrink:0;}
+  .peca-btn{border:1px solid var(--line);background:#fff;color:var(--text-mute);width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .peca-btn:hover{border-color:#c3cbe0;color:var(--text);}
+  .empty-day{font-size:13px;color:var(--text-mute);text-align:center;padding:36px 10px;}
+
+  /* Meu Estilo */
+  .estilo-mode-pick{display:flex;gap:14px;margin-bottom:20px;}
+  .estilo-mode-card{flex:1;border:2px solid var(--line);border-radius:14px;padding:20px 22px;cursor:pointer;background:var(--card);}
+  .estilo-mode-card:hover{border-color:#c3cbe0;}
+  .estilo-mode-card.selected{border-color:var(--blue);background:var(--blue-soft);}
+  .estilo-mode-title{font-size:14.5px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+  .estilo-mode-desc{font-size:12px;color:var(--text-mute);}
+
+  .attach-box{border:1.5px dashed var(--line);border-radius:12px;padding:30px;text-align:center;color:var(--text-mute);font-size:13px;cursor:pointer;}
+  .attach-box:hover{border-color:var(--blue);color:var(--blue);}
+  .attach-box svg{display:block;margin:0 auto 10px;}
+  .attach-box.small{padding:14px;font-size:11.5px;}
+  .attach-box.small svg{width:16px;height:16px;margin-bottom:4px;}
+
+  .section-note{font-size:11.5px;color:var(--text-mute);margin-bottom:18px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+
+  /* Ribbon (barra de ferramentas estilo Word) */
+  .ribbon{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:16px;
+  }
+  .ribbon-group{display:flex;align-items:center;gap:4px;padding:0 10px;border-right:1px solid var(--line);}
+  .ribbon-group:last-child{border-right:none;}
+  .ribbon-select{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;background:#fff;cursor:pointer;font-family:inherit;}
+  .ribbon-btn{
+    width:30px;height:30px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--text);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;font-weight:800;
+  }
+  .ribbon-btn:hover{background:var(--bg);border-color:var(--line);}
+  .ribbon-btn.active{background:var(--blue-soft);color:var(--blue);border-color:var(--blue);}
+  .ribbon-btn.wide{width:auto;padding:0 10px;gap:6px;font-weight:600;font-size:11.5px;}
+  .ribbon-color{width:22px;height:22px;border-radius:5px;border:2px solid var(--line);cursor:pointer;}
+  .ribbon-color.selected{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft);}
+
+  /* Layout do editor: folha + painel lateral de configurações */
+  .editor-layout{display:flex;gap:22px;align-items:flex-start;}
+  .editor-page-wrap{flex:2;min-width:0;display:flex;justify-content:center;}
+  .side-settings{flex:1;min-width:280px;max-width:300px;}
+
+  .word-page{
+    background:#fff;width:100%;max-width:680px;min-height:860px;
+    box-shadow:0 4px 24px rgba(20,30,60,.12);border:1px solid var(--line);
+    padding:60px 55px;position:relative;color:#222;font-size:11.5pt;
+  }
+  .page-header-slot{min-height:20px;margin-bottom:22px;padding-bottom:12px;border-bottom:1px solid #e2e2e2;text-align:center;font-size:9.5pt;color:#555;outline:none;display:none;}
+  .page-header-slot.show{display:block;}
+  .page-header-slot img{max-height:50px;}
+  .page-watermark-slot{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);
+    font-size:38px;font-weight:800;color:rgba(0,0,0,.07);white-space:nowrap;display:none;pointer-events:none;z-index:0;
+  }
+  .page-watermark-slot.show{display:block;}
+  .page-watermark-slot img{opacity:.08;max-width:320px;}
+  .page-body{min-height:520px;outline:none;position:relative;z-index:1;}
+  .page-enderecamento-block{margin-bottom:12px;}
+  .page-enderecamento-block p{margin:0;}
+  .page-body p{margin:0 0 12px;}
+  .page-signature-slot{margin-top:40px;text-align:center;font-size:10.5pt;display:none;outline:none;position:relative;z-index:1;}
+  .page-signature-slot.show{display:block;}
+  .page-signature-slot img{max-height:60px;display:block;margin:0 auto 6px;}
+  .page-sig-line{border-top:1px solid #333;width:230px;margin:0 auto 6px;}
+  .page-footer-slot{
+    border-top:1px solid #e2e2e2;padding-top:8px;margin-top:22px;font-size:8.5pt;color:#777;text-align:center;
+    display:none;outline:none;position:relative;z-index:1;
+  }
+  .page-footer-slot.show{display:block;}
+  .page-footer-slot img{max-height:30px;}
+
+  .textbox-inserted{
+    border:1px dashed #9aa3bd;padding:10px 12px;margin:12px 0;background:#fafbfd;outline:none;min-height:40px;
+  }
+  .img-placeholder{
+    display:inline-flex;align-items:center;gap:8px;background:var(--bg);border:1px dashed var(--line);
+    border-radius:8px;padding:8px 12px;font-size:10.5px;color:var(--text-mute);
+  }
+
+  /* Painel lateral: cada slot com toggle + modo Texto/Imagem */
+  .opt-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:14px;}
+  .opt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .opt-title{font-size:13px;font-weight:700;}
+  .switch{width:36px;height:21px;border-radius:20px;background:var(--line);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
+  .switch.on{background:var(--blue);}
+  .switch-knob{width:15px;height:15px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .15s;}
+  .switch.on .switch-knob{left:18px;}
+  .opt-body{margin-top:12px;display:none;}
+  .opt-body.expanded{display:block;}
+  .opt-chevron{width:18px;height:18px;color:var(--text-mute);cursor:pointer;transition:transform .15s;flex-shrink:0;}
+  .opt-chevron.open{transform:rotate(180deg);}
+  .opt-head-clickable{cursor:pointer;}
+  .opt-body.show{display:block;}
+  .opt-input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;}
+  .opt-mode-toggle{display:flex;gap:6px;margin-bottom:10px;}
+  .opt-mode-btn{flex:1;text-align:center;padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:11px;font-weight:600;color:var(--text-mute);cursor:pointer;background:#fff;}
+  .opt-mode-btn.active{border-color:var(--blue);background:var(--blue-soft);color:var(--blue);}
+
+  .style-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .style-field{flex:1;min-width:110px;}
+  .style-label{font-size:10.5px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .color-swatches{display:flex;gap:8px;}
+  .color-swatch{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);cursor:pointer;}
+  .color-swatch.selected{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft);}
+
+  @media (max-width:1000px){ .editor-layout{flex-direction:column;} .side-settings{max-width:none;width:100%;} .editor-page-wrap{width:100%;} }
+  @media (max-width:720px){ .sidebar{width:64px;} .nav-item{width:48px;font-size:9px;} .content{padding:18px;} }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="page-title">Modelos de Peças</div>
+      <div class="page-subtitle">Peças já produzidas pelo escritório e seu estilo de documento padrão</div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Como as Permissões/Habilitações controlam este módulo</div>
+          A Permissão "Modelo de peça" (Somente os seus / Todos) decide o que aparece na lista: "Todos" mostra as peças produzidas por qualquer pessoa do escritório; "Somente os seus" mostra só as peças que o próprio usuário criou. Já a Habilitação (dentro de Modelo de peça, em Habilitações) decide se ele pode "criar modelo novo" ou só "visualizar existentes" — sem essa habilitação, o botão "+ Nova peça" nem aparece, e ele só consegue navegar pelo acervo já produzido. A aba "Meu Estilo" é diferente das demais: <b>é de uso exclusivo do mestre</b> — nenhum outro papel (Administrador, Ilimitado, Financeiro) enxerga ou edita essa aba, mesmo com todas as habilitações de Modelo de peça ligadas. É o mestre quem define o padrão visual replicado em toda peça nova gerada por qualquer pessoa do escritório.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Consulte <code>permissoes_papel.modelo_peca.sub_opcao</code> do usuário logado: se <code>'todos'</code>, liste <code>SELECT * FROM pecas</code> sem filtro de autor; se <code>'somente_seus'</code>, filtre <code>WHERE criado_por = usuario.id</code>. O botão "+ Nova peça" só renderiza se <code>habilitacoes_papel.modelo_peca.criar_novo === true</code> — sem essa habilitação, a tela vira só leitura (lista + visualizar/baixar, sem opção de criar). "Meu Estilo" não segue a lógica normal de Permissão/Habilitação — é travada direto por <code>usuario.is_mestre === true</code>, igual outras áreas mestre-exclusivas já vistas (Honorários Advocatícios no Financeiro, Dados do escritório em Configurações). A aba nem deve renderizar no menu se o usuário logado não for mestre — não é uma questão de esconder um botão específico, a aba inteira não existe pra quem não é mestre.
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-target="tab-pecas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+          Peças
+        </div>
+        <div class="tab" data-target="tab-repetitivas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="10" height="10" rx="1"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Tarefas Repetitivas <span class="tab-badge-ia">IA</span>
+        </div>
+        <div class="tab" data-target="tab-estilo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+          Meu Estilo <span class="tab-badge">MESTRE</span>
+        </div>
+      </div>
+
+      <!-- ===================== TAB: PEÇAS ===================== -->
+      <div class="view active" id="tab-pecas">
+
+        <div id="pecas-list-view">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+            <button class="btn-dark" id="btn-nova-peca">+ Nova peça</button>
+          </div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              É o acervo de peças que o escritório já produziu — petições, contestações, recursos, procurações — reunidas num só lugar em vez de espalhadas em pastas locais ou no computador de cada advogado. Os filtros ajudam a achar rapidamente uma peça semelhante pra usar de base num caso novo, por tipo, matéria, responsável ou data.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Tabela <code>pecas</code> (nome, tipo, materia, resumo, arquivo_url ou conteudo_html, criado_por, data). Os filtros da tela são <code>WHERE</code> simples sobre essas colunas — nenhum deles é obrigatório, todos combináveis ao mesmo tempo. O filtro "Responsável" só faz sentido mostrar as opções de usuários que o usuário logado já pode ver (mesma lógica de permissão do resto do sistema) — se a Permissão estiver em "somente_seus", nem precisa desse filtro, já que só vai ter um responsável possível: ele mesmo.
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-row">
+              <div class="filter-field">
+                <div class="filter-label">BUSCAR</div>
+                <input class="filter-input" id="f-busca" placeholder="Nome da peça...">
+              </div>
+              <div class="filter-field">
+                <div class="filter-label">DATA</div>
+                <input class="filter-input" type="date" id="f-data">
+              </div>
+              <div class="filter-field">
+                <div class="filter-label">TIPO DE PEÇA</div>
+                <select class="filter-select" id="f-tipo">
+                  <option value="">Todos os tipos</option>
+                  <option>Petição Inicial</option>
+                  <option>Contestação</option>
+                  <option>Recurso</option>
+                  <option>Procuração</option>
+                  <option>Parecer</option>
+                  <option>Embargos</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <div class="filter-label">MATÉRIA</div>
+                <select class="filter-select" id="f-materia">
+                  <option value="">Todas as matérias</option>
+                  <option value="imobiliario">Imobiliário</option>
+                  <option value="civel">Cível</option>
+                  <option value="penal">Penal</option>
+                  <option value="sucessorio">Sucessório</option>
+                  <option value="trabalhista">Trabalhista</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <div class="filter-label">RESPONSÁVEL</div>
+                <select class="filter-select" id="f-responsavel">
+                  <option value="">Todos</option>
+                  <option>sergio</option>
+                  <option>felipe.costa</option>
+                  <option>joao.souza</option>
+                </select>
+              </div>
+              <div class="filter-clear" id="f-limpar">Limpar filtros</div>
+            </div>
+          </div>
+
+          <div class="peca-count" id="peca-count">8 peças encontradas</div>
+          <div class="peca-list" id="peca-list"></div>
+        </div>
+
+        <!-- ===================== NOVA PEÇA ===================== -->
+        <div id="nova-peca-view" style="display:none;">
+          <div class="back-link" id="nova-peca-voltar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar para Peças
+          </div>
+
+          <div class="estilo-mode-pick">
+            <div class="estilo-mode-card selected" id="npmode-anexar" data-npmode="anexar">
+              <div class="estilo-mode-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                Anexar arquivo
+              </div>
+              <div class="estilo-mode-desc">Envie uma peça já pronta (.docx ou .pdf) para adicionar ao acervo do escritório.</div>
+            </div>
+            <div class="estilo-mode-card" id="npmode-produzir" data-npmode="produzir">
+              <div class="estilo-mode-title">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Produzir peça nova
+              </div>
+              <div class="estilo-mode-desc">Redija do zero, direto na folha, já com o seu estilo padrão aplicado.</div>
+            </div>
+          </div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 Duas formas de adicionar uma peça</div>
+              "Anexar arquivo" é pra quando o advogado já tem a peça pronta em algum lugar (computador, e-mail) e só quer subir ela pro acervo do escritório, sem reescrever nada. "Produzir peça nova" abre o editor de texto embutido (o mesmo estilo Word que aparece em "Meu Estilo") já com o cabeçalho, rodapé, fonte e assinatura padrão do escritório aplicados automaticamente — o advogado só escreve o conteúdo específico daquele caso, sem precisar formatar do zero toda vez.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Modo "Anexar": upload direto pro storage (ex: AWS S3), salva só a URL em <code>pecas.arquivo_url</code>, campo <code>conteudo_html</code> fica nulo. Modo "Produzir": não tem upload — o conteúdo digitado no editor é salvo como <code>conteudo_html</code> (o mesmo formato usado em "Meu Estilo"), sem <code>arquivo_url</code>. Ao abrir o editor nesse modo, pré-carregue o HTML com os slots de cabeçalho/rodapé/assinatura já preenchidos a partir da tabela <code>estilo_escritorio</code> (a mesma configurada na aba Meu Estilo) — é assim que o padrão "é replicado automaticamente", sem duplicar a configuração em cada peça nova.
+            </div>
+          </div>
+
+          <div class="opt-card" style="margin-bottom:18px;">
+            <div class="style-row">
+              <div class="style-field" style="flex:2;">
+                <div class="style-label">NOME DA PEÇA</div>
+                <input class="filter-input" id="np-nome" placeholder="Ex: Petição Inicial — Ação de Cobrança">
+              </div>
+              <div class="style-field">
+                <div class="style-label">TIPO DE PEÇA</div>
+                <select class="filter-select" id="np-tipo">
+                  <option>Petição Inicial</option>
+                  <option>Contestação</option>
+                  <option>Recurso</option>
+                  <option>Procuração</option>
+                  <option>Parecer</option>
+                  <option>Embargos</option>
+                </select>
+              </div>
+              <div class="style-field">
+                <div class="style-label">MATÉRIA</div>
+                <select class="filter-select" id="np-materia">
+                  <option value="civel">Cível</option>
+                  <option value="imobiliario">Imobiliário</option>
+                  <option value="penal">Penal</option>
+                  <option value="sucessorio">Sucessório</option>
+                  <option value="trabalhista">Trabalhista</option>
+                </select>
+              </div>
+            </div>
+            <div class="style-row" style="margin-top:12px;">
+              <div class="style-field" style="flex:1 1 100%;">
+                <div class="style-label">RESUMO</div>
+                <input class="filter-input" id="np-resumo" placeholder="Breve resumo do que a peça trata...">
+              </div>
+            </div>
+          </div>
+
+          <!-- Modo: anexar arquivo -->
+          <div id="np-anexar-view">
+            <div class="attach-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+              Anexar peça (.docx ou .pdf)
+            </div>
+            <div class="form-actions" style="margin-top:16px;">
+              <button class="btn-dark" id="np-anexar-salvar">Salvar peça</button>
+            </div>
+          </div>
+
+          <!-- Modo: produzir do zero (mesmo editor estilo Word, já com o Meu Estilo aplicado) -->
+          <div id="np-produzir-view" style="display:none;">
+            <div class="section-note">A folha já vem com o cabeçalho, rodapé, assinatura e fonte definidos em "Meu Estilo". Edite o conteúdo normalmente.</div>
+
+            <div class="ribbon">
+              <div class="ribbon-group">
+                <div class="ribbon-btn" id="nprb-bold" title="Negrito"><b>B</b></div>
+                <div class="ribbon-btn" id="nprb-italic" title="Itálico"><i>I</i></div>
+                <div class="ribbon-btn" id="nprb-underline" title="Sublinhado"><u>S</u></div>
+              </div>
+              <div class="ribbon-group">
+                <div class="ribbon-btn" id="nprb-left" title="Alinhar à esquerda"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h15"/></svg></div>
+                <div class="ribbon-btn" id="nprb-center" title="Centralizar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M4 18h16"/></svg></div>
+                <div class="ribbon-btn" id="nprb-right" title="Alinhar à direita"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 12h12M6 18h15"/></svg></div>
+                <div class="ribbon-btn active" id="nprb-justify" title="Justificar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div>
+              </div>
+              <div class="ribbon-group" style="border-right:none;">
+                <div class="ribbon-btn wide" id="nprb-insert-img" title="Inserir imagem">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                  Imagem
+                </div>
+                <div class="ribbon-btn wide" id="nprb-insert-textbox" title="Inserir caixa de texto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1" stroke-dasharray="3 2"/></svg>
+                  Caixa de texto
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-page-wrap">
+              <div class="word-page" id="np-word-page">
+                <div class="page-header-slot show" id="np-slot-header" contenteditable="true">SOUZA LENZI ADVOGADOS — OAB/RJ 12.345</div>
+                <div class="page-body" id="np-slot-body" contenteditable="true" style="text-align:justify;line-height:1.15;">
+                  <p style="text-align:center;font-weight:700;">EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA ___ VARA ___</p>
+                  <p>&nbsp;</p>
+                  <p>Clique aqui e comece a redigir a peça...</p>
+                </div>
+                <div class="page-signature-slot show" id="np-slot-signature" contenteditable="true">
+                  <div class="page-sig-line"></div>
+                  Sérgio Souza Lenzi — OAB/RJ 111.222
+                </div>
+                <div class="page-footer-slot show" id="np-slot-footer" contenteditable="true">Rua Exemplo, 123 — Rio de Janeiro/RJ — contato@souzalenzi.com.br</div>
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top:16px;">
+              <button class="btn-dark" id="np-produzir-salvar">Salvar peça</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /tab-pecas -->
+
+      <!-- ===================== TAB: TAREFAS REPETITIVAS ===================== -->
+      <div class="view" id="tab-repetitivas">
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é (alimentado por IA)</div>
+            Serve pra quando o advogado precisa produzir várias peças praticamente iguais, uma pra cada caso, mudando só os detalhes específicos de cada um — não importa de que tipo de processo se trate. O exemplo de execução de aluguel atrasado (várias salas de um mesmo prédio) é só <b>um exemplo</b> de uso, não a estrutura fixa. <b>Quem faz o trabalho pesado aqui é a IA</b>: o advogado escolhe a peça padrão (do acervo ou anexando uma nova) e anexa os documentos de cada caso — a IA lê a peça padrão, entende sua estrutura (onde estão o nome da parte, o valor, a competência, etc.), lê os documentos de cada caso, identifica as diferenças em relação à peça padrão, e já preenche cada campo automaticamente. Exemplo: se a peça padrão está no nome do "João" e o documento anexado do caso é do "Pedro", a IA substitui automaticamente pelos dados do Pedro. Pra competência, a IA aplica a regra jurídica correta conforme a matéria — num caso imobiliário, por exemplo, ela sabe que é competente o juízo de onde está localizado o imóvel, identifica esse endereço no documento anexado, e já preenche a vara/comarca certa sozinha. Os campos abaixo de cada caso mostram o que a IA já extraiu e preencheu — o advogado só revisa e corrige se algo estiver errado, não precisa digitar tudo do zero.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Fluxo em 3 etapas com IA no meio: 1) <b>Análise da peça padrão</b> — a IA lê o <code>conteudo_html</code> (ou extrai texto de um arquivo anexado) e identifica os pontos variáveis do documento (nome de parte, valores, endereços, competência, datas), gerando um template com marcadores internos (<code>{{parte_contraria}}</code>, <code>{{valor}}</code>, <code>{{vara}}</code>, etc. — a IA decide esses marcadores sozinha a partir do texto, não é o usuário que os define manualmente). 2) <b>Extração por caso</b> — pra cada documento anexado num caso, a IA extrai os dados correspondentes aos marcadores identificados; a extração de competência é regra jurídica aplicada por matéria (ex: <code>natureza === 'imobiliario'</code> → competência do foro da situação do imóvel, buscando o endereço no documento anexado; outras matérias seguem suas próprias regras de competência). 3) <b>Preenchimento e revisão</b> — os campos da tela (Identificação, Parte contrária, Valor, Vara/Comarca, Particularidades, campos personalizados) são preenchidos automaticamente com o resultado da extração, e ficam editáveis pra revisão manual antes de gerar. Ao clicar "Gerar peças", roda o mesmo processo de substituição de marcadores já descrito, mas agora usando os valores extraídos (e eventualmente corrigidos) pelo usuário. Tecnicamente isso é um pipeline de IA com duas etapas separadas — análise estrutural do documento base, e extração/matching por caso — não um preenchimento de formulário simples; vale a pena tratar como um serviço próprio (ex: fila assíncrona de processamento), já que documentos grandes podem levar alguns segundos pra processar.
+          </div>
+        </div>
+
+        <div class="opt-card">
+          <div class="style-label" style="margin-bottom:10px;">PEÇA BASE</div>
+          <div class="style-row">
+            <div class="style-field" style="flex:2;">
+              <select class="filter-select" id="rep-peca-base">
+                <option value="">Selecione uma peça do acervo como modelo...</option>
+                <option>Petição Inicial — Ação de Danos Morais</option>
+                <option>Petição Inicial — Ação de Cobrança</option>
+                <option>Contestação — Comércio XYZ Ltda</option>
+              </select>
+            </div>
+            <div class="style-field">
+              <div class="caso-attach" id="rep-anexar-nova-base">Ou anexar uma peça nova como base</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="style-label" style="margin:20px 0 12px;">CASOS (cada um vira uma peça)</div>
+
+        <div id="rep-casos-list">
+
+          <div class="caso-card">
+            <div class="caso-card-top">
+              <div class="caso-card-titulo">Caso 1</div>
+              <div class="caso-remover">Remover</div>
+            </div>
+
+            <div class="style-row">
+              <div class="style-field" style="flex:1 1 100%;">
+                <div class="caso-attach caso-attach-ia">📎 Anexar documentos deste caso — a IA extrai os dados automaticamente</div>
+              </div>
+            </div>
+
+            <div class="style-label" style="margin:16px 0 10px;">DADOS EXTRAÍDOS (revise antes de gerar)</div>
+            <div class="style-row">
+              <div class="style-field">
+                <div class="style-label">IDENTIFICAÇÃO DO CASO</div>
+                <input class="filter-input" placeholder="Preenchido pela IA após anexar o documento">
+              </div>
+              <div class="style-field">
+                <div class="style-label">PARTE CONTRÁRIA</div>
+                <input class="filter-input" placeholder="Preenchido pela IA após anexar o documento">
+              </div>
+              <div class="style-field">
+                <div class="style-label">VALOR (SE APLICÁVEL)</div>
+                <input class="filter-input" placeholder="Preenchido pela IA após anexar o documento">
+              </div>
+            </div>
+            <div class="style-row" style="margin-top:12px;">
+              <div class="style-field">
+                <div class="style-label">VARA / COMARCA (COMPETÊNCIA)</div>
+                <input class="filter-input" placeholder="Preenchido pela IA, aplicando a regra de competência da matéria">
+              </div>
+              <div class="style-field" style="flex:2;">
+                <div class="style-label">PARTICULARIDADES (OPCIONAL)</div>
+                <input class="filter-input" placeholder="Qualquer detalhe específico deste caso">
+              </div>
+            </div>
+            <div class="campos-personalizados-list"></div>
+            <div class="style-row" style="margin-top:12px;">
+              <div class="caso-add-campo" style="color:var(--blue);font-size:11.5px;font-weight:700;cursor:pointer;">+ Adicionar campo personalizado</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <div class="caso-remover" id="rep-add-caso" style="color:var(--blue);">+ Adicionar outro caso</div>
+        </div>
+
+        <div class="form-actions" style="margin-top:22px;">
+          <button class="btn-dark" id="rep-gerar">Gerar peças</button>
+        </div>
+
+        <div class="rep-resultado" id="rep-resultado"></div>
+
+      </div>
+      <!-- /tab-repetitivas -->
+
+      <!-- ===================== TAB: MEU ESTILO ===================== -->
+      <div class="view" id="tab-estilo">
+
+        <div class="section-note">Defina o estilo padrão dos documentos do escritório — anexando uma peça já pronta ou construindo do zero, direto numa folha nos moldes do Word. Esse padrão será replicado automaticamente nas próximas peças geradas.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            É a configuração de identidade visual dos documentos do escritório — o padrão que toda peça nova produzida no sistema já vem seguindo, sem o advogado precisar formatar nada manualmente toda vez. Dá pra definir isso de duas formas: construindo do zero direto na folha (editando cabeçalho, rodapé, marca d'água e assinatura um por um), ou anexando uma peça que o escritório já usa como referência, deixando o sistema extrair o padrão dela. É uma configuração <b>única pro escritório inteiro e exclusiva do mestre</b> — os demais papéis nem veem essa aba — então uma mudança aqui afeta toda peça nova gerada por qualquer pessoa a partir daquele momento (peças já existentes não são alteradas retroativamente).
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Tabela <code>estilo_escritorio</code> — uma linha só por tenant (não por usuário), com campos pra cada slot: <code>cabecalho_tipo</code> (texto/imagem) + <code>cabecalho_conteudo</code>, mesma estrutura pra <code>rodape</code>, <code>marca_dagua</code> e <code>assinatura</code>, além de <code>fonte_padrao</code>, <code>estilo_jurisprudencia</code> e <code>estilo_citacao</code> (formatação específica aplicada quando o texto reconhece uma citação de lei/jurisprudência). No modo "Construir do zero", cada campo é editado diretamente e salvo em tempo real (ou ao clicar salvar). No modo "Anexar", o arquivo enviado só vira referência visual pro time conferir depois manualmente — não existe extração automática de estilo a partir de um arquivo (isso exigiria parsing de docx complexo, fora de escopo por ora); trate como um "anexo de exemplo", não como fonte de dados estruturados.
+          </div>
+        </div>
+
+        <div class="estilo-mode-pick">
+          <div class="estilo-mode-card selected" id="mode-construir" data-mode="construir">
+            <div class="estilo-mode-title">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Construir do zero
+            </div>
+            <div class="estilo-mode-desc">Edite a folha diretamente — texto, imagens, cabeçalho, rodapé, marca d'água e assinatura.</div>
+          </div>
+          <div class="estilo-mode-card" id="mode-anexar" data-mode="anexar">
+            <div class="estilo-mode-title">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+              Anexar peça existente
+            </div>
+            <div class="estilo-mode-desc">Envie uma peça já formatada e usamos ela como referência do seu estilo.</div>
+          </div>
+        </div>
+
+        <!-- Modo: anexar -->
+        <div id="estilo-anexar-view" style="display:none;">
+          <div class="attach-box">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+            Anexar peça (.docx ou .pdf)
+          </div>
+          <div class="form-actions" style="margin-top:16px;">
+            <button class="btn-dark">Usar esta peça como meu estilo</button>
+          </div>
+        </div>
+
+        <!-- Modo: construir (editor estilo Word) -->
+        <div id="estilo-construir-view">
+
+          <!-- Ribbon -->
+          <div class="ribbon">
+            <div class="ribbon-group">
+              <select class="ribbon-select" id="rb-fonte">
+                <option>Times New Roman</option>
+                <option>Arial</option>
+                <option>Calibri</option>
+                <option>Georgia</option>
+              </select>
+              <select class="ribbon-select" id="rb-tamanho">
+                <option value="10">10</option>
+                <option value="11" selected>11</option>
+                <option value="12">12</option>
+                <option value="14">14</option>
+                <option value="16">16</option>
+              </select>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-btn" id="rb-bold" title="Negrito"><b>B</b></div>
+              <div class="ribbon-btn" id="rb-italic" title="Itálico"><i>I</i></div>
+              <div class="ribbon-btn" id="rb-underline" title="Sublinhado"><u>S</u></div>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-btn" id="rb-left" title="Alinhar à esquerda"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h15"/></svg></div>
+              <div class="ribbon-btn" id="rb-center" title="Centralizar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M4 18h16"/></svg></div>
+              <div class="ribbon-btn" id="rb-right" title="Alinhar à direita"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 12h12M6 18h15"/></svg></div>
+              <div class="ribbon-btn active" id="rb-justify" title="Justificar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></div>
+            </div>
+            <div class="ribbon-group">
+              <select class="ribbon-select" id="rb-espacamento" title="Espaçamento entre linhas">
+                <option value="1">Simples</option>
+                <option value="1.15" selected>1,15</option>
+                <option value="1.5">1,5</option>
+                <option value="2">Duplo</option>
+              </select>
+            </div>
+            <div class="ribbon-group">
+              <select class="ribbon-select" id="rb-recuo-texto" title="Recuo do texto (margem lateral do corpo)">
+                <option value="0">Recuo texto: nenhum</option>
+                <option value="1.25" selected>Recuo texto: 1,25cm</option>
+                <option value="2">Recuo texto: 2cm</option>
+                <option value="3">Recuo texto: 3cm</option>
+              </select>
+              <select class="ribbon-select" id="rb-recuo-paragrafo" title="Recuo de parágrafo (primeira linha)">
+                <option value="0">Recuo parágrafo: nenhum</option>
+                <option value="1.25" selected>Recuo parágrafo: 1,25cm</option>
+                <option value="2">Recuo parágrafo: 2cm</option>
+                <option value="3">Recuo parágrafo: 3cm</option>
+              </select>
+            </div>
+            <div class="ribbon-group">
+              <div class="ribbon-btn wide" id="rb-insert-img" title="Inserir imagem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                Imagem
+              </div>
+              <div class="ribbon-btn wide" id="rb-insert-textbox" title="Inserir caixa de texto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1" stroke-dasharray="3 2"/></svg>
+                Caixa de texto
+              </div>
+            </div>
+            <div class="ribbon-group" style="border-right:none;">
+              <span class="style-label" style="margin:0 4px 0 0;">FOLHA</span>
+              <div class="ribbon-color selected" data-cor="#ffffff" style="background:#ffffff;"></div>
+              <div class="ribbon-color" data-cor="#faf6ee" style="background:#faf6ee;"></div>
+              <div class="ribbon-color" data-cor="#f4f4f4" style="background:#f4f4f4;"></div>
+              <div class="ribbon-color" data-cor="#eef4ff" style="background:#eef4ff;"></div>
+            </div>
+          </div>
+
+          <div class="editor-layout">
+
+            <div class="editor-page-wrap">
+              <div class="word-page" id="word-page">
+                <div class="page-watermark-slot show" id="slot-watermark">MINUTA</div>
+
+                <div class="page-header-slot show" id="slot-header" contenteditable="true">SOUZA LENZI ADVOGADOS — OAB/RJ 12.345</div>
+
+                <div class="page-enderecamento-block" id="enderecamento-block">
+                  <p id="slot-endereco" style="text-align:center;font-weight:700;">EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 2ª VARA CÍVEL</p>
+                  <p id="slot-numproc" style="text-align:right;font-size:10pt;margin-top:8px;">Processo: 0000000-00.0000.0.00.0000</p>
+                  <p id="slot-numguia" style="text-align:right;font-size:10pt;margin-top:2px;">Guia: 00000000000000000</p>
+                </div>
+
+                <div class="page-body" id="slot-body" contenteditable="true" style="text-align:justify;line-height:1.15;">
+                  <p>&nbsp;</p>
+                  <p><span id="slot-partes">NOME DO CLIENTE</span>, já qualificado nos autos do processo em epígrafe, vem respeitosamente à presença de Vossa Excelência expor e, ao final, requerer o que segue.</p>
+                  <p>Nestes termos, pede deferimento.</p>
+                  <p>Rio de Janeiro, 19 de agosto de 2026.</p>
+                </div>
+
+                <div class="page-signature-slot show" id="slot-signature" contenteditable="true">
+                  <div class="page-sig-line"></div>
+                  Sérgio Souza Lenzi — OAB/RJ 111.222
+                </div>
+
+                <div class="page-footer-slot show" id="slot-footer" contenteditable="true">Rua Exemplo, 123 — Rio de Janeiro/RJ — contato@souzalenzi.com.br</div>
+              </div>
+            </div>
+
+            <div class="side-settings">
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-header">
+                  <div class="opt-title">Cabeçalho</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="switch on" data-opt="header"><div class="switch-knob"></div></div>
+                    <svg class="opt-chevron" data-collapse-icon="body-header" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                </div>
+                <div class="opt-body" id="body-header">
+                  <div class="opt-mode-toggle">
+                    <div class="opt-mode-btn active" data-slot="header" data-mode="texto">Texto</div>
+                    <div class="opt-mode-btn" data-slot="header" data-mode="imagem">Imagem</div>
+                  </div>
+                  <div class="attach-box small" data-attach-for="header" style="display:none;">Anexar imagem do cabeçalho (ex: logo)</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-footer">
+                  <div class="opt-title">Rodapé</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="switch on" data-opt="footer"><div class="switch-knob"></div></div>
+                    <svg class="opt-chevron" data-collapse-icon="body-footer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                </div>
+                <div class="opt-body" id="body-footer">
+                  <div class="opt-mode-toggle">
+                    <div class="opt-mode-btn active" data-slot="footer" data-mode="texto">Texto</div>
+                    <div class="opt-mode-btn" data-slot="footer" data-mode="imagem">Imagem</div>
+                  </div>
+                  <div class="attach-box small" data-attach-for="footer" style="display:none;">Anexar imagem do rodapé</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-watermark">
+                  <div class="opt-title">Marca d'água</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="switch on" data-opt="watermark"><div class="switch-knob"></div></div>
+                    <svg class="opt-chevron" data-collapse-icon="body-watermark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                </div>
+                <div class="opt-body" id="body-watermark">
+                  <div class="opt-mode-toggle">
+                    <div class="opt-mode-btn active" data-slot="watermark" data-mode="texto">Texto</div>
+                    <div class="opt-mode-btn" data-slot="watermark" data-mode="imagem">Imagem</div>
+                  </div>
+                  <input class="opt-input" id="input-watermark-texto" value="MINUTA" placeholder="Texto da marca d'água">
+                  <div class="attach-box small" data-attach-for="watermark" style="display:none;">Anexar imagem para marca d'água (ex: brasão)</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-signature">
+                  <div class="opt-title">Assinatura</div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="switch on" data-opt="signature"><div class="switch-knob"></div></div>
+                    <svg class="opt-chevron" data-collapse-icon="body-signature" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                </div>
+                <div class="opt-body" id="body-signature">
+                  <div class="opt-mode-toggle">
+                    <div class="opt-mode-btn active" data-slot="signature" data-mode="texto">Texto</div>
+                    <div class="opt-mode-btn" data-slot="signature" data-mode="imagem">Imagem</div>
+                  </div>
+                  <div class="attach-box small" data-attach-for="signature" style="display:none;">Anexar imagem da assinatura digitalizada</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-enderecamento">
+                  <div class="opt-title">Endereçamento <span style="font-weight:400;color:var(--text-mute);">(ex: "Excelentíssimo Senhor Doutor Juiz...")</span></div>
+                  <svg class="opt-chevron" data-collapse-icon="body-enderecamento" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-enderecamento">
+                  <div class="style-row">
+                    <div class="style-field">
+                      <div class="style-label">FONTE</div>
+                      <select class="ribbon-select" id="end-fonte" style="width:100%;">
+                        <option>Times New Roman</option>
+                        <option>Arial</option>
+                        <option>Calibri</option>
+                        <option>Georgia</option>
+                      </select>
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">TAMANHO</div>
+                      <select class="ribbon-select" id="end-tamanho" style="width:100%;">
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12" selected>12</option>
+                        <option value="14">14</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="style-field">
+                      <div class="style-label">CAIXA</div>
+                      <select class="ribbon-select" id="end-caixa" style="width:100%;">
+                        <option value="maiusculas" selected>MAIÚSCULAS</option>
+                        <option value="capitalizado">Capitalizado (Iniciais Maiúsculas)</option>
+                        <option value="normal">Normal (como digitado)</option>
+                      </select>
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">ALINHAMENTO</div>
+                      <select class="ribbon-select" id="end-alinhamento" style="width:100%;">
+                        <option value="left">Esquerda</option>
+                        <option value="center" selected>Centralizado</option>
+                        <option value="right">Direita</option>
+                        <option value="justify">Justificado</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="ribbon-btn active" data-toggle-style="end-negrito" title="Negrito"><b>B</b></div>
+                    <div class="ribbon-btn" data-toggle-style="end-italico" title="Itálico"><i>I</i></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-numprocesso">
+                  <div class="opt-title">Número do processo <span style="font-weight:400;color:var(--text-mute);">(ex: "Processo: 0001234-...")</span></div>
+                  <svg class="opt-chevron" data-collapse-icon="body-numprocesso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-numprocesso">
+                  <div class="style-row">
+                    <div class="style-field">
+                      <div class="style-label">DISTÂNCIA DO ENDEREÇAMENTO (LINHAS)</div>
+                      <input class="opt-input" type="number" min="0" id="proc-distancia" value="2">
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">CAIXA</div>
+                      <select class="ribbon-select" id="proc-caixa" style="width:100%;">
+                        <option value="maiusculas">MAIÚSCULAS</option>
+                        <option value="capitalizado" selected>Capitalizado (Iniciais Maiúsculas)</option>
+                        <option value="normal">Normal (como digitado)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="style-field">
+                      <div class="style-label">ALINHAMENTO</div>
+                      <select class="ribbon-select" id="proc-alinhamento" style="width:100%;">
+                        <option value="left">Esquerda</option>
+                        <option value="center">Centralizado</option>
+                        <option value="right" selected>Direita</option>
+                        <option value="justify">Justificado</option>
+                      </select>
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">TAMANHO</div>
+                      <select class="ribbon-select" id="proc-tamanho" style="width:100%;">
+                        <option value="10" selected>10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="ribbon-btn" data-toggle-style="proc-negrito" title="Negrito"><b>B</b></div>
+                    <div class="ribbon-btn" data-toggle-style="proc-italico" title="Itálico"><i>I</i></div>
+                  </div>
+                  <div class="section-note" style="margin-top:10px;margin-bottom:0;">Assim como o endereçamento, o número do processo só aparece na primeira página do documento — não se repete nas páginas seguintes. A distância aqui é sempre contada a partir do <b>endereçamento</b>, não do número da guia — se o número da guia estiver configurado com uma distância menor que a do processo, ele passa a aparecer acima do processo automaticamente.</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-numguia">
+                  <div class="opt-title">Número da guia</div>
+                  <svg class="opt-chevron" data-collapse-icon="body-numguia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-numguia">
+                  <div class="style-row">
+                    <div class="style-field">
+                      <div class="style-label">DISTÂNCIA DO ENDEREÇAMENTO (LINHAS)</div>
+                      <input class="opt-input" type="number" min="0" id="guia-distancia" value="3">
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">CAIXA</div>
+                      <select class="ribbon-select" id="guia-caixa" style="width:100%;">
+                        <option value="maiusculas">MAIÚSCULAS</option>
+                        <option value="capitalizado" selected>Capitalizado (Iniciais Maiúsculas)</option>
+                        <option value="normal">Normal (como digitado)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="style-field">
+                      <div class="style-label">ALINHAMENTO</div>
+                      <select class="ribbon-select" id="guia-alinhamento" style="width:100%;">
+                        <option value="left">Esquerda</option>
+                        <option value="center">Centralizado</option>
+                        <option value="right" selected>Direita</option>
+                        <option value="justify">Justificado</option>
+                      </select>
+                    </div>
+                    <div class="style-field">
+                      <div class="style-label">TAMANHO</div>
+                      <select class="ribbon-select" id="guia-tamanho" style="width:100%;">
+                        <option value="10" selected>10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="ribbon-btn" data-toggle-style="guia-negrito" title="Negrito"><b>B</b></div>
+                    <div class="ribbon-btn" data-toggle-style="guia-italico" title="Itálico"><i>I</i></div>
+                  </div>
+                  <div class="section-note" style="margin-top:10px;margin-bottom:0;">Assim como o endereçamento, o número da guia só aparece na primeira página do documento — não se repete nas páginas seguintes. A distância aqui é sempre contada a partir do <b>endereçamento</b>, não do número do processo — se essa distância for menor que a configurada pro número do processo, a guia passa a aparecer acima do processo automaticamente.</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-partes">
+                  <div class="opt-title">Nome das partes</div>
+                  <svg class="opt-chevron" data-collapse-icon="body-partes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-partes">
+                  <div class="style-row">
+                    <div class="style-field">
+                      <div class="style-label">CAIXA</div>
+                      <select class="ribbon-select" id="partes-caixa" style="width:100%;">
+                        <option value="maiusculas" selected>MAIÚSCULAS</option>
+                        <option value="capitalizado">Capitalizado (Iniciais Maiúsculas)</option>
+                        <option value="normal">Normal (como digitado)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="style-row" style="margin-top:10px;">
+                    <div class="ribbon-btn active" data-toggle-style="partes-negrito" title="Negrito"><b>B</b></div>
+                    <div class="ribbon-btn" data-toggle-style="partes-italico" title="Itálico"><i>I</i></div>
+                  </div>
+                  <div class="section-note" style="margin-top:10px;margin-bottom:0;">Essas opções afetam <b>só o nome da parte</b> dentro do texto (ex: "NOME DO CLIENTE") — o resto da frase ao redor continua seguindo a formatação geral do documento, configurada na barra superior. "Capitalizado" aqui é a opção equivalente a "minúsculas" — nomes próprios sempre mantêm ao menos a primeira letra de cada palavra em maiúscula, nunca ficam 100% em caixa baixa. Não tem opção de alinhamento aqui porque o nome fica embutido no meio de uma frase corrida, não é um bloco de texto isolado.</div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-jurisprudencia">
+                  <div class="opt-title">Estilo de Jurisprudência</div>
+                  <svg class="opt-chevron" data-collapse-icon="body-jurisprudencia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-jurisprudencia">
+                <div class="style-row">
+                  <div class="style-field">
+                    <div class="style-label">FONTE</div>
+                    <select class="ribbon-select" id="jur-fonte" style="width:100%;">
+                      <option>Times New Roman</option>
+                      <option>Arial</option>
+                      <option>Calibri</option>
+                      <option>Georgia</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">TAMANHO</div>
+                    <select class="ribbon-select" id="jur-tamanho" style="width:100%;">
+                      <option value="9">9</option>
+                      <option value="10" selected>10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">RECUO</div>
+                    <select class="ribbon-select" id="jur-recuo" style="width:100%;">
+                      <option value="0">Nenhum</option>
+                      <option value="20">Pequeno</option>
+                      <option value="40" selected>Médio</option>
+                      <option value="60">Grande</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">JUSTIFICAÇÃO</div>
+                    <select class="ribbon-select" id="jur-alinhamento" style="width:100%;">
+                      <option value="left">Esquerda</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Direita</option>
+                      <option value="justify" selected>Justificado</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">COR DA FONTE</div>
+                    <div class="color-swatches" id="jur-cor">
+                      <div class="color-swatch selected" data-cor="#222222" style="background:#222222;"></div>
+                      <div class="color-swatch" data-cor="#5b6785" style="background:#5b6785;"></div>
+                      <div class="color-swatch" data-cor="#3457d5" style="background:#3457d5;"></div>
+                      <div class="color-swatch" data-cor="#c23b3b" style="background:#c23b3b;"></div>
+                    </div>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">MARCA-TEXTO</div>
+                    <div class="color-swatches" id="jur-marcatexto">
+                      <div class="color-swatch selected" data-cor="transparent" style="background:#fff;"></div>
+                      <div class="color-swatch" data-cor="#fff2a8" style="background:#fff2a8;"></div>
+                      <div class="color-swatch" data-cor="#c9f2d8" style="background:#c9f2d8;"></div>
+                      <div class="color-swatch" data-cor="#d6e6ff" style="background:#d6e6ff;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="ribbon-btn" data-toggle-style="jur-negrito" title="Negrito"><b>B</b></div>
+                  <div class="ribbon-btn" data-toggle-style="jur-italico" title="Itálico"><i>I</i></div>
+                  <div class="ribbon-btn active" data-toggle-style="jur-sublinhado" title="Sublinhado"><u>S</u></div>
+                  <div class="ribbon-btn" data-toggle-style="jur-tachado" title="Tachado"><span style="text-decoration:line-through;">T</span></div>
+                </div>
+                <div class="style-label" style="margin-top:14px;">PRÉ-VISUALIZAÇÃO</div>
+                <div id="jur-preview" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;background:#fbfbfd;">
+                  STJ, REsp 1.234.567/RJ, Rel. Min. Fulano de Tal, julgado em 12/03/2024: "O dano moral prescinde de prova, decorrendo dos próprios fatos."
+                </div>
+                <div class="form-actions" style="margin-top:12px;">
+                  <button class="btn-outline" id="jur-inserir" style="width:100%;">+ Inserir jurisprudência no documento</button>
+                </div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-artigo">
+                  <div class="opt-title">Transcrição de Artigo</div>
+                  <svg class="opt-chevron" data-collapse-icon="body-artigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-artigo">
+                <div class="style-row">
+                  <div class="style-field">
+                    <div class="style-label">FONTE</div>
+                    <select class="ribbon-select" id="art-fonte" style="width:100%;">
+                      <option>Times New Roman</option>
+                      <option>Arial</option>
+                      <option>Calibri</option>
+                      <option>Georgia</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">TAMANHO</div>
+                    <select class="ribbon-select" id="art-tamanho" style="width:100%;">
+                      <option value="9">9</option>
+                      <option value="10" selected>10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">RECUO</div>
+                    <select class="ribbon-select" id="art-recuo" style="width:100%;">
+                      <option value="0">Nenhum</option>
+                      <option value="20">Pequeno</option>
+                      <option value="40" selected>Médio</option>
+                      <option value="60">Grande</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">JUSTIFICAÇÃO</div>
+                    <select class="ribbon-select" id="art-alinhamento" style="width:100%;">
+                      <option value="left">Esquerda</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Direita</option>
+                      <option value="justify" selected>Justificado</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">COR DA FONTE</div>
+                    <div class="color-swatches" id="art-cor">
+                      <div class="color-swatch selected" data-cor="#222222" style="background:#222222;"></div>
+                      <div class="color-swatch" data-cor="#5b6785" style="background:#5b6785;"></div>
+                      <div class="color-swatch" data-cor="#3457d5" style="background:#3457d5;"></div>
+                      <div class="color-swatch" data-cor="#c23b3b" style="background:#c23b3b;"></div>
+                    </div>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">MARCA-TEXTO</div>
+                    <div class="color-swatches" id="art-marcatexto">
+                      <div class="color-swatch selected" data-cor="transparent" style="background:#fff;"></div>
+                      <div class="color-swatch" data-cor="#fff2a8" style="background:#fff2a8;"></div>
+                      <div class="color-swatch" data-cor="#c9f2d8" style="background:#c9f2d8;"></div>
+                      <div class="color-swatch" data-cor="#d6e6ff" style="background:#d6e6ff;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="ribbon-btn" data-toggle-style="art-negrito" title="Negrito"><b>B</b></div>
+                  <div class="ribbon-btn active" data-toggle-style="art-italico" title="Itálico"><i>I</i></div>
+                  <div class="ribbon-btn" data-toggle-style="art-sublinhado" title="Sublinhado"><u>S</u></div>
+                  <div class="ribbon-btn" data-toggle-style="art-tachado" title="Tachado"><span style="text-decoration:line-through;">T</span></div>
+                </div>
+                <div class="style-label" style="margin-top:14px;">PRÉ-VISUALIZAÇÃO</div>
+                <div id="art-preview" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;background:#fbfbfd;">
+                  Art. 927. Aquele que, por ato ilícito, causar dano a outrem, fica obrigado a repará-lo. (Código Civil, Lei nº 10.406/2002)
+                </div>
+                <div class="section-note" style="margin-top:10px;margin-bottom:0;">Diferente de Jurisprudência e Citação (que a IA reconhece e formata sozinha durante a produção da peça), a Transcrição de Artigo é acionada manualmente pelo advogado: ele copia o texto do artigo de lei direto da fonte, cola no documento, seleciona o trecho colado e clica em "Inserir" pra aplicar essa formatação — já que um artigo colado não tem um padrão fixo de texto pra IA reconhecer sozinha (varia muito de lei pra lei, de código pra código).</div>
+                <div class="form-actions" style="margin-top:12px;">
+                  <button class="btn-outline" id="art-inserir" style="width:100%;">+ Inserir transcrição de artigo no documento</button>
+                </div>
+                </div>
+              </div>
+
+              <div class="opt-card">
+                <div class="opt-head opt-head-clickable" data-collapse-toggle="body-citacao">
+                  <div class="opt-title">Estilo de Citação</div>
+                  <svg class="opt-chevron" data-collapse-icon="body-citacao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="opt-body" id="body-citacao">
+                <div class="style-row">
+                  <div class="style-field">
+                    <div class="style-label">FONTE</div>
+                    <select class="ribbon-select" id="cit-fonte" style="width:100%;">
+                      <option>Times New Roman</option>
+                      <option>Arial</option>
+                      <option>Calibri</option>
+                      <option>Georgia</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">TAMANHO</div>
+                    <select class="ribbon-select" id="cit-tamanho" style="width:100%;">
+                      <option value="9">9</option>
+                      <option value="10" selected>10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">RECUO</div>
+                    <select class="ribbon-select" id="cit-recuo" style="width:100%;">
+                      <option value="0">Nenhum</option>
+                      <option value="20" selected>Pequeno</option>
+                      <option value="40">Médio</option>
+                      <option value="60">Grande</option>
+                    </select>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">JUSTIFICAÇÃO</div>
+                    <select class="ribbon-select" id="cit-alinhamento" style="width:100%;">
+                      <option value="left">Esquerda</option>
+                      <option value="center">Centro</option>
+                      <option value="right">Direita</option>
+                      <option value="justify" selected>Justificado</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="style-field">
+                    <div class="style-label">COR DA FONTE</div>
+                    <div class="color-swatches" id="cit-cor">
+                      <div class="color-swatch" data-cor="#222222" style="background:#222222;"></div>
+                      <div class="color-swatch selected" data-cor="#5b6785" style="background:#5b6785;"></div>
+                      <div class="color-swatch" data-cor="#3457d5" style="background:#3457d5;"></div>
+                      <div class="color-swatch" data-cor="#c23b3b" style="background:#c23b3b;"></div>
+                    </div>
+                  </div>
+                  <div class="style-field">
+                    <div class="style-label">MARCA-TEXTO</div>
+                    <div class="color-swatches" id="cit-marcatexto">
+                      <div class="color-swatch selected" data-cor="transparent" style="background:#fff;"></div>
+                      <div class="color-swatch" data-cor="#fff2a8" style="background:#fff2a8;"></div>
+                      <div class="color-swatch" data-cor="#c9f2d8" style="background:#c9f2d8;"></div>
+                      <div class="color-swatch" data-cor="#d6e6ff" style="background:#d6e6ff;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="style-row" style="margin-top:10px;">
+                  <div class="ribbon-btn" data-toggle-style="cit-negrito" title="Negrito"><b>B</b></div>
+                  <div class="ribbon-btn active" data-toggle-style="cit-italico" title="Itálico"><i>I</i></div>
+                  <div class="ribbon-btn" data-toggle-style="cit-sublinhado" title="Sublinhado"><u>S</u></div>
+                  <div class="ribbon-btn" data-toggle-style="cit-tachado" title="Tachado"><span style="text-decoration:line-through;">T</span></div>
+                </div>
+                <div class="style-label" style="margin-top:14px;">PRÉ-VISUALIZAÇÃO</div>
+                <div id="cit-preview" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;background:#fbfbfd;">
+                  "A boa-fé objetiva impõe às partes deveres de lealdade, informação e cooperação durante toda a relação contratual." (TARTUCE, Flávio. Direito Civil. 2023, p. 112)
+                </div>
+                <div class="form-actions" style="margin-top:12px;">
+                  <button class="btn-outline" id="cit-inserir" style="width:100%;">+ Inserir citação no documento</button>
+                </div>
+                </div>
+              </div>
+
+              <div class="section-note" style="margin-bottom:14px;">Todas as seções acima (Cabeçalho, Rodapé, Marca d'água, Assinatura, Endereçamento, Número do processo, Número da guia, Nome das partes, Jurisprudência, Citação) são retráteis — clique no nome ou na setinha pra abrir e configurar. Recuo do texto e recuo de parágrafo ficam na barra superior, junto das demais opções gerais de formatação do documento. O cabeçalho, rodapé, marca d'água e assinatura também podem ser digitados diretamente na folha (clique no espaço correspondente) ou substituídos por uma imagem, como o logo ou brasão do escritório.</div>
+
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 Seções retráteis + formatação detalhada + prévia ao vivo</div>
+                  Todas as seções ficam fechadas por padrão, mostrando só o nome — clicar em qualquer uma (no nome ou na setinha) expande pra mostrar as opções. Isso evita que a tela fique poluída com todas as configurações abertas ao mesmo tempo. Cabeçalho/Rodapé/Marca d'água/Assinatura continuam funcionando em Texto ou Imagem, clicando direto no espaço correspondente da folha. As seções Endereçamento, Número do processo, Número da guia e Nome das partes permitem configurar exatamente como cada uma dessas partes específicas do documento aparece — fonte, tamanho, negrito, itálico, caixa (maiúsculas, capitalizado ou normal) e alinhamento — cada uma independente das outras. "Número do processo" e "Número da guia" também têm um campo de distância em linhas em relação ao endereçamento, já que normalmente aparecem logo abaixo dele. <b>Qualquer ajuste feito nessas seções já aparece na hora na folha de prévia à esquerda</b> — inclusive um número de processo e de guia ilustrativos (zerados, só pra teste visual) foram adicionados à folha especificamente pra isso. Recuo do texto e Recuo de parágrafo saíram daqui e foram pra barra superior, junto com fonte/tamanho/negrito/itálico/sublinhado/justificação/cor da folha — são configurações gerais do documento como um todo, não uma seção destacada específica.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  Cada seção retrátil é só um <code>toggle</code> de visibilidade no frontend (classe <code>expanded</code>), sem relação nenhuma com o switch liga/desliga do slot (esse continua controlando se aquele elemento aparece na folha, é uma coisa separada de estar expandido/recolhido na configuração). Pra Endereçamento/Número do processo/Número da guia/Nome das partes, salve em <code>estilo_escritorio</code> um objeto por seção com os campos: <code>fonte</code>, <code>tamanho</code>, <code>negrito</code> (bool), <code>italico</code> (bool), <code>caixa</code> (<code>'maiusculas'|'capitalizado'|'normal'</code>), <code>alinhamento</code> (<code>'left'|'center'|'right'|'justify'</code>) — e pra Número do processo/guia, adicione <code>distancia_linhas</code> (int). A opção "capitalizado" no campo caixa é a única forma de "minúsculas" disponível — nunca deixe nome próprio 100% em caixa baixa. Cada campo desses tem um listener de <code>change</code>/<code>input</code> que já reescreve o <code>style</code> do elemento correspondente na folha (<code>font-family</code>, <code>font-size</code>, <code>text-transform</code>, <code>text-align</code>, <code>font-weight</code>, <code>font-style</code>, <code>margin-top</code>) — é assim que a prévia atualiza em tempo real, sem precisar salvar antes pra ver o resultado. Recuo do texto vira <code>padding-left/right</code> no corpo; recuo de parágrafo vira <code>text-indent</code>, que por ser propriedade herdada em CSS já se aplica automaticamente à primeira linha de cada parágrafo dentro do corpo, sem precisar configurar parágrafo por parágrafo.
+                </div>
+              </div>
+
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 Três ajustes de comportamento</div>
+                  <b>1) Número do processo e Número da guia são interdependentes:</b> a distância configurada em cada um é sempre contada a partir do endereçamento, nunca um em relação ao outro. Isso significa que, se a distância da guia for menor que a do processo, ela passa a aparecer <b>acima</b> do processo automaticamente — sem precisar reordenar nada manualmente, o sistema já ajusta a posição de cada um sozinho toda vez que uma das duas distâncias muda. <b>2) O Endereçamento (e os números logo abaixo dele) não é mais afetado pelo Recuo do texto</b> configurado na barra superior — esse recuo geral agora afeta só o corpo do texto normal, não a área do endereçamento, que segue exclusivamente as regras configuradas na própria aba dela. <b>3) Inserir uma Jurisprudência/Transcrição de Artigo/Citação agora insere o trecho no final do corpo do texto</b> (não mais perto do endereçamento), e o trecho inserido usa exclusivamente a formatação configurada na aba correspondente — não herda mais o recuo de parágrafo geral do documento, que antes estava disfarçando a formatação própria configurada.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  <b>Ordenação de processo/guia:</b> ao mudar qualquer uma das duas distâncias, recalcule qual delas é menor, reordene os dois elementos no DOM/layout nessa ordem, e calcule a margem de cada um relativa ao anterior (não à distância absoluta de cada), de forma que a distância final de cada um até o endereçamento bata com o valor configurado, mesmo estando "empilhados" um em cima do outro. <b>Independência do Endereçamento:</b> o bloco de Endereçamento + Número do processo + Número da guia deixou de ser filho do elemento do corpo do texto — agora é um bloco irmão, renderizado entre o cabeçalho e o corpo. Assim, qualquer <code>padding</code>/<code>margin</code> aplicado ao corpo (pelo Recuo do texto) não tem como vazar visualmente pra esse bloco, já que não são mais pai/filho. <b>Inserção no lugar certo:</b> antes de inserir uma jurisprudência/citação/artigo, posicione o cursor explicitamente no final do conteúdo do corpo do texto (via <code>Range</code>/<code>Selection</code>, não só um <code>focus()</code> — <code>focus()</code> sozinho não garante onde o cursor cai) antes de rodar o <code>insertHTML</code>. E sempre inclua <code>text-indent: 0</code> no <code>style</code> inline do trecho inserido, senão ele herda o recuo de parágrafo geral do corpo (propriedade CSS herdada), o que visualmente parece que a formatação própria não está sendo respeitada, mesmo com fonte/cor/negrito corretos.
+                </div>
+              </div>
+
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 Jurisprudência e Citação são detectadas pela IA, não inseridas manualmente</div>
+                  O botão "+ Inserir jurisprudência/citação" aqui serve só pra você testar/conferir a formatação configurada — mas o uso real, no dia a dia, é outro: quando o sistema estiver produzindo uma peça (seja no editor normal ou nas Tarefas Repetitivas), a <b>IA identifica sozinha</b> quando um trecho do texto é uma citação de jurisprudência ou de doutrina/lei, e já aplica essas regras de formatação automaticamente, sem o advogado precisar selecionar o texto e clicar em nada. O advogado só define aqui, uma vez, como essas citações devem se parecer — cor, negrito, itálico, recuo, marca-texto — e a IA aplica isso toda vez que reconhecer uma citação, em qualquer peça nova.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  Durante a geração de uma peça (produção manual ou via Tarefas Repetitivas), rode uma etapa de reconhecimento de padrões no texto pra identificar trechos que sejam citação de jurisprudência (padrões como "STJ, REsp...", "TJRJ, Apelação...") ou de doutrina/lei — pode ser via regex pra padrões bem definidos, ou via IA/NLP pra casos mais soltos no texto. Ao identificar um trecho, envolva ele automaticamente num <code>&lt;span&gt;</code> com o estilo salvo em <code>estilo_escritorio.jurisprudencia</code> ou <code>.citacao</code> (mesma lógica de aplicação que já existe no botão manual "+ Inserir", só que disparada automaticamente, não por clique do usuário). O botão manual continua existindo como atalho pra quando o advogado já sabe exatamente onde quer inserir uma citação nova, sem depender da IA reconhecer.
+                </div>
+              </div>
+
+              <div class="explain-cards">
+                <div class="explain-card green">
+                  <div class="explain-card-title">🟢 Endereçamento, Número do processo e Número da guia só na primeira página — Assinatura só na última</div>
+                  Isso é uma regra natural de como uma peça jurídica funciona: o endereçamento (o "Excelentíssimo Senhor...") e, logo abaixo dele, o número do processo e o número da guia, só aparecem uma vez, na primeira página, mesmo que o documento tenha 10 páginas — nas páginas seguintes só continua o corpo do texto. A assinatura, ao contrário, só aparece na última página, depois de todo o conteúdo. Tem um caso especial: peças que têm "capa + corpo" — o exemplo mais comum é um recurso, onde a primeira peça é só a petição de interposição (avisando que está recorrendo) e a segunda peça, já com endereçamento e numeração próprios, são as razões do recurso em si. Nesse caso, o documento final tem <b>dois endereçamentos (com seus números de processo/guia), e duas assinaturas</b> — um conjunto pro fim da capa/petição de interposição, outro pro fim das razões.
+                </div>
+                <div class="explain-card red">
+                  <div class="explain-card-title">🔴 Como construir</div>
+                  Os slots de endereçamento, número do processo e número da guia só devem renderizar na primeira página do documento gerado, e o slot de assinatura só na última — isso é resolvido na hora de paginar/exportar a peça (o motor de geração de PDF/docx precisa saber calcular onde cai a quebra de página e aplicar os slots condicionalmente por página, não simplesmente repetir em todas). Pra peças "capa + corpo" (ex: <code>tipo_peca: 'recurso_com_razoes'</code>), trate como duas seções de documento concatenadas, cada uma com seu próprio ciclo completo (endereçamento + numeração no início da seção, assinatura no fim da seção) — na prática, é como gerar dois documentos e uni-los num só arquivo final, cada um com sua primeira/última página respeitando a regra normal. Vale a pena um campo <code>estrutura_peca: 'simples'|'capa_e_corpo'</code> na peça base, pra o sistema saber se precisa desse tratamento especial ou não.
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn-dark">Salvar como meu estilo</button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+      <!-- /tab-estilo -->
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Alternância de abas =====
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
+  // ===== Tarefas Repetitivas =====
+  var repContadorCasos = 1;
+  var repContadorCampos = 0;
+  var repExemplosIA = [
+    { id:'Sala 101 — Contrato nº 4521', parte:'Comércio ABC Ltda', valor:'12.000,00', vara:'4ª Vara Cível — Comarca da Capital (foro do imóvel)' },
+    { id:'Sala 102 — Contrato nº 4522', parte:'Livraria Pontes ME', valor:'8.500,00', vara:'4ª Vara Cível — Comarca da Capital (foro do imóvel)' },
+    { id:'Contrato nº 4523 — Pedro Alves', parte:'Pedro Alves', valor:'6.200,00', vara:'2ª Vara Cível — Comarca de Niterói (foro do imóvel)' }
+  ];
+  var repProximoExemplo = 0;
+
+  function wireCampoPersonalizado(row, card){
+    row.querySelector('.campo-remover').addEventListener('click', function(){
+      row.remove();
+    });
+  }
+
+  function adicionarCampoPersonalizado(card){
+    repContadorCampos++;
+    var row = document.createElement('div');
+    row.className = 'style-row';
+    row.style.marginTop = '10px';
+    row.innerHTML =
+      '<div class="style-field"><div class="style-label">NOME DO CAMPO</div><input class="filter-input campo-nome" placeholder="Ex: Número do título executivo"></div>' +
+      '<div class="style-field"><div class="style-label">VALOR</div><input class="filter-input campo-valor" placeholder="Valor deste campo pra este caso"></div>' +
+      '<div class="style-field" style="flex:0 0 auto;align-self:flex-end;"><div class="caso-remover campo-remover" style="padding-bottom:9px;">Remover</div></div>';
+    card.querySelector('.campos-personalizados-list').appendChild(row);
+    wireCampoPersonalizado(row, card);
+  }
+
+  function simularExtracaoIA(box, card){
+    box.textContent = '🤖 Analisando documento com a IA...';
+    box.classList.add('ia-analisando');
+    setTimeout(function(){
+      var exemplo = repExemplosIA[repProximoExemplo % repExemplosIA.length];
+      repProximoExemplo++;
+
+      box.textContent = '✓ documento anexado — dados extraídos automaticamente';
+      box.classList.remove('ia-analisando');
+
+      var inputs = card.querySelectorAll('.style-row .style-field input');
+      inputs[0].value = exemplo.id;
+      inputs[1].value = exemplo.parte;
+      inputs[2].value = exemplo.valor;
+      inputs[3].value = exemplo.vara;
+
+      if(!card.querySelector('.ia-preenchido-nota')){
+        var nota = document.createElement('div');
+        nota.className = 'ia-preenchido-nota';
+        nota.innerHTML = '🤖 Preenchido automaticamente pela IA a partir do documento anexado — revise antes de gerar';
+        var attachRow = box.closest('.style-row');
+        attachRow.parentNode.insertBefore(nota, attachRow.nextSibling);
+      }
+    }, 900);
+  }
+
+  function wireCasoCard(card){
+    card.querySelector('.caso-remover').addEventListener('click', function(){
+      if(document.querySelectorAll('#rep-casos-list .caso-card').length <= 1) return;
+      card.remove();
+    });
+    var attachIA = card.querySelector('.caso-attach-ia');
+    if(attachIA){
+      attachIA.addEventListener('click', function(){
+        simularExtracaoIA(attachIA, card);
+      });
+    }
+    card.querySelector('.caso-add-campo').addEventListener('click', function(){
+      adicionarCampoPersonalizado(card);
+    });
+  }
+  document.querySelectorAll('#rep-casos-list .caso-card').forEach(wireCasoCard);
+
+  document.getElementById('rep-add-caso').addEventListener('click', function(){
+    repContadorCasos++;
+    var card = document.createElement('div');
+    card.className = 'caso-card';
+    card.innerHTML =
+      '<div class="caso-card-top">' +
+        '<div class="caso-card-titulo">Caso ' + repContadorCasos + '</div>' +
+        '<div class="caso-remover">Remover</div>' +
+      '</div>' +
+      '<div class="style-row">' +
+        '<div class="style-field" style="flex:1 1 100%;"><div class="caso-attach caso-attach-ia">📎 Anexar documentos deste caso — a IA extrai os dados automaticamente</div></div>' +
+      '</div>' +
+      '<div class="style-label" style="margin:16px 0 10px;">DADOS EXTRAÍDOS (revise antes de gerar)</div>' +
+      '<div class="style-row">' +
+        '<div class="style-field"><div class="style-label">IDENTIFICAÇÃO DO CASO</div><input class="filter-input" placeholder="Preenchido pela IA após anexar o documento"></div>' +
+        '<div class="style-field"><div class="style-label">PARTE CONTRÁRIA</div><input class="filter-input" placeholder="Preenchido pela IA após anexar o documento"></div>' +
+        '<div class="style-field"><div class="style-label">VALOR (SE APLICÁVEL)</div><input class="filter-input" placeholder="Preenchido pela IA após anexar o documento"></div>' +
+      '</div>' +
+      '<div class="style-row" style="margin-top:12px;">' +
+        '<div class="style-field"><div class="style-label">VARA / COMARCA (COMPETÊNCIA)</div><input class="filter-input" placeholder="Preenchido pela IA, aplicando a regra de competência da matéria"></div>' +
+        '<div class="style-field" style="flex:2;"><div class="style-label">PARTICULARIDADES (OPCIONAL)</div><input class="filter-input" placeholder="Qualquer detalhe específico deste caso"></div>' +
+      '</div>' +
+      '<div class="campos-personalizados-list"></div>' +
+      '<div class="style-row" style="margin-top:12px;">' +
+        '<div class="caso-add-campo" style="color:var(--blue);font-size:11.5px;font-weight:700;cursor:pointer;">+ Adicionar campo personalizado</div>' +
+      '</div>';
+    document.getElementById('rep-casos-list').appendChild(card);
+    wireCasoCard(card);
+  });
+
+  document.getElementById('rep-anexar-nova-base').addEventListener('click', function(){
+    this.textContent = '✓ peça-base.docx anexada';
+  });
+
+  document.getElementById('rep-gerar').addEventListener('click', function(){
+    var casos = document.querySelectorAll('#rep-casos-list .caso-card');
+    var totalCasos = casos.length;
+    var pecaBase = document.getElementById('rep-peca-base').value || 'peça anexada como base';
+    var identificacoes = [...casos].map(function(card){
+      var input = card.querySelector('.style-row .style-field input');
+      return input.value || '(sem identificação)';
+    });
+
+    var resultado = document.getElementById('rep-resultado');
+    resultado.style.display = 'block';
+    resultado.innerHTML =
+      '<b>' + totalCasos + (totalCasos === 1 ? ' peça gerada' : ' peças geradas') + ' com sucesso a partir de "' + pecaBase + '"</b><br>' +
+      'Cada uma foi adicionada ao acervo em "Peças", já com os dados de cada caso preenchidos automaticamente:<br><br>' +
+      identificacoes.map(function(u, i){ return (i+1) + '. Petição — ' + u; }).join('<br>');
+  });
+
+  // ===== Dados de exemplo das peças =====
+  var pecas = [
+    { nome:"Petição Inicial — Ação de Danos Morais", tipo:"Petição Inicial", materia:"civel", resumo:"Ação indenizatória por danos morais decorrentes de ato ilícito, com pedido de tutela de urgência.", data:"2026-02-03", responsavel:"sergio" },
+    { nome:"Contestação — Comércio XYZ Ltda", tipo:"Contestação", materia:"civel", resumo:"Impugnação dos fatos e fundamentos da ação de danos morais, com preliminares de mérito.", data:"2026-08-08", responsavel:"sergio" },
+    { nome:"Embargos à Execução — Comércio XYZ", tipo:"Embargos", materia:"civel", resumo:"Embargos opostos à execução, questionando o valor executado.", data:"2026-04-15", responsavel:"sergio" },
+    { nome:"Petição Inicial — Ação de Despejo", tipo:"Petição Inicial", materia:"imobiliario", resumo:"Ação de despejo por falta de pagamento cumulada com cobrança de aluguéis em atraso.", data:"2026-06-20", responsavel:"felipe.costa" },
+    { nome:"Contestação — Ação Penal (Crime Contra o Patrimônio)", tipo:"Contestação", materia:"penal", resumo:"Defesa preliminar em ação penal, arguindo atipicidade da conduta.", data:"2026-05-11", responsavel:"joao.souza" },
+    { nome:"Petição Inicial — Inventário", tipo:"Petição Inicial", materia:"sucessorio", resumo:"Abertura de inventário extrajudicial com partilha amigável entre herdeiros.", data:"2026-03-28", responsavel:"sergio" },
+    { nome:"Recurso — Agravo de Instrumento", tipo:"Recurso", materia:"civel", resumo:"Agravo de instrumento contra decisão saneadora que distribuiu o ônus da prova.", data:"2026-02-25", responsavel:"felipe.costa" },
+    { nome:"Petição Inicial — Reclamação Trabalhista", tipo:"Petição Inicial", materia:"trabalhista", resumo:"Reclamação trabalhista pleiteando verbas rescisórias e horas extras não pagas.", data:"2026-07-02", responsavel:"joao.souza" }
+  ];
+
+  var materiaLabel = { imobiliario:"Imobiliário", civel:"Cível", penal:"Penal", sucessorio:"Sucessório", trabalhista:"Trabalhista" };
+
+  function formatData(iso){
+    var p = iso.split('-');
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+
+  function buildPecaCard(p){
+    var card = document.createElement('div');
+    card.className = 'peca-card';
+    card.innerHTML =
+      '<div class="peca-left">' +
+        '<div class="peca-top">' +
+          '<span class="peca-name">' + p.nome + '</span>' +
+          '<span class="peca-tag tag-tipo">' + p.tipo + '</span>' +
+          '<span class="peca-tag tag-materia-' + p.materia + '">' + materiaLabel[p.materia] + '</span>' +
+        '</div>' +
+        '<div class="peca-resumo">' + p.resumo + '</div>' +
+        '<div class="peca-meta">' + formatData(p.data) + ' &nbsp;•&nbsp; Responsável: ' + p.responsavel + '</div>' +
+      '</div>' +
+      '<div class="peca-right">' +
+        '<div class="peca-btn" title="Visualizar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>' +
+        '<div class="peca-btn" title="Baixar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></div>' +
+      '</div>';
+    return card;
+  }
+
+  function renderPecas(){
+    var busca = document.getElementById('f-busca').value.toLowerCase();
+    var data = document.getElementById('f-data').value;
+    var tipo = document.getElementById('f-tipo').value;
+    var materia = document.getElementById('f-materia').value;
+    var responsavel = document.getElementById('f-responsavel').value;
+
+    var filtradas = pecas.filter(function(p){
+      if(busca && p.nome.toLowerCase().indexOf(busca) === -1) return false;
+      if(data && p.data !== data) return false;
+      if(tipo && p.tipo !== tipo) return false;
+      if(materia && p.materia !== materia) return false;
+      if(responsavel && p.responsavel !== responsavel) return false;
+      return true;
+    });
+
+    var list = document.getElementById('peca-list');
+    list.innerHTML = '';
+    if(filtradas.length === 0){
+      list.innerHTML = '<div class="empty-day">Nenhuma peça encontrada com esses filtros.</div>';
+    } else {
+      filtradas.forEach(function(p){ list.appendChild(buildPecaCard(p)); });
+    }
+    document.getElementById('peca-count').textContent = filtradas.length + (filtradas.length === 1 ? ' peça encontrada' : ' peças encontradas');
+  }
+
+  ['f-busca','f-data','f-tipo','f-materia','f-responsavel'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', renderPecas);
+    document.getElementById(id).addEventListener('change', renderPecas);
+  });
+  document.getElementById('f-limpar').addEventListener('click', function(){
+    document.getElementById('f-busca').value = '';
+    document.getElementById('f-data').value = '';
+    document.getElementById('f-tipo').value = '';
+    document.getElementById('f-materia').value = '';
+    document.getElementById('f-responsavel').value = '';
+    renderPecas();
+  });
+
+  renderPecas();
+
+  // ===== Meu Estilo: alternar modo anexar / construir =====
+  document.querySelectorAll('.estilo-mode-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      document.querySelectorAll('.estilo-mode-card').forEach(function(c){ c.classList.remove('selected'); });
+      card.classList.add('selected');
+      var isAnexar = card.dataset.mode === 'anexar';
+      document.getElementById('estilo-anexar-view').style.display = isAnexar ? 'block' : 'none';
+      document.getElementById('estilo-construir-view').style.display = isAnexar ? 'none' : 'block';
+    });
+  });
+
+  // ===== Toggles (switches) de cabeçalho/rodapé/marca d'água/assinatura — liga/desliga o slot na folha =====
+  var slotIds = { header:'slot-header', footer:'slot-footer', watermark:'slot-watermark', signature:'slot-signature' };
+  document.querySelectorAll('.switch[data-opt]').forEach(function(sw){
+    sw.addEventListener('click', function(e){
+      e.stopPropagation();
+      sw.classList.toggle('on');
+      var opt = sw.dataset.opt;
+      var ligado = sw.classList.contains('on');
+      document.getElementById(slotIds[opt]).classList.toggle('show', ligado);
+    });
+  });
+
+  // ===== Seções retráteis: Cabeçalho/Rodapé/Marca d'água/Assinatura/Endereçamento/Número do processo/Número da guia/Nome das partes/Recuos/Jurisprudência/Citação =====
+  document.querySelectorAll('[data-collapse-toggle]').forEach(function(head){
+    head.addEventListener('click', function(){
+      var alvo = document.getElementById(head.dataset.collapseToggle);
+      var icone = document.querySelector('[data-collapse-icon="' + head.dataset.collapseToggle + '"]');
+      alvo.classList.toggle('expanded');
+      if(icone) icone.classList.toggle('open');
+    });
+  });
+
+  // ===== Modo Texto / Imagem para cada slot =====
+  document.querySelectorAll('.opt-mode-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var slot = btn.dataset.slot;
+      var modo = btn.dataset.mode;
+      document.querySelectorAll('.opt-mode-btn[data-slot="' + slot + '"]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+
+      var attachBox = document.querySelector('.attach-box[data-attach-for="' + slot + '"]');
+      var slotEl = document.getElementById(slotIds[slot]);
+
+      if(modo === 'imagem'){
+        if(attachBox) attachBox.style.display = 'block';
+        if(slot === 'watermark'){
+          document.getElementById('input-watermark-texto').style.display = 'none';
+        }
+        // Mostra um placeholder de imagem dentro da folha (mock, sem upload real)
+        slotEl.setAttribute('contenteditable', 'false');
+        slotEl.innerHTML = slot === 'watermark'
+          ? '<div class="img-placeholder" style="font-size:16px;">🖼️ Imagem da marca d\'água</div>'
+          : (slot === 'signature'
+              ? '<div class="img-placeholder">🖼️ Imagem da assinatura</div>'
+              : '<div class="img-placeholder">🖼️ Imagem — ' + (slot === 'header' ? 'cabeçalho' : 'rodapé') + '</div>');
+      } else {
+        if(attachBox) attachBox.style.display = 'none';
+        slotEl.setAttribute('contenteditable', 'true');
+        if(slot === 'header') slotEl.textContent = 'SOUZA LENZI ADVOGADOS — OAB/RJ 12.345';
+        if(slot === 'footer') slotEl.textContent = 'Rua Exemplo, 123 — Rio de Janeiro/RJ — contato@souzalenzi.com.br';
+        if(slot === 'watermark'){
+          document.getElementById('input-watermark-texto').style.display = 'block';
+          slotEl.textContent = document.getElementById('input-watermark-texto').value;
+        }
+        if(slot === 'signature') slotEl.innerHTML = '<div class="page-sig-line"></div>Sérgio Souza Lenzi — OAB/RJ 111.222';
+      }
+    });
+  });
+
+  // Clique no box de anexar imagem (mock — apenas visual)
+  document.querySelectorAll('.attach-box[data-attach-for]').forEach(function(box){
+    box.addEventListener('click', function(){
+      box.textContent = '✓ Imagem anexada (' + box.dataset.attachFor + '.png)';
+    });
+  });
+
+  document.getElementById('input-watermark-texto').addEventListener('input', function(){
+    var slotEl = document.getElementById('slot-watermark');
+    if(slotEl.getAttribute('contenteditable') !== 'false'){
+      slotEl.textContent = this.value;
+    }
+  });
+
+  // ===== Cor da folha (ribbon) =====
+  document.querySelectorAll('.ribbon-color').forEach(function(sw){
+    sw.addEventListener('click', function(){
+      document.querySelectorAll('.ribbon-color').forEach(function(s){ s.classList.remove('selected'); });
+      sw.classList.add('selected');
+      document.getElementById('word-page').style.background = sw.dataset.cor;
+    });
+  });
+
+  // ===== Fonte e tamanho (aplicam à folha inteira) =====
+  document.getElementById('rb-fonte').addEventListener('change', function(){
+    document.getElementById('word-page').style.fontFamily = this.value;
+  });
+  document.getElementById('rb-tamanho').addEventListener('change', function(){
+    document.getElementById('slot-body').style.fontSize = this.value + 'pt';
+  });
+  document.getElementById('rb-espacamento').addEventListener('change', function(){
+    document.getElementById('slot-body').style.lineHeight = this.value;
+  });
+
+  // ===== Negrito / Itálico / Sublinhado / Alinhamento (estilo Word, via execCommand) =====
+  function toggleRibbonBtn(id){ document.getElementById(id).classList.toggle('active'); }
+  document.getElementById('rb-bold').addEventListener('click', function(){ document.execCommand('bold'); toggleRibbonBtn('rb-bold'); });
+  document.getElementById('rb-italic').addEventListener('click', function(){ document.execCommand('italic'); toggleRibbonBtn('rb-italic'); });
+  document.getElementById('rb-underline').addEventListener('click', function(){ document.execCommand('underline'); toggleRibbonBtn('rb-underline'); });
+
+  var alinhamentoBtns = { left:'justifyLeft', center:'justifyCenter', right:'justifyRight', justify:'justifyFull' };
+  Object.keys(alinhamentoBtns).forEach(function(key){
+    document.getElementById('rb-' + key).addEventListener('click', function(){
+      document.execCommand(alinhamentoBtns[key]);
+      document.querySelectorAll('#rb-left,#rb-center,#rb-right,#rb-justify').forEach(function(b){ b.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+
+  // ===== Inserir imagem (na posição do cursor) =====
+  document.getElementById('rb-insert-img').addEventListener('click', function(){
+    document.execCommand('insertHTML', false, '<span class="img-placeholder" contenteditable="false">🖼️ Imagem inserida — clique para substituir</span>&nbsp;');
+  });
+
+  // ===== Inserir caixa de texto (na posição do cursor) =====
+  document.getElementById('rb-insert-textbox').addEventListener('click', function(){
+    document.execCommand('insertHTML', false, '<div class="textbox-inserted" contenteditable="true">Digite aqui o texto da caixa...</div>');
+  });
+
+  // Garante que o foco padrão de edição seja o corpo do documento
+  document.getElementById('slot-body').focus();
+
+  // ===== Recuos (agora na barra superior) — aplicados ao corpo do documento inteiro =====
+  function atualizarRecuos(){
+    var recuoTexto = document.getElementById('rb-recuo-texto').value;
+    var recuoParagrafo = document.getElementById('rb-recuo-paragrafo').value;
+    var corpo = document.getElementById('slot-body');
+    corpo.style.paddingLeft = recuoTexto + 'cm';
+    corpo.style.paddingRight = recuoTexto + 'cm';
+    corpo.style.textIndent = recuoParagrafo + 'cm';
+  }
+  document.getElementById('rb-recuo-texto').addEventListener('change', atualizarRecuos);
+  document.getElementById('rb-recuo-paragrafo').addEventListener('change', atualizarRecuos);
+
+  // ===== Conecta os campos de Endereçamento/Número do processo/Número da guia/Nome das partes com a folha de prévia =====
+  function setupCampoLivePreview(prefix, elementId, campos){
+    var el = document.getElementById(elementId);
+
+    function atualizar(){
+      if(campos.indexOf('fonte') > -1) el.style.fontFamily = document.getElementById(prefix + '-fonte').value;
+      if(campos.indexOf('tamanho') > -1) el.style.fontSize = document.getElementById(prefix + '-tamanho').value + 'pt';
+      if(campos.indexOf('caixa') > -1){
+        var caixa = document.getElementById(prefix + '-caixa').value;
+        el.style.textTransform = caixa === 'maiusculas' ? 'uppercase' : (caixa === 'capitalizado' ? 'capitalize' : 'none');
+      }
+      if(campos.indexOf('alinhamento') > -1) el.style.textAlign = document.getElementById(prefix + '-alinhamento').value;
+      if(campos.indexOf('negrito') > -1){
+        var negritoBtn = document.querySelector('[data-toggle-style="' + prefix + '-negrito"]');
+        el.style.fontWeight = negritoBtn.classList.contains('active') ? '700' : '400';
+      }
+      if(campos.indexOf('italico') > -1){
+        var italicoBtn = document.querySelector('[data-toggle-style="' + prefix + '-italico"]');
+        el.style.fontStyle = italicoBtn.classList.contains('active') ? 'italic' : 'normal';
+      }
+      if(campos.indexOf('distancia') > -1){
+        var linhas = parseInt(document.getElementById(prefix + '-distancia').value) || 0;
+        el.style.marginTop = (linhas * 14) + 'px';
+      }
+    }
+
+    campos.forEach(function(campo){
+      if(campo === 'negrito' || campo === 'italico'){
+        document.querySelector('[data-toggle-style="' + prefix + '-' + campo + '"]').addEventListener('click', function(){
+          this.classList.toggle('active');
+          atualizar();
+        });
+      } else if(campo === 'distancia') {
+        document.getElementById(prefix + '-distancia').addEventListener('input', atualizar);
+      } else {
+        document.getElementById(prefix + '-' + campo).addEventListener('change', atualizar);
+      }
+    });
+
+    atualizar(); // aplica o estado inicial já configurado nos selects/toggles
+  }
+
+  setupCampoLivePreview('end', 'slot-endereco', ['fonte','tamanho','caixa','alinhamento','negrito','italico']);
+  setupCampoLivePreview('proc', 'slot-numproc', ['caixa','alinhamento','tamanho','negrito','italico']);
+  setupCampoLivePreview('guia', 'slot-numguia', ['caixa','alinhamento','tamanho','negrito','italico']);
+  setupCampoLivePreview('partes', 'slot-partes', ['caixa','negrito','italico']);
+
+  // ===== Número do processo / Número da guia: distância é relativa ao Endereçamento, e a ordem visual dos dois se ajusta sozinha =====
+  function reordenarNumeracao(){
+    var distProc = parseInt(document.getElementById('proc-distancia').value) || 0;
+    var distGuia = parseInt(document.getElementById('guia-distancia').value) || 0;
+    var elProc = document.getElementById('slot-numproc');
+    var elGuia = document.getElementById('slot-numguia');
+    var bloco = document.getElementById('enderecamento-block');
+
+    var primeiro, segundo, distPrimeiro, distSegundo;
+    if(distGuia < distProc){
+      primeiro = elGuia; segundo = elProc; distPrimeiro = distGuia; distSegundo = distProc;
+    } else {
+      primeiro = elProc; segundo = elGuia; distPrimeiro = distProc; distSegundo = distGuia;
+    }
+
+    bloco.appendChild(primeiro);
+    bloco.appendChild(segundo);
+
+    primeiro.style.marginTop = (distPrimeiro * 14) + 'px';
+    segundo.style.marginTop = ((distSegundo - distPrimeiro) * 14) + 'px';
+  }
+  document.getElementById('proc-distancia').addEventListener('input', reordenarNumeracao);
+  document.getElementById('guia-distancia').addEventListener('input', reordenarNumeracao);
+  reordenarNumeracao();
+
+  // ===== Estilos de Jurisprudência e Citação =====
+  function setupEstiloEspecial(prefix){
+    var preview = document.getElementById(prefix + '-preview');
+
+    function atualizar(){
+      var fonte = document.getElementById(prefix + '-fonte').value;
+      var tamanho = document.getElementById(prefix + '-tamanho').value;
+      var recuo = document.getElementById(prefix + '-recuo').value;
+      var alinhamento = document.getElementById(prefix + '-alinhamento').value;
+      var cor = document.querySelector('#' + prefix + '-cor .color-swatch.selected').dataset.cor;
+      var marcatexto = document.querySelector('#' + prefix + '-marcatexto .color-swatch.selected').dataset.cor;
+      var negrito = document.querySelector('[data-toggle-style="' + prefix + '-negrito"]').classList.contains('active');
+      var italico = document.querySelector('[data-toggle-style="' + prefix + '-italico"]').classList.contains('active');
+      var sublinhado = document.querySelector('[data-toggle-style="' + prefix + '-sublinhado"]').classList.contains('active');
+      var tachado = document.querySelector('[data-toggle-style="' + prefix + '-tachado"]').classList.contains('active');
+
+      var decoracoes = [];
+      if(sublinhado) decoracoes.push('underline');
+      if(tachado) decoracoes.push('line-through');
+
+      preview.style.fontFamily = fonte;
+      preview.style.fontSize = tamanho + 'pt';
+      preview.style.marginLeft = recuo + 'px';
+      preview.style.textAlign = alinhamento;
+      preview.style.color = cor;
+      preview.style.background = marcatexto;
+      preview.style.fontWeight = negrito ? '700' : '400';
+      preview.style.fontStyle = italico ? 'italic' : 'normal';
+      preview.style.textDecoration = decoracoes.length ? decoracoes.join(' ') : 'none';
+    }
+
+    ['fonte','tamanho','recuo','alinhamento'].forEach(function(campo){
+      document.getElementById(prefix + '-' + campo).addEventListener('change', atualizar);
+    });
+    document.querySelectorAll('#' + prefix + '-cor .color-swatch').forEach(function(sw){
+      sw.addEventListener('click', function(){
+        document.querySelectorAll('#' + prefix + '-cor .color-swatch').forEach(function(s){ s.classList.remove('selected'); });
+        sw.classList.add('selected');
+        atualizar();
+      });
+    });
+    document.querySelectorAll('#' + prefix + '-marcatexto .color-swatch').forEach(function(sw){
+      sw.addEventListener('click', function(){
+        document.querySelectorAll('#' + prefix + '-marcatexto .color-swatch').forEach(function(s){ s.classList.remove('selected'); });
+        sw.classList.add('selected');
+        atualizar();
+      });
+    });
+    ['negrito','italico','sublinhado','tachado'].forEach(function(t){
+      document.querySelector('[data-toggle-style="' + prefix + '-' + t + '"]').addEventListener('click', function(){
+        this.classList.toggle('active');
+        atualizar();
+      });
+    });
+
+    document.getElementById(prefix + '-inserir').addEventListener('click', function(){
+      var style = 'font-family:' + preview.style.fontFamily + ';font-size:' + preview.style.fontSize +
+        ';margin-left:' + preview.style.marginLeft + ';text-align:' + preview.style.textAlign +
+        ';color:' + preview.style.color + ';background:' + preview.style.background +
+        ';font-weight:' + preview.style.fontWeight + ';font-style:' + preview.style.fontStyle +
+        ';text-decoration:' + preview.style.textDecoration + ';margin-top:12px;margin-bottom:12px;padding:4px 6px;' +
+        'text-indent:0;line-height:1.4;';
+
+      var corpo = document.getElementById('slot-body');
+      corpo.focus();
+      // Garante que a inserção aconteça no FINAL do corpo do texto, não onde o cursor porventura esteja
+      var range = document.createRange();
+      range.selectNodeContents(corpo);
+      range.collapse(false);
+      var selecao = window.getSelection();
+      selecao.removeAllRanges();
+      selecao.addRange(range);
+
+      document.execCommand('insertHTML', false, '<p style="' + style + '">' + preview.textContent + '</p>');
+    });
+
+    atualizar();
+  }
+
+  setupEstiloEspecial('jur');
+  setupEstiloEspecial('art');
+  setupEstiloEspecial('cit');
+
+  // ===== Nova Peça: navegação =====
+  document.getElementById('btn-nova-peca').addEventListener('click', function(){
+    document.getElementById('pecas-list-view').style.display = 'none';
+    document.getElementById('nova-peca-view').style.display = 'block';
+    document.getElementById('np-nome').value = '';
+    document.getElementById('np-resumo').value = '';
+  });
+  document.getElementById('nova-peca-voltar').addEventListener('click', function(){
+    document.getElementById('nova-peca-view').style.display = 'none';
+    document.getElementById('pecas-list-view').style.display = 'block';
+  });
+
+  // ===== Nova Peça: alternar entre Anexar arquivo / Produzir peça nova =====
+  document.querySelectorAll('#nova-peca-view .estilo-mode-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      document.querySelectorAll('#nova-peca-view .estilo-mode-card').forEach(function(c){ c.classList.remove('selected'); });
+      card.classList.add('selected');
+      var isAnexar = card.dataset.npmode === 'anexar';
+      document.getElementById('np-anexar-view').style.display = isAnexar ? 'block' : 'none';
+      document.getElementById('np-produzir-view').style.display = isAnexar ? 'none' : 'block';
+    });
+  });
+
+  // ===== Ribbon reduzida do editor de nova peça =====
+  document.getElementById('nprb-bold').addEventListener('click', function(){ document.execCommand('bold'); this.classList.toggle('active'); });
+  document.getElementById('nprb-italic').addEventListener('click', function(){ document.execCommand('italic'); this.classList.toggle('active'); });
+  document.getElementById('nprb-underline').addEventListener('click', function(){ document.execCommand('underline'); this.classList.toggle('active'); });
+
+  var npAlinhamentoBtns = { left:'justifyLeft', center:'justifyCenter', right:'justifyRight', justify:'justifyFull' };
+  Object.keys(npAlinhamentoBtns).forEach(function(key){
+    document.getElementById('nprb-' + key).addEventListener('click', function(){
+      document.execCommand(npAlinhamentoBtns[key]);
+      document.querySelectorAll('#nprb-left,#nprb-center,#nprb-right,#nprb-justify').forEach(function(b){ b.classList.remove('active'); });
+      this.classList.add('active');
+    });
+  });
+  document.getElementById('nprb-insert-img').addEventListener('click', function(){
+    document.execCommand('insertHTML', false, '<span class="img-placeholder" contenteditable="false">🖼️ Imagem inserida — clique para substituir</span>&nbsp;');
+  });
+  document.getElementById('nprb-insert-textbox').addEventListener('click', function(){
+    document.execCommand('insertHTML', false, '<div class="textbox-inserted" contenteditable="true">Digite aqui o texto da caixa...</div>');
+  });
+
+  // ===== Salvar nova peça (anexar ou produzir) =====
+  function salvarNovaPeca(){
+    var nome = document.getElementById('np-nome').value || 'Peça sem nome';
+    var tipo = document.getElementById('np-tipo').value;
+    var materia = document.getElementById('np-materia').value;
+    var resumo = document.getElementById('np-resumo').value || 'Sem resumo informado.';
+    var hoje = new Date(2026, 7, 19);
+    var pad = function(n){ return n < 10 ? '0'+n : n; };
+    var dataStr = hoje.getFullYear() + '-' + pad(hoje.getMonth()+1) + '-' + pad(hoje.getDate());
+
+    pecas.unshift({ nome:nome, tipo:tipo, materia:materia, resumo:resumo, data:dataStr, responsavel:'sergio' });
+    renderPecas();
+    document.getElementById('nova-peca-view').style.display = 'none';
+    document.getElementById('pecas-list-view').style.display = 'block';
+  }
+  document.getElementById('np-anexar-salvar').addEventListener('click', salvarNovaPeca);
+  document.getElementById('np-produzir-salvar').addEventListener('click', salvarNovaPeca);
+</script>
+</body>
+</html>

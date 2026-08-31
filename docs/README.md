@@ -2,7 +2,7 @@
 title: Documentação do Breno - LawSystem
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-27
+last_reviewed: 2026-08-31
 ---
 
 # Documentação do Breno - LawSystem
@@ -37,6 +37,8 @@ o que o sistema é, como é construído e por que decisões foram tomadas.
   implementação.
 - `development/` — procedimentos operacionais de desenvolvimento, testes,
   migrations e uso de agentes de IA.
+- `prototipos/` — referências visuais não canônicas; PDRs e
+  especificações vigentes prevalecem sobre detalhes exploratórios.
 - `history/` — material documental preservado para rastreabilidade, sem
   autoridade sobre o estado atual do sistema.
 

@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financeiro</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --line:#dde3ee;
+    --badge-civel:#e4e8f2;
+    --badge-ativo:#1e2947;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Roboto, -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .app{display:flex;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{
+    width:88px;background:var(--navy);
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px 0;flex-shrink:0;
+  }
+  .sidebar .logo{
+    width:40px;height:40px;border-radius:10px;
+    background:var(--navy-light);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:18px;margin-bottom:28px;
+  }
+  .nav-item{
+    width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;
+    padding:10px 4px;margin-bottom:6px;border-radius:10px;
+    color:#8f9ac0;font-size:11px;cursor:pointer;
+  }
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  /* Main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{
+    height:64px;background:#fff;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  }
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+  }
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1160px;width:100%;}
+
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);margin-bottom:22px;}
+
+  /* Module-level pill tabs (Solicitações / Pagamentos) */
+  .module-tabs{display:flex;gap:8px;margin-bottom:24px;}
+  .module-tab{
+    padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;
+    color:var(--text-mute);background:#fff;border:1px solid var(--line);cursor:pointer;
+  }
+  .module-tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  /* Inner underline tabs (reused from Processo prototype) */
+  .tabs{display:flex;gap:32px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  .tab{
+    display:flex;align-items:center;gap:8px;padding:12px 2px 14px;
+    font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;
+    border-bottom:2.5px solid transparent;user-select:none;white-space:nowrap;
+  }
+  .tab svg{width:16px;height:16px;}
+  .tab.active{color:var(--blue);border-color:var(--blue);}
+  .tab-lock{
+    font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--amber);
+    background:var(--amber-soft);padding:1px 6px;border-radius:5px;margin-left:2px;
+  }
+
+  .panel{
+    background:var(--card);border-radius:16px;margin-top:18px;padding:32px;
+    border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);
+  }
+  .panel-view{display:none;}
+  .panel-view.active{display:block;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .btn-primary{
+    background:var(--blue);color:#fff;border:none;padding:10px 18px;border-radius:9px;
+    font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;
+  }
+  .btn-primary:hover{background:#2a46b8;}
+  .btn-outline{
+    border:1px solid var(--line);background:#fff;color:var(--text);
+    padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+  }
+  .btn-outline:hover{border-color:#c3cbe0;}
+  .btn-dark{
+    background:var(--navy);color:#fff;border:none;padding:10px 18px;border-radius:9px;
+    font-size:13.5px;font-weight:700;cursor:pointer;
+  }
+  .back-link{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;
+    margin-bottom:16px;
+  }
+  .back-link:hover{text-decoration:underline;}
+
+  /* Month navigator */
+  .month-nav{
+    display:flex;align-items:center;gap:14px;margin-bottom:18px;
+  }
+  .month-nav-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-mute);
+  }
+  .month-nav-btn:hover{border-color:#c3cbe0;color:var(--text);}
+  .month-nav-label{font-size:15px;font-weight:700;min-width:140px;text-align:center;}
+  .month-nav-tag{
+    font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-soft);
+    padding:3px 9px;border-radius:6px;
+  }
+
+  /* Summary cards */
+  .fin-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+  .fin-card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 20px;display:flex;align-items:center;gap:14px;
+  }
+  .fin-card.highlight{border-color:var(--green);background:var(--green-soft);}
+  .fin-card-icon{
+    width:38px;height:38px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fin-icon-green{background:var(--green-soft);color:var(--green);}
+  .fin-icon-red{background:var(--red-soft);color:var(--red);}
+  .fin-icon-blue{background:var(--blue-soft);color:var(--blue);}
+  .fin-icon-amber{background:var(--amber-soft);color:var(--amber);}
+  .fin-icon-navy{background:#e4e8f2;color:var(--navy);}
+  .fin-value{font-size:19px;font-weight:800;}
+  .fin-value.green{color:var(--green);}
+  .fin-value.red{color:var(--red);}
+  .fin-label{font-size:12px;color:var(--text-mute);margin-top:1px;}
+
+  /* Filter pills */
+  .filter-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    flex-wrap:wrap;margin-bottom:18px;
+  }
+  .filter-pills{display:flex;gap:6px;flex-wrap:wrap;}
+  .filter-pill{
+    padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:600;
+    color:var(--text-mute);background:#fff;border:1px solid var(--line);cursor:pointer;
+    white-space:nowrap;
+  }
+  .filter-pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .filter-pill .hint{font-size:9.5px;color:#9aa3bd;font-weight:500;}
+
+  /* Lançamento list */
+  .lanc-list{display:flex;flex-direction:column;}
+  .lanc-row{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    padding:16px 4px;border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .lanc-row:last-child{border-bottom:none;}
+  .lanc-left{display:flex;gap:14px;min-width:0;flex:1;}
+  .lanc-icon{
+    width:38px;height:38px;border-radius:10px;flex-shrink:0;margin-top:2px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .lanc-name{font-size:14.5px;font-weight:700;}
+  .lanc-meta{font-size:12px;color:var(--text-mute);margin-top:3px;line-height:1.6;}
+  .lanc-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+  .lanc-tag{
+    font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:2px 8px;border-radius:5px;
+  }
+  .lanc-tag.status-pago{background:var(--green-soft);color:var(--green);}
+  .lanc-tag.status-pendente{background:var(--amber-soft);color:var(--amber);}
+  .lanc-tag.status-atrasado{background:var(--red-soft);color:var(--red);}
+  .lanc-tag.tipo{background:#ece7fb;color:#6c4bc2;}
+  .lanc-tag.neutro{background:var(--bg);color:var(--text-mute);}
+  .lanc-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;}
+  .lanc-value{font-size:15px;font-weight:800;}
+  .lanc-value.green{color:var(--green);}
+  .lanc-value.red{color:var(--red);}
+  .lanc-actions{display:flex;align-items:center;gap:8px;}
+  .lanc-btn{
+    border:1px solid var(--line);background:#fff;color:var(--text-mute);
+    width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .lanc-btn:hover{border-color:#c3cbe0;color:var(--text);}
+  .lanc-reopen{font-size:12px;font-weight:700;color:var(--amber);cursor:pointer;}
+  .lanc-attach{display:flex;gap:5px;align-items:center;font-size:11px;color:var(--text-mute);margin-top:6px;}
+  .lanc-attach span{display:flex;align-items:center;gap:3px;}
+
+  .section-note{
+    font-size:11.5px;color:var(--text-mute);margin-bottom:16px;line-height:1.6;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+  }
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+  .demo-viewas{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--text-mute);flex-wrap:wrap;}
+  .demo-viewas-label{font-weight:600;}
+
+  /* Form (novo lançamento) */
+  .form-label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .form-field{flex:1;min-width:200px;}
+  .form-input, .form-select, .form-textarea{
+    width:100%;border:1px solid var(--line);border-radius:9px;
+    padding:11px 13px;font-size:13.5px;color:var(--text);background:#fff;
+    font-family:inherit;
+  }
+  .form-textarea{resize:vertical;min-height:70px;}
+  .form-select{cursor:pointer;}
+  .radio-group{display:flex;gap:10px;}
+  .radio-pill{
+    flex:1;border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+    font-size:13px;font-weight:600;color:var(--text-mute);cursor:pointer;text-align:center;
+  }
+  .radio-pill.selected{border-color:var(--blue);color:var(--blue);background:var(--blue-soft);}
+  .check-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-mute);margin-top:6px;}
+  .recorrente-box{
+    margin-top:10px;padding:14px 16px;background:var(--bg);border:1px dashed var(--line);
+    border-radius:10px;display:flex;gap:12px;flex-wrap:wrap;
+  }
+  .attach-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .attach-box{
+    flex:1;min-width:220px;border:1.5px dashed var(--line);border-radius:10px;
+    padding:16px;text-align:center;color:var(--text-mute);font-size:12.5px;cursor:pointer;
+  }
+  .attach-box:hover{border-color:var(--blue);color:var(--blue);}
+  .attach-box svg{display:block;margin:0 auto 6px;}
+  .attach-box.small{padding:12px;font-size:11.5px;}
+  .form-actions{margin-top:20px;display:flex;gap:10px;}
+
+  /* Gráfico */
+  .chart-toggle{display:flex;gap:8px;margin-bottom:22px;}
+  .chart-bars{
+    display:flex;align-items:flex-end;gap:14px;height:220px;padding:0 6px 6px;
+    border-bottom:1px solid var(--line);
+  }
+  .chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;}
+  .chart-bar-pair{display:flex;align-items:flex-end;gap:4px;height:100%;}
+  .chart-bar{width:14px;border-radius:4px 4px 0 0;}
+  .chart-bar.receita{background:var(--green);}
+  .chart-bar.despesa{background:var(--red);}
+  .chart-month-label{font-size:11px;color:var(--text-mute);font-weight:600;}
+  .chart-legend{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--text-mute);}
+  .chart-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend-dot{width:9px;height:9px;border-radius:3px;}
+
+  /* Custas judiciais */
+  .cliente-list{display:flex;flex-direction:column;}
+  .cliente-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:16px 4px;border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .cliente-row:last-child{border-bottom:none;}
+  .cliente-row:hover{background:var(--bg);}
+  .cliente-left{display:flex;align-items:center;gap:14px;}
+  .cliente-avatar{
+    width:38px;height:38px;border-radius:50%;background:var(--blue-soft);color:var(--blue);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  }
+  .cliente-name{font-size:14.5px;font-weight:700;}
+  .cliente-saldo{font-size:12px;color:var(--text-mute);}
+  .cliente-saldo-value{font-size:15px;font-weight:800;}
+
+  /* Honorários advocatícios */
+  .master-badge{
+    font-size:9.5px;font-weight:700;letter-spacing:.03em;color:#6c4bc2;
+    background:#ece7fb;padding:2px 7px;border-radius:5px;margin-left:2px;
+  }
+  .hon-card{
+    border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:10px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  }
+  .hon-proc{font-size:14px;font-weight:700;}
+  .hon-meta{font-size:12px;color:var(--text-mute);margin-top:3px;}
+
+  @media (max-width:720px){
+    .sidebar{width:64px;}
+    .nav-item{width:48px;font-size:9px;}
+    .content{padding:18px;}
+    .panel{padding:20px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="page-title">Financeiro</div>
+      <div class="page-subtitle">Honorários, despesas e custas judiciais</div>
+
+      <div class="module-tabs">
+        <div class="module-tab" data-mtarget="mod-solicitacoes">Solicitações</div>
+        <div class="module-tab active" data-mtarget="mod-pagamentos">Pagamentos</div>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Como as Permissões controlam este módulo</div>
+          O módulo Financeiro tem uma regra de Permissão própria (definida em Configurações → Permissões, por papel de usuário): <b>"Apenas solicitações"</b> ou <b>"Acesso a dados"</b>. Quem está em "Apenas solicitações" só enxerga a aba <b>Solicitações</b> — pode pedir ao financeiro que pague uma custa, mas nunca vê quanto o escritório tem a receber, a pagar, ou qualquer lançamento de terceiros. A aba <b>Pagamentos</b> inteira (Lançamentos, Gráfico, Custas Judiciais e Honorários) só aparece pra quem está em "Acesso a dados" — normalmente o financeiro do escritório e o mestre.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Consulte <code>permissoes_papel</code> (ou <code>permissoes_usuario</code>, se houver override individual) pro módulo <code>financeiro</code> do usuário logado. Se <code>sub_opcao === 'apenas_solicitacoes'</code>: renderize só a aba Solicitações e nem mostre a aba Pagamentos no menu (redirecione se tentarem acessar a rota diretamente). Se <code>sub_opcao === 'acesso_dados'</code>: mostre as duas abas normalmente. Como sempre, replique essa checagem no backend — toda rota de <code>/financeiro/pagamentos/*</code> deve recusar (403) uma requisição de usuário com permissão "apenas_solicitacoes", independente do que o frontend esconde.
+        </div>
+      </div>
+
+      <!-- ===================== MÓDULO: SOLICITAÇÕES ===================== -->
+      <div class="view" id="mod-solicitacoes">
+
+        <div class="section-note">Aqui o advogado pede ao financeiro que pague uma custa vinculada a um processo (custa inicial, diligência, preparo recursal etc.). A solicitação aparece automaticamente na aba <b>Pagamentos solicitados</b>, dentro de Pagamentos → Lançamentos. Quando o financeiro confirma o pagamento, o advogado que solicitou recebe uma notificação aqui.</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Em vez de o advogado lançar uma despesa diretamente no financeiro (o que exigiria acesso aos dados financeiros do escritório), ele apenas <b>pede</b> — descreve a custa, o cliente, o processo, o valor — e quem cuida do financeiro é que efetivamente confirma e paga. Isso mantém a separação de responsabilidades: o advogado não precisa (e não deve) enxergar o caixa do escritório pra simplesmente pedir que uma custa seja paga. Assim que a solicitação é enviada, ela <b>aparece automaticamente</b> do outro lado, na aba Pagamentos → Lançamentos, dentro do filtro "Pagamentos solicitados" — o financeiro não precisa ir procurar em lugar nenhum, ela já surge lá pronta pra ser paga, exatamente como qualquer outro lançamento de despesa (com a diferença de que tem a etiqueta "Solicitado por [advogado]" indicando a origem).
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Cada solicitação vira um registro em <code>solicitacoes_pagamento</code> (solicitante_id, processo_id, cliente, descrição, valor, anexo_boleto, status: <code>a_pagar</code>/<code>paga</code>). No exato momento da criação (mesma transação, não um job separado), crie também o lançamento correspondente em <code>lancamentos_financeiros</code> com <code>tipo:'despesa'</code>, <code>status:'pendente'</code>, <code>origem:'solicitacao'</code> e <code>solicitacao_id</code> apontando de volta pro registro original — essa referência bidirecional é o que faz o lançamento nascer automaticamente já marcado como "Pagamentos solicitados" e permite, quando o financeiro confirmar o pagamento desse lançamento (`status → 'pago'`), atualizar em cascata o `status` da solicitação de origem para `'paga'` e disparar a notificação pro `solicitante_id`. O filtro "Pagamentos solicitados" na aba Lançamentos é simplesmente `WHERE origem = 'solicitacao'`.
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+          <button class="btn-dark" id="btn-nova-solicitacao">+ Nova solicitação</button>
+        </div>
+
+        <!-- Lista de solicitações -->
+        <div class="panel" id="sol-lista-panel">
+          <div class="lanc-list" id="sol-lista">
+
+            <div class="lanc-row" id="sol-item-1">
+              <div class="lanc-left">
+                <div class="lanc-icon fin-icon-amber">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                </div>
+                <div>
+                  <div class="lanc-name">Custas de diligência — Execução Fiscal</div>
+                  <div class="lanc-meta">Cliente: Souza Lenzi Advogados • Processo nº 7777777777777 • Solicitado por: sergio • 18/08/2026</div>
+                  <div class="lanc-tags">
+                    <span class="lanc-tag status-pendente" id="sol-item-1-status">A PAGAR</span>
+                  </div>
+                  <div class="lanc-attach" id="sol-item-1-notif" style="display:none;color:var(--green);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    Notificação: o financeiro confirmou o pagamento dessa custa
+                  </div>
+                  <div class="lanc-attach" id="sol-item-1-attach" style="display:none;">
+                    <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante_diligencia.pdf — juntar ao processo</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lanc-right">
+                <div class="lanc-value red">− R$ 300,00</div>
+              </div>
+            </div>
+
+            <div class="lanc-row" id="sol-item-2">
+              <div class="lanc-left">
+                <div class="lanc-icon fin-icon-green">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div>
+                  <div class="lanc-name">Custas iniciais — Ação de Cobrança</div>
+                  <div class="lanc-meta">Cliente: Maria da Silva Ferreira • Processo nº 8888888888888 • Solicitado por: sergio • 12/08/2026</div>
+                  <div class="lanc-tags">
+                    <span class="lanc-tag status-pago" id="sol-item-2-status">PAGA</span>
+                  </div>
+                  <div class="lanc-attach" id="sol-item-2-notif" style="color:var(--green);">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    Notificação: o financeiro confirmou o pagamento dessa custa
+                  </div>
+                  <div class="lanc-attach" id="sol-item-2-attach">
+                    <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante_custas_iniciais.pdf — juntar ao processo</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lanc-right">
+                <div class="lanc-value red">− R$ 180,00</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Formulário de nova solicitação -->
+        <div class="panel" id="sol-form-panel" style="display:none;">
+          <div class="back-link" id="sol-form-voltar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Voltar
+          </div>
+          <div style="font-size:20px;font-weight:800;margin-bottom:18px;">Nova solicitação de pagamento</div>
+
+          <div class="form-row">
+            <div class="form-field" style="flex:1 1 100%;">
+              <div class="form-label">DESCRIÇÃO DA CUSTA</div>
+              <input class="form-input" placeholder="Ex: Custas de distribuição, diligência, preparo recursal...">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">CLIENTE</div>
+              <select class="form-select"><option>Maria da Silva Ferreira</option><option>Comércio XYZ Ltda</option></select>
+            </div>
+            <div class="form-field">
+              <div class="form-label">PROCESSO</div>
+              <select class="form-select"><option>4444444444444 — Ação de Danos Morais</option><option>5555555555555 — Embargos à Execução</option><option>6666666666666 — Agravo de Instrumento</option></select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <div class="form-label">VALOR (R$)</div>
+              <input class="form-input" placeholder="0,00">
+            </div>
+            <div class="form-field">
+              <div class="form-label">PRAZO PARA PAGAMENTO <span style="font-weight:400;">(opcional)</span></div>
+              <input class="form-input" type="date">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field" style="flex:1 1 100%;">
+              <div class="form-label">ANEXAR BOLETO <span style="font-weight:400;">(opcional)</span></div>
+              <div class="attach-box" style="max-width:320px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                Anexar boleto da custa
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field" style="flex:1 1 100%;">
+              <div class="form-label">OBSERVAÇÕES <span style="font-weight:400;">(opcional)</span></div>
+              <textarea class="form-textarea"></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-dark" id="sol-form-enviar">Enviar solicitação ao financeiro</button>
+            <button class="btn-outline" id="sol-form-cancelar">Cancelar</button>
+          </div>
+        </div>
+
+      </div>
+      <!-- /Solicitações -->
+
+
+      <!-- ===================== MÓDULO: PAGAMENTOS ===================== -->
+      <div class="view active" id="mod-pagamentos">
+
+        <!-- Navegador de mês (item 1) -->
+        <div class="month-nav">
+          <div class="month-nav-btn" id="month-nav-prev">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </div>
+          <div class="month-nav-label" id="month-nav-label">Agosto de 2026</div>
+          <div class="month-nav-btn" id="month-nav-next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <span class="month-nav-tag" id="month-nav-tag">Mês atual</span>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 A visão é sempre mensal</div>
+            Tudo que aparece em Lançamentos (os cards de resumo, a lista, os filtros) é sempre referente a <b>um mês por vez</b> — o mês exibido no topo. Usando as setas, dá pra navegar pra meses anteriores (ver o histórico) ou futuros (ver o que já está previsto/recorrente programado pra frente), sem perder o contexto de "estou olhando agosto" ou "estou olhando setembro".
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Mantenha um estado <code>mesReferencia</code> (ano + mês). Toda query desta tela — cards de resumo, lista de lançamentos, filtros — deve incluir <code>WHERE data_referencia BETWEEN primeiro_dia(mesReferencia) AND ultimo_dia(mesReferencia)</code>, onde <code>data_referencia</code> é a data de vencimento (despesas/receitas normais) ou a data prevista de recorrência (lançamentos recorrentes daquele mês). As setas simplesmente decrementam/incrementam o mês e re-executam essas queries; a tag "Mês atual" só aparece quando <code>mesReferencia === mês real de hoje</code>.
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-target="pg-lancamentos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/></svg>
+            Lançamentos
+          </div>
+          <div class="tab" data-target="pg-grafico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+            Gráfico
+          </div>
+          <div class="tab" data-target="pg-custas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 0 5h-1a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 0 2.5-2.5"/></svg>
+            Custas Judiciais
+          </div>
+          <div class="tab" data-target="pg-honorarios">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 1-4.5 4.5L17.5 20 12 17l-5.5 3 1-6.5L3 9l6-1z"/></svg>
+            Honorários Advocatícios <span class="master-badge">MESTRE</span>
+          </div>
+        </div>
+
+        <div class="panel">
+
+          <!-- ============ LANÇAMENTOS ============ -->
+          <div class="panel-view active" id="pg-lancamentos">
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que é</div>
+                É o extrato financeiro do escritório: tudo que entra (honorários, receitas) e tudo que sai (despesas, custas) fica registrado aqui, com filtros pra achar rapidamente o que precisa (pago, pendente, atrasado, por tipo). Os cards no topo dão o resumo do mês de um relance: quanto falta receber, quanto falta pagar, e o saldo — sem precisar somar nada manualmente.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Tabela <code>lancamentos_financeiros</code> (tipo: receita/despesa, valor, categoria, status: pendente/pago/atrasado, data_vencimento, data_pagamento, cliente_id opcional, processo_id opcional, classificacao: única/recorrente). Os cards de resumo são agregações simples (<code>SUM</code> filtrado por status/tipo/mês). O filtro "Atrasado" é calculado, não armazenado: <code>status='pendente' AND data_vencimento &lt; hoje</code>. Lembre-se: esta aba inteira só deve carregar pra usuários com permissão Financeiro = "Acesso a dados" (ver cards no topo da página sobre Permissões).
+              </div>
+            </div>
+
+            <!-- Cards de resumo (item 10 — adicionado Saldo atual) -->
+            <div class="fin-cards">
+              <div class="fin-card">
+                <div class="fin-card-icon fin-icon-green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+                </div>
+                <div><div class="fin-value">R$ 0,00</div><div class="fin-label">A receber</div></div>
+              </div>
+              <div class="fin-card">
+                <div class="fin-card-icon fin-icon-red">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                </div>
+                <div><div class="fin-value">R$ 8.620,00</div><div class="fin-label">A pagar</div></div>
+              </div>
+              <div class="fin-card highlight">
+                <div class="fin-card-icon fin-icon-green">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+                <div><div class="fin-value green">+ R$ 5.000,00</div><div class="fin-label">Saldo atual do mês</div></div>
+              </div>
+              <div class="fin-card">
+                <div class="fin-card-icon fin-icon-blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </div>
+                <div><div class="fin-value" id="fin-recebido-mes">R$ 10.000,00</div><div class="fin-label">Recebido no mês</div></div>
+              </div>
+              <div class="fin-card">
+                <div class="fin-card-icon fin-icon-amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </div>
+                <div><div class="fin-value">R$ 5.000,00</div><div class="fin-label">Pago no mês</div></div>
+              </div>
+              <div class="fin-card">
+                <div class="fin-card-icon fin-icon-navy">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg>
+                </div>
+                <div><div class="fin-value">− R$ 8.620,00</div><div class="fin-label">Saldo previsto (a receber − a pagar)</div></div>
+              </div>
+            </div>
+
+            <!-- Barra de filtros (item 6) -->
+            <div class="filter-bar">
+              <div class="filter-pills" id="lanc-filters">
+                <div class="filter-pill active" data-filter="todos">Todos</div>
+                <div class="filter-pill" data-filter="receitas">Receitas</div>
+                <div class="filter-pill" data-filter="despesas">Despesas</div>
+                <div class="filter-pill" data-filter="pagos">Pagos</div>
+                <div class="filter-pill" data-filter="recebidos">Recebidos</div>
+                <div class="filter-pill" data-filter="apagar">A pagar</div>
+                <div class="filter-pill" data-filter="areceber">A receber</div>
+                <div class="filter-pill" data-filter="atrasados">Atrasados</div>
+                <div class="filter-pill" data-filter="solicitados">Pagamentos solicitados</div>
+              </div>
+              <button class="btn-dark">+ Novo lançamento</button>
+            </div>
+
+            <!-- Lista de lançamentos -->
+            <div class="lanc-list" id="lanc-list">
+
+              <div class="lanc-row" data-tipo="despesa" data-status="pago">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-red">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">compra de computador</div>
+                    <div class="lanc-meta">Despesa do Escritório • Venc. 01/07/2026 • Pago em 04/07/2026 • sergio</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">ÚNICO</span>
+                      <span class="lanc-tag status-pago">PAGO</span>
+                    </div>
+                    <div class="lanc-attach">
+                      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> boleto.pdf</span>
+                      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante.pdf</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value red">− R$ 5.000,00</div>
+                  <div class="lanc-actions">
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                  </div>
+                  <div class="lanc-reopen">Reabrir</div>
+                </div>
+              </div>
+
+              <div class="lanc-row" data-tipo="receita" data-status="pago">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-green">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">honorários armando</div>
+                    <div class="lanc-meta">Honorário • Venc. 04/07/2026 • Pago em 02/07/2026 • sergio • execução fiscal • Pix</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">ÚNICO</span>
+                      <span class="lanc-tag status-pago">PAGO</span>
+                    </div>
+                    <div class="lanc-attach">
+                      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante.pdf</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value green">R$ 10.000,00</div>
+                  <div class="lanc-actions">
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                  </div>
+                  <div class="lanc-reopen">Reabrir</div>
+                </div>
+              </div>
+
+              <div class="lanc-row" data-tipo="despesa" data-status="pendente">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-amber">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">Salário — Dr. Felipe Costa</div>
+                    <div class="lanc-meta">Despesa Fixa • Venc. 05/09/2026 • sergio</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">RECORRENTE · MENSAL · DIA 5</span>
+                      <span class="lanc-tag status-pendente">PENDENTE</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value red">− R$ 8.000,00</div>
+                  <div class="lanc-actions">
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lanc-row" data-tipo="despesa" data-status="atrasado">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-red">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">Conta de luz — Escritório</div>
+                    <div class="lanc-meta">Despesa Variável • Venc. 15/08/2026 • sergio</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">RECORRENTE · MENSAL</span>
+                      <span class="lanc-tag status-atrasado">ATRASADO</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value red">− R$ 620,00</div>
+                  <div class="lanc-actions">
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+                    <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lançamentos originados de Solicitações (advogados) -->
+              <div class="lanc-row" data-tipo="despesa" data-status="pendente" data-solicitado="true" data-solic-id="sol-item-1" id="lanc-solic-1">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-amber" id="lanc-solic-1-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">Custas de diligência — Execução Fiscal</div>
+                    <div class="lanc-meta">Despesa Judicial • Cliente: Souza Lenzi Advogados • Processo nº 7777777777777</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">SOLICITADO POR SERGIO</span>
+                      <span class="lanc-tag status-pendente" id="lanc-solic-1-status">PENDENTE</span>
+                    </div>
+                    <div class="lanc-attach" id="lanc-solic-1-attach" style="display:none;">
+                      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante_diligencia.pdf</span>
+                    </div>
+                    <div class="recorrente-box" id="lanc-solic-1-attach-form" style="display:none;margin-top:10px;">
+                      <div class="form-field" style="flex:1 1 100%;">
+                        <div class="form-label">ANEXAR COMPROVANTE / BOLETO PAGO</div>
+                        <div class="attach-box" style="max-width:280px;">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                          Anexar arquivo
+                        </div>
+                      </div>
+                      <div class="form-field" style="flex:1 1 100%;display:flex;gap:10px;">
+                        <button class="btn-dark" id="lanc-solic-1-attach-confirm" style="padding:8px 14px;font-size:12.5px;">Confirmar pagamento</button>
+                        <button class="btn-outline" id="lanc-solic-1-attach-cancel" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value red">− R$ 300,00</div>
+                  <div class="lanc-actions">
+                    <button class="btn-outline" id="lanc-solic-1-confirmar" style="padding:6px 10px;font-size:11.5px;">Confirmar pagamento</button>
+                  </div>
+                  <div class="lanc-reopen" id="lanc-solic-1-reabrir" style="display:none;">Marcar como não pago</div>
+                </div>
+              </div>
+
+              <div class="lanc-row" data-tipo="despesa" data-status="pago" data-solicitado="true" data-solic-id="sol-item-2" id="lanc-solic-2">
+                <div class="lanc-left">
+                  <div class="lanc-icon fin-icon-red" id="lanc-solic-2-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                  </div>
+                  <div>
+                    <div class="lanc-name">Custas iniciais — Ação de Cobrança</div>
+                    <div class="lanc-meta">Despesa Judicial • Cliente: Maria da Silva Ferreira • Processo nº 8888888888888 • Pago em 14/08/2026</div>
+                    <div class="lanc-tags">
+                      <span class="lanc-tag tipo">SOLICITADO POR SERGIO</span>
+                      <span class="lanc-tag status-pago" id="lanc-solic-2-status">PAGO</span>
+                    </div>
+                    <div class="lanc-attach" id="lanc-solic-2-attach">
+                      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante_custas_iniciais.pdf</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="lanc-right">
+                  <div class="lanc-value red">− R$ 180,00</div>
+                  <div class="lanc-reopen" id="lanc-solic-2-reabrir">Marcar como não pago</div>
+                </div>
+              </div>
+
+              <div class="empty-state" id="lanc-empty" style="display:none;padding:36px 10px;color:var(--text-mute);text-align:center;font-size:13px;">
+                Nenhum lançamento nesse filtro no momento
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ============ NOVO LANÇAMENTO (formulário) ============ -->
+          <div class="panel-view" id="pg-novo-lancamento">
+            <div class="back-link" data-back-panel="pg-lancamentos">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Voltar
+            </div>
+            <div style="font-size:20px;font-weight:800;margin-bottom:18px;">Novo lançamento</div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que é</div>
+                Formulário pra registrar manualmente uma receita ou despesa que o próprio financeiro identificou (diferente das que chegam via Solicitações, criadas pelo advogado). A classificação Única/Recorrente existe porque despesas do dia a dia de um escritório se repetem (aluguel, salário, internet) — em vez de lançar manualmente todo mês, cadastra uma vez como recorrente e o sistema já prevê os lançamentos futuros automaticamente.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Se <code>classificacao === 'recorrente'</code>, salve também a periodicidade e gere os próximos N lançamentos futuros (ex: via job agendado mensal que cria o lançamento do mês seguinte a partir do template recorrente) — cada ocorrência nasce com <code>status: 'pendente'</code> e só vira <code>'pago'</code> quando alguém confirma manualmente (nunca marque como pago automaticamente, mesmo sendo recorrente). Essa regra é mais rígida pra recorrentes do que pra únicos: um lançamento <b>único</b> pode nascer já como <code>'pago'</code> se quem está cadastrando marcar isso no formulário (ex: uma despesa que já foi paga antes de ser lançada no sistema); um lançamento <b>recorrente</b>, ao contrário, <b>nunca</b> nasce pago — toda ocorrência gerada automaticamente entra sempre como <code>'pendente'</code>, obrigando confirmação manual mês a mês, mesmo que o mês anterior tenha sido confirmado. O checkbox "Não se aplica" na data de vencimento simplesmente permite salvar <code>data_vencimento: null</code> — nem todo lançamento tem prazo (ex: uma compra à vista).
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">TIPO</div>
+                <select class="form-select">
+                  <option>----------</option>
+                  <option>Receita</option>
+                  <option>Despesa</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">DESCRIÇÃO</div>
+                <input class="form-input" placeholder="Descrição">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">VALOR (R$)</div>
+                <input class="form-input" placeholder="0,00">
+              </div>
+              <div class="form-field">
+                <div class="form-label">CATEGORIA</div>
+                <input class="form-input" value="Honorário">
+              </div>
+            </div>
+
+            <!-- Item 3: classificação única/recorrente -->
+            <div class="form-row" style="margin-bottom:8px;">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">CLASSIFICAÇÃO</div>
+                <div class="radio-group">
+                  <div class="radio-pill selected">Única</div>
+                  <div class="radio-pill">Recorrente</div>
+                </div>
+              </div>
+            </div>
+            <div class="recorrente-box">
+              <div class="form-field">
+                <div class="form-label">PERIODICIDADE</div>
+                <select class="form-select"><option>Mensal</option><option>Parcelado (nº de parcelas)</option><option>Percentual sobre êxito</option><option>Por tempo indeterminado</option></select>
+              </div>
+              <div class="form-field">
+                <div class="form-label">DIA DE VENCIMENTO</div>
+                <input class="form-input" placeholder="Ex: dia 5">
+              </div>
+              <div class="form-field">
+                <div class="form-label">DURAÇÃO</div>
+                <select class="form-select"><option>Indeterminado</option><option>Até o processo encerrar</option><option>Nº fixo de parcelas</option></select>
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:16px;">
+              <div class="form-field">
+                <div class="form-label">STATUS</div>
+                <select class="form-select"><option>Pendente</option><option>Pago</option></select>
+              </div>
+              <div class="form-field">
+                <div class="form-label">DATA DE VENCIMENTO</div>
+                <input class="form-input" type="date">
+                <div class="check-row">
+                  <input type="checkbox" id="naoseaplica"> <label for="naoseaplica">Não se aplica (ex: pagamento único sem vencimento)</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">DATA DE PAGAMENTO <span style="font-weight:400;">(opcional)</span></div>
+                <input class="form-input" type="date">
+              </div>
+              <div class="form-field">
+                <div class="form-label">FORMA DE PAGAMENTO <span style="font-weight:400;">(opcional)</span></div>
+                <select class="form-select"><option>----------</option><option>Pix</option><option>Transferência</option><option>Boleto</option><option>Cartão</option></select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">CLIENTE <span style="font-weight:400;">(opcional)</span></div>
+                <select class="form-select"><option>Nenhum</option></select>
+              </div>
+              <div class="form-field">
+                <div class="form-label">PROCESSO <span style="font-weight:400;">(opcional)</span></div>
+                <select class="form-select"><option>Nenhum</option></select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">RESPONSÁVEL <span style="font-weight:400;">(padrão: usuário logado)</span></div>
+                <input class="form-input" value="sergio">
+              </div>
+            </div>
+
+            <!-- Item 11: anexos -->
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">ANEXOS <span style="font-weight:400;">(opcional)</span></div>
+                <div class="attach-row">
+                  <div class="attach-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                    Anexar boleto da cobrança
+                  </div>
+                  <div class="attach-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                    Anexar comprovante de pagamento
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">OBSERVAÇÕES <span style="font-weight:400;">(opcional)</span></div>
+                <textarea class="form-textarea"></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-dark">Criar lançamento</button>
+              <button class="btn-outline" data-back-panel="pg-lancamentos">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- ============ GRÁFICO (item 2) ============ -->
+          <div class="panel-view" id="pg-grafico">
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que é</div>
+                Visão gráfica da saúde financeira do escritório ao longo do tempo — comparando receitas e despesas mês a mês, pra facilitar enxergar tendências (o escritório está crescendo? algum mês teve despesa fora do padrão?) que uma lista de lançamentos não mostra tão bem.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Agregação por mês: <code>SELECT DATE_TRUNC('month', data_pagamento) as mes, tipo, SUM(valor) FROM lancamentos_financeiros WHERE status='pago' GROUP BY mes, tipo</code>. O toggle 6 meses/12 meses/exercício só muda o intervalo da consulta (<code>WHERE mes >= hoje - 6 meses</code>, etc.) — mesma query, período diferente.
+              </div>
+            </div>
+
+            <div class="chart-toggle">
+              <div class="filter-pill active">Últimos 6 meses</div>
+              <div class="filter-pill">Últimos 12 meses</div>
+              <div class="filter-pill">Exercício 2026</div>
+            </div>
+            <div class="chart-bars">
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:60%;"></div><div class="chart-bar despesa" style="height:40%;"></div></div><div class="chart-month-label">MAR</div></div>
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:75%;"></div><div class="chart-bar despesa" style="height:55%;"></div></div><div class="chart-month-label">ABR</div></div>
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:45%;"></div><div class="chart-bar despesa" style="height:65%;"></div></div><div class="chart-month-label">MAI</div></div>
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:90%;"></div><div class="chart-bar despesa" style="height:50%;"></div></div><div class="chart-month-label">JUN</div></div>
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:70%;"></div><div class="chart-bar despesa" style="height:35%;"></div></div><div class="chart-month-label">JUL</div></div>
+              <div class="chart-col"><div class="chart-bar-pair"><div class="chart-bar receita" style="height:85%;"></div><div class="chart-bar despesa" style="height:72%;"></div></div><div class="chart-month-label">AGO</div></div>
+            </div>
+            <div class="chart-legend">
+              <span><span class="legend-dot" style="background:var(--green);"></span>Receitas</span>
+              <span><span class="legend-dot" style="background:var(--red);"></span>Despesas</span>
+            </div>
+          </div>
+
+          <!-- ============ CUSTAS JUDICIAIS (item 12) ============ -->
+          <div class="panel-view" id="pg-custas">
+            <div class="section-note">Lista de clientes cadastrados com o saldo de custas judiciais (crédito adiantado − valores pagos pelo escritório). Clique em um cliente para ver o histórico, ou lance uma nova custa diretamente aqui, inclusive para alguém ainda não cadastrado.</div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que é</div>
+                Custas judiciais são valores exigidos pelo processo (distribuição, diligência, preparo recursal etc.) que às vezes o escritório adianta pro cliente, e às vezes o próprio cliente paga direto. Esta aba controla o saldo dessa relação: se o escritório paga uma custa, o cliente fica devendo (saldo negativo); se o cliente deposita um valor adiantado, ele fica com crédito (saldo positivo) que abate custas futuras. Quando o cliente paga uma custa com o próprio dinheiro, isso é só uma anotação de controle — não mexe no saldo, porque não houve nenhum adiantamento do escritório a ressarcir.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Saldo do cliente = <code>SUM(creditos) - SUM(custas_pagas_pelo_escritorio)</code> — custas com <code>pago_por: 'parte'</code> nunca entram nesse cálculo, só ficam registradas pra histórico. Cada lançamento de custa vira uma linha em <code>custas_judiciais</code> (cliente_id, processo_id, valor, pago_por: 'escritorio'/'parte', anexo). Cada crédito vira uma linha em <code>creditos_cliente</code> (cliente_id, valor, forma_pagamento, anexo). O saldo exibido é sempre calculado on-the-fly a partir dessas duas tabelas, nunca armazenado como um número fixo (evita ficar desatualizado).
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+              <button class="btn-dark" id="btn-nova-custa">+ Nova custa judicial</button>
+            </div>
+            <div class="cliente-list">
+              <div class="cliente-row" data-open="view-cliente-maria">
+                <div class="cliente-left">
+                  <div class="cliente-avatar">MS</div>
+                  <div>
+                    <div class="cliente-name">Maria da Silva Ferreira</div>
+                    <div class="cliente-saldo">Saldo de custas com o escritório</div>
+                  </div>
+                </div>
+                <div class="cliente-saldo-value" style="color:var(--green);">+ R$ 800,00</div>
+              </div>
+              <div class="cliente-row">
+                <div class="cliente-left">
+                  <div class="cliente-avatar">CX</div>
+                  <div>
+                    <div class="cliente-name">Comércio XYZ Ltda</div>
+                    <div class="cliente-saldo">Saldo de custas com o escritório</div>
+                  </div>
+                </div>
+                <div class="cliente-saldo-value" style="color:var(--red);">− R$ 320,00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ NOVA CUSTA JUDICIAL (item 12 — formulário) ============ -->
+          <div class="panel-view" id="pg-nova-custa">
+            <div class="back-link" data-back-panel="pg-custas">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Voltar
+            </div>
+            <div style="font-size:20px;font-weight:800;margin-bottom:18px;">Nova custa judicial</div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">CLIENTE</div>
+                <select class="form-select" id="custa-cliente-select">
+                  <option value="">Selecione o cliente</option>
+                  <option>Maria da Silva Ferreira</option>
+                  <option>Comércio XYZ Ltda</option>
+                  <option value="novo">+ Pessoa ainda não cadastrada</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <div class="form-label">PROCESSO <span style="font-weight:400;">(opcional)</span></div>
+                <select class="form-select"><option>Nenhum</option></select>
+              </div>
+            </div>
+
+            <div class="recorrente-box" id="custa-novo-cliente-box" style="display:none;">
+              <div class="form-field">
+                <div class="form-label">NOME COMPLETO OU RAZÃO SOCIAL</div>
+                <input class="form-input" placeholder="Nome de quem ainda não está cadastrado">
+              </div>
+              <div class="form-field">
+                <div class="form-label">CPF OU CNPJ <span style="font-weight:400;">(opcional)</span></div>
+                <input class="form-input" placeholder="CPF ou CNPJ (opcional)">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:16px;">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">DESCRIÇÃO</div>
+                <input class="form-input" placeholder="Ex: Custas de distribuição, diligência, preparo recursal...">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">VALOR (R$)</div>
+                <input class="form-input" placeholder="0,00">
+              </div>
+              <div class="form-field">
+                <div class="form-label">DATA</div>
+                <input class="form-input" type="date">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-bottom:8px;">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">PAGO POR</div>
+                <div class="radio-group">
+                  <div class="radio-pill selected" data-pagador="escritorio">Escritório</div>
+                  <div class="radio-pill" data-pagador="parte">A própria parte</div>
+                </div>
+              </div>
+            </div>
+            <div class="section-note" id="custa-pagador-nota">Pago pelo escritório: o valor é debitado do saldo do cliente — ele fica devendo esse valor ao escritório (saldo negativo, a ressarcir).</div>
+
+            <div class="form-row">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">ANEXOS <span style="font-weight:400;">(opcional)</span></div>
+                <div class="attach-row">
+                  <div class="attach-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                    Anexar boleto da cobrança
+                  </div>
+                  <div class="attach-box">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg>
+                    Anexar comprovante de pagamento
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-dark">Lançar custa judicial</button>
+              <button class="btn-outline" data-back-panel="pg-custas">Cancelar</button>
+            </div>
+          </div>
+
+          <!-- ============ HONORÁRIOS ADVOCATÍCIOS (item 15, perfil mestre) ============ -->
+          <div class="panel-view" id="pg-honorarios">
+            <div class="section-note">Visível apenas para o perfil mestre. Lista processos com sentença transitada em julgado condenando honorários a favor do escritório (identificados automaticamente pela IA), com o valor estimado do crédito — incluindo honorários de êxito quando aplicável. Enquanto aguardando recebimento, esse valor fica <b>isolado nesta aba</b> — não entra em nenhum total do Financeiro (não conta como "A receber" nem em nenhum outro cálculo), justamente porque o recebimento de honorários de sucumbência depende da execução do processo, algo imprevisível em prazo. Só quando o advogado (ou futuramente a IA) confirma o recebimento é que o valor passa a existir de verdade nos números do escritório, como receita recebida.</div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+              <div class="demo-viewas" style="margin:0;">
+                <span class="demo-viewas-label">Simular data de hoje:</span>
+                <input class="form-input" type="date" id="hon-data-simulada" value="2026-08-19" style="width:auto;padding:6px 10px;">
+                <span class="lanc-meta" style="margin:0;font-style:italic;">(demonstra a atualização automática — no sistema real, isso avança sozinho, dia após dia)</span>
+              </div>
+              <button class="btn-dark" id="btn-novo-honorario">+ Novo honorário</button>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O valor sobe sozinho com o tempo</div>
+                O honorário não é lançado com um valor fixo parado no tempo — ele nasce com um <b>valor base</b> (o percentual sobre a causa, ou o valor fixo determinado) e, a partir das datas de correção/juros, esse valor exibido vai <b>aumentando automaticamente</b> conforme os dias passam, sem que ninguém precise recalcular ou editar nada manualmente. Só o "Já recebido" fica travado (é o que já entrou de fato); o "Ainda pendente" sempre reflete o valor atualizado até hoje, menos o que já foi recebido. O controle de "Simular data de hoje" acima é só pra você testar esse comportamento aqui no protótipo — no sistema real não existe esse controle, o valor simplesmente atualiza sozinho a cada dia que passa.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Nunca salve o <code>valor_total</code> como um número fixo no banco — salve só os parâmetros base (<code>valor_base</code>, <code>devedor_tipo</code>, <code>indice_correcao</code>, as datas de termo inicial, e os campos de êxito se houver). O <code>valor_total</code> exibido é <b>sempre recalculado on-the-fly</b> toda vez que a tela carrega, usando a data atual do servidor no momento do cálculo — a mesma fórmula do formulário de criação, só que rodando de novo a cada carregamento. Não precisa de job/cron pra isso (o cálculo é rápido o suficiente pra rodar a cada request); um cron diário só seria necessário se quiser cachear o valor pra performance em telas com muitos honorários listados, mas o dado de verdade sempre vem do recálculo, nunca do valor congelado. O "Ainda pendente" segue a mesma lógica já usada no recebimento parcial: <code>valor_total_recalculado - valor_recebido_acumulado</code>.
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 Lançamento manual</div>
+                Nem todo honorário de sucumbência vai ser identificado automaticamente pela IA (que ainda não existe) — por enquanto, e mesmo no futuro como forma de correção/complemento, o advogado pode cadastrar um honorário manualmente. O formulário pede o processo (e o cliente vem automaticamente, já que todo honorário está sempre vinculado a um processo específico), a forma de condenação (percentual sobre a causa ou valor fixo), e os dados pra calcular a correção: contra quem é a condenação (pessoa física/jurídica ou ente estatal) e a partir de quando a correção começa a contar. O sistema já calcula o valor corrigido na hora, mostrando o total antes mesmo de salvar.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Formulário grava direto em <code>honorarios_sucumbenciais</code>: <code>processo_id</code> (obrigatório — o <code>cliente_id</code> é derivado do processo, nunca escolhido separadamente, porque cliente é sempre consequência de processo neste sistema), <code>tipo_condenacao: 'percentual'|'fixo'</code> com os campos correspondentes (<code>percentual</code> + <code>valor_causa</code>, ou <code>valor_fixo</code>), <code>devedor_tipo: 'pessoa'|'ente_estatal'</code>, <code>data_termo_inicial</code>. O <code>valor_total</code> exibido/salvo é o resultado já calculado pela mesma fórmula dos cards de correção monetária acima (juros 1% a.m. + INPC pra pessoa, só Selic pra ente estatal) — os índices usados aqui no formulário pra pré-visualização devem ser os mesmos consultados via API do IBGE/BCB no restante do sistema, nunca uma tabela separada. Ao salvar, cria o registro com <code>valor_recebido_acumulado: 0</code> e <code>status: 'aguardando_recebimento'</code>, e o card renderiza no mesmo formato dos demais, com a mesma capacidade de confirmar recebimento (inclusive parcial).
+              </div>
+            </div>
+
+            <div class="hon-card" id="hon-form-panel" style="display:none;flex-direction:column;align-items:stretch;background:var(--bg);border-style:dashed;">
+              <div style="font-size:14px;font-weight:800;margin-bottom:14px;">Novo honorário</div>
+
+              <div class="form-row">
+                <div class="form-field">
+                  <div class="form-label">PROCESSO</div>
+                  <select class="form-input" id="hf-processo">
+                    <option value="">Selecione um processo</option>
+                    <option data-cliente="Maria da Silva Ferreira" value="Ação de Despejo por Falta de Pagamento — nº 1234567890123">Ação de Despejo por Falta de Pagamento — nº 1234567890123</option>
+                    <option data-cliente="Comércio XYZ Ltda" value="Agravo de Instrumento — nº 6666666666666">Agravo de Instrumento — nº 6666666666666</option>
+                    <option data-cliente="Comércio XYZ Ltda" value="Embargos à Execução — nº 5555555555555">Embargos à Execução — nº 5555555555555</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">CLIENTE</div>
+                  <input class="form-input" id="hf-cliente" disabled placeholder="Preenchido automaticamente">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">FORMA DE CONDENAÇÃO</div>
+                  <div style="display:flex;gap:20px;font-size:13px;padding:4px 0;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="hf-forma" value="percentual" checked> Percentual sobre o valor da causa</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="hf-forma" value="fixo"> Valor fixo predeterminado</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row" id="hf-campos-percentual">
+                <div class="form-field">
+                  <div class="form-label">PERCENTUAL (%)</div>
+                  <input class="form-input" id="hf-percentual" placeholder="Ex: 15">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">VALOR DA CAUSA (R$)</div>
+                  <input class="form-input" id="hf-valor-causa" placeholder="Ex: 40000,00">
+                </div>
+              </div>
+              <div class="form-row" id="hf-campos-fixo" style="display:none;">
+                <div class="form-field">
+                  <div class="form-label">VALOR FIXO (R$)</div>
+                  <input class="form-input" id="hf-valor-fixo" placeholder="Ex: 8000,00">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <div class="form-label">DEVEDOR (para cálculo da correção)</div>
+                  <div style="display:flex;gap:20px;font-size:13px;padding:4px 0;">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="hf-devedor" value="pessoa" checked> Pessoa física ou jurídica</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="hf-devedor" value="ente_estatal"> Ente estatal (União/Estado/Município)</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row" id="hf-bloco-pessoa">
+                <div class="form-field">
+                  <div class="form-label">ÍNDICE DE CORREÇÃO MONETÁRIA</div>
+                  <select class="form-input" id="hf-indice">
+                    <option value="inpc">INPC (padrão legal)</option>
+                    <option value="igpm">IGP-M (se previsto em contrato/sentença)</option>
+                    <option value="selic">Taxa Selic (se previsto em contrato/sentença)</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">DATA INICIAL — CORREÇÃO MONETÁRIA</div>
+                  <input class="form-input" type="date" id="hf-data-correcao" value="2026-01-19">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">DATA INICIAL — JUROS (1% a.m.)</div>
+                  <input class="form-input" type="date" id="hf-data-juros" value="2026-01-19">
+                </div>
+              </div>
+              <div class="form-row" id="hf-bloco-ente" style="display:none;">
+                <div class="form-field">
+                  <div class="form-label">DATA INICIAL (SELIC — juros e correção unificados)</div>
+                  <input class="form-input" type="date" id="hf-data-selic" value="2026-01-19">
+                </div>
+              </div>
+              <div class="form-hint" style="margin-top:-8px;">Datas podem ser diferentes porque o juiz costuma fixar termos iniciais distintos — ex: correção monetária desde a data do evento, juros a partir da sentença.</div>
+
+              <div class="form-row" style="margin-top:8px;">
+                <div class="form-field" style="flex:1 1 100%;">
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" id="hf-exito-check"> Escritório também tem honorários contratuais de êxito neste caso
+                  </label>
+                </div>
+              </div>
+              <div class="form-row" id="hf-bloco-exito" style="display:none;">
+                <div class="form-field">
+                  <div class="form-label">PERCENTUAL DE ÊXITO (%)</div>
+                  <input class="form-input" id="hf-exito-percentual" placeholder="Ex: 10">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">VALOR GANHO PELO CLIENTE — original (R$)</div>
+                  <input class="form-input" id="hf-exito-valor-ganho" placeholder="Ex: 60000,00">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">DATA INICIAL DA CORREÇÃO DO ÊXITO</div>
+                  <input class="form-input" type="date" id="hf-exito-data" value="2026-01-19">
+                </div>
+              </div>
+              <div class="form-hint" id="hf-exito-hint" style="margin-top:-8px;display:none;">O valor que o cliente ganhou também é corrigido por juros e correção monetária (mesma regra da sucumbência), só que a partir da data própria do êxito — que pode não coincidir com as datas usadas para os honorários. O percentual de êxito incide sobre esse valor já corrigido, não sobre o valor original.</div>
+
+              <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:6px 0 16px;">
+                <div class="lanc-meta" style="margin:0 0 4px;">Sucumbência corrigida (juros + correção monetária)</div>
+                <div class="lanc-value" style="color:var(--text);font-size:15px;" id="hf-valor-sucumbencia">R$ 0,00</div>
+                <div class="lanc-meta" style="margin:10px 0 4px;display:none;" id="hf-exito-linha-label">Honorários de êxito (contratual)</div>
+                <div class="lanc-value" style="color:var(--text);font-size:15px;display:none;" id="hf-valor-exito-linha">R$ 0,00</div>
+                <div style="border-top:1px solid var(--line);margin:10px 0;"></div>
+                <div class="lanc-meta" style="margin:0 0 4px;">Valor total do honorário</div>
+                <div class="lanc-value green" id="hf-valor-corrigido" style="font-size:19px;">R$ 0,00</div>
+                <div class="lanc-meta" style="margin-top:8px;font-style:italic;">Índices ilustrativos neste protótipo — no sistema real viriam da API do IBGE (INPC/IGP-M) e Banco Central (Selic).</div>
+              </div>
+
+              <div style="display:flex;gap:10px;">
+                <button class="btn-dark" id="hf-salvar">Salvar honorário</button>
+                <button class="btn-outline" id="hf-cancelar">Cancelar</button>
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 Índice, datas e êxito contratual</div>
+                Por padrão, contra pessoa física ou jurídica, a correção monetária usa o <b>INPC</b> — mas o contrato ou a própria sentença podem prever outro índice, como o <b>IGP-M</b>, então o sistema deixa isso escolhível em vez de fixo. As datas de início da correção monetária e dos juros também podem ser diferentes uma da outra: é comum o juiz fixar a correção monetária a partir da data do evento (o dano, o descumprimento) e os juros só a partir da sentença — por isso são dois campos de data separados, não um só. Além da sucumbência, o escritório pode ter combinado com o cliente trabalhar também "por êxito": um percentual contratual sobre o que o cliente efetivamente ganhar na causa. E esse valor que o cliente ganhou também é corrigido por juros e correção monetária — a sentença corrige o valor da causa como um todo, não só a parte que vai pro escritório — só que a partir de uma data que pode ser diferente da usada nos honorários, por isso o êxito tem seu próprio campo de data.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir</div>
+                Adicione ao registro: <code>indice_correcao: 'inpc'|'igpm'|'selic'</code> (só relevante quando <code>devedor_tipo === 'pessoa'</code> — pra ente estatal o índice já é Selic, fixo, unificado), <code>data_termo_correcao</code> e <code>data_termo_juros</code> (dois campos de data distintos, calculados separadamente: <code>valor_correcao = valor_base × taxa_indice_mensal × meses_desde(data_termo_correcao)</code> e <code>valor_juros = valor_base × 0.01 × meses_desde(data_termo_juros)</code>, ambos somados ao <code>valor_base</code>). Pra ente estatal, mantém um único campo de data e a fórmula unificada já existente. O êxito usa a <b>mesma fórmula de correção</b>, com o mesmo <code>indice_correcao</code> e <code>devedor_tipo</code> já selecionados no formulário, mas com sua própria data (<code>exito_data_termo</code>) — aplicada tanto pra juros quanto correção do valor do êxito, já que aqui é só uma data, não duas: <code>valor_ganho_corrigido = calcularCorrigido(valor_ganho_original, devedor_tipo, indice, exito_data_termo, exito_data_termo)</code>. Só depois de corrigido é que o percentual de êxito é aplicado: <code>valor_exito = (percentual_exito / 100) × valor_ganho_corrigido</code>, somado ao <code>valor_total</code> final junto com a sucumbência.
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 O que são honorários de sucumbência</div>
+                Quando o escritório ganha um processo, o juiz, na sentença, condena a parte perdedora a pagar um valor <b>diretamente ao advogado da parte vencedora</b> — não ao cliente. Na grande maioria dos casos (uns 99%) esse valor é um <b>percentual sobre o valor da causa</b> (normalmente entre 10% e 20%), mas em alguns casos o juiz fixa um <b>valor predeterminado</b> em vez de um percentual. Esse dinheiro é do escritório, separado dos honorários que o próprio cliente já paga contratualmente. Diferente de uma receita normal, esse valor é <b>imprevisível</b> — depende da execução do processo, que pode levar meses ou anos, e às vezes nem se concretiza totalmente. Por isso ele fica isolado aqui, como uma expectativa ("aguardando recebimento"), e só passa a contar de verdade nos números do escritório (A receber, saldo, etc.) quando alguém confirma que o valor efetivamente entrou.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como a IA vai alimentar isso (futuro)</div>
+                Pra cada processo com andamento do tipo "Sentença" e resultado favorável ao escritório (<code>resultado_sentenca IN ('procedente','parcialmente_procedente')</code>, olhando o campo já usado no card de Análise de Dados do Painel), a IA lê o texto do andamento de sentença e tenta extrair a condenação em honorários — que pode vir como <code>tipo_honorario: 'percentual'</code> (com um campo <code>percentual</code>, ex: 15%) ou <code>tipo_honorario: 'valor_fixo'</code> (com um <code>valor_fixo</code> já em reais, quando o juiz não usa percentual). Se for percentual, calcula <code>valor_base = percentual × valor_causa</code>; se for fixo, <code>valor_base = valor_fixo</code> diretamente. Esse <code>valor_base</code> ainda precisa passar pela correção monetária/juros (ver card abaixo) antes de virar o <code>valor_total</code> exibido. Cria um registro em <code>honorarios_sucumbenciais</code> com <code>status: 'aguardando_recebimento'</code> — é esse registro que aparece aqui, <b>isolado</b>, sem nunca entrar em <code>lancamentos_financeiros</code> nem nos agregados de "A receber" enquanto estiver nesse status. Quando o financeiro (ou futuramente a IA, ao detectar o depósito) confirma o recebimento (parcial ou total), <b>é só nesse momento</b> que um lançamento de receita de verdade é criado em <code>lancamentos_financeiros</code> (<code>status: 'pago'</code>) — a partir daí sim ele entra em "Recebido no mês" e em qualquer outro total do Financeiro. O advogado responsável pelo processo é notificado nesse momento.
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 Correção monetária e juros</div>
+                Seja percentual ou valor fixo, o valor de honorários de sucumbência quase sempre é corrigido por juros e correção monetária a partir da data que o juiz determinar na sentença — o valor "cru" da condenação não é o valor real a receber depois de meses ou anos de execução. A regra varia por quem é o devedor: quando é <b>pessoa física ou jurídica comum</b>, os juros e a correção são calculados separadamente — juros de 1% ao mês, e correção monetária pelo <b>INPC</b>. Quando o devedor é um <b>ente estatal</b> (União, Estado, Município, autarquias), juros e correção monetária são <b>unificados numa taxa só</b>: a <b>taxa Selic</b> — não se soma mais nada além dela.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como calcular</div>
+                Cada honorário precisa guardar <code>devedor_tipo: 'pessoa'</code> ou <code>'ente_estatal'</code> (deduzido de quem é a parte condenada no processo) e a <code>data_termo_inicial</code> (a data que a sentença fixou pro início da correção — não é sempre a data da sentença, pode ser outra, então precisa ser extraída/informada caso a caso). O cálculo do <code>valor_total</code> atualizado é: se <code>devedor_tipo === 'pessoa'</code>, aplique <code>valor_base × (1 + 0.01 × meses_decorridos)</code> pros juros, e corrija o principal pela variação acumulada do INPC no período (índice público, buscar via API do IBGE ou tabela atualizada mensalmente); se <code>devedor_tipo === 'ente_estatal'</code>, aplique só a variação acumulada da taxa Selic no período (API do Banco Central) sobre o <code>valor_base</code>, sem somar nenhum juro adicional. Como esses índices mudam mês a mês, o <code>valor_total</code> exibido devia ser recalculado sempre que a tela carrega (ou por um job diário), não fixado uma única vez no momento da sentença.
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 Por que só o mestre vê</div>
+                Diferente do resto do Financeiro (que se abre com a Permissão "Acesso a dados", disponível pro papel Financeiro também), esta aba é restrita <b>só ao mestre</b> — nem o papel Financeiro a vê, porque ela trata do faturamento dos próprios sócios/advogados sobre os casos ganhos, um dado mais sensível ainda que o financeiro operacional do dia a dia.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir a trava de acesso</div>
+                Diferente das outras abas de Pagamentos (gateadas por <code>permissoes_papel.financeiro.sub_opcao === 'acesso_dados'</code>), esta é gateada especificamente por <code>usuario.is_mestre === true</code> — não é uma sub_opção configurável, é uma trava fixa de perfil, igual discutimos no Painel do gestor.
+              </div>
+            </div>
+
+            <div class="explain-cards">
+              <div class="explain-card green">
+                <div class="explain-card-title">🟢 Recebimento pode ser parcial</div>
+                Nem sempre o valor todo entra de uma vez — a execução pode penhorar só uma parte do que é devido. Exemplo: o escritório tem R$ 50.000,00 a receber de honorários num processo, mas na penhora só conseguiu R$ 20.000,00 por enquanto. Nesse caso, o advogado confirma o recebimento de R$ 20.000,00 (que passa a contar de verdade nos números do escritório), e os R$ 30.000,00 restantes continuam aqui, ainda "aguardando recebimento" — sem precisar esperar o valor total pra registrar o que já entrou.
+              </div>
+              <div class="explain-card red">
+                <div class="explain-card-title">🔴 Como construir o recebimento parcial</div>
+                O registro em <code>honorarios_sucumbenciais</code> precisa de <code>valor_total</code> e <code>valor_recebido_acumulado</code> (soma de todas as confirmações já feitas) — <code>valor_pendente</code> é sempre calculado como <code>valor_total - valor_recebido_acumulado</code>, nunca armazenado fixo. Cada confirmação de recebimento cria uma linha em <code>recebimentos_honorario</code> (honorario_id, valor, data, anexo_comprovante) <b>e</b>, na mesma transação, um lançamento de receita em <code>lancamentos_financeiros</code> só com aquele valor parcial. O <code>status</code> do honorário some pra <code>'recebido'</code> apenas quando <code>valor_recebido_acumulado >= valor_total</code>; enquanto isso, continua <code>'aguardando_recebimento'</code>, mesmo já tendo recebido parte.
+              </div>
+            </div>
+
+            <div class="hon-card" style="flex-direction:column;align-items:stretch;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+                <div>
+                  <div class="hon-proc">Ação de Danos Morais — nº 4444444444444</div>
+                  <div class="hon-meta">Sentença transitada em julgado • Honorários sucumbenciais + êxito • Responsável: sergio</div>
+                </div>
+                <span class="lanc-tag status-pendente" id="hon-danos-tag">AGUARDANDO RECEBIMENTO</span>
+              </div>
+
+              <div style="display:flex;gap:28px;margin-top:14px;flex-wrap:wrap;">
+                <div>
+                  <div class="lanc-meta" style="margin:0;">Valor total</div>
+                  <div class="lanc-value" style="color:var(--text);" id="hon-danos-total">R$ 50.000,00</div>
+                </div>
+                <div>
+                  <div class="lanc-meta" style="margin:0;">Já recebido</div>
+                  <div class="lanc-value green" id="hon-danos-recebido">R$ 0,00</div>
+                </div>
+                <div>
+                  <div class="lanc-meta" style="margin:0;">Ainda pendente</div>
+                  <div class="lanc-value" style="color:var(--amber);" id="hon-danos-pendente">R$ 50.000,00</div>
+                </div>
+              </div>
+
+              <div style="margin-top:14px;">
+                <button class="btn-outline" id="btn-abrir-confirmar-honorario" style="padding:8px 14px;font-size:12.5px;">Confirmar recebimento</button>
+              </div>
+
+              <div class="recorrente-box" id="hon-confirmar-form" style="display:none;margin-top:12px;">
+                <div class="form-field">
+                  <div class="form-label">VALOR RECEBIDO AGORA (R$)</div>
+                  <input class="form-input" id="hon-input-valor" placeholder="Ex: 20000,00">
+                </div>
+                <div class="form-field">
+                  <div class="form-label">ANEXAR COMPROVANTE</div>
+                  <div class="attach-box small" id="hon-input-anexo">Anexar comprovante</div>
+                </div>
+                <div class="form-field" style="flex:1 1 100%;display:flex;gap:10px;">
+                  <button class="btn-dark" id="hon-confirmar-salvar" style="padding:8px 14px;font-size:12.5px;">Confirmar recebimento</button>
+                  <button class="btn-outline" id="hon-confirmar-cancelar" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="hon-card">
+              <div>
+                <div class="hon-proc">Execução Fiscal — nº 7777777777777</div>
+                <div class="hon-meta">Sentença transitada em julgado • Honorários sucumbenciais • Responsável: sergio</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="lanc-value green">R$ 10.000,00</div>
+                <span class="lanc-tag status-pago">RECEBIDO</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <!-- /Pagamentos -->
+
+      <!-- ===================== VIEW: DETALHE DO CLIENTE (Custas Judiciais) ===================== -->
+      <div class="view" id="view-cliente-maria">
+        <div class="back-link" data-open-view="mod-pagamentos" data-restore-tab="pg-custas">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar para Custas Judiciais
+        </div>
+
+        <div class="page-title" style="font-size:20px;">Maria da Silva Ferreira</div>
+        <div class="page-subtitle">Saldo atual de custas: <b style="color:var(--green);">+ R$ 800,00</b></div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            Página de conta-corrente de custas de um cliente específico: a aba "Lançamentos" mostra as custas já pagas (pelo escritório ou pelo cliente) e a aba "Creditar" mostra os valores que o cliente adiantou. O "Saldo atual" no topo já é o resultado desses dois lados somados — se estiver positivo, o escritório está com crédito do cliente; se negativo, o cliente deve ao escritório.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            <code>saldo = SUM(creditos_cliente.valor) - SUM(custas_judiciais.valor WHERE pago_por='escritorio')</code>, calculado toda vez que a página carrega (não armazenado). As duas abas são só duas visualizações diferentes das mesmas duas tabelas já descritas nos cards da aba Custas Judiciais principal (<code>custas_judiciais</code> e <code>creditos_cliente</code>), filtradas por <code>cliente_id</code>.
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" data-target="cli-lancamentos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-7-7z"/></svg>
+            Lançamentos
+          </div>
+          <div class="tab" data-target="cli-creditar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Creditar
+          </div>
+        </div>
+
+        <div class="panel">
+
+          <div class="panel-view active" id="cli-lancamentos">
+            <div class="section-note">Custas judiciais pagas neste processo/cliente. Indique se foi paga pelo escritório (afeta o saldo) ou pelo próprio cliente (apenas anotação de controle, não afeta o saldo).</div>
+
+            <div class="lanc-row">
+              <div class="lanc-left">
+                <div class="lanc-icon fin-icon-red">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                </div>
+                <div>
+                  <div class="lanc-name">Custas de distribuição — Ação de Danos Morais</div>
+                  <div class="lanc-meta">Paga em 03/02/2026 • nº 4444444444444</div>
+                  <div class="lanc-tags">
+                    <span class="lanc-tag neutro">PAGA PELO ESCRITÓRIO</span>
+                  </div>
+                  <div class="lanc-attach">
+                    <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante.pdf</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lanc-right">
+                <div class="lanc-value red">− R$ 200,00</div>
+                <div class="lanc-actions">
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lanc-row">
+              <div class="lanc-left">
+                <div class="lanc-icon fin-icon-navy">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+                </div>
+                <div>
+                  <div class="lanc-name">Diligência de oficial de justiça</div>
+                  <div class="lanc-meta">Paga em 20/02/2026 • nº 4444444444444</div>
+                  <div class="lanc-tags">
+                    <span class="lanc-tag neutro">PAGA PELO CLIENTE (não afeta saldo)</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lanc-right">
+                <div class="lanc-value" style="color:var(--text-mute);">R$ 150,00</div>
+                <div class="lanc-actions">
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Formulário inline: lançar custa judicial para este cliente -->
+            <div class="recorrente-box" id="cli-form-custa" style="display:none;margin-top:16px;">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">DESCRIÇÃO</div>
+                <input class="form-input" placeholder="Ex: Custas recursais, diligência...">
+              </div>
+              <div class="form-field">
+                <div class="form-label">VALOR (R$)</div>
+                <input class="form-input" placeholder="0,00">
+              </div>
+              <div class="form-field">
+                <div class="form-label">DATA</div>
+                <input class="form-input" type="date">
+              </div>
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">PAGO POR</div>
+                <div class="radio-group">
+                  <div class="radio-pill selected" data-pagador="escritorio">Escritório</div>
+                  <div class="radio-pill" data-pagador="parte">A própria parte</div>
+                </div>
+              </div>
+              <div class="form-field" style="flex:1 1 100%;display:flex;gap:10px;">
+                <button class="btn-dark" id="cli-form-custa-salvar">Salvar</button>
+                <button class="btn-outline" id="cli-form-custa-cancelar">Cancelar</button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-dark" id="btn-lancar-custa-cliente">+ Lançar custa judicial</button>
+            </div>
+          </div>
+
+          <div class="panel-view" id="cli-creditar">
+            <div class="section-note">Valores adiantados pelo cliente que servem como crédito de custas futuras.</div>
+
+            <div class="lanc-row">
+              <div class="lanc-left">
+                <div class="lanc-icon fin-icon-green">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+                </div>
+                <div>
+                  <div class="lanc-name">Adiantamento de custas</div>
+                  <div class="lanc-meta">Recebido em 05/02/2026 • Pix</div>
+                  <div class="lanc-attach">
+                    <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> comprovante.pdf</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lanc-right">
+                <div class="lanc-value green">+ R$ 1.000,00</div>
+                <div class="lanc-actions">
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                  <div class="lanc-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Formulário inline: creditar valor adiantado por este cliente -->
+            <div class="recorrente-box" id="cli-form-creditar" style="display:none;margin-top:16px;">
+              <div class="form-field" style="flex:1 1 100%;">
+                <div class="form-label">DESCRIÇÃO</div>
+                <input class="form-input" placeholder="Ex: Adiantamento mensal de custas">
+              </div>
+              <div class="form-field">
+                <div class="form-label">VALOR (R$)</div>
+                <input class="form-input" placeholder="0,00">
+              </div>
+              <div class="form-field">
+                <div class="form-label">DATA</div>
+                <input class="form-input" type="date">
+              </div>
+              <div class="form-field">
+                <div class="form-label">FORMA DE PAGAMENTO</div>
+                <select class="form-select"><option>Pix</option><option>Transferência</option><option>Boleto</option><option>Dinheiro</option></select>
+              </div>
+              <div class="form-field" style="flex:1 1 100%;display:flex;gap:10px;">
+                <button class="btn-dark" id="cli-form-creditar-salvar">Salvar</button>
+                <button class="btn-outline" id="cli-form-creditar-cancelar">Cancelar</button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-dark" id="btn-creditar-cliente">+ Creditar valor</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <!-- /view-cliente-maria -->
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // Alterna entre Solicitações / Pagamentos
+  document.querySelectorAll('.module-tab').forEach(function(mt){
+    mt.addEventListener('click', function(){
+      document.querySelectorAll('.module-tab').forEach(function(m){ m.classList.remove('active'); });
+      document.querySelectorAll('#mod-solicitacoes, #mod-pagamentos').forEach(function(v){ v.classList.remove('active'); });
+      mt.classList.add('active');
+      document.getElementById(mt.dataset.mtarget).classList.add('active');
+    });
+  });
+
+  // Alterna entre as abas internas (Lançamentos / Gráfico / Custas / Honorários)
+  document.querySelectorAll('.tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var view = tab.closest('.view');
+      view.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      view.querySelectorAll('.panel-view').forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.target).classList.add('active');
+    });
+  });
+
+  // Abre o formulário de novo lançamento
+  document.querySelectorAll('.btn-dark').forEach(function(btn){
+    if(btn.textContent.includes('Novo lançamento')){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('#pg-lancamentos, #pg-novo-lancamento').forEach(function(p){ p.classList.remove('active'); });
+        document.getElementById('pg-novo-lancamento').classList.add('active');
+      });
+    }
+  });
+
+  // Botões "Voltar" / "Cancelar" do formulário
+  document.querySelectorAll('[data-back-panel]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.panel-view').forEach(function(p){ p.classList.remove('active'); });
+      document.getElementById(btn.dataset.backPanel).classList.add('active');
+      var tabs = document.querySelector('#mod-pagamentos .tabs');
+      var matchingTab = tabs.querySelector('[data-target="'+btn.dataset.backPanel+'"]');
+      if(matchingTab){
+        tabs.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+        matchingTab.classList.add('active');
+      }
+    });
+  });
+
+  // Abre o formulário de nova custa judicial
+  var btnNovaCusta = document.getElementById('btn-nova-custa');
+  if(btnNovaCusta){
+    btnNovaCusta.addEventListener('click', function(){
+      document.querySelectorAll('#mod-pagamentos .panel-view').forEach(function(p){ p.classList.remove('active'); });
+      document.getElementById('pg-nova-custa').classList.add('active');
+    });
+  }
+
+  // Mostra campos de nova pessoa quando "Pessoa ainda não cadastrada" é selecionada
+  var custaClienteSelect = document.getElementById('custa-cliente-select');
+  if(custaClienteSelect){
+    custaClienteSelect.addEventListener('change', function(){
+      document.getElementById('custa-novo-cliente-box').style.display = (custaClienteSelect.value === 'novo') ? 'flex' : 'none';
+    });
+  }
+
+  // Alterna a nota explicativa conforme quem pagou a custa
+  document.querySelectorAll('[data-pagador]').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      var nota = document.getElementById('custa-pagador-nota');
+      if(!nota) return;
+      if(pill.dataset.pagador === 'escritorio'){
+        nota.textContent = 'Pago pelo escritório: o valor é debitado do saldo do cliente — ele fica devendo esse valor ao escritório (saldo negativo, a ressarcir).';
+      } else {
+        nota.textContent = 'Pago pela própria parte: fica apenas como anotação de controle. Não afeta o saldo do cliente com o escritório.';
+      }
+    });
+  });
+
+  // Formulário inline: lançar custa judicial (dentro da página do cliente)
+  var btnLancarCustaCliente = document.getElementById('btn-lancar-custa-cliente');
+  if(btnLancarCustaCliente){
+    btnLancarCustaCliente.addEventListener('click', function(){
+      document.getElementById('cli-form-custa').style.display = 'flex';
+      btnLancarCustaCliente.style.display = 'none';
+    });
+    document.getElementById('cli-form-custa-cancelar').addEventListener('click', function(){
+      document.getElementById('cli-form-custa').style.display = 'none';
+      btnLancarCustaCliente.style.display = '';
+    });
+    document.getElementById('cli-form-custa-salvar').addEventListener('click', function(){
+      document.getElementById('cli-form-custa').style.display = 'none';
+      btnLancarCustaCliente.style.display = '';
+    });
+  }
+
+  // Formulário inline: creditar valor (dentro da página do cliente)
+  var btnCreditarCliente = document.getElementById('btn-creditar-cliente');
+  if(btnCreditarCliente){
+    btnCreditarCliente.addEventListener('click', function(){
+      document.getElementById('cli-form-creditar').style.display = 'flex';
+      btnCreditarCliente.style.display = 'none';
+    });
+    document.getElementById('cli-form-creditar-cancelar').addEventListener('click', function(){
+      document.getElementById('cli-form-creditar').style.display = 'none';
+      btnCreditarCliente.style.display = '';
+    });
+    document.getElementById('cli-form-creditar-salvar').addEventListener('click', function(){
+      document.getElementById('cli-form-creditar').style.display = 'none';
+      btnCreditarCliente.style.display = '';
+    });
+  }
+
+  // Alterna classificação Única / Recorrente
+  document.querySelectorAll('.radio-pill').forEach(function(pill){
+    pill.addEventListener('click', function(){
+      var group = pill.closest('.radio-group');
+      group.querySelectorAll('.radio-pill').forEach(function(p){ p.classList.remove('selected'); });
+      pill.classList.add('selected');
+    });
+  });
+
+  // Módulo Solicitações: abrir/fechar formulário de nova solicitação
+  var btnNovaSolicitacao = document.getElementById('btn-nova-solicitacao');
+  if(btnNovaSolicitacao){
+    btnNovaSolicitacao.addEventListener('click', function(){
+      document.getElementById('sol-lista-panel').style.display = 'none';
+      document.getElementById('sol-form-panel').style.display = 'block';
+      btnNovaSolicitacao.style.display = 'none';
+    });
+    function fecharFormSolicitacao(){
+      document.getElementById('sol-form-panel').style.display = 'none';
+      document.getElementById('sol-lista-panel').style.display = 'block';
+      btnNovaSolicitacao.style.display = '';
+    }
+    document.getElementById('sol-form-voltar').addEventListener('click', fecharFormSolicitacao);
+    document.getElementById('sol-form-cancelar').addEventListener('click', fecharFormSolicitacao);
+    document.getElementById('sol-form-enviar').addEventListener('click', fecharFormSolicitacao);
+  }
+
+  // Solicitações ↔ Pagamentos: confirmar pagamento (com anexo obrigatório) e reverter pagamento
+  function marcarSolicitacaoPaga(lancId, solId, arquivoNome){
+    var row = document.getElementById(lancId);
+    row.dataset.status = 'pago';
+    document.getElementById(lancId+'-status').textContent = 'PAGO';
+    document.getElementById(lancId+'-status').className = 'lanc-tag status-pago';
+    var icon = document.getElementById(lancId+'-icon');
+    if(icon){ icon.className = 'lanc-icon fin-icon-red'; }
+    var attach = document.getElementById(lancId+'-attach');
+    if(attach){
+      attach.innerHTML = '<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> '+arquivoNome+'</span>';
+      attach.style.display = 'flex';
+    }
+    var reabrir = document.getElementById(lancId+'-reabrir');
+    if(reabrir){ reabrir.style.display = 'block'; }
+
+    var solStatus = document.getElementById(solId+'-status');
+    if(solStatus){ solStatus.textContent = 'PAGA'; solStatus.className = 'lanc-tag status-pago'; }
+    var solNotif = document.getElementById(solId+'-notif');
+    if(solNotif){ solNotif.style.display = 'flex'; }
+    var solAttach = document.getElementById(solId+'-attach');
+    if(solAttach){
+      solAttach.innerHTML = '<span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.4 11.6L12.8 20a4.7 4.7 0 0 1-6.6-6.6l8.6-8.6a3.1 3.1 0 0 1 4.4 4.4l-8.6 8.6a1.6 1.6 0 0 1-2.2-2.2l7.9-7.9"/></svg> '+arquivoNome+' — juntar ao processo</span>';
+      solAttach.style.display = 'flex';
+    }
+
+    var activePill = document.querySelector('#lanc-filters .filter-pill.active');
+    if(activePill){ applyLancFilter(activePill.dataset.filter); }
+  }
+
+  function marcarSolicitacaoNaoPaga(lancId, solId){
+    var row = document.getElementById(lancId);
+    row.dataset.status = 'pendente';
+    document.getElementById(lancId+'-status').textContent = 'PENDENTE';
+    document.getElementById(lancId+'-status').className = 'lanc-tag status-pendente';
+    var icon = document.getElementById(lancId+'-icon');
+    if(icon){ icon.className = 'lanc-icon fin-icon-amber'; }
+    var attach = document.getElementById(lancId+'-attach');
+    if(attach){ attach.style.display = 'none'; }
+    var reabrir = document.getElementById(lancId+'-reabrir');
+    if(reabrir){ reabrir.style.display = 'none'; }
+    var confirmarBtn = document.getElementById(lancId+'-confirmar');
+    if(confirmarBtn){ confirmarBtn.style.display = ''; }
+
+    var solStatus = document.getElementById(solId+'-status');
+    if(solStatus){ solStatus.textContent = 'A PAGAR'; solStatus.className = 'lanc-tag status-pendente'; }
+    var solNotif = document.getElementById(solId+'-notif');
+    if(solNotif){ solNotif.style.display = 'none'; }
+    var solAttach = document.getElementById(solId+'-attach');
+    if(solAttach){ solAttach.style.display = 'none'; }
+
+    var activePill = document.querySelector('#lanc-filters .filter-pill.active');
+    if(activePill){ applyLancFilter(activePill.dataset.filter); }
+  }
+
+  // Fluxo do lançamento pendente (sol-item-1 / lanc-solic-1): exige anexo antes de confirmar
+  var confirmarSolic1 = document.getElementById('lanc-solic-1-confirmar');
+  if(confirmarSolic1){
+    confirmarSolic1.addEventListener('click', function(){
+      confirmarSolic1.style.display = 'none';
+      document.getElementById('lanc-solic-1-attach-form').style.display = 'flex';
+    });
+    document.getElementById('lanc-solic-1-attach-cancel').addEventListener('click', function(){
+      document.getElementById('lanc-solic-1-attach-form').style.display = 'none';
+      confirmarSolic1.style.display = '';
+    });
+    document.getElementById('lanc-solic-1-attach-confirm').addEventListener('click', function(){
+      document.getElementById('lanc-solic-1-attach-form').style.display = 'none';
+      marcarSolicitacaoPaga('lanc-solic-1', 'sol-item-1', 'comprovante_diligencia.pdf');
+    });
+  }
+  var reabrirSolic1 = document.getElementById('lanc-solic-1-reabrir');
+  if(reabrirSolic1){
+    reabrirSolic1.addEventListener('click', function(){
+      marcarSolicitacaoNaoPaga('lanc-solic-1', 'sol-item-1');
+    });
+  }
+
+  // Fluxo do lançamento já pago de exemplo (sol-item-2 / lanc-solic-2): pode ser revertido pelo financeiro
+  var reabrirSolic2 = document.getElementById('lanc-solic-2-reabrir');
+  if(reabrirSolic2){
+    reabrirSolic2.addEventListener('click', function(){
+      if(reabrirSolic2.textContent.trim() === 'Marcar como não pago'){
+        marcarSolicitacaoNaoPaga('lanc-solic-2', 'sol-item-2');
+        reabrirSolic2.textContent = 'Marcar como pago';
+      } else {
+        marcarSolicitacaoPaga('lanc-solic-2', 'sol-item-2', 'comprovante_custas_iniciais.pdf');
+        reabrirSolic2.textContent = 'Marcar como não pago';
+      }
+    });
+  }
+
+  function applyLancFilter(filter){
+    var rows = document.querySelectorAll('#lanc-list .lanc-row');
+    var visibleCount = 0;
+    rows.forEach(function(row){
+      var tipo = row.dataset.tipo;
+      var status = row.dataset.status;
+      var show = false;
+      switch(filter){
+        case 'todos': show = true; break;
+        case 'receitas': show = (tipo === 'receita'); break;
+        case 'despesas': show = (tipo === 'despesa'); break;
+        case 'pagos': show = (tipo === 'despesa' && status === 'pago'); break;
+        case 'recebidos': show = (tipo === 'receita' && status === 'pago'); break;
+        case 'apagar': show = (tipo === 'despesa' && status !== 'pago'); break;
+        case 'areceber': show = (tipo === 'receita' && status !== 'pago'); break;
+        case 'atrasados': show = (status === 'atrasado'); break;
+        case 'solicitados': show = (row.dataset.solicitado === 'true'); break;
+      }
+      row.style.display = show ? '' : 'none';
+      if(show) visibleCount++;
+    });
+    document.getElementById('lanc-empty').style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  document.querySelectorAll('#lanc-filters .filter-pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('#lanc-filters .filter-pill').forEach(function(s){ s.classList.remove('active'); });
+      p.classList.add('active');
+      applyLancFilter(p.dataset.filter);
+    });
+  });
+
+  // Filtros/toggles genéricos fora da lista de lançamentos (ex: toggle do gráfico)
+  document.querySelectorAll('.filter-pill').forEach(function(p){
+    if(p.closest('#lanc-filters')) return;
+    p.addEventListener('click', function(){
+      var siblings = p.parentElement.querySelectorAll('.filter-pill');
+      siblings.forEach(function(s){ s.classList.remove('active'); });
+      p.classList.add('active');
+    });
+  });
+
+  // Abre a página de detalhe do cliente (Custas Judiciais)
+  document.querySelectorAll('[data-open]').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById(el.dataset.open).classList.add('active');
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  // Volta da página de detalhe do cliente
+  document.querySelectorAll('[data-open-view]').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById(el.dataset.openView).classList.add('active');
+      if(el.dataset.restoreTab){
+        var tabs = document.querySelector('#mod-pagamentos .tabs');
+        tabs.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+        tabs.querySelector('[data-target="'+el.dataset.restoreTab+'"]').classList.add('active');
+        document.querySelectorAll('#mod-pagamentos .panel-view').forEach(function(p){ p.classList.remove('active'); });
+        document.getElementById(el.dataset.restoreTab).classList.add('active');
+      }
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  // ===== Honorários Advocatícios: confirmação de recebimento parcial =====
+  var honDanosTotal = 50000;
+  var honDanosRecebido = 0;
+
+  function formatBRL(n){
+    return 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  document.getElementById('btn-abrir-confirmar-honorario').addEventListener('click', function(){
+    document.getElementById('hon-confirmar-form').style.display = 'flex';
+    this.style.display = 'none';
+  });
+  document.getElementById('hon-confirmar-cancelar').addEventListener('click', function(){
+    document.getElementById('hon-confirmar-form').style.display = 'none';
+    document.getElementById('btn-abrir-confirmar-honorario').style.display = '';
+    document.getElementById('hon-input-valor').value = '';
+  });
+  document.getElementById('hon-input-anexo').addEventListener('click', function(){
+    this.textContent = '✓ comprovante.pdf anexado';
+  });
+
+  document.getElementById('hon-confirmar-salvar').addEventListener('click', function(){
+    var raw = document.getElementById('hon-input-valor').value.replace(/\./g,'').replace(',', '.');
+    var valor = parseFloat(raw);
+    var pendenteAtual = honDanosTotal - honDanosRecebido;
+    if(!valor || valor <= 0){ return; }
+    if(valor > pendenteAtual) valor = pendenteAtual;
+
+    honDanosRecebido += valor;
+    var novoPendente = honDanosTotal - honDanosRecebido;
+
+    document.getElementById('hon-danos-recebido').textContent = formatBRL(honDanosRecebido);
+    document.getElementById('hon-danos-pendente').textContent = formatBRL(novoPendente);
+
+    // Cria o lançamento de receita correspondente ao valor parcial recebido, em Lançamentos
+    var hoje = new Date(2026, 7, 19);
+    var pad2 = function(n){ return n < 10 ? '0'+n : n; };
+    var dataStr = pad2(hoje.getDate()) + '/' + pad2(hoje.getMonth()+1) + '/' + hoje.getFullYear();
+    var novoLancamento = document.createElement('div');
+    novoLancamento.className = 'lanc-row';
+    novoLancamento.dataset.tipo = 'receita';
+    novoLancamento.dataset.status = 'pago';
+    novoLancamento.innerHTML =
+      '<div class="lanc-left">' +
+        '<div class="lanc-icon fin-icon-green"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>' +
+        '<div>' +
+          '<div class="lanc-name">Honorários sucumbenciais (recebimento parcial) — Ação de Danos Morais</div>' +
+          '<div class="lanc-meta">Honorário de Êxito • Pago em ' + dataStr + ' • Processo nº 4444444444444</div>' +
+          '<div class="lanc-tags"><span class="lanc-tag tipo">ÚNICO</span><span class="lanc-tag status-pago">PAGO</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="lanc-right"><div class="lanc-value green">' + formatBRL(valor) + '</div></div>';
+    document.getElementById('lanc-list').prepend(novoLancamento);
+
+    // Atualiza "Recebido no mês"
+    var recebidoEl = document.getElementById('fin-recebido-mes');
+    var recebidoAtual = parseFloat(recebidoEl.textContent.replace('R$','').replace(/\./g,'').replace(',','.').trim());
+    recebidoEl.textContent = formatBRL(recebidoAtual + valor);
+
+    // Reaplica o filtro ativo, se houver
+    var activePill = document.querySelector('#lanc-filters .filter-pill.active');
+    if(typeof applyLancFilter === 'function' && activePill){ applyLancFilter(activePill.dataset.filter); }
+
+    if(novoPendente <= 0.009){
+      document.getElementById('hon-danos-tag').textContent = 'RECEBIDO';
+      document.getElementById('hon-danos-tag').className = 'lanc-tag status-pago';
+      document.getElementById('hon-confirmar-form').style.display = 'none';
+    } else {
+      document.getElementById('hon-danos-tag').textContent = 'PARCIALMENTE RECEBIDO';
+      document.getElementById('hon-confirmar-form').style.display = 'none';
+      document.getElementById('btn-abrir-confirmar-honorario').style.display = '';
+    }
+    document.getElementById('hon-input-valor').value = '';
+  });
+
+  // ===== Navegador de mês (visual, demonstra a navegação — dados reais viriam filtrados por mesReferencia) =====
+  var mesesNav = ['Junho de 2026','Julho de 2026','Agosto de 2026','Setembro de 2026','Outubro de 2026'];
+  var mesNavIndex = 2; // Agosto
+  function renderMesNav(){
+    document.getElementById('month-nav-label').textContent = mesesNav[mesNavIndex];
+    document.getElementById('month-nav-tag').style.display = (mesNavIndex === 2) ? 'inline-block' : 'none';
+  }
+  document.getElementById('month-nav-prev').addEventListener('click', function(){
+    if(mesNavIndex > 0) mesNavIndex--;
+    renderMesNav();
+  });
+  document.getElementById('month-nav-next').addEventListener('click', function(){
+    if(mesNavIndex < mesesNav.length - 1) mesNavIndex++;
+    renderMesNav();
+  });
+
+  // ===== Novo honorário: formulário + calculadora de correção monetária ao vivo =====
+  document.getElementById('btn-novo-honorario').addEventListener('click', function(){
+    document.getElementById('hon-form-panel').style.display = 'flex';
+    this.style.display = 'none';
+  });
+  document.getElementById('hf-cancelar').addEventListener('click', function(){
+    document.getElementById('hon-form-panel').style.display = 'none';
+    document.getElementById('btn-novo-honorario').style.display = '';
+  });
+
+  document.getElementById('hf-processo').addEventListener('change', function(){
+    var opt = this.options[this.selectedIndex];
+    document.getElementById('hf-cliente').value = opt.dataset.cliente || '';
+  });
+
+  document.querySelectorAll('input[name="hf-forma"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      var isPercentual = document.querySelector('input[name="hf-forma"]:checked').value === 'percentual';
+      document.getElementById('hf-campos-percentual').style.display = isPercentual ? 'flex' : 'none';
+      document.getElementById('hf-campos-fixo').style.display = isPercentual ? 'none' : 'flex';
+      calcularHonorarioFormulario();
+    });
+  });
+
+  document.querySelectorAll('input[name="hf-devedor"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      var isPessoa = document.querySelector('input[name="hf-devedor"]:checked').value === 'pessoa';
+      document.getElementById('hf-bloco-pessoa').style.display = isPessoa ? 'flex' : 'none';
+      document.getElementById('hf-bloco-ente').style.display = isPessoa ? 'none' : 'flex';
+      calcularHonorarioFormulario();
+    });
+  });
+
+  document.getElementById('hf-exito-check').addEventListener('change', function(){
+    document.getElementById('hf-bloco-exito').style.display = this.checked ? 'flex' : 'none';
+    document.getElementById('hf-exito-hint').style.display = this.checked ? 'block' : 'none';
+    document.getElementById('hf-exito-linha-label').style.display = this.checked ? 'block' : 'none';
+    document.getElementById('hf-valor-exito-linha').style.display = this.checked ? 'block' : 'none';
+    calcularHonorarioFormulario();
+  });
+
+  function parseNum(str){
+    if(!str) return 0;
+    return parseFloat(String(str).replace('R$','').trim().replace(/\./g,'').replace(',','.')) || 0;
+  }
+
+  var dataReferenciaHonorarios = new Date(2026, 7, 19); // "hoje" — simulável via controle na tela
+
+  function mesesEntre(dataIso){
+    var termo = new Date(dataIso);
+    var meses = (dataReferenciaHonorarios.getFullYear() - termo.getFullYear()) * 12 + (dataReferenciaHonorarios.getMonth() - termo.getMonth());
+    return meses < 0 ? 0 : meses;
+  }
+
+  var TAXAS_INDICE = { inpc: 0.004, igpm: 0.005, selic: 0.009 }; // ilustrativos — viriam do IBGE/BCB
+
+  function calcularCorrigido(valorBase, devedorTipo, indice, dataCorrecao, dataJuros){
+    if(devedorTipo === 'ente_estatal'){
+      var mesesSelic = mesesEntre(dataCorrecao);
+      return valorBase * (1 + TAXAS_INDICE.selic * mesesSelic);
+    } else {
+      var mesesCorrecao = mesesEntre(dataCorrecao);
+      var mesesJuros = mesesEntre(dataJuros);
+      var valorCorrecao = valorBase * TAXAS_INDICE[indice] * mesesCorrecao;
+      var valorJuros = valorBase * 0.01 * mesesJuros;
+      return valorBase + valorCorrecao + valorJuros;
+    }
+  }
+
+  function calcularSucumbencia(valorBase, devedorTipo){
+    var indice = document.getElementById('hf-indice').value;
+    if(devedorTipo === 'ente_estatal'){
+      var dataSelic = document.getElementById('hf-data-selic').value || '2026-01-19';
+      return calcularCorrigido(valorBase, devedorTipo, indice, dataSelic, dataSelic);
+    } else {
+      var dataCorrecao = document.getElementById('hf-data-correcao').value || '2026-01-19';
+      var dataJuros = document.getElementById('hf-data-juros').value || '2026-01-19';
+      return calcularCorrigido(valorBase, devedorTipo, indice, dataCorrecao, dataJuros);
+    }
+  }
+
+  function calcularHonorarioFormulario(){
+    var forma = document.querySelector('input[name="hf-forma"]:checked').value;
+    var valorBase = forma === 'percentual'
+      ? (parseNum(document.getElementById('hf-percentual').value) / 100) * parseNum(document.getElementById('hf-valor-causa').value)
+      : parseNum(document.getElementById('hf-valor-fixo').value);
+    var devedorTipo = document.querySelector('input[name="hf-devedor"]:checked').value;
+    var indice = document.getElementById('hf-indice').value;
+
+    var valorSucumbencia = calcularSucumbencia(valorBase, devedorTipo);
+    document.getElementById('hf-valor-sucumbencia').textContent = formatBRL(valorSucumbencia);
+
+    var valorExito = 0;
+    if(document.getElementById('hf-exito-check').checked){
+      var pctExito = parseNum(document.getElementById('hf-exito-percentual').value);
+      var valorGanhoOriginal = parseNum(document.getElementById('hf-exito-valor-ganho').value);
+      var dataExito = document.getElementById('hf-exito-data').value || '2026-01-19';
+      var valorGanhoCorrigido = calcularCorrigido(valorGanhoOriginal, devedorTipo, indice, dataExito, dataExito);
+      valorExito = (pctExito / 100) * valorGanhoCorrigido;
+      document.getElementById('hf-valor-exito-linha').textContent = formatBRL(valorExito);
+    }
+
+    var valorTotal = valorSucumbencia + valorExito;
+    document.getElementById('hf-valor-corrigido').textContent = formatBRL(valorTotal);
+    return valorTotal;
+  }
+  ['hf-percentual','hf-valor-causa','hf-valor-fixo','hf-data-correcao','hf-data-juros','hf-data-selic','hf-exito-percentual','hf-exito-valor-ganho','hf-exito-data'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', calcularHonorarioFormulario);
+  });
+  document.getElementById('hf-indice').addEventListener('change', calcularHonorarioFormulario);
+
+  var honNovoContador = 0;
+
+  function recalcularTodosHonorarios(){
+    document.querySelectorAll('.hon-card[data-suffix]').forEach(function(card){
+      var suffix = card.dataset.suffix;
+      var valorBase = parseFloat(card.dataset.valorBase);
+      var devedorTipo = card.dataset.devedorTipo;
+      var indice = card.dataset.indice;
+
+      var valorSucumbencia = calcularCorrigido(valorBase, devedorTipo, indice, card.dataset.dataCorrecao, card.dataset.dataJuros);
+
+      var valorExito = 0;
+      if(card.dataset.temExito === '1'){
+        var valorGanhoCorrigido = calcularCorrigido(parseFloat(card.dataset.exitoValorGanho), devedorTipo, indice, card.dataset.exitoData, card.dataset.exitoData);
+        valorExito = (parseFloat(card.dataset.exitoPercentual) / 100) * valorGanhoCorrigido;
+      }
+
+      var novoTotal = valorSucumbencia + valorExito;
+      var recebidoAtual = parseNum(document.getElementById('hon-recebido-' + suffix).textContent);
+      var novoPendente = novoTotal - recebidoAtual;
+
+      document.getElementById('hon-total-' + suffix).textContent = formatBRL(novoTotal);
+      document.getElementById('hon-pendente-' + suffix).textContent = formatBRL(novoPendente);
+    });
+  }
+
+  document.getElementById('hon-data-simulada').addEventListener('change', function(){
+    dataReferenciaHonorarios = new Date(this.value + 'T00:00:00');
+    recalcularTodosHonorarios();
+  });
+
+  function wireHonorarioCard(suffix, valorTotal, processoLabel){
+    var recebido = 0;
+
+    document.getElementById('btn-abrir-confirmar-'+suffix).addEventListener('click', function(){
+      document.getElementById('hon-confirmar-form-'+suffix).style.display = 'flex';
+      this.style.display = 'none';
+    });
+    document.getElementById('hon-confirmar-cancelar-'+suffix).addEventListener('click', function(){
+      document.getElementById('hon-confirmar-form-'+suffix).style.display = 'none';
+      document.getElementById('btn-abrir-confirmar-'+suffix).style.display = '';
+      document.getElementById('hon-input-valor-'+suffix).value = '';
+    });
+    document.getElementById('hon-input-anexo-'+suffix).addEventListener('click', function(){
+      this.textContent = '✓ comprovante.pdf anexado';
+    });
+    document.getElementById('hon-confirmar-salvar-'+suffix).addEventListener('click', function(){
+      var valor = parseNum(document.getElementById('hon-input-valor-'+suffix).value);
+      var totalEl = document.getElementById('hon-total-'+suffix);
+      var totalAtual = totalEl ? parseNum(totalEl.textContent) : valorTotal;
+      var pendenteAtual = totalAtual - recebido;
+      if(!valor || valor <= 0) return;
+      if(valor > pendenteAtual) valor = pendenteAtual;
+
+      recebido += valor;
+      var novoPendente = totalAtual - recebido;
+      document.getElementById('hon-recebido-'+suffix).textContent = formatBRL(recebido);
+      document.getElementById('hon-pendente-'+suffix).textContent = formatBRL(novoPendente);
+
+      var hoje = new Date(2026, 7, 19);
+      var pad2 = function(n){ return n < 10 ? '0'+n : n; };
+      var dataStr = pad2(hoje.getDate()) + '/' + pad2(hoje.getMonth()+1) + '/' + hoje.getFullYear();
+      var novoLancamento = document.createElement('div');
+      novoLancamento.className = 'lanc-row';
+      novoLancamento.dataset.tipo = 'receita';
+      novoLancamento.dataset.status = 'pago';
+      novoLancamento.innerHTML =
+        '<div class="lanc-left">' +
+          '<div class="lanc-icon fin-icon-green"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg></div>' +
+          '<div>' +
+            '<div class="lanc-name">Honorários sucumbenciais (recebimento parcial) — ' + processoLabel + '</div>' +
+            '<div class="lanc-meta">Honorário de Êxito • Pago em ' + dataStr + '</div>' +
+            '<div class="lanc-tags"><span class="lanc-tag tipo">ÚNICO</span><span class="lanc-tag status-pago">PAGO</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="lanc-right"><div class="lanc-value green">' + formatBRL(valor) + '</div></div>';
+      document.getElementById('lanc-list').prepend(novoLancamento);
+
+      var recebidoEl = document.getElementById('fin-recebido-mes');
+      var recebidoAtual = parseNum(recebidoEl.textContent.replace('R$','').trim());
+      recebidoEl.textContent = formatBRL(recebidoAtual + valor);
+
+      var activePill = document.querySelector('#lanc-filters .filter-pill.active');
+      if(typeof applyLancFilter === 'function' && activePill){ applyLancFilter(activePill.dataset.filter); }
+
+      if(novoPendente <= 0.009){
+        document.getElementById('hon-tag-'+suffix).textContent = 'RECEBIDO';
+        document.getElementById('hon-tag-'+suffix).className = 'lanc-tag status-pago';
+        document.getElementById('hon-confirmar-form-'+suffix).style.display = 'none';
+      } else {
+        document.getElementById('hon-tag-'+suffix).textContent = 'PARCIALMENTE RECEBIDO';
+        document.getElementById('hon-confirmar-form-'+suffix).style.display = 'none';
+        document.getElementById('btn-abrir-confirmar-'+suffix).style.display = '';
+      }
+      document.getElementById('hon-input-valor-'+suffix).value = '';
+    });
+  }
+
+  document.getElementById('hf-salvar').addEventListener('click', function(){
+    var processoLabel = document.getElementById('hf-processo').value;
+    var clienteLabel = document.getElementById('hf-cliente').value;
+    if(!processoLabel){ return; }
+    var devedorTipo = document.querySelector('input[name="hf-devedor"]:checked').value;
+    var devedorLabel = devedorTipo === 'ente_estatal' ? 'Ente estatal' : 'Pessoa física/jurídica';
+    var temExito = document.getElementById('hf-exito-check').checked;
+    var valorTotal = calcularHonorarioFormulario();
+
+    var forma = document.querySelector('input[name="hf-forma"]:checked').value;
+    var valorBase = forma === 'percentual'
+      ? (parseNum(document.getElementById('hf-percentual').value) / 100) * parseNum(document.getElementById('hf-valor-causa').value)
+      : parseNum(document.getElementById('hf-valor-fixo').value);
+    var indice = document.getElementById('hf-indice').value;
+    var dataCorrecao = devedorTipo === 'ente_estatal' ? document.getElementById('hf-data-selic').value : document.getElementById('hf-data-correcao').value;
+    var dataJuros = devedorTipo === 'ente_estatal' ? document.getElementById('hf-data-selic').value : document.getElementById('hf-data-juros').value;
+    var exitoPercentual = temExito ? parseNum(document.getElementById('hf-exito-percentual').value) : 0;
+    var exitoValorGanho = temExito ? parseNum(document.getElementById('hf-exito-valor-ganho').value) : 0;
+    var exitoData = temExito ? document.getElementById('hf-exito-data').value : '';
+
+    honNovoContador++;
+    var suffix = 'novo' + honNovoContador;
+
+    var card = document.createElement('div');
+    card.className = 'hon-card';
+    card.style.cssText = 'flex-direction:column;align-items:stretch;';
+    card.dataset.valorBase = valorBase;
+    card.dataset.devedorTipo = devedorTipo;
+    card.dataset.indice = indice;
+    card.dataset.dataCorrecao = dataCorrecao;
+    card.dataset.dataJuros = dataJuros;
+    card.dataset.temExito = temExito ? '1' : '0';
+    card.dataset.exitoPercentual = exitoPercentual;
+    card.dataset.exitoValorGanho = exitoValorGanho;
+    card.dataset.exitoData = exitoData;
+    card.dataset.suffix = suffix;
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">' +
+        '<div><div class="hon-proc">' + processoLabel + '</div>' +
+        '<div class="hon-meta">Lançado manualmente • ' + devedorLabel + (temExito ? ' • Honorários sucumbenciais + êxito' : ' • Honorários sucumbenciais') + ' • Cliente: ' + clienteLabel + '</div></div>' +
+        '<span class="lanc-tag status-pendente" id="hon-tag-' + suffix + '">AGUARDANDO RECEBIMENTO</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:28px;margin-top:14px;flex-wrap:wrap;">' +
+        '<div><div class="lanc-meta" style="margin:0;">Valor total <span style="font-style:italic;">(atualiza sozinho)</span></div><div class="lanc-value" style="color:var(--text);" id="hon-total-' + suffix + '">' + formatBRL(valorTotal) + '</div></div>' +
+        '<div><div class="lanc-meta" style="margin:0;">Já recebido</div><div class="lanc-value green" id="hon-recebido-' + suffix + '">R$ 0,00</div></div>' +
+        '<div><div class="lanc-meta" style="margin:0;">Ainda pendente</div><div class="lanc-value" style="color:var(--amber);" id="hon-pendente-' + suffix + '">' + formatBRL(valorTotal) + '</div></div>' +
+      '</div>' +
+      '<div style="margin-top:14px;"><button class="btn-outline" id="btn-abrir-confirmar-' + suffix + '" style="padding:8px 14px;font-size:12.5px;">Confirmar recebimento</button></div>' +
+      '<div class="recorrente-box" id="hon-confirmar-form-' + suffix + '" style="display:none;margin-top:12px;">' +
+        '<div class="form-field"><div class="form-label">VALOR RECEBIDO AGORA (R$)</div><input class="form-input" id="hon-input-valor-' + suffix + '" placeholder="Ex: 20000,00"></div>' +
+        '<div class="form-field"><div class="form-label">ANEXAR COMPROVANTE</div><div class="attach-box small" id="hon-input-anexo-' + suffix + '">Anexar comprovante</div></div>' +
+        '<div class="form-field" style="flex:1 1 100%;display:flex;gap:10px;">' +
+          '<button class="btn-dark" id="hon-confirmar-salvar-' + suffix + '" style="padding:8px 14px;font-size:12.5px;">Confirmar recebimento</button>' +
+          '<button class="btn-outline" id="hon-confirmar-cancelar-' + suffix + '" style="padding:8px 14px;font-size:12.5px;">Cancelar</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('hon-form-panel').insertAdjacentElement('afterend', card);
+    wireHonorarioCard(suffix, valorTotal, processoLabel);
+
+    document.getElementById('hon-form-panel').style.display = 'none';
+    document.getElementById('btn-novo-honorario').style.display = '';
+    ['hf-percentual','hf-valor-causa','hf-valor-fixo','hf-exito-percentual','hf-exito-valor-ganho'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('hf-processo').value = '';
+    document.getElementById('hf-cliente').value = '';
+    document.getElementById('hf-exito-check').checked = false;
+    document.getElementById('hf-bloco-exito').style.display = 'none';
+    document.getElementById('hf-exito-linha-label').style.display = 'none';
+    document.getElementById('hf-valor-exito-linha').style.display = 'none';
+  });
+</script>
+</body>
+</html>

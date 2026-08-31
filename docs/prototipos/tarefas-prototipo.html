@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<!-- Referência visual não canônica. Leia docs/prototipos/README.md e as fontes canônicas antes de implementar. -->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarefas</title>
+<style>
+  :root{
+    --navy:#182544;
+    --navy-light:#233158;
+    --bg:#eef1f7;
+    --card:#ffffff;
+    --text:#1e2947;
+    --text-mute:#5b6785;
+    --blue:#3457d5;
+    --blue-soft:#e8edfc;
+    --green:#1a8a5f;
+    --green-soft:#e3f5ec;
+    --red:#c23b3b;
+    --red-soft:#fbe9e9;
+    --amber:#b3760a;
+    --amber-soft:#fdf1de;
+    --purple:#6c4bc2;
+    --purple-soft:#ece7fb;
+    --line:#dde3ee;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Segoe UI', Roboto, -apple-system, sans-serif;background:var(--bg);color:var(--text);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:88px;background:var(--navy);display:flex;flex-direction:column;align-items:center;padding:20px 0;flex-shrink:0;}
+  .sidebar .logo{width:40px;height:40px;border-radius:10px;background:var(--navy-light);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;margin-bottom:28px;}
+  .nav-item{width:64px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;margin-bottom:6px;border-radius:10px;color:#8f9ac0;font-size:11px;cursor:pointer;}
+  .nav-item svg{width:20px;height:20px;}
+  .nav-item.active{background:#fff;color:var(--navy);}
+  .nav-item:not(.active):hover{background:var(--navy-light);color:#fff;}
+  .nav-spacer{flex:1;}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .topbar{height:64px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 28px;}
+  .user-chip{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--text);cursor:pointer;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .bell{color:var(--text-mute);}
+
+  .content{padding:28px 32px 60px;max-width:1000px;width:100%;}
+
+  .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+  .page-title{font-size:26px;font-weight:800;margin-bottom:2px;}
+  .page-subtitle{font-size:14px;color:var(--text-mute);}
+  .btn-dark{background:var(--navy);color:#fff;border:none;padding:11px 18px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .btn-outline{border:1px solid var(--line);background:#fff;color:var(--text);padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-outline:hover{border-color:#c3cbe0;}
+
+  .back-link{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;margin-bottom:16px;}
+  .back-link:hover{text-decoration:underline;}
+
+  /* Filtros */
+  .filter-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+  .filter-pill{padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:600;color:var(--text-mute);background:#fff;border:1px solid var(--line);cursor:pointer;white-space:nowrap;}
+  .filter-pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  /* Lista de tarefas */
+  .panel{background:var(--card);border-radius:16px;padding:10px 22px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(20,30,60,.04);}
+  .tarefa-row{display:flex;align-items:flex-start;gap:14px;padding:16px 4px;border-bottom:1px solid var(--line);}
+  .tarefa-row:last-child{border-bottom:none;}
+  .tarefa-check{
+    width:20px;height:20px;border-radius:6px;border:2px solid var(--line);flex-shrink:0;margin-top:2px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .tarefa-check.checked{background:var(--green);border-color:var(--green);color:#fff;}
+  .tarefa-body{flex:1;min-width:0;}
+  .tarefa-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .tarefa-name{font-size:14.5px;font-weight:700;}
+  .tarefa-name.done{text-decoration:line-through;color:var(--text-mute);}
+  .tarefa-tags{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.02em;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .tag-alta{background:var(--red-soft);color:var(--red);}
+  .tag-media{background:var(--amber-soft);color:var(--amber);}
+  .tag-baixa{background:var(--green-soft);color:var(--green);}
+  .tag-pendente{background:#e4e8f2;color:var(--text);}
+  .tag-concluida{background:var(--green-soft);color:var(--green);}
+  .tag-atrasada{background:var(--red-soft);color:var(--red);}
+  .tarefa-desc{font-size:12.5px;color:var(--text-mute);margin-top:4px;}
+  .tarefa-meta{font-size:12px;color:var(--text-mute);margin-top:8px;line-height:1.8;}
+  .tarefa-meta b{color:var(--text);font-weight:700;}
+  .tarefa-actions{display:flex;gap:8px;margin-top:8px;flex-shrink:0;}
+  .tarefa-btn{border:1px solid var(--line);background:#fff;color:var(--text-mute);width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .tarefa-btn:hover{border-color:#c3cbe0;color:var(--text);}
+  .empty-day{font-size:13px;color:var(--text-mute);text-align:center;padding:30px 10px;}
+
+  /* Formulário nova tarefa */
+  .form-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 28px;max-width:640px;}
+  .form-label{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--text-mute);margin-bottom:6px;}
+  .form-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .form-field{flex:1;min-width:200px;}
+  .form-input, .form-select, .form-textarea{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 13px;
+    font-size:13.5px;color:var(--text);background:#fff;font-family:inherit;
+  }
+  .form-textarea{resize:vertical;min-height:70px;}
+  .form-select{cursor:pointer;}
+  .form-select[multiple]{padding:6px;}
+  .form-select[multiple] option{padding:8px 10px;border-radius:6px;}
+  .form-select[multiple] option:checked{background:var(--blue-soft);color:var(--blue);}
+  .select-all-link{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;margin-top:8px;display:inline-block;}
+  .select-all-link:hover{text-decoration:underline;}
+  .form-actions{margin-top:6px;display:flex;gap:10px;}
+  .agenda-note{font-size:11.5px;color:var(--text-mute);margin:-6px 0 16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;line-height:1.6;}
+  .check-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-mute);margin-top:6px;}
+  .recorrente-box{display:flex;gap:12px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:10px;}
+
+  /* Abas de notificação */
+  .below-tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin:30px 0 18px;flex-wrap:wrap;}
+  .below-tab{display:flex;align-items:center;gap:8px;padding:12px 2px 14px;font-size:14px;font-weight:600;color:var(--text-mute);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;}
+  .below-tab svg{width:16px;height:16px;}
+  .below-tab.active{color:var(--blue);border-color:var(--blue);}
+  .below-tab .count-pill{font-size:10.5px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:20px;padding:1px 8px;}
+  .tab-badge-mestre{font-size:9.5px;font-weight:700;letter-spacing:.03em;color:var(--purple);background:var(--purple-soft);padding:1px 6px;border-radius:5px;}
+  .below-view{display:none;}
+  .below-view.active{display:block;}
+  .below-panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 22px;}
+  .section-note{font-size:11.5px;color:var(--text-mute);margin-bottom:18px;line-height:1.6;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
+
+  /* Cards explicativos (verde = jurídico/funcional, vermelho = técnico p/ dev) */
+  .explain-cards{display:flex;gap:14px;margin:0 0 22px;flex-wrap:wrap;}
+  .explain-card{flex:1;min-width:280px;border-radius:14px;padding:16px 18px;font-size:12px;line-height:1.65;}
+  .explain-card.green{background:var(--green-soft);border:1px solid #bfe4d0;color:#0f5c3f;}
+  .explain-card.red{background:var(--red-soft);border:1px solid #f0c6c6;color:#8a2a2a;}
+  .explain-card-title{font-weight:800;font-size:11.5px;margin-bottom:8px;display:flex;align-items:center;gap:7px;letter-spacing:.02em;text-transform:uppercase;}
+  .explain-card code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-family:'Consolas','Courier New',monospace;font-size:11px;}
+  .demo-viewas{display:flex;align-items:center;gap:10px;margin-top:26px;font-size:12.5px;color:var(--text-mute);}
+  .demo-viewas-label{font-weight:600;}
+  .sim-panel{display:flex;flex-wrap:wrap;gap:16px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:14px;}
+  .sim-item{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+  .sim-item input{width:15px;height:15px;accent-color:var(--navy);}
+
+  .novidade-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 4px;border-bottom:1px solid var(--line);}
+  .novidade-row:last-child{border-bottom:none;}
+  .novidade-left{display:flex;gap:12px;min-width:0;}
+  .novidade-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .icon-red{background:var(--red-soft);color:var(--red);}
+  .icon-amber{background:var(--amber-soft);color:var(--amber);}
+  .icon-green{background:var(--green-soft);color:var(--green);}
+  .novidade-name{font-size:14px;font-weight:700;}
+  .novidade-meta{font-size:12px;color:var(--text-mute);margin-top:3px;line-height:1.7;}
+  .novidade-meta b{color:var(--text);font-weight:700;}
+  .novidade-right{flex-shrink:0;text-align:right;}
+  .novidade-link{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;}
+  .novidade-created{font-size:11px;color:var(--text-mute);margin-top:4px;}
+
+  /* Painel do gestor: seletor de usuário + lista filtrada */
+  .user-picker{display:flex;gap:12px;flex-wrap:wrap;}
+  .user-picker-item{display:flex;flex-direction:column;align-items:center;gap:8px;border:2px solid var(--line);border-radius:12px;padding:14px 20px;cursor:pointer;background:var(--card);}
+  .user-picker-item:hover{border-color:#c3cbe0;}
+  .user-picker-item.selected{border-color:var(--blue);background:var(--blue-soft);}
+  .user-picker-avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;}
+  .user-picker-name{font-size:12.5px;font-weight:700;}
+
+  @media (max-width:720px){
+    .sidebar{width:64px;} .nav-item{width:48px;font-size:9px;} .content{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="logo">⚖</div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Painel
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+      Processo
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v6L4 20h16l-5-11V3"/></svg>
+      Laboratório
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>
+      Modelos
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Financeiro
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      Chat
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      Agenda
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div style="display:flex;align-items:center;gap:22px;">
+        <div class="bell" id="bell-icon" style="position:relative;cursor:pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="bell-badge" style="display:none;position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;">0</span>
+          <div id="bell-dropdown" style="display:none;position:absolute;top:32px;right:-10px;width:300px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(20,30,60,.12);padding:6px;z-index:50;text-align:left;"></div>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">SE</div>
+          sergio
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <div class="page-title">Tarefas</div>
+          <div class="page-subtitle">Suas tarefas e pendências no escritório</div>
+        </div>
+        <button class="btn-dark" id="btn-nova-tarefa">+ Nova tarefa</button>
+      </div>
+
+      <div class="explain-cards">
+        <div class="explain-card green">
+          <div class="explain-card-title">🟢 Como as Permissões/Habilitações controlam este módulo</div>
+          O módulo Tarefas segue a mesma lógica geral configurada em Configurações → Permissões e Habilitações. A Permissão do papel do usuário (Administrador/Ilimitado/Financeiro) define "Somente os seus" ou "Todos": com "somente os seus", a lista principal só mostra as tarefas atribuídas a ele mesmo; com "todos", ele vê as tarefas de qualquer usuário do escritório. Já a Habilitação "Adicionar para todos" (dentro de Tarefas, em Habilitações) é o que decide se, ao criar uma tarefa nova, ele pode atribuir pra outras pessoas ou só pra si mesmo — se estiver desligada, o campo "Atribuir a" some ou fica travado só nele mesmo.
+        </div>
+        <div class="explain-card red">
+          <div class="explain-card-title">🔴 Como construir</div>
+          Consulte <code>permissoes_papel.tarefas.sub_opcao</code> pro usuário logado: se <code>'somente_seus'</code>, filtre a query da lista principal com <code>WHERE responsavel_id = usuario.id</code>; se <code>'todos'</code>, sem filtro. Consulte também <code>habilitacoes_papel.tarefas.adicionar_para_todos</code>: se <code>false</code>, no formulário "Nova tarefa" o campo "Atribuir a" deve vir travado só no próprio usuário (nem mostrar a caixa de múltipla seleção); se <code>true</code>, mostra a caixa normal com todos os usuários do escritório. Como sempre, replique as duas checagens no backend — a rota de criar/listar tarefas precisa aplicar esses mesmos filtros, nunca confiar só no frontend escondendo o campo.
+        </div>
+      </div>
+
+
+      <div class="form-panel" id="form-panel" style="display:none;">
+        <div class="back-link" id="form-cancelar-top">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar
+        </div>
+
+        <div class="agenda-note">É possível criar a tarefa para você mesmo, para outro usuário, ou atribuir a várias pessoas ao mesmo tempo — basta marcar cada uma na lista, ou usar o atalho "Selecionar todos".</div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            É como o advogado (ou o mestre) anota uma pendência a ser feita — juntar um documento, ligar pro cliente, protocolar uma peça — e opcionalmente já atribui pra outra pessoa do escritório fazer. Prioridade e prazo ajudam a organizar o que é mais urgente. O campo "Atribuir a" só aparece assim, liberado pra escolher qualquer usuário, se o usuário logado tiver a habilitação "Adicionar para todos" ligada — do contrário, ele só consegue criar tarefa pra si mesmo.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Ao renderizar este formulário, cheque <code>habilitacoes_papel.tarefas.adicionar_para_todos</code> do usuário logado: se <code>false</code>, troque a caixa multi-select por um campo fixo (só o próprio usuário, sem select). Ao salvar, para cada usuário selecionado em "Atribuir a", crie uma linha em <code>tarefas</code> (não uma tarefa com múltiplos responsáveis — uma linha por pessoa, com <code>responsavel_id</code>, <code>criado_por: usuario_logado.id</code>, <code>data_criacao: hoje</code>). No backend, mesmo que o frontend esconda o campo, a rota de criação deve recusar (403) se <code>responsavel_id !== usuario_logado.id</code> e a habilitação estiver desligada.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">ATRIBUIR A</div>
+            <div id="f-atribuir-a-list" style="border:1px solid var(--line);border-radius:9px;padding:6px 4px;">
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="sergio" checked> sergio (eu)</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="ana.gabriela"> ana.gabriela</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="felipe.costa"> felipe.costa</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;font-size:13.5px;cursor:pointer;"><input type="checkbox" value="joao.souza"> joao.souza</label>
+            </div>
+            <div class="select-all-link" id="f-atribuir-a-all">Selecionar todos</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">TÍTULO</div>
+            <input class="form-input" id="f-titulo" placeholder="Ex: Protocolar contestação, revisar contrato...">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-label">PRIORIDADE</div>
+            <select class="form-select" id="f-prioridade">
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <div class="form-label">PRAZO <span style="font-weight:400;">(opcional)</span></div>
+            <input class="form-input" type="date" id="f-prazo">
+            <div class="check-row">
+              <input type="checkbox" id="f-sem-prazo"> <label for="f-sem-prazo">Sem prazo definido</label>
+            </div>
+            <div class="check-row">
+              <input type="checkbox" id="f-add-agenda"> <label for="f-add-agenda">Também adicionar como compromisso na Agenda</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">RECORRÊNCIA</div>
+            <div style="display:flex;gap:20px;font-size:13px;padding:4px 0;">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-recorrencia-tipo" value="unica" checked> Tarefa única</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f-recorrencia-tipo" value="recorrente"> Recorrente</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="recorrente-box" id="f-recorrencia-campos" style="display:none;">
+          <div class="form-field">
+            <div class="form-label">FREQUÊNCIA</div>
+            <select class="form-select" id="f-recorrencia-freq">
+              <option value="semanal">Semanal</option>
+              <option value="mensal">Mensal</option>
+              <option value="personalizada">Personalizada (a cada X dias)</option>
+            </select>
+          </div>
+          <div class="form-field" id="f-recorrencia-dias-campo" style="display:none;">
+            <div class="form-label">A CADA QUANTOS DIAS</div>
+            <input class="form-input" id="f-recorrencia-dias" placeholder="Ex: 10">
+          </div>
+          <div class="form-field">
+            <div class="form-label">REPETIR POR QUANTAS VEZES</div>
+            <input class="form-input" id="f-recorrencia-vezes" value="4">
+          </div>
+        </div>
+
+        <div class="explain-cards" style="margin-top:16px;">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Agenda e recorrência</div>
+            Marcar "Também adicionar como compromisso na Agenda" cria automaticamente um compromisso do tipo Prazo no calendário, na mesma data do prazo da tarefa — assim o advogado não precisa lançar a mesma data duas vezes, numa lista de tarefas e também no calendário. Já a Recorrência serve pra obrigações que se repetem sempre — um relatório semanal, o pagamento mensal de uma guia, uma reunião periódica — em vez de criar a tarefa manualmente toda vez, o sistema já gera as próximas ocorrências sozinho, cada uma pendente até ser concluída na sua vez.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            "Adicionar à Agenda": ao salvar a tarefa, se o checkbox estiver marcado, crie também um <code>evento_agenda</code> (tipo: <code>'prazo'</code>, título = título da tarefa, data = prazo da tarefa) vinculado por <code>tarefa_id</code> — assim, se a tarefa for editada ou excluída, o compromisso correspondente pode ser sincronizado ou removido junto. "Recorrência": gere um <code>recorrencia_id</code> compartilhado, e crie de uma vez as N ocorrências pedidas (não uma por vez via cron) — cada uma com <code>prazo</code> avançando pela frequência escolhida (semanal = +7 dias, mensal = +1 mês, personalizada = +X dias) a partir da primeira, e todas nascendo <code>concluida: false</code>. Cada ocorrência é uma tarefa independente na lista (pode ser concluída ou atrasar isoladamente), só compartilham o <code>recorrencia_id</code> pra referência — não é uma tarefa "mestre" com sub-itens.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <div class="form-label">PROCESSO <span style="font-weight:400;">(opcional)</span></div>
+            <select class="form-select" id="f-processo">
+              <option value="">Nenhum</option>
+              <option>Ação de Danos Morais nº 4444444444444</option>
+              <option>Embargos à Execução nº 5555555555555</option>
+              <option>Agravo de Instrumento nº 6666666666666</option>
+              <option>Execução Fiscal nº 7777777777777</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field" style="flex:1 1 100%;">
+            <div class="form-label">DESCRIÇÃO <span style="font-weight:400;">(opcional)</span></div>
+            <textarea class="form-textarea" id="f-desc"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-dark" id="f-criar">Criar tarefa</button>
+          <button class="btn-outline" id="form-cancelar-bottom">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="main-view">
+        <div class="filter-pills" id="tarefa-filters">
+          <div class="filter-pill active" data-filter="todas">Todas</div>
+          <div class="filter-pill" data-filter="pendentes">Pendentes</div>
+          <div class="filter-pill" data-filter="concluidas">Concluídas</div>
+          <div class="filter-pill" data-filter="atrasadas">Atrasadas</div>
+        </div>
+
+        <div class="filter-pills" id="tarefa-escopo-filters" style="display:none;">
+          <div class="filter-pill active" data-escopo="meus">Minhas tarefas</div>
+          <div class="filter-pill" data-escopo="todos">Todas do escritório</div>
+        </div>
+
+        <div class="panel">
+          <div id="tarefa-list"></div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 O que é</div>
+            A lista principal mostra as tarefas do usuário, com filtros por status: Pendentes (ainda não feitas), Concluídas (já marcadas como feitas), Atrasadas (o prazo já passou e não foi concluída). Marcar o checkbox de uma tarefa é o jeito mais rápido de dar baixa nela. Quando a Permissão do usuário em Tarefas estiver em "Todos", aparece um segundo filtro — "Minhas tarefas" / "Todas do escritório" — pra ele alternar entre ver só as próprias ou a lista completa de todo mundo. Se a permissão dele for "Somente os seus", esse segundo filtro nem aparece — ele só tem acesso às próprias tarefas mesmo.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Status não é um campo salvo separadamente — é derivado: <code>concluida: bool</code> é o único campo persistido; "Pendente" = <code>!concluida && (sem prazo OU prazo >= hoje)</code>; "Atrasada" = <code>!concluida && prazo &lt; hoje</code>; "Concluída" = <code>concluida === true</code>. O filtro de escopo (Minhas/Todas) só renderiza se <code>permissoes_papel.tarefas.sub_opcao === 'todos'</code> pro usuário logado; a query muda de <code>WHERE responsavel_id = usuario.id</code> (Minhas) pra sem filtro de responsável (Todas do escritório) conforme o que ele escolher — mas o próprio filtro só pode existir se a permissão permitir "todos" pra começo de conversa.
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Aviso quando a tarefa é concluída</div>
+            Quando alguém marca como feita uma tarefa que <b>outra pessoa atribuiu</b> a ela, quem pediu recebe um aviso — o sino no topo da tela mostra a notificação, com o nome de quem concluiu e o título da tarefa. Assim, quem delegou não precisa ficar checando a lista do outro pra saber se a tarefa foi feita. Se a tarefa foi criada pela IA (ou pela própria pessoa, pra si mesma), não faz sentido gerar aviso — só dispara quando é de fato um pedido de uma pessoa pra outra.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Ao marcar <code>concluida: true</code>, se <code>criado_por !== responsavel_id</code> e <code>criado_por</code> for um usuário real (não a IA), crie um registro em <code>notificacoes</code> (tarefa_id, concluido_por, destinatario: criado_por, data). O sino consulta <code>COUNT()</code> dessas notificações não lidas pro usuário logado pra mostrar o número no badge, e a lista suspensa mostra as mais recentes. Marque como lida quando o usuário abrir o dropdown (ou clicar na notificação específica), pra não ficar acumulando pra sempre.
+          </div>
+        </div>
+
+        <div class="explain-cards">
+          <div class="explain-card green">
+            <div class="explain-card-title">🟢 Tarefas concluídas somem depois de 7 dias</div>
+            Uma tarefa concluída não precisa ficar marcada pra sempre na lista — depois de 7 dias, ela é removida automaticamente de todas as visualizações (lista principal, aba do mestre, etc.), mantendo a tela limpa e focada no que ainda está em aberto ou foi concluído recentemente. Não é uma exclusão física imediata de dados históricos — é só uma questão de não poluir a visão do dia a dia.
+          </div>
+          <div class="explain-card red">
+            <div class="explain-card-title">🔴 Como construir</div>
+            Salve <code>data_conclusao</code> no momento em que <code>concluida</code> vira <code>true</code> (limpe o campo se for desmarcada de volta). Toda query que lista tarefas deve incluir <code>AND (concluida = false OR data_conclusao >= hoje - 7 dias)</code>, escondendo da tela qualquer tarefa concluída há mais de uma semana. Pra exclusão física real dos dados (não só escondida da tela), rode um job diário que deleta (ou arquiva, se quiser manter histórico/auditoria) as tarefas com <code>concluida = true AND data_conclusao &lt; hoje - 7 dias</code> — mas a regra de esconder da tela deve valer independente do job já ter rodado ou não, calculada sempre pela data, nunca por um campo booleano tipo "expirada".
+          </div>
+        </div>
+
+        <!-- Seletor de demonstração: ver as notificações abaixo como outro usuário -->
+        <div class="demo-viewas">
+          <span class="demo-viewas-label">Ver notificações abaixo como:</span>
+          <select class="form-select" id="viewas-select" style="width:auto;display:inline-block;">
+            <option value="sergio">sergio (mestre)</option>
+            <option value="ana.gabriela">ana.gabriela</option>
+            <option value="felipe.costa">felipe.costa</option>
+            <option value="joao.souza">joao.souza</option>
+          </select>
+        </div>
+
+        <div class="sim-panel">
+          <div class="sim-item"><input type="checkbox" id="sim-perm-todos"> <label for="sim-perm-todos">Permissão: ver tarefas de "Todos" (não só as suas)</label></div>
+          <div class="sim-item"><input type="checkbox" id="sim-hab-atribuir"> <label for="sim-hab-atribuir">Habilitação: pode atribuir tarefa para terceiros</label></div>
+        </div>
+
+        <div class="below-tabs">
+          <div class="below-tab active" data-below-target="below-novidades">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Novas na sua lista (últimas 24h)
+            <span class="count-pill" id="count-novidades">0</span>
+          </div>
+          <div class="below-tab" data-below-target="below-outros">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Adicionada por terceiro
+            <span class="count-pill" id="count-outros">0</span>
+          </div>
+          <div class="below-tab" id="tab-delegadas" data-below-target="below-delegadas" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            Delegadas por mim
+            <span class="count-pill" id="count-delegadas">0</span>
+          </div>
+          <div class="below-tab" id="tab-outros-usuarios" data-below-target="below-mestre" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Tarefas de outros usuários
+          </div>
+        </div>
+
+        <div class="below-view active" id="below-novidades">
+          <div class="below-panel" id="lista-novidades"></div>
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Notifica todas as tarefas que entraram na lista do usuário nas últimas 24 horas, não importa quem criou — pode ser ele mesmo, um colega, ou até a IA (identificando algo que precisa ser feito a partir de um andamento do processo, por exemplo). É a forma rápida de ver "o que apareceu de novo pra mim" sem precisar rolar a lista inteira.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Filtre <code>tarefas WHERE responsavel_id = usuario.id AND data_criacao >= now() - 24h</code>, sem filtrar por <code>criado_por</code> — o objetivo é pegar qualquer origem. Ordene por <code>data_criacao DESC</code> pra mostrar as mais recentes primeiro. O contador no badge da aba é só o <code>COUNT()</code> desse mesmo filtro.
+            </div>
+          </div>
+        </div>
+        <div class="below-view" id="below-outros">
+          <div class="below-panel" id="lista-outros"></div>
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Diferente da aba anterior (que pega qualquer origem, inclusive você mesmo ou a IA), esta é mais específica: só mostra tarefas que <b>outra pessoa</b> atribuiu a você — qualquer colega do escritório, não só quem está acima na hierarquia. Isso porque, na prática, um advogado com papel Ilimitado pode perfeitamente passar uma tarefa pra outro colega do mesmo papel, não só o mestre ou um superior repassando trabalho pra baixo.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Filtre <code>tarefas WHERE responsavel_id = usuario.id AND criado_por != usuario.id</code> — qualquer criador diferente do próprio responsável entra aqui, sem checar hierarquia nem cargo. Isso é mais simples do que a versão anterior (que dependia de um campo <code>superior_id</code>): não precisa de nenhuma lógica de hierarquia pra essa aba funcionar, só comparar quem criou com quem é o responsável.
+            </div>
+          </div>
+        </div>
+        <div class="below-view" id="below-delegadas">
+          <div class="below-panel" id="lista-delegadas"></div>
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Mostra todas as tarefas que o próprio usuário atribuiu a outra pessoa — não só as recentes, a lista completa mesmo — pra ele acompanhar o que já foi cumprido e o que ainda está em aberto, sem precisar ficar checando a lista de cada colega um por um. É o espelho da aba "Adicionada por terceiro": lá você vê o que os outros mandaram pra você, aqui você vê o que você mandou pros outros.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Filtre <code>tarefas WHERE criado_por = usuario.id AND responsavel_id != usuario.id</code>, ordenado por status (pendentes/atrasadas primeiro, concluídas depois) ou por data. Essa aba só deve renderizar se <code>habilitacoes_papel.tarefas.adicionar_para_todos === true</code> pro usuário logado — mesma habilitação que já controla se ele pode escolher outros no campo "Atribuir a" ao criar uma tarefa (faz sentido: só quem pode delegar tarefa tem o que acompanhar aqui).
+            </div>
+          </div>
+        </div>
+        <div class="below-view" id="below-mestre">
+          <div class="section-note" id="mestre-tab-note">Disponível para quem tem a habilitação de atribuir tarefas para terceiros. Veja as tarefas de qualquer usuário do escritório e adicione novas diretamente para ele.</div>
+
+          <div class="explain-cards">
+            <div class="explain-card green">
+              <div class="explain-card-title">🟢 O que é</div>
+              Quem tem a habilitação de atribuir tarefa pra terceiros pode escolher um usuário do escritório e ver a lista de tarefas dele, podendo inclusive criar uma tarefa nova diretamente pra essa pessoa sem precisar que ela mesma cadastre. Útil pra quem coordena uma equipe acompanhar/delegar sem depender de cada funcionário organizar a própria lista.
+            </div>
+            <div class="explain-card red">
+              <div class="explain-card-title">🔴 Como construir</div>
+              Essa aba (e o botão que leva até ela) só deve renderizar se <code>habilitacoes_papel.tarefas.adicionar_para_todos === true</code> pro usuário logado — a mesma habilitação da aba "Delegadas por mim" e do campo "Atribuir a" no formulário. Não é mais uma trava fixa de perfil mestre — qualquer papel com essa habilitação ligada enxerga isso. Ao selecionar um usuário no seletor, busque <code>tarefas WHERE responsavel_id = usuario_selecionado.id</code>. O botão "+ Nova tarefa para esta pessoa" reaproveita o mesmo formulário de criação, só que com o campo "Atribuir a" pré-preenchido e travado nesse usuário.
+            </div>
+          </div>
+
+          <div class="user-picker" id="user-picker">
+            <div class="user-picker-item" data-user="sergio">
+              <div class="user-picker-avatar">SE</div>
+              <div class="user-picker-name">sergio</div>
+            </div>
+            <div class="user-picker-item" data-user="ana.gabriela">
+              <div class="user-picker-avatar">AG</div>
+              <div class="user-picker-name">ana.gabriela</div>
+            </div>
+            <div class="user-picker-item" data-user="felipe.costa">
+              <div class="user-picker-avatar">FC</div>
+              <div class="user-picker-name">felipe.costa</div>
+            </div>
+            <div class="user-picker-item" data-user="joao.souza">
+              <div class="user-picker-avatar">JS</div>
+              <div class="user-picker-name">joao.souza</div>
+            </div>
+          </div>
+
+          <div id="mestre-empty" class="empty-day" style="padding:40px 10px;">Selecione um usuário acima para ver as tarefas dele.</div>
+
+          <div id="mestre-tarefas-view" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 14px;">
+              <div style="font-size:15px;font-weight:800;">Tarefas de <span id="mestre-tarefas-nome">—</span></div>
+              <button class="btn-dark" id="btn-add-mestre">+ Nova tarefa para esta pessoa</button>
+            </div>
+            <div class="panel">
+              <div id="mestre-tarefa-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== Dados de exemplo =====
+  var hoje = new Date(2026, 7, 19); // 19/08/2026
+  var usuarioLogado = "sergio";
+  var prioLabel = { alta:"Alta", media:"Média", baixa:"Baixa" };
+  var proximoId = 100;
+
+  var tarefas = [
+    { id:1, titulo:"Protocolar contestação — Ação de Danos Morais", descricao:"", prioridade:"alta", prazo:"2026-08-19", responsavel:"sergio", processo:"Ação de Danos Morais nº 4444444444444", concluida:true, dataConclusao:"2026-08-18", criadoPor:"sergio", dataCriacao:"2026-08-10" },
+    { id:2, titulo:"Revisar impugnação aos embargos", descricao:"Conferir teses antes do protocolo", prioridade:"alta", prazo:"2026-08-22", responsavel:"sergio", processo:"Embargos à Execução nº 5555555555555", concluida:false, criadoPor:"sergio", dataCriacao:"2026-08-12" },
+    { id:3, titulo:"Ligar para cliente Maria da Silva Ferreira", descricao:"Atualizar sobre a audiência marcada", prioridade:"media", prazo:"2026-08-20", responsavel:"sergio", processo:"", concluida:false, criadoPor:"sergio", dataCriacao:"2026-08-19" },
+    { id:4, titulo:"Elaborar minuta de contrarrazões", descricao:"", prioridade:"media", prazo:"2026-08-24", responsavel:"felipe.costa", processo:"Agravo de Instrumento nº 6666666666666", concluida:false, criadoPor:"felipe.costa", dataCriacao:"2026-08-05" },
+    { id:5, titulo:"Enviar boletos de custas pendentes", descricao:"", prioridade:"baixa", prazo:"2026-08-15", responsavel:"ana.gabriela", processo:"", concluida:false, criadoPor:"ana.gabriela", dataCriacao:"2026-08-01" },
+    { id:6, titulo:"Revisar cláusulas do modelo de procuração", descricao:"Ajustar conforme última atualização do CPC", prioridade:"baixa", prazo:"", responsavel:"sergio", processo:"", concluida:false, criadoPor:"IA (assistente jurídico)", dataCriacao:"2026-08-19" },
+    { id:7, titulo:"Preparar pauta da reunião de equipe", descricao:"", prioridade:"media", prazo:"2026-08-21", responsavel:"felipe.costa", processo:"", concluida:false, criadoPor:"sergio", dataCriacao:"2026-08-19" },
+    { id:8, titulo:"Organizar documentos do inventário", descricao:"", prioridade:"baixa", prazo:"2026-09-01", responsavel:"joao.souza", processo:"", concluida:false, criadoPor:"sergio", dataCriacao:"2026-08-19" },
+    { id:9, titulo:"Atualizar cadastro do cliente Comércio XYZ", descricao:"", prioridade:"baixa", prazo:"2026-08-05", responsavel:"sergio", processo:"", concluida:true, dataConclusao:"2026-08-08", criadoPor:"sergio", dataCriacao:"2026-08-03" }
+  ];
+
+  var notificacoesConcluidas = [];
+
+  function pad(n){ return n < 10 ? "0"+n : n; }
+  function formatData(iso){
+    if(!iso) return "sem prazo";
+    var p = iso.split('-');
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+  function diasAtras(iso){
+    var p = iso.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+    return Math.round((hoje - d) / (1000*60*60*24));
+  }
+  function isAtrasada(t){
+    if(t.concluida || !t.prazo) return false;
+    var p = t.prazo.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+    return d < hoje;
+  }
+  function statusDaTarefa(t){
+    if(t.concluida) return "concluida";
+    if(isAtrasada(t)) return "atrasada";
+    return "pendente";
+  }
+  function tarefaVisivel(t){
+    if(t.concluida && t.dataConclusao && diasAtras(t.dataConclusao) > 7) return false;
+    return true;
+  }
+  var statusLabel = { pendente:"Pendente", concluida:"Concluída", atrasada:"Atrasada" };
+
+  function buildTarefaRow(t){
+    var row = document.createElement('div');
+    row.className = 'tarefa-row';
+    var status = statusDaTarefa(t);
+    var metaLines = [];
+    metaLines.push('<b>Prazo:</b> ' + formatData(t.prazo));
+    if(t.processo) metaLines.push('<b>Processo:</b> ' + t.processo);
+    metaLines.push('<b>Responsável:</b> ' + t.responsavel);
+    metaLines.push('<b>Criado por:</b> ' + t.criadoPor);
+
+    row.innerHTML =
+      '<div class="tarefa-check ' + (t.concluida ? 'checked' : '') + '" data-toggle="' + t.id + '">' +
+        (t.concluida ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' : '') +
+      '</div>' +
+      '<div class="tarefa-body">' +
+        '<div class="tarefa-top">' +
+          '<div class="tarefa-name ' + (t.concluida ? 'done' : '') + '">' + t.titulo + '</div>' +
+          '<div class="tarefa-tags">' +
+            '<span class="tag tag-' + t.prioridade + '">' + prioLabel[t.prioridade] + '</span>' +
+            '<span class="tag tag-' + status + '">' + statusLabel[status] + '</span>' +
+          '</div>' +
+        '</div>' +
+        (t.descricao ? '<div class="tarefa-desc">' + t.descricao + '</div>' : '') +
+        '<div class="tarefa-meta">' + metaLines.join(' &nbsp;•&nbsp; ') + '</div>' +
+        '<div class="tarefa-actions">' +
+          (t.prazo ? '<div class="tarefa-btn" data-add-agenda="' + t.id + '" title="Adicionar à Agenda"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></div>' : '') +
+          '<div class="tarefa-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>' +
+          '<div class="tarefa-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></div>' +
+        '</div>' +
+      '</div>';
+
+    if(t.prazo){
+      row.querySelector('[data-add-agenda]').addEventListener('click', function(e){
+        e.stopPropagation();
+        alert('✓ Compromisso "' + t.titulo + '" adicionado à Agenda em ' + formatData(t.prazo) + '.');
+      });
+    }
+
+    row.querySelector('[data-toggle]').addEventListener('click', function(){
+      t.concluida = !t.concluida;
+      if(t.concluida){
+        t.dataConclusao = hoje.getFullYear() + "-" + pad(hoje.getMonth()+1) + "-" + pad(hoje.getDate());
+        if(t.criadoPor && t.criadoPor !== t.responsavel && t.criadoPor !== "IA (assistente jurídico)"){
+          notificacoesConcluidas.unshift({ titulo: t.titulo, concluidoPor: t.responsavel, destinatario: t.criadoPor, dataConclusao: t.dataConclusao });
+        }
+      } else {
+        delete t.dataConclusao;
+      }
+      renderTarefas();
+      renderNovidadesEOutros();
+      renderBell();
+      if(mestreUsuarioAtual) renderMestreTarefas();
+    });
+
+    return row;
+  }
+
+  var filtroAtual = 'todas';
+  function renderTarefas(){
+    var lista = tarefas.filter(function(t){
+      if(!tarefaVisivel(t)) return false;
+      if(filtroEscopo === 'todos') return true;
+      return t.responsavel === usuarioLogado;
+    });
+    lista = lista.filter(function(t){
+      var status = statusDaTarefa(t);
+      if(filtroAtual === 'pendentes') return status === 'pendente';
+      if(filtroAtual === 'concluidas') return status === 'concluida';
+      if(filtroAtual === 'atrasadas') return status === 'atrasada';
+      return true;
+    });
+    var container = document.getElementById('tarefa-list');
+    container.innerHTML = '';
+    if(lista.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhuma tarefa neste filtro.</div>';
+      return;
+    }
+    lista.forEach(function(t){ container.appendChild(buildTarefaRow(t)); });
+  }
+
+  document.querySelectorAll('#tarefa-filters .filter-pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('#tarefa-filters .filter-pill').forEach(function(s){ s.classList.remove('active'); });
+      p.classList.add('active');
+      filtroAtual = p.dataset.filter;
+      renderTarefas();
+    });
+  });
+
+  // ===== Formulário Nova tarefa =====
+  var todosUsuarios = ["sergio","ana.gabriela","felipe.costa","joao.souza"];
+  var criandoParaMestre = false;
+
+  document.getElementById('f-atribuir-a-all').addEventListener('click', function(){
+    document.querySelectorAll('#f-atribuir-a-list input[type=checkbox]').forEach(function(cb){ cb.checked = true; });
+  });
+
+  document.getElementById('f-sem-prazo').addEventListener('change', function(){
+    document.getElementById('f-prazo').disabled = this.checked;
+    if(this.checked) document.getElementById('f-prazo').value = '';
+  });
+
+  document.querySelectorAll('input[name="f-recorrencia-tipo"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      var isRecorrente = document.querySelector('input[name="f-recorrencia-tipo"]:checked').value === 'recorrente';
+      document.getElementById('f-recorrencia-campos').style.display = isRecorrente ? 'flex' : 'none';
+    });
+  });
+  document.getElementById('f-recorrencia-freq').addEventListener('change', function(){
+    document.getElementById('f-recorrencia-dias-campo').style.display = this.value === 'personalizada' ? 'block' : 'none';
+  });
+
+  function somarDias(iso, dias){
+    var p = iso.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+    d.setDate(d.getDate() + dias);
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+  }
+  function somarMeses(iso, meses){
+    var p = iso.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+    d.setMonth(d.getMonth() + meses);
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+  }
+
+  document.getElementById('btn-nova-tarefa').addEventListener('click', function(){
+    criandoParaMestre = false;
+    document.querySelectorAll('#f-atribuir-a-list input[type=checkbox]').forEach(function(cb){ cb.checked = (cb.value === 'sergio'); });
+    document.getElementById('main-view').style.display = 'none';
+    document.getElementById('form-panel').style.display = 'block';
+  });
+
+  document.getElementById('btn-add-mestre').addEventListener('click', function(){
+    criandoParaMestre = true;
+    document.querySelectorAll('#f-atribuir-a-list input[type=checkbox]').forEach(function(cb){ cb.checked = (cb.value === mestreUsuarioAtual); });
+    document.getElementById('main-view').style.display = 'none';
+    document.getElementById('form-panel').style.display = 'block';
+  });
+
+  function fecharFormTarefa(){
+    document.getElementById('form-panel').style.display = 'none';
+    document.getElementById('main-view').style.display = 'block';
+  }
+  document.getElementById('form-cancelar-top').addEventListener('click', fecharFormTarefa);
+  document.getElementById('form-cancelar-bottom').addEventListener('click', fecharFormTarefa);
+
+  var proximaRecorrenciaId = 1;
+
+  document.getElementById('f-criar').addEventListener('click', function(){
+    var atribuidos = Array.prototype.filter.call(
+      document.querySelectorAll('#f-atribuir-a-list input[type=checkbox]'), function(cb){ return cb.checked; }
+    ).map(function(cb){ return cb.value; });
+    if(atribuidos.length === 0) atribuidos = ['sergio'];
+
+    var titulo = document.getElementById('f-titulo').value || "Nova tarefa";
+    var prioridade = document.getElementById('f-prioridade').value;
+    var semPrazo = document.getElementById('f-sem-prazo').checked;
+    var prazo = semPrazo ? "" : document.getElementById('f-prazo').value;
+    var processo = document.getElementById('f-processo').value;
+    var descricao = document.getElementById('f-desc').value;
+    var addAgenda = document.getElementById('f-add-agenda').checked;
+    var hojeStr = hoje.getFullYear() + "-" + pad(hoje.getMonth()+1) + "-" + pad(hoje.getDate());
+
+    var ehRecorrente = document.querySelector('input[name="f-recorrencia-tipo"]:checked').value === 'recorrente';
+    var freq = document.getElementById('f-recorrencia-freq').value;
+    var diasPersonalizado = parseInt(document.getElementById('f-recorrencia-dias').value) || 10;
+    var vezes = ehRecorrente ? (parseInt(document.getElementById('f-recorrencia-vezes').value) || 1) : 1;
+    var recorrenciaId = ehRecorrente ? ('rec' + proximaRecorrenciaId++) : null;
+
+    var totalCriadas = 0;
+    atribuidos.forEach(function(usuario){
+      var prazoOcorrencia = prazo;
+      for(var i = 0; i < vezes; i++){
+        proximoId++;
+        tarefas.push({
+          id: proximoId, titulo: titulo, descricao: descricao, prioridade: prioridade, prazo: prazoOcorrencia,
+          responsavel: usuario, processo: processo, concluida: false,
+          criadoPor: usuarioLogado, dataCriacao: hojeStr, recorrenciaId: recorrenciaId
+        });
+        totalCriadas++;
+        if(prazoOcorrencia){
+          if(freq === 'semanal') prazoOcorrencia = somarDias(prazoOcorrencia, 7);
+          else if(freq === 'mensal') prazoOcorrencia = somarMeses(prazoOcorrencia, 1);
+          else prazoOcorrencia = somarDias(prazoOcorrencia, diasPersonalizado);
+        }
+      }
+    });
+
+    fecharFormTarefa();
+    renderTarefas();
+    renderNovidadesEOutros();
+    if(mestreUsuarioAtual) renderMestreTarefas();
+
+    if(addAgenda && prazo){
+      alert('✓ Compromisso "' + titulo + '" adicionado à Agenda em ' + formatData(prazo) + (ehRecorrente ? ' (e nas próximas ocorrências da recorrência).' : '.'));
+    }
+
+    // limpa campos
+    document.getElementById('f-titulo').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-prazo').value = '';
+    document.getElementById('f-sem-prazo').checked = false;
+    document.getElementById('f-prazo').disabled = false;
+    document.getElementById('f-add-agenda').checked = false;
+    document.querySelector('input[name="f-recorrencia-tipo"][value="unica"]').checked = true;
+    document.getElementById('f-recorrencia-campos').style.display = 'none';
+    document.getElementById('f-recorrencia-freq').value = 'semanal';
+    document.getElementById('f-recorrencia-dias').value = '';
+    document.getElementById('f-recorrencia-dias-campo').style.display = 'none';
+    document.getElementById('f-recorrencia-vezes').value = '4';
+  });
+
+  // ===== Abas: Novas (24h) / Adicionada pelo superior =====
+  function buildNovidadeRow(t){
+    var row = document.createElement('div');
+    row.className = 'novidade-row';
+    var dias = diasAtras(t.dataCriacao);
+    var diasLabel = dias === 0 ? "hoje" : (dias === 1 ? "há 1 dia" : "há " + dias + " dias");
+    var iconClass = t.prioridade === 'alta' ? 'icon-red' : (t.prioridade === 'media' ? 'icon-amber' : 'icon-green');
+    row.innerHTML =
+      '<div class="novidade-left">' +
+        '<div class="novidade-icon ' + iconClass + '">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>' +
+        '</div>' +
+        '<div>' +
+          '<div class="novidade-name">' + t.titulo + '</div>' +
+          '<div class="novidade-meta">' +
+            '<b>Prazo:</b> ' + formatData(t.prazo) + '<br>' +
+            '<b>Criado por:</b> ' + t.criadoPor +
+          '</div>' +
+          '<div class="novidade-created">Adicionada ' + diasLabel + ' — ' + formatData(t.dataCriacao) + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="novidade-right"><span class="novidade-link" data-scroll="1">Ver na lista →</span></div>';
+    row.querySelector('.novidade-link').addEventListener('click', function(){
+      document.getElementById('tarefa-filters').querySelector('[data-filter="todas"]').click();
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+    return row;
+  }
+
+  function renderNovidadesEOutros(){
+    var novidades = [];
+    var outros = [];
+
+    tarefas.forEach(function(t){
+      if(t.responsavel !== usuarioLogado || !t.dataCriacao || !tarefaVisivel(t)) return;
+      var dias = diasAtras(t.dataCriacao);
+      if(dias === 0) novidades.push(t);
+      if(t.criadoPor && t.criadoPor !== usuarioLogado) outros.push(t);
+    });
+
+    var listaNovidades = document.getElementById('lista-novidades');
+    listaNovidades.innerHTML = '';
+    if(novidades.length === 0){
+      listaNovidades.innerHTML = '<div class="empty-day">Nenhuma tarefa nova nas últimas 24h.</div>';
+    } else {
+      novidades.forEach(function(t){ listaNovidades.appendChild(buildNovidadeRow(t)); });
+    }
+    document.getElementById('count-novidades').textContent = novidades.length;
+
+    var listaOutros = document.getElementById('lista-outros');
+    listaOutros.innerHTML = '';
+    if(outros.length === 0){
+      listaOutros.innerHTML = '<div class="empty-day">Nenhuma tarefa foi atribuída a você por outra pessoa até agora.</div>';
+    } else {
+      outros.forEach(function(t){ listaOutros.appendChild(buildNovidadeRow(t)); });
+    }
+    document.getElementById('count-outros').textContent = outros.length;
+  }
+
+  // ===== Simulação de Permissão (ver todos) e Habilitação (atribuir a terceiros) por usuário =====
+  var permissaoTodos = { "sergio": true, "ana.gabriela": false, "felipe.costa": true, "joao.souza": false };
+  var habilitacaoAtribuir = { "sergio": true, "ana.gabriela": false, "felipe.costa": true, "joao.souza": false };
+  var filtroEscopo = 'meus';
+
+  function atualizarSimuladores(){
+    document.getElementById('sim-perm-todos').checked = permissaoTodos[usuarioLogado];
+    document.getElementById('sim-hab-atribuir').checked = habilitacaoAtribuir[usuarioLogado];
+    aplicarSimuladores();
+  }
+
+  function aplicarSimuladores(){
+    var temPermTodos = permissaoTodos[usuarioLogado];
+    var temHabAtribuir = habilitacaoAtribuir[usuarioLogado];
+
+    document.getElementById('tarefa-escopo-filters').style.display = temPermTodos ? 'flex' : 'none';
+    if(!temPermTodos){ filtroEscopo = 'meus'; }
+
+    document.getElementById('tab-delegadas').style.display = temHabAtribuir ? 'flex' : 'none';
+    document.getElementById('tab-outros-usuarios').style.display = temHabAtribuir ? 'flex' : 'none';
+    if(!temHabAtribuir){
+      // Se a aba ativa era uma dessas e a habilitação foi desligada, volta pra Novidades
+      if(document.getElementById('below-delegadas').classList.contains('active') || document.getElementById('below-mestre').classList.contains('active')){
+        document.querySelectorAll('.below-tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelectorAll('.below-view').forEach(function(v){ v.classList.remove('active'); });
+        document.querySelector('.below-tab[data-below-target="below-novidades"]').classList.add('active');
+        document.getElementById('below-novidades').classList.add('active');
+      }
+    }
+
+    renderTarefas();
+    renderDelegadas();
+  }
+
+  document.getElementById('sim-perm-todos').addEventListener('change', function(){
+    permissaoTodos[usuarioLogado] = this.checked;
+    aplicarSimuladores();
+  });
+  document.getElementById('sim-hab-atribuir').addEventListener('change', function(){
+    habilitacaoAtribuir[usuarioLogado] = this.checked;
+    aplicarSimuladores();
+  });
+
+  document.querySelectorAll('#tarefa-escopo-filters .filter-pill').forEach(function(p){
+    p.addEventListener('click', function(){
+      document.querySelectorAll('#tarefa-escopo-filters .filter-pill').forEach(function(s){ s.classList.remove('active'); });
+      p.classList.add('active');
+      filtroEscopo = p.dataset.escopo;
+      renderTarefas();
+    });
+  });
+
+  function renderDelegadas(){
+    var lista = tarefas.filter(function(t){ return t.criadoPor === usuarioLogado && t.responsavel !== usuarioLogado && tarefaVisivel(t); });
+    var container = document.getElementById('lista-delegadas');
+    container.innerHTML = '';
+    if(lista.length === 0){
+      container.innerHTML = '<div class="empty-day">Você ainda não delegou nenhuma tarefa a outra pessoa.</div>';
+    } else {
+      lista.forEach(function(t){ container.appendChild(buildNovidadeRow(t)); });
+    }
+    document.getElementById('count-delegadas').textContent = lista.length;
+  }
+
+  document.getElementById('viewas-select').addEventListener('change', function(){
+    usuarioLogado = this.value;
+    renderTarefas();
+    renderNovidadesEOutros();
+    renderBell();
+    atualizarSimuladores();
+  });
+
+  // ===== Sino de notificações: avisa quem solicitou quando a tarefa é concluída =====
+  function renderBell(){
+    var minhas = notificacoesConcluidas.filter(function(n){ return n.destinatario === usuarioLogado; });
+    var badge = document.getElementById('bell-badge');
+    badge.style.display = minhas.length > 0 ? 'block' : 'none';
+    badge.textContent = minhas.length;
+
+    var dropdown = document.getElementById('bell-dropdown');
+    if(minhas.length === 0){
+      dropdown.innerHTML = '<div style="padding:16px;font-size:12.5px;color:var(--text-mute);text-align:center;">Nenhuma notificação.</div>';
+    } else {
+      dropdown.innerHTML = minhas.map(function(n){
+        return '<div style="padding:10px 12px;border-bottom:1px solid var(--line);font-size:12.5px;">' +
+          '<b>' + n.concluidoPor + '</b> concluiu a tarefa que você atribuiu:<br>' +
+          '<span style="color:var(--text-mute);">"' + n.titulo + '"</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
+  document.getElementById('bell-icon').addEventListener('click', function(e){
+    e.stopPropagation();
+    var dropdown = document.getElementById('bell-dropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', function(){
+    document.getElementById('bell-dropdown').style.display = 'none';
+  });
+
+  document.querySelectorAll('.below-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.below-tab').forEach(function(t){ t.classList.remove('active'); });
+      document.querySelectorAll('.below-view').forEach(function(v){ v.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.belowTarget).classList.add('active');
+    });
+  });
+
+  // ===== Aba MESTRE: tarefas de outros usuários =====
+  var mestreUsuarioAtual = null;
+  function renderMestreTarefas(){
+    var lista = tarefas.filter(function(t){ return t.responsavel === mestreUsuarioAtual && tarefaVisivel(t); });
+    var container = document.getElementById('mestre-tarefa-list');
+    container.innerHTML = '';
+    if(lista.length === 0){
+      container.innerHTML = '<div class="empty-day">Nenhuma tarefa para este usuário.</div>';
+      return;
+    }
+    lista.forEach(function(t){ container.appendChild(buildTarefaRow(t)); });
+  }
+
+  document.querySelectorAll('.user-picker-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      document.querySelectorAll('.user-picker-item').forEach(function(i){ i.classList.remove('selected'); });
+      item.classList.add('selected');
+      mestreUsuarioAtual = item.dataset.user;
+      document.getElementById('mestre-tarefas-nome').textContent = mestreUsuarioAtual;
+      document.getElementById('mestre-empty').style.display = 'none';
+      document.getElementById('mestre-tarefas-view').style.display = 'block';
+      renderMestreTarefas();
+    });
+  });
+
+  renderTarefas();
+  renderNovidadesEOutros();
+  renderBell();
+  atualizarSimuladores();
+</script>
+</body>
+</html>

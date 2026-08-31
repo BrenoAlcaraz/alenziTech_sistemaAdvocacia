@@ -4,14 +4,22 @@ title: Solicitações financeiras
 status: accepted
 owner: product-and-engineering
 decision_date: 2026-08-05
-last_reviewed: 2026-08-06
+last_reviewed: 2026-08-31
 supersedes: []
+complemented_by:
+  - PDR-0015
 source_files:
   - docs/history/source-material/2026-08-05-decisoes-funcionais-consolidadas-original.txt
   - docs/history/source-material/phase-1-functional-feedback.docx
 ---
 
 # PDR-0006 — Solicitações financeiras
+
+> **Fluxo de estados detalhado por
+> [PDR-0015](PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md) em
+> 2026-08-31.** A existência, os campos e as regras de acesso definidos
+> aqui permanecem vigentes; a pendência antes registrada como OPEN-002 foi
+> resolvida por PDR-0015.
 
 ## Contexto
 
@@ -46,12 +54,10 @@ O fluxo de referência das solicitações é:
 solicitada → em análise → aprovada ou rejeitada → paga
 ```
 
-O detalhamento final desse fluxo — se haverá uma etapa de análise
-separada da aprovação, e se a rejeição pode ocorrer em qualquer etapa —
-permanece dependente da decisão registrada em
-[OPEN-002](../open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras).
-Este PDR formaliza a existência do fluxo de solicitações e seus campos,
-não o detalhamento final de seus estados intermediários.
+O detalhamento final desse fluxo foi posteriormente resolvido por
+[PDR-0015](PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md): análise
+é separada da aprovação, rejeição ocorre em `em análise` e pagamento só
+ocorre depois de `aprovada`.
 
 ## Regras obrigatórias
 
@@ -77,11 +83,10 @@ não o detalhamento final de seus estados intermediários.
   processado, em linha com as regras de previsto e realizado do
   [PDR-0004](PDR-0004-previsto-e-realizado.md). O momento exato em que
   uma solicitação passa a integrar o indicador "a pagar" não é decidido
-  por este PDR e pode depender do detalhamento final do fluxo em
-  OPEN-002.
-- O detalhamento final dos estados do fluxo permanece bloqueado por
-  OPEN-002, o que significa que a modelagem final de status das
-  solicitações não pode ser fechada até essa decisão ser tomada.
+  por este PDR. PDR-0015 também não resolveu esse indicador, que permanece
+  ponto em aberto da especificação de Financeiro.
+- O detalhamento final dos estados deixou de estar bloqueado: PDR-0015
+  resolveu o antigo OPEN-002.
 
 ## Alternativas ou regras substituídas
 
@@ -89,16 +94,14 @@ O feedback funcional pós-Fase 1 (`phase-1-functional-feedback.docx`) já
 descrevia a possibilidade de advogados solicitarem pagamento de custas e
 reembolso de gastos profissionais, com anexo de boleto ou comprovante
 obrigatório. A decisão consolidada posterior formaliza esse
-comportamento e propõe o fluxo de referência com etapa de análise, que
-ainda depende de confirmação explícita registrada em OPEN-002. Não há
-contradição entre as fontes; a fonte posterior detalha o que a anterior
-já indicava, sem resolver integralmente o fluxo de aprovação.
+comportamento e propõe o fluxo de referência com etapa de análise. A
+confirmação explícita antes pendente foi registrada depois em PDR-0015.
 
 ## Fora do escopo desta decisão
 
-- O detalhamento final das etapas de aprovação (análise separada da
-  execução do pagamento, ou conclusão direta): pertence a
-  [OPEN-002](../open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras).
+- O detalhamento final das etapas de aprovação é definido por
+  [PDR-0015](PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md), não
+  por este PDR.
 - A definição das quatro áreas funcionais do financeiro: tratada em
   [PDR-0003](PDR-0003-areas-funcionais-financeiro.md).
 - Regras de previsto e realizado aplicadas ao financeiro geral: tratadas

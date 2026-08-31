@@ -60,6 +60,15 @@ Regras obrigatórias:
 
 ## Clientes e processos
 
+Os termos Vínculo com o escritório, Posição estrutural, Qualificação
+processual, Representante, Advogado interno/externo e Autoridade
+processual, nesta seção, descrevem o modelo de PDR-0001/PDR-0011 para
+partes de processo. Esse modelo foi parcialmente substituído por
+[PDR-0013](decisions/PDR-0013-partes-processo-modelo-simplificado.md), que
+adota um único campo de papel processual e advogado como texto livre.
+Estes termos permanecem aqui como referência histórica; para o modelo
+vigente, ver [processos.md](modules/processos.md#regras-de-participantes).
+
 | Termo | Definição | Observação ou distinção |
 | --- | --- | --- |
 | Cliente | Pessoa física ou jurídica atendida pelo escritório. | Distinto de participante processual, que é um conceito mais amplo. |
@@ -69,6 +78,9 @@ Regras obrigatórias:
 | Cliente representado | Cliente do escritório que figura como participante em um processo, com representação pelo escritório indicada nesse vínculo. | Reaproveita o cadastro de Cliente; não gera um cadastro duplicado. |
 | Cliente relacionado | Cliente cuja relação com outro cliente é derivada por eles compartilharem um mesmo processo. | Não é um vínculo cadastrado manualmente entre clientes; é derivado dos processos compartilhados. |
 | Participante processual | Qualquer pessoa ou entidade com papel formal em um processo (cliente representado, parte contrária, terceiro, Ministério Público, entre outros). | Não é sinônimo automático de cliente. |
+| Parte processual | Registro de pessoa ou entidade envolvida no processo, com um único papel processual no modelo vigente. | Pode corresponder ao Cliente do processo; ver PDR-0013. |
+| Papel processual | Valor único que descreve a atuação da parte no processo (por exemplo, Autor, Réu, Ministério Público ou Juiz). | Os grupos visuais Polo Ativo, Polo Passivo e Outros são derivados desse valor, não campos de domínio separados. |
+| Advogado da parte | Nome e OAB opcionais, em texto livre, associados diretamente a uma parte no modelo vigente. | No máximo um por parte; não é uma entidade normalizada nem um usuário do sistema por definição. |
 | Pessoa externa | Pessoa ou entidade envolvida em um processo que não é cliente do escritório (parte contrária, terceiro, representante externo). | Pode ser pessoa física, pessoa jurídica ou órgão público. |
 | Vínculo com o escritório | Dimensão do participante que indica se ele é cliente representado, parte contrária ou outro tipo de relação com o escritório. | Uma das três dimensões separadas exigidas por PDR-0001, junto com posição estrutural e qualificação processual. |
 | Posição estrutural | Dimensão mais estável do vínculo processual de um participante: polo ativo, polo passivo, terceiro, ou atuação específica do Ministério Público. | Não deve ser confundida com qualificação processual, que é o nome jurídico exercido naquele processo ou fase. |
@@ -82,8 +94,8 @@ Regras obrigatórias:
 | Advogado interno | Representante que é usuário ou membro de equipe já cadastrado no escritório. | Reaproveita o cadastro existente; não gera uma ficha independente. |
 | Advogado externo | Representante que não pertence ao escritório. | Cadastro principal: nome, OAB, UF da OAB, telefone e e-mail; CPF não é obrigatório. |
 | Autoridade processual | Agente do processo com função decisória, como juiz. | Registrada separadamente das partes; não pertence ao grupo dos participantes-partes. |
-| Processo principal | Processo ao qual um processo apenso permanece vinculado. | Referência central do vínculo de apenso. |
-| Processo apenso | Processo com identificação própria, tecnicamente vinculado a um processo principal. | Continua sendo um processo próprio; seus dados não devem ser fundidos com os do processo principal. |
+| Processo principal | Linguagem histórica para um dos lados de um vínculo de apenso. | Não existe como papel hierárquico no modelo vigente; PDR-0012 define uma relação simétrica. |
+| Processo apenso | Processo com identificação própria, relacionado simetricamente a outro Processo existente. | Nenhum lado é principal, pai ou filho; os dados não são herdados, propagados ou fundidos. |
 | Andamento processual | Evento registrado na tramitação de um processo. | Distinto de fase processual e de status processual. |
 | Documento processual | Arquivo ou registro anexado ao processo, servindo como evidência ou registro formal da tramitação. | Sua existência não depende de identificação por IA. |
 | Fase processual | Etapa do rito processual em que o processo se encontra. | Distinta de andamento processual e de status processual. |
@@ -93,16 +105,16 @@ Regras obrigatórias:
 Regras obrigatórias:
 
 - Participante processual não é sinônimo de cliente.
-- Representante não é parte do processo.
-- Autoridade processual não pertence ao grupo das partes.
-- Posição estrutural não é igual a qualificação processual.
-- Uma mudança de qualificação processual não cria uma nova pessoa; o
-  mesmo participante mantém sua identidade.
+- Advogado não é parte do processo (vale tanto no modelo histórico de
+  Representante quanto no modelo vigente de texto livre de PDR-0013).
+- No modelo vigente (PDR-0013), papel processual é um único campo; a
+  separação entre posição estrutural e qualificação processual descrita
+  acima é histórica (PDR-0001/PDR-0011).
 - Clientes relacionados são derivados de processos compartilhados —
   não são cópias uns dos outros nem um vínculo cadastrado
   manualmente.
-- Um processo apenso é um processo próprio, ligado a outro processo
-  principal; não é o mesmo processo com outro nome.
+- Um processo apenso é um processo próprio, relacionado simetricamente a
+  outro; não existe lado principal e não é o mesmo processo com outro nome.
 
 ## Tarefas e agenda
 
@@ -125,9 +137,11 @@ Regras obrigatórias:
 
 Mesmo que o módulo Financeiro seja detalhado em especificação de
 módulo em lote futuro, os termos abaixo já são estáveis por estarem
-formalizados nos PDRs aceitos (PDR-0003 a PDR-0007). Este glossário
-não resolve [OPEN-001](open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão)
-nem [OPEN-002](open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras).
+formalizados nos PDRs aceitos (PDR-0003 a PDR-0007, PDR-0015). Este
+glossário não resolve
+[OPEN-001](open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão)
+(o antigo OPEN-002 foi resolvido por
+[PDR-0015](decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md)).
 Plano e assinatura SaaS pertencem ao billing compartilhado e não geram
 automaticamente lançamento no Financeiro operacional do escritório.
 

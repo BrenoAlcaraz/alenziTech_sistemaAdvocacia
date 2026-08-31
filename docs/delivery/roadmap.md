@@ -2,7 +2,7 @@
 title: Roadmap de desenvolvimento
 status: canonical
 owner: delivery
-last_reviewed: 2026-08-20
+last_reviewed: 2026-08-31
 ---
 
 # Roadmap de desenvolvimento
@@ -35,8 +35,9 @@ descrito em `docs/product/`, `docs/architecture/` e `docs/security/`.
 5. Núcleo funcional antes de IA.
 6. Decisões já aprovadas (PDRs aceitos) antes de implementar o que
    dependem delas.
-7. Decisões abertas (OPEN-001, OPEN-002) não podem ser inventadas nem
-   antecipadas por implementação.
+7. Decisões abertas (OPEN-001) não podem ser inventadas nem
+   antecipadas por implementação. OPEN-002 foi resolvida por
+   [PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md).
 8. Testes acompanham a implementação — não são uma etapa posterior
    separada.
 9. Documentação de estado (`current-state.md`) deve acompanhar
@@ -47,16 +48,15 @@ descrito em `docs/product/`, `docs/architecture/` e `docs/security/`.
 
 Resumo de [current-state.md](current-state.md):
 
-- Multitenancy por schema está implementada; autorização intra-tenant
-  tem kernel dinâmico implementado e com casos de teste identificados
-  em `apps/accounts/tests/` (execução não verificada), mas não
-  aplicado nas views operacionais nem refletido na sidebar, que exibe
-  todos os módulos a qualquer usuário autenticado.
-- Nenhum módulo operacional (Clientes, Processos, Tarefas, Agenda,
-  Financeiro, Dashboard, Chat, Modelos) filtra dados por escopo
-  (responsável, equipe ou participação).
-- `ParteProcesso` não implementa as três dimensões exigidas por
-  PDR-0001; `Tarefa` não implementa os campos exigidos por PDR-0002.
+- Multitenancy por schema está implementada. O kernel dinâmico de
+  autorização está aplicado em Clientes e Processos; os demais módulos
+  operacionais e a sidebar ainda não refletem integralmente o kernel.
+- Clientes e Processos filtram leitura por responsável e separam escopo
+  de leitura de fronteira de mutação. Tarefas, Agenda, Financeiro,
+  Dashboard, Chat e Modelos ainda não aplicam seu escopo pendente.
+- `ParteProcesso` implementa o modelo de três dimensões de
+  PDR-0001/PDR-0011, agora substituído pelo modelo simplificado de
+  PDR-0013; `Tarefa` não implementa os campos exigidos por PDR-0002.
 - Financeiro possui apenas a modalidade "único"; Solicitações e
   Honorários não existem como entidades próprias; recorrência e
   parcelamento não estão implementados.
@@ -64,10 +64,10 @@ Resumo de [current-state.md](current-state.md):
   existem.
 - IA jurídica e Assistente/Laboratório são um shell visual sem lógica
   de negócio.
-- Casos de teste automatizados cobrem extensivamente o kernel de
-  autorização em `apps/accounts` (execução não verificada nesta
-  auditoria), mas não cobrem escopo, autorização por objeto nem
-  isolamento cross-tenant nos módulos operacionais.
+- Casos de teste automatizados cobrem o kernel em `apps/accounts`,
+  autorização/escopo de Clientes e autorização, escopo,
+  participantes e apensos de Processos. Os demais módulos e o
+  isolamento cross-tenant explícito ainda carecem de cobertura.
 - Nenhum arquivo/anexo de objeto interno (cliente, processo, tarefa
   etc.) existe hoje; a estratégia de segregação por tenant está em
   aberto.
@@ -133,8 +133,9 @@ na versão atual, autorização binária pelo módulo `processos` satisfaz a
 Fase A. As habilitações `processos_criar`, `processos_editar` e
 `processos_andamento_adicionar` permanecem no kernel como possibilidade
 de evolução futura, sem enforcement e sem constituir dívida bloqueante
-da Fase A. Com o WI-0004 aprovado e fechado, Processos pode avançar
-verticalmente para a Fase B no WI-0005.
+da Fase A. Com o WI-0004 aprovado e fechado, Processos avançou
+verticalmente para a Fase B no WI-0005; a implementação está no HEAD,
+embora o fechamento formal do WI permaneça pendente.
 
 ### Fase B — Aplicar escopo de dados
 
@@ -164,13 +165,12 @@ própria regra paralela.
 Inclui os desalinhamentos confirmados entre o HEAD e as decisões
 aprovadas:
 
-- participantes processuais: evoluir `ParteProcesso` para as três
-  dimensões exigidas por
-  [PDR-0001](../product/decisions/PDR-0001-participantes-processuais.md)
-  (vínculo com o escritório, posição estrutural, qualificação
-  processual), incluindo suporte a múltiplos clientes representados,
-  múltiplas pessoas por polo, Ministério Público e autoridades
-  registradas separadamente;
+- partes processuais: simplificar a implementação de três dimensões de
+  PDR-0001/PDR-0011 para o modelo vigente de
+  [PDR-0013](../product/decisions/PDR-0013-partes-processo-modelo-simplificado.md)
+  (papel único e advogado em texto livre), preservando migração segura
+  dos dados existentes e registrando separadamente a decisão ainda
+  aberta sobre criação automática da Parte correspondente ao Cliente;
 - delegação direta de tarefas: adicionar os campos de criador,
   atribuidor, destinatário da atribuição e data da atribuição exigidos
   por
@@ -213,8 +213,8 @@ Separar o trabalho pelas quatro áreas funcionais de
 - **Solicitações** — modelar `Solicitação` (pagamento/reembolso) como
   entidade própria, conforme
   [PDR-0006](../product/decisions/PDR-0006-solicitacoes-financeiras.md);
-  o fluxo final de estados depende da resolução de
-  [OPEN-002](../product/open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras);
+  o fluxo final de estados foi resolvido por
+  [PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md);
 - **Honorários** — modelar `Honorario` como entidade própria, com
   valor estimado e valor efetivo separados, conforme
   [PDR-0007](../product/decisions/PDR-0007-honorarios-manuais-antes-ia.md).
@@ -226,10 +226,10 @@ Preservar:
   [PDR-0007](../product/decisions/PDR-0007-honorarios-manuais-antes-ia.md)
   como direção canônica de cada área;
 - [OPEN-001](../product/open-decisions.md#open-001--periodicidades-financeiras-da-primeira-versão)
-  e
-  [OPEN-002](../product/open-decisions.md#open-002--etapas-de-aprovação-das-solicitações-financeiras)
-  como decisões pendentes — não implementar recorrência final nem o
-  fluxo final de aprovação de solicitações antes de sua resolução;
+  como decisão pendente — não implementar recorrência final antes de
+  sua resolução. O fluxo final de aprovação de solicitações já foi
+  resolvido por
+  [PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md);
 - billing SaaS (`saas_billing`) como domínio distinto do financeiro do
   tenant, sem sincronização automática entre assinatura e lançamento,
   conforme
@@ -329,7 +329,7 @@ flowchart LR
 | --- | --- |
 | A — Autorização | Views operacionais consultam o kernel exigido pela decisão canônica do módulo (`tem_permissao_modulo()` e, quando aplicável, `tem_habilitacao()`) em vez de depender apenas de `@login_required`; testes negativos mínimos existem. Para Processos, a autorização binária definida no PDR-0010 satisfaz este critério |
 | B — Escopo | `QuerySet`s de listagem e objetos carregados por `pk` já nascem filtrados pelo escopo do usuário, em todos os módulos operacionais; testes intra-tenant existem |
-| C — Integridade de domínio | `ParteProcesso` sustenta as três dimensões de PDR-0001; `Tarefa` sustenta os campos de PDR-0002; combinações cliente-processo inconsistentes são rejeitadas pelo servidor; transições de estado inválidas são rejeitadas |
+| C — Integridade de domínio | `ParteProcesso` reflete o modelo simplificado de PDR-0013 com migração segura do modelo anterior; `Tarefa` sustenta os campos de PDR-0002; combinações cliente-processo inconsistentes são rejeitadas pelo servidor; transições de estado inválidas são rejeitadas |
 | D — Financeiro | Solicitações e Honorários existem como entidades próprias; modalidade de lançamento implementada dentro do que OPEN-001 já permitir decidir; categoria `"custa_judicial"` removida do financeiro geral |
 | E — Funcionalidades de apoio | Conversas individuais/grupo existem no Chat; administração de `PapelAcesso`/habilitações possui interface; rota de identidade visual resolvida ou explicitamente adiada por decisão registrada |
 | F — Preparação IA | Todos os pré-requisitos de PDR-0008 constatados no HEAD, não apenas planejados |
@@ -339,28 +339,29 @@ flowchart LR
 
 | Decisão | Impacto no roadmap |
 | --- | --- |
-| PDR-0001 — Participantes processuais | Define o alvo da Fase C para `ParteProcesso`; bloqueia a conclusão dessa fase até a modelagem de três dimensões existir |
+| PDR-0001 — Participantes processuais | Parcialmente substituído por PDR-0013; a modelagem de três dimensões foi implementada no WI-0006, mas deixou de ser o alvo canônico |
 | PDR-0002 — Delegação direta de tarefas | Define o alvo da Fase C para `Tarefa`; bloqueia a habilitação `tarefas_atribuir_outros`, já existente no kernel mas sem ponto de consumo |
 | PDR-0003 — Áreas funcionais do Financeiro | Estrutura toda a Fase D em quatro áreas distintas; impede tratar Financeiro como um único tipo de lançamento |
 | PDR-0004 — Previsto e realizado | Já implementado para lançamentos existentes; deve ser preservado ao evoluir Solicitações e Honorários na Fase D |
 | PDR-0005 — Custas por cliente | Já implementado corretamente (saldo calculado no backend); Fase D aplica apenas autorização/escopo sobre o que existe |
-| PDR-0006 — Solicitações financeiras | Define o alvo de modelagem de Solicitações na Fase D; parcialmente bloqueado por OPEN-002 |
+| PDR-0006 — Solicitações financeiras | Define o alvo de modelagem de Solicitações na Fase D; fluxo de estados resolvido por PDR-0015 |
 | PDR-0007 — Honorários manuais antes da IA | Define o alvo de modelagem de Honorários na Fase D, como pré-requisito de dados para a sugestão de honorários da Fase G |
 | PDR-0008 — IA após núcleo funcional | Define integralmente a Fase F como pré-requisito obrigatório da Fase G; a mais impactante para a ordem geral do roadmap |
 | PDR-0009 — Sequência revisada da Fase 2 | Fonte da ordem de dependência entre rodadas que este roadmap consolida em fases; autorização e integridade antes de módulos avançados |
 | PDR-0010 — Autorização, escopo e responsabilidade de Processos | Define autorização binária por módulo como suficiente para a Fase A de Processos; habilitações granulares preservadas no kernel são evolução futura e não impedem o avanço para a Fase B após o fechamento do WI-0004 |
-| PDR-0011 — Taxonomia e representação de participantes de Processos | Define a evolução vertical de participantes e representantes em Processos no WI-0006, sem alterar a fronteira do WI-0005 |
-| PDR-0012 — Relação simétrica de processos apensos | Define o WI-0007 como vínculo bidirecional entre Processos independentes, sem hierarquia, propagação ou transitividade |
+| PDR-0011 — Taxonomia e representação de participantes de Processos | Substituído por PDR-0013; a taxonomia de dez opções permanece, mas as três dimensões e a normalização de representante não são mais o alvo |
+| PDR-0012 — Relação simétrica de processos apensos | Define o WI-0007 como vínculo bidirecional entre Processos independentes, sem hierarquia, propagação ou transitividade; permanece vigente sem alteração |
+| PDR-0013 — Partes de processo: modelo simplificado | Redefine o alvo de `ParteProcesso` para campo único de papel e advogado em texto livre; reverte parte do que o WI-0006 implementou — Work Item de simplificação pendente |
+| PDR-0014 — Responsável principal e integrantes habilitados de Processos | Acrescenta `processos_atribuir_responsavel` e a relação de integrante habilitado ao escopo da Fase B de Processos; nenhum dos dois está implementado |
+| PDR-0015 — Fluxo de aprovação das solicitações financeiras | Resolve o antigo OPEN-002; define o alvo de estados de Solicitações na Fase D |
+| PDR-0016 — Notificações de Tarefas e Agenda | Acrescenta notificação de conclusão de tarefa e notificação de compromisso/prazo (15 min antes) ao escopo das Fases C/D; nenhuma das duas está implementada |
 | OPEN-001 — Periodicidades financeiras | Bloqueia o detalhamento final de recorrência/parcelamento na Fase D até resolução |
-| OPEN-002 — Etapas de aprovação de solicitações | Bloqueia o detalhamento final do fluxo de Solicitações na Fase D até resolução |
 
 ## O que não deve ser antecipado
 
 - IA antes de todos os pré-requisitos do PDR-0008 estarem constatados
   no HEAD (não apenas planejados).
 - Recorrência financeira final antes da resolução de OPEN-001.
-- Fluxo final de aprovação de solicitações antes da resolução de
-  OPEN-002.
 - Acesso irrestrito de gerente de equipe a dados de sua equipe — hoje
   não existe no kernel (`eh_gerente` não é consultado por
   `permissao_efetiva()`/`habilitacao_efetiva()`), e sua introdução

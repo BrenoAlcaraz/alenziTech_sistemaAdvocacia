@@ -1,10 +1,11 @@
 ---
 id: PDR-0011
 title: Taxonomia e representação de participantes de Processos
-status: accepted
+status: superseded
+superseded_by: PDR-0013
 owner: product-and-engineering
 decision_date: 2026-08-20
-last_reviewed: 2026-08-20
+last_reviewed: 2026-08-31
 supersedes: []
 complements:
   - PDR-0001
@@ -12,6 +13,13 @@ source_files: []
 ---
 
 # PDR-0011 — Taxonomia e representação de participantes de Processos
+
+> **Substituída por [PDR-0013](PDR-0013-partes-processo-modelo-simplificado.md)
+> em 2026-08-31.** O modelo de dados descrito abaixo (três dimensões
+> separadas, representante normalizado 1:N, distinção interno/externo,
+> classificação pendente do Cliente automático) deixou de ser a direção
+> vigente. Este documento é preservado como registro histórico da decisão
+> original e de seu contexto; não deve ser lido como especificação atual.
 
 ## Contexto
 

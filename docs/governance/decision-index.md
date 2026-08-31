@@ -2,7 +2,7 @@
 title: Índice de decisões
 status: canonical
 owner: product-and-engineering
-last_reviewed: 2026-08-20
+last_reviewed: 2026-08-31
 ---
 
 # Índice de decisões
@@ -16,19 +16,20 @@ existem e para onde apontar.
 
 Os PDR-0001 a PDR-0009 representam decisões funcionais já consolidadas
 nas fontes anteriores do projeto (histórico, planos e checkpoints). Os
-PDR-0010 a PDR-0012 registram decisões diretas posteriores do Product
-Owner. Todos foram formalizados em `docs/product/decisions/`. Os ADR-0001 a ADR-0005
-listados abaixo representam decisões arquiteturais já consolidadas nas
-mesmas fontes, mas ainda estão pendentes apenas de formalização em
-arquivos ADR individuais — não estão em aberto. Já os itens OPEN-001 e
-OPEN-002, na seção "Decisões em aberto", continuam realmente sem
-decisão tomada.
+PDR-0010 a PDR-0016 registram decisões diretas posteriores do Product
+Owner. Todos foram formalizados em `docs/product/decisions/`. PDR-0011 foi
+substituído por PDR-0013 e permanece apenas como registro histórico. Os
+ADR-0001 a ADR-0005 listados abaixo representam decisões arquiteturais já
+consolidadas nas mesmas fontes, mas ainda estão pendentes apenas de
+formalização em arquivos ADR individuais — não estão em aberto. Já o item
+OPEN-001, na seção "Decisões em aberto", continua realmente sem decisão
+tomada.
 
 ## Decisões de produto formalizadas
 
 | ID | Assunto | Estado | Documento |
 | --- | --- | --- | --- |
-| PDR-0001 | Participantes processuais | accepted | `docs/product/decisions/PDR-0001-participantes-processuais.md` |
+| PDR-0001 | Participantes processuais | accepted; partially superseded by PDR-0013 | `docs/product/decisions/PDR-0001-participantes-processuais.md` |
 | PDR-0002 | Delegação direta de tarefas | accepted | `docs/product/decisions/PDR-0002-delegacao-direta-de-tarefas.md` |
 | PDR-0003 | Áreas funcionais do Financeiro | accepted | `docs/product/decisions/PDR-0003-areas-funcionais-financeiro.md` |
 | PDR-0004 | Previsto e realizado | accepted | `docs/product/decisions/PDR-0004-previsto-e-realizado.md` |
@@ -38,8 +39,12 @@ decisão tomada.
 | PDR-0008 | IA após consolidação do núcleo funcional | accepted | `docs/product/decisions/PDR-0008-ia-apos-nucleo-funcional.md` |
 | PDR-0009 | Sequência revisada da Fase 2 | accepted | `docs/product/decisions/PDR-0009-sequencia-fase-2.md` |
 | PDR-0010 | Autorização, escopo e responsabilidade de Processos | accepted | `docs/product/decisions/PDR-0010-autorizacao-escopo-responsabilidade-processos.md` |
-| PDR-0011 | Taxonomia e representação de participantes de Processos | accepted | `docs/product/decisions/PDR-0011-taxonomia-representacao-participantes-processos.md` |
+| PDR-0011 | Taxonomia e representação de participantes de Processos | superseded by PDR-0013 | `docs/product/decisions/PDR-0011-taxonomia-representacao-participantes-processos.md` |
 | PDR-0012 | Relação simétrica de processos apensos | accepted | `docs/product/decisions/PDR-0012-relacao-simetrica-processos-apensos.md` |
+| PDR-0013 | Partes de processo — modelo simplificado | accepted | `docs/product/decisions/PDR-0013-partes-processo-modelo-simplificado.md` |
+| PDR-0014 | Responsável principal e integrantes habilitados de Processos | accepted | `docs/product/decisions/PDR-0014-responsavel-integrantes-processos.md` |
+| PDR-0015 | Fluxo de aprovação das solicitações financeiras | accepted | `docs/product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md` |
+| PDR-0016 | Notificações de Tarefas e Agenda | accepted | `docs/product/decisions/PDR-0016-notificacoes-tarefas-agenda.md` |
 
 A decisão aceita em PDR-0003 inclui explicitamente que billing e
 assinatura SaaS permanecem no contexto compartilhado de `saas_billing`,
@@ -60,10 +65,11 @@ novo PDR. Este ponto não é uma decisão pendente.
 ## Decisões em aberto
 
 - **OPEN-001** — Periodicidades financeiras da primeira versão.
-- **OPEN-002** — Etapas de aprovação das solicitações financeiras.
 
-Estas decisões ainda não foram resolvidas. Elas estão registradas em
-`docs/product/open-decisions.md`.
+Esta decisão ainda não foi resolvida. Está registrada em
+`docs/product/open-decisions.md`. OPEN-002 foi resolvida por
+[PDR-0015](../product/decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md)
+e removida deste documento.
 
 ## Regra de atualização
 
