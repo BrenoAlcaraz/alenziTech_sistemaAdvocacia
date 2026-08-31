@@ -2,6 +2,6 @@
 
 @AGENTS.md
 
-Use o Work Item e o Context Pack ativos como contexto da execução. Este
-arquivo não adiciona regras de produto, arquitetura, segurança ou processo;
+Use a spec ativa em `specs/`, quando houver, como contexto da execução.
+Este arquivo não adiciona regras de produto, arquitetura ou processo;
 as fontes canônicas são as referenciadas por `AGENTS.md`.
