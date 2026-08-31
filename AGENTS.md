@@ -31,16 +31,49 @@ quando o contexto adicional for realmente necessário. Uma referência
 entre documentos não é convite para carregar o documento referenciado
 inteiro.
 
-## Fluxo de desenvolvimento (SDD leve)
+Ao executar um ticket, o contexto segue a mesma lógica, começando pelo
+ticket: AGENTS.md → ticket atual → spec relacionada → somente
+documentação necessária → código e testes relacionados →
+implementação.
 
-**Feature relevante**: IDEIA → `specs/<nome>.md` (objetivo, comportamento
-esperado, regras de negócio, fora do escopo, plano técnico resumido,
-tarefas, critérios de aceite) → implementação em passos pequenos →
-testes → review final → apagar a spec.
+## Fluxo de desenvolvimento (SDD leve)
 
 **Mudança simples**: INSPECT → IMPLEMENT → TEST. Sem spec.
 
 **Bug**: REPRODUCE → IDENTIFY CAUSE → FIX → REGRESSION TEST.
+
+**Feature relevante**:
+
+```
+IDEIA
+→ SPEC CURTA
+→ se simples: IMPLEMENTAR
+→ se necessário: TICKETS
+→ IMPLEMENTAR
+→ TESTAR
+→ REVIEW FINAL DA FEATURE
+→ promover apenas conhecimento durável
+→ apagar SPEC
+```
+
+## Spec
+
+A spec existe apenas para preservar entre sessões o contexto essencial
+da feature.
+
+Ela deve ser curta e conter, em geral:
+
+- objetivo;
+- comportamento esperado;
+- regras de negócio relevantes;
+- fora do escopo;
+- critérios de aceite.
+
+Não torne obrigatório registrar: plano técnico detalhado, tarefas,
+sequência de implementação, investigação realizada, decisões técnicas
+temporárias, comandos, evidências, histórico da execução. Esses
+elementos só devem ser persistidos se realmente forem necessários para
+continuar a feature em outra sessão.
 
 ### Antes de apagar uma spec concluída
 
@@ -53,6 +86,30 @@ apagar:
 | mudança arquitetural | `docs/ARCHITECTURE.md` |
 | decisão durável de produto | novo PDR em `docs/decisions/` |
 | mudança de estado relevante | `docs/STATUS.md` |
+
+## Tickets
+
+Tickets continuam opcionais. Use tickets apenas quando a feature for
+grande o suficiente para se beneficiar de execução incremental ou
+entre sessões/agentes.
+
+Se houver tickets:
+
+- eles representam as unidades de execução;
+- a spec não deve duplicar essas tarefas;
+- o ticket aponta para a spec;
+- contém apenas objetivo, escopo específico, critérios de aceite
+  específicos e dependências reais;
+- preferencialmente usar GitHub Issues, não arquivos no repositório;
+- usar a menor quantidade possível de tickets.
+
+Não criar ticket por arquivo, camada, teste, migration ou comando
+apenas para dividir trabalho.
+
+## Regra principal
+
+> Persistir apenas contexto que uma futura sessão realmente precisa.
+> Raciocínio e planejamento temporários ficam na sessão.
 
 ## Validação proporcional ao risco
 
