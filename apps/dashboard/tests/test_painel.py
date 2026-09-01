@@ -2,16 +2,26 @@
 Regressão: o status "cancelada" de Tarefa (apps/tarefas, delegação de
 tarefas) não deve ser contado como pendente no painel.
 
-Também cobre a autorização de módulo em Financeiro aplicada ao painel:
-usuário sem acesso ao módulo `financeiro` não recebe totais nem lista
-financeira no contexto do painel (ver specs/autorizacao-modulo-financeiro.md).
+Também cobre a autorização de módulo aplicada ao painel: usuário sem
+acesso a um módulo não recebe totais/listas correspondentes no
+contexto do painel (financeiro: specs/autorizacao-modulo-financeiro.md;
+clientes/processos/tarefas/agenda:
+specs/autorizacao-modulo-chat-modelos-painel.md).
 """
 
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS
+from apps.accounts.permissoes_constants import (
+    MODULO_AGENDA,
+    MODULO_CLIENTES,
+    MODULO_FINANCEIRO,
+    MODULO_PROCESSOS,
+    MODULO_TAREFAS,
+    NIVEL_DADOS,
+    NIVEL_TODOS,
+)
 from apps.financeiro.models import LancamentoFinanceiro
 from apps.tarefas.models import Tarefa
 
@@ -28,6 +38,11 @@ class TestPainelTarefasPendentes(TenantTestCase):
         dominio = Dominio.objects.filter(tenant=self.tenant).first()
         self.http_host = dominio.domain if dominio else "localhost"
         self.usuario = User.objects.create_user("dashboard_user", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Tarefas Painel", ativo=True)
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+        )
         self.client.force_login(self.usuario)
 
     def test_tarefa_cancelada_nao_conta_como_pendente(self):
@@ -118,3 +133,59 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         self.assertIn("a_receber", resposta.context["resumo"])
         self.assertEqual(len(resposta.context["financeiro_dashboard"]), 1)
         self.assertContains(resposta, "Honorário Pendente")
+
+
+class TestPainelClientesProcessosAgendaSemAcesso(TenantTestCase):
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_cpa_sem_acesso"
+
+    def setUp(self):
+        super().setUp()
+        from apps.saas_tenants.models import Dominio
+
+        dominio = Dominio.objects.filter(tenant=self.tenant).first()
+        self.http_host = dominio.domain if dominio else "localhost"
+        self.usuario = User.objects.create_user("sem_cpa", password="testpass")
+        self.client.force_login(self.usuario)
+
+    def test_painel_sem_blocos_de_clientes_processos_tarefas_agenda(self):
+        resposta = self.client.get("/", HTTP_HOST=self.http_host)
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertNotIn("clientes_ativos", resposta.context["resumo"])
+        self.assertNotIn("processos_ativos", resposta.context["resumo"])
+        self.assertNotIn("tarefas_pendentes", resposta.context["resumo"])
+        self.assertNotIn("compromissos_proximos", resposta.context["resumo"])
+        self.assertEqual(list(resposta.context["tarefas_dashboard"]), [])
+        self.assertEqual(list(resposta.context["compromissos_dashboard"]), [])
+
+
+class TestPainelClientesProcessosAgendaComAcesso(TenantTestCase):
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_cpa_com_acesso"
+
+    def setUp(self):
+        super().setUp()
+        from apps.saas_tenants.models import Dominio
+
+        dominio = Dominio.objects.filter(tenant=self.tenant).first()
+        self.http_host = dominio.domain if dominio else "localhost"
+        self.usuario = User.objects.create_user("com_cpa", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel CPA Painel", ativo=True)
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        for modulo in (MODULO_CLIENTES, MODULO_PROCESSOS, MODULO_AGENDA):
+            PermissaoPapel.objects.create(
+                papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
+            )
+        self.client.force_login(self.usuario)
+
+    def test_painel_com_blocos_de_clientes_processos_agenda(self):
+        resposta = self.client.get("/", HTTP_HOST=self.http_host)
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("clientes_ativos", resposta.context["resumo"])
+        self.assertIn("processos_ativos", resposta.context["resumo"])
+        self.assertIn("compromissos_proximos", resposta.context["resumo"])
+        self.assertNotIn("tarefas_pendentes", resposta.context["resumo"])

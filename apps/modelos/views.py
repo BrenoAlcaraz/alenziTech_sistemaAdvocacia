@@ -1,9 +1,12 @@
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.accounts.permissoes import tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_MODELOS
 from apps.modelos.forms import ImportarModeloPecaForm, ModeloPecaForm
 from apps.modelos.models import ModeloPeca
 from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
@@ -11,6 +14,9 @@ from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documen
 
 @login_required
 def lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
     aba_ativa = request.GET.get("aba", "modelos")
     busca = request.GET.get("q", "").strip()
 
@@ -34,6 +40,9 @@ def lista(request):
 
 @login_required
 def novo(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
     if request.method == "POST":
         form = ModeloPecaForm(request.POST)
         if form.is_valid():
@@ -54,6 +63,9 @@ def novo(request):
 
 @login_required
 def detalhe(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
     modelo = get_object_or_404(ModeloPeca, pk=pk)
     return render(request, "modelos/detalhe.html", {
         "modelo": modelo,
@@ -63,6 +75,9 @@ def detalhe(request, pk):
 
 @login_required
 def editar(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
     modelo = get_object_or_404(ModeloPeca, pk=pk)
 
     if request.method == "POST":
@@ -83,6 +98,9 @@ def editar(request, pk):
 
 @login_required
 def importar(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
     if request.method == "POST":
         form = ImportarModeloPecaForm(request.POST, request.FILES)
         if form.is_valid():

@@ -20,6 +20,7 @@
 {# ── Cards de resumo — dados reais ────────────────────────────────────────── #}
 <div class="grid grid-cols-2 gap-3 mb-8">
 
+  {% if acesso_clientes %}
   {# Clientes ativos #}
   <a href="{% url 'clientes:lista' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
@@ -32,7 +33,9 @@
       <p class="text-sm text-gray-500">Clientes ativos</p>
     </div>
   </a>
+  {% endif %}
 
+  {% if acesso_processos %}
   {# Processos ativos #}
   <a href="{% url 'processos:lista' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
@@ -45,7 +48,9 @@
       <p class="text-sm text-gray-500">Processos ativos</p>
     </div>
   </a>
+  {% endif %}
 
+  {% if acesso_tarefas %}
   {# Tarefas pendentes #}
   <a href="{% url 'tarefas:quadro' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
@@ -58,7 +63,9 @@
       <p class="text-sm text-gray-500">Tarefas pendentes</p>
     </div>
   </a>
+  {% endif %}
 
+  {% if acesso_agenda %}
   {# Compromissos próximos #}
   <a href="{% url 'agenda:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
@@ -71,6 +78,7 @@
       <p class="text-sm text-gray-500">Compromissos próximos</p>
     </div>
   </a>
+  {% endif %}
 
   {% if acesso_financeiro %}
   {# A receber #}
@@ -105,6 +113,7 @@
 {# ── Listas reais — tarefas, agenda, financeiro ───────────────────────────── #}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
+  {% if acesso_tarefas %}
   {# Bloco 1 — Tarefas pendentes #}
   <div class="card p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
@@ -135,7 +144,9 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
 
+  {% if acesso_agenda %}
   {# Bloco 2 — Agenda próxima #}
   <div class="card p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
@@ -169,6 +180,7 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
 
   {% if acesso_financeiro %}
   {# Bloco 3 — Financeiro pendente #}

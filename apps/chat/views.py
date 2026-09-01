@@ -1,23 +1,33 @@
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
+from apps.accounts.permissoes import tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_CHAT
 from apps.chat.models import Conversa, Mensagem
 
 
 @login_required
 def lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_CHAT):
+        raise PermissionDenied
     return redirect("chat:global")
 
 
 @login_required
 def detalhe(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_CHAT):
+        raise PermissionDenied
     return redirect("chat:global")
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def global_sala(request):
+    if not tem_permissao_modulo(request.user, MODULO_CHAT):
+        raise PermissionDenied
+
     sala, _ = Conversa.objects.get_or_create(
         tipo=Conversa.TIPO_GLOBAL,
         defaults={"titulo": "Sala Geral"},

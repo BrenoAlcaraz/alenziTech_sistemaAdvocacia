@@ -7,7 +7,13 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.accounts.permissoes import tem_permissao_modulo
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO
+from apps.accounts.permissoes_constants import (
+    MODULO_AGENDA,
+    MODULO_CLIENTES,
+    MODULO_FINANCEIRO,
+    MODULO_PROCESSOS,
+    MODULO_TAREFAS,
+)
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.tarefas.models import Tarefa
@@ -24,26 +30,31 @@ def _formatar_moeda(valor):
 def painel(request):
     hoje = timezone.localdate()
 
-    clientes_ativos = Cliente.objects.filter(ativo=True).count()
-
-    processos_ativos = Processo.objects.filter(status="ativo").count()
-
-    tarefas_pendentes = Tarefa.objects.exclude(status__in=["concluida", "cancelada"]).count()
-
-    compromissos_proximos = Compromisso.objects.filter(
-        status="agendado",
-        data_hora_inicio__date__gte=hoje,
-        data_hora_inicio__date__lte=hoje + timedelta(days=7),
-    ).count()
-
+    acesso_clientes = tem_permissao_modulo(request.user, MODULO_CLIENTES)
+    acesso_processos = tem_permissao_modulo(request.user, MODULO_PROCESSOS)
+    acesso_tarefas = tem_permissao_modulo(request.user, MODULO_TAREFAS)
+    acesso_agenda = tem_permissao_modulo(request.user, MODULO_AGENDA)
     acesso_financeiro = tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
 
-    resumo = {
-        "clientes_ativos": clientes_ativos,
-        "processos_ativos": processos_ativos,
-        "tarefas_pendentes": tarefas_pendentes,
-        "compromissos_proximos": compromissos_proximos,
-    }
+    resumo = {}
+
+    if acesso_clientes:
+        resumo["clientes_ativos"] = Cliente.objects.filter(ativo=True).count()
+
+    if acesso_processos:
+        resumo["processos_ativos"] = Processo.objects.filter(status="ativo").count()
+
+    if acesso_tarefas:
+        resumo["tarefas_pendentes"] = Tarefa.objects.exclude(
+            status__in=["concluida", "cancelada"]
+        ).count()
+
+    if acesso_agenda:
+        resumo["compromissos_proximos"] = Compromisso.objects.filter(
+            status="agendado",
+            data_hora_inicio__date__gte=hoje,
+            data_hora_inicio__date__lte=hoje + timedelta(days=7),
+        ).count()
 
     if acesso_financeiro:
         a_receber = (
@@ -63,6 +74,8 @@ def painel(request):
         Tarefa.objects.select_related("cliente", "processo", "responsavel")
         .exclude(status__in=["concluida", "cancelada"])
         .order_by("prazo", "-prioridade")[:5]
+        if acesso_tarefas
+        else Tarefa.objects.none()
     )
 
     compromissos_dashboard = (
@@ -73,6 +86,8 @@ def painel(request):
             data_hora_inicio__date__lte=hoje + timedelta(days=7),
         )
         .order_by("data_hora_inicio")[:5]
+        if acesso_agenda
+        else Compromisso.objects.none()
     )
 
     financeiro_dashboard = (
@@ -91,6 +106,10 @@ def painel(request):
         "tarefas_dashboard": tarefas_dashboard,
         "compromissos_dashboard": compromissos_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
+        "acesso_clientes": acesso_clientes,
+        "acesso_processos": acesso_processos,
+        "acesso_tarefas": acesso_tarefas,
+        "acesso_agenda": acesso_agenda,
         "acesso_financeiro": acesso_financeiro,
         "plano_nome": plano_nome,
         "item_ativo": "painel",
