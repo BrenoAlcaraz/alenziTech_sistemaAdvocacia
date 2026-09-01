@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Case, When, Value, IntegerField, F
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from .models import Tarefa
-from .forms import TarefaForm
+from .models import ReatribuicaoTarefa, Tarefa
+from .forms import ReatribuirForm, TarefaForm
 
 
 ORDENS_VALIDAS = {
@@ -72,6 +73,7 @@ def quadro(request):
         "a_fazer": [t for t in tarefas if t.status == "a_fazer"],
         "em_andamento": [t for t in tarefas if t.status == "em_andamento"],
         "concluida": [t for t in tarefas if t.status == "concluida"],
+        "cancelada": [t for t in tarefas if t.status == "cancelada"],
     }
     return render(request, "tarefas/quadro.html", {
         "tarefas_por_status": tarefas_por_status,
@@ -99,7 +101,10 @@ def nova(request):
         form = TarefaForm(request.POST)
         if form.is_valid():
             tarefa = form.save(commit=False)
-            tarefa.responsavel = request.user
+            tarefa.criador = request.user
+            tarefa.atribuidor = request.user
+            tarefa.responsavel = form.cleaned_data.get("destinatario") or request.user
+            tarefa.atribuido_em = timezone.now()
             tarefa.status = "a_fazer"
             if not tarefa.cliente and tarefa.processo and tarefa.processo.cliente:
                 tarefa.cliente = tarefa.processo.cliente
@@ -136,6 +141,34 @@ def editar(request, pk):
 
 
 @login_required
+def reatribuir(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        form = ReatribuirForm(request.POST)
+        if form.is_valid():
+            novo_responsavel = form.cleaned_data["destinatario"]
+            ReatribuicaoTarefa.objects.create(
+                tarefa=tarefa,
+                responsavel_anterior=tarefa.responsavel,
+                responsavel_novo=novo_responsavel,
+                autor=request.user,
+            )
+            tarefa.responsavel = novo_responsavel
+            tarefa.atribuido_em = timezone.now()
+            tarefa.save(update_fields=["responsavel", "atribuido_em"])
+            return _redirect_seguro(request)
+    else:
+        form = ReatribuirForm(initial={"destinatario": tarefa.responsavel_id})
+    return render(request, "tarefas/reatribuir.html", {
+        "form": form,
+        "tarefa": tarefa,
+        "reatribuicoes": tarefa.reatribuicoes.select_related("responsavel_anterior", "responsavel_novo", "autor"),
+        "next_url": request.GET.get("next") or request.path,
+        "item_ativo": "tarefas",
+    })
+
+
+@login_required
 def concluir(request, pk):
     tarefa = get_object_or_404(Tarefa, pk=pk)
     if request.method == "POST":
@@ -158,6 +191,15 @@ def iniciar(request, pk):
     tarefa = get_object_or_404(Tarefa, pk=pk)
     if request.method == "POST":
         tarefa.status = "em_andamento"
+        tarefa.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def cancelar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if request.method == "POST":
+        tarefa.status = "cancelada"
         tarefa.save(update_fields=["status"])
     return _redirect_seguro(request)
 

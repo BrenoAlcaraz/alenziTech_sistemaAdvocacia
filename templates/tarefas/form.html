@@ -40,6 +40,12 @@
           <label class="label">Processo vinculado</label>
           {{ form.processo }}
         </div>
+        {% if modo == "novo" %}
+        <div>
+          <label class="label">{{ form.destinatario.label }}</label>
+          {{ form.destinatario }}
+        </div>
+        {% endif %}
       </div>
     </div>
 

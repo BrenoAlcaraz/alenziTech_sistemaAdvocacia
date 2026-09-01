@@ -1,7 +1,12 @@
 from django import forms
+from django.contrib.auth.models import User
 from .models import Tarefa
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
+
+
+def _usuarios_atribuiveis():
+    return User.objects.filter(is_active=True).order_by("first_name", "username")
 
 
 class TarefaForm(forms.ModelForm):
@@ -16,6 +21,13 @@ class TarefaForm(forms.ModelForm):
         required=False,
         widget=forms.Select(attrs={"class": "select"}),
         empty_label="Nenhum",
+    )
+    destinatario = forms.ModelChoiceField(
+        queryset=_usuarios_atribuiveis(),
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        empty_label="Eu mesmo",
+        label="Atribuir a",
     )
     prazo = forms.DateField(
         required=False,
@@ -40,3 +52,11 @@ class TarefaForm(forms.ModelForm):
             }),
             "prioridade": forms.Select(attrs={"class": "select"}),
         }
+
+
+class ReatribuirForm(forms.Form):
+    destinatario = forms.ModelChoiceField(
+        queryset=_usuarios_atribuiveis(),
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Novo responsável",
+    )

@@ -94,5 +94,21 @@
     </div>
   </div>
 
+  {# Coluna: Cancelada #}
+  <div class="flex-shrink-0 w-80">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-5 h-5 rounded-full bg-red-50 border-2 border-red-300"></div>
+      <span class="font-medium text-gray-700">Cancelada</span>
+      <span class="ml-auto text-sm text-gray-400 font-medium">{{ tarefas_por_status.cancelada|length }}</span>
+    </div>
+    <div class="flex flex-col gap-3">
+      {% for t in tarefas_por_status.cancelada %}
+        {% include "tarefas/_card_tarefa.html" with tarefa=t %}
+      {% empty %}
+        <div class="card px-4 py-6 text-center text-sm text-gray-400">Nenhuma tarefa</div>
+      {% endfor %}
+    </div>
+  </div>
+
 </div>
 {% endblock %}

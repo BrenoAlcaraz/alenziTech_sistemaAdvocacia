@@ -20,7 +20,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 |---|---|---|
 | Clientes | Feito (autorização + escopo + responsabilidade) | Escopo por equipe é só placeholder visual; sem habilitação própria para desativar/reativar; sem UI de admin para papéis/habilitações |
 | Processos | Feito (módulo, escopo, responsabilidade, apensos) | Partes usa modelo de 3 dimensões (PDR-0001/0011) que PDR-0013 já substituiu — simplificação pendente; `processos_atribuir_responsavel`/integrante habilitado (PDR-0014) não implementados; habilitação granular deliberadamente fora desta versão (PDR-0010) |
-| Tarefas | Parcial | Sem delegação a outro usuário (responsável = sempre quem cria); campos criador/atribuidor/destinatário/data (PDR-0002) ausentes; notificação de conclusão (PDR-0016) ausente; sem autorização/escopo |
+| Tarefas | Parcial (delegação PDR-0002 feita) | Notificação de conclusão (PDR-0016) ausente; sem autorização/escopo |
 | Agenda | Parcial | Sem escopo por responsável/participante; notificação 15min antes (PDR-0016) ausente; integridade cliente-processo não validada no backend |
 | Financeiro | Parcial | Sem modalidade parcelado/recorrente real; Solicitações e Honorários sem modelagem própria; sem distinção de acesso ao caixa geral; sem autorização |
 | Dashboard | Parcial | Agrega dados reais, mas sem filtro de escopo/autorização — todo usuário vê os mesmos totais, incluindo financeiro |

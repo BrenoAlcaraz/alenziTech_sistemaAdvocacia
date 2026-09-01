@@ -26,7 +26,7 @@ def painel(request):
 
     processos_ativos = Processo.objects.filter(status="ativo").count()
 
-    tarefas_pendentes = Tarefa.objects.exclude(status="concluida").count()
+    tarefas_pendentes = Tarefa.objects.exclude(status__in=["concluida", "cancelada"]).count()
 
     compromissos_proximos = Compromisso.objects.filter(
         status="agendado",
@@ -56,7 +56,7 @@ def painel(request):
 
     tarefas_dashboard = (
         Tarefa.objects.select_related("cliente", "processo", "responsavel")
-        .exclude(status="concluida")
+        .exclude(status__in=["concluida", "cancelada"])
         .order_by("prazo", "-prioridade")[:5]
     )
 

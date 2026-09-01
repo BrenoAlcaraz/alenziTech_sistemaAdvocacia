@@ -1,0 +1,50 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Reatribuir tarefa — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ next_url }}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Reatribuir tarefa</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  <p class="text-sm text-gray-500 mb-4">{{ tarefa.titulo }} — responsável atual: {{ tarefa.responsavel|default:"nenhum" }}</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div>
+      <label class="label">{{ form.destinatario.label }}</label>
+      {{ form.destinatario }}
+    </div>
+
+    {% if form.errors %}
+    <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+      Selecione um usuário válido.
+    </div>
+    {% endif %}
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Reatribuir</button>
+      <a href="{{ next_url }}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% if reatribuicoes %}
+<div class="card p-6 max-w-2xl mt-4">
+  <h2 class="text-sm font-semibold text-gray-900 mb-3">Histórico de reatribuições</h2>
+  <ul class="flex flex-col gap-2 text-xs text-gray-500">
+    {% for r in reatribuicoes %}
+    <li>
+      {{ r.responsavel_anterior|default:"nenhum" }} → {{ r.responsavel_novo }}
+      — por {{ r.autor|default:"desconhecido" }} em {{ r.criado_em }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
