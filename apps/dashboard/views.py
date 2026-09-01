@@ -6,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.accounts.permissoes import tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_FINANCEIRO
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.tarefas.models import Tarefa
@@ -34,25 +36,28 @@ def painel(request):
         data_hora_inicio__date__lte=hoje + timedelta(days=7),
     ).count()
 
-    a_receber = (
-        LancamentoFinanceiro.objects.filter(tipo="receita", status="pendente")
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
-    )
-    a_pagar = (
-        LancamentoFinanceiro.objects.filter(tipo="despesa", status="pendente")
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
-    )
+    acesso_financeiro = tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
 
     resumo = {
         "clientes_ativos": clientes_ativos,
         "processos_ativos": processos_ativos,
         "tarefas_pendentes": tarefas_pendentes,
         "compromissos_proximos": compromissos_proximos,
-        "a_receber": _formatar_moeda(a_receber),
-        "a_pagar": _formatar_moeda(a_pagar),
     }
+
+    if acesso_financeiro:
+        a_receber = (
+            LancamentoFinanceiro.objects.filter(tipo="receita", status="pendente")
+            .aggregate(total=Sum("valor"))["total"]
+            or Decimal("0")
+        )
+        a_pagar = (
+            LancamentoFinanceiro.objects.filter(tipo="despesa", status="pendente")
+            .aggregate(total=Sum("valor"))["total"]
+            or Decimal("0")
+        )
+        resumo["a_receber"] = _formatar_moeda(a_receber)
+        resumo["a_pagar"] = _formatar_moeda(a_pagar)
 
     tarefas_dashboard = (
         Tarefa.objects.select_related("cliente", "processo", "responsavel")
@@ -74,6 +79,8 @@ def painel(request):
         LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel")
         .filter(status="pendente")
         .order_by("data_vencimento")[:5]
+        if acesso_financeiro
+        else LancamentoFinanceiro.objects.none()
     )
 
     assinatura = getattr(request.tenant, "assinatura", None)
@@ -84,6 +91,7 @@ def painel(request):
         "tarefas_dashboard": tarefas_dashboard,
         "compromissos_dashboard": compromissos_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
+        "acesso_financeiro": acesso_financeiro,
         "plano_nome": plano_nome,
         "item_ativo": "painel",
     })

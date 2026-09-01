@@ -72,6 +72,7 @@
     </div>
   </a>
 
+  {% if acesso_financeiro %}
   {# A receber #}
   <a href="{% url 'financeiro:index' %}?filtro=receitas" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
@@ -97,6 +98,7 @@
       <p class="text-sm text-gray-500">A pagar</p>
     </div>
   </a>
+  {% endif %}
 
 </div>
 
@@ -168,6 +170,7 @@
     </div>
   </div>
 
+  {% if acesso_financeiro %}
   {# Bloco 3 — Financeiro pendente #}
   <div class="card p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
@@ -205,6 +208,7 @@
       {% endfor %}
     </div>
   </div>
+  {% endif %}
 
 </div>
 

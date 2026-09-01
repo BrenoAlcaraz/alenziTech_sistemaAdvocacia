@@ -3,9 +3,13 @@ from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+
+from apps.accounts.permissoes import tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_FINANCEIRO
 
 from .forms import LancamentoFinanceiroForm, CustaJudicialForm
 from .models import LancamentoFinanceiro, CustaJudicial
@@ -46,6 +50,8 @@ def _formatar_moeda(valor):
 
 @login_required
 def index(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     hoje = timezone.localdate()
     filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
 
@@ -125,6 +131,8 @@ def index(request):
 
 @login_required
 def custas(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     custas_qs = list(
         CustaJudicial.objects.select_related("cliente", "processo").order_by("-data", "-criado_em")
     )
@@ -163,6 +171,8 @@ def custas(request):
 
 @login_required
 def form_lancamento(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     if request.method == "POST":
         form = LancamentoFinanceiroForm(request.POST)
         if form.is_valid():
@@ -186,6 +196,8 @@ def form_lancamento(request):
 
 @login_required
 def editar_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
 
     if request.method == "POST":
@@ -212,6 +224,8 @@ def editar_lancamento(request, pk):
 
 @login_required
 def marcar_pago(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.status = "pago"
@@ -222,6 +236,8 @@ def marcar_pago(request, pk):
 
 @login_required
 def cancelar_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.status = "cancelado"
@@ -231,6 +247,8 @@ def cancelar_lancamento(request, pk):
 
 @login_required
 def reabrir_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.status = "pendente"
@@ -241,6 +259,8 @@ def reabrir_lancamento(request, pk):
 
 @login_required
 def excluir_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.delete()
@@ -249,6 +269,8 @@ def excluir_lancamento(request, pk):
 
 @login_required
 def form_custa(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
     if request.method == "POST":
         form = CustaJudicialForm(request.POST)
         if form.is_valid():

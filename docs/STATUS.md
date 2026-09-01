@@ -10,7 +10,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 |---|---|---|
 | Multitenancy | Feito | Sem segregação de arquivo por tenant; sem teste automatizado de isolamento cross-tenant |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (86 testes) | — |
-| Autorização — aplicado nas views | Parcial | Clientes, Processos e Tarefas consultam o kernel; Agenda/Financeiro/Dashboard/Chat/Modelos/Laboratório/Configurações usam só `@login_required` |
+| Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas e Financeiro consultam o kernel; Agenda/Chat/Modelos/Laboratório/Configurações usam só `@login_required`; Dashboard consulta o kernel só para o bloco financeiro, o resto ainda é só `@login_required` |
 | Escopo de dados | Parcial | Só Clientes, Processos e Tarefas filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)) |
 | Alteração de senha | Ausente | Botão existe na UI, sem rota/view por trás |
 
@@ -22,8 +22,8 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Processos | Feito (módulo, escopo, responsabilidade, apensos) | Partes usa modelo de 3 dimensões (PDR-0001/0011) que PDR-0013 já substituiu — simplificação pendente; `processos_atribuir_responsavel`/integrante habilitado (PDR-0014) não implementados; habilitação granular deliberadamente fora desta versão (PDR-0010) |
 | Tarefas | Feito (delegação PDR-0002 + autorização + escopo por responsável) | Notificação de conclusão (PDR-0016) ausente |
 | Agenda | Parcial | Sem escopo por responsável/participante; notificação 15min antes (PDR-0016) ausente; integridade cliente-processo não validada no backend |
-| Financeiro | Parcial | Sem modalidade parcelado/recorrente real; Solicitações e Honorários sem modelagem própria; sem distinção de acesso ao caixa geral; sem autorização |
-| Dashboard | Parcial | Agrega dados reais, mas sem filtro de escopo/autorização — todo usuário vê os mesmos totais, incluindo financeiro |
+| Financeiro | Parcial (autorização de módulo aplicada nas views) | Sem modalidade parcelado/recorrente real; Solicitações e Honorários sem modelagem própria; nível `solicitacoes`/`dados` já existe no kernel mas não é aplicado — depende de Solicitações modeladas (PDR-0006) |
+| Dashboard | Parcial | Bloco financeiro do painel já respeita autorização de módulo; demais totais (clientes/processos/tarefas/agenda) ainda sem filtro de escopo/autorização — todo usuário vê os mesmos números |
 | Chat | Parcial | Só sala global por tenant; conversas individuais/em grupo não existem |
 | Modelos | Parcial | Sem autorização de módulo aplicada; "meu estilo" é texto estático; sem versionamento/categorização |
 | Configurações | Parcial | Sem UI para papéis/habilitações; identidade visual só via Django Admin |
@@ -43,5 +43,6 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 - Simplificação do modelo de Partes de Processos (PDR-0013 já substituiu
   o que está implementado).
 - `processos_atribuir_responsavel` + integrante habilitado (PDR-0014).
-- Autorização de módulo nos demais módulos operacionais (Agenda,
-  Financeiro, Dashboard, Chat, Modelos, Configurações).
+- Autorização de módulo nos demais módulos operacionais (Agenda, Chat,
+  Modelos, Configurações) e no restante do Dashboard (clientes,
+  processos, tarefas, agenda).
