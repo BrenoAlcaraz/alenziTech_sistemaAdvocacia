@@ -10,8 +10,8 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 |---|---|---|
 | Multitenancy | Feito | Sem segregação de arquivo por tenant; sem teste automatizado de isolamento cross-tenant |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (86 testes) | — |
-| Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas e Financeiro consultam o kernel; Agenda/Chat/Modelos/Laboratório/Configurações usam só `@login_required`; Dashboard consulta o kernel só para o bloco financeiro, o resto ainda é só `@login_required` |
-| Escopo de dados | Parcial | Só Clientes, Processos e Tarefas filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)) |
+| Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas, Financeiro e Agenda consultam o kernel; Chat/Modelos/Laboratório/Configurações usam só `@login_required`; Dashboard consulta o kernel só para o bloco financeiro, o resto ainda é só `@login_required` |
+| Escopo de dados | Parcial | Só Clientes, Processos, Tarefas e Agenda filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)) |
 | Alteração de senha | Ausente | Botão existe na UI, sem rota/view por trás |
 
 ## Módulos
@@ -21,7 +21,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Clientes | Feito (autorização + escopo + responsabilidade) | Escopo por equipe é só placeholder visual; sem habilitação própria para desativar/reativar; sem UI de admin para papéis/habilitações |
 | Processos | Feito (módulo, escopo, responsabilidade, apensos) | Partes usa modelo de 3 dimensões (PDR-0001/0011) que PDR-0013 já substituiu — simplificação pendente; `processos_atribuir_responsavel`/integrante habilitado (PDR-0014) não implementados; habilitação granular deliberadamente fora desta versão (PDR-0010) |
 | Tarefas | Feito (delegação PDR-0002 + autorização + escopo por responsável) | Notificação de conclusão (PDR-0016) ausente |
-| Agenda | Parcial | Sem escopo por responsável/participante; notificação 15min antes (PDR-0016) ausente; integridade cliente-processo não validada no backend |
+| Agenda | Parcial (autorização de módulo + escopo por responsável aplicados nas views) | Escopo por participante não existe (campo não exposto em `CompromissoForm`, sem regra de produto); notificação 15min antes (PDR-0016) ausente; integridade cliente-processo não validada no backend |
 | Financeiro | Parcial (autorização de módulo aplicada nas views) | Sem modalidade parcelado/recorrente real; Solicitações e Honorários sem modelagem própria; nível `solicitacoes`/`dados` já existe no kernel mas não é aplicado — depende de Solicitações modeladas (PDR-0006) |
 | Dashboard | Parcial | Bloco financeiro do painel já respeita autorização de módulo; demais totais (clientes/processos/tarefas/agenda) ainda sem filtro de escopo/autorização — todo usuário vê os mesmos números |
 | Chat | Parcial | Só sala global por tenant; conversas individuais/em grupo não existem |
@@ -43,6 +43,6 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 - Simplificação do modelo de Partes de Processos (PDR-0013 já substituiu
   o que está implementado).
 - `processos_atribuir_responsavel` + integrante habilitado (PDR-0014).
-- Autorização de módulo nos demais módulos operacionais (Agenda, Chat,
-  Modelos, Configurações) e no restante do Dashboard (clientes,
-  processos, tarefas, agenda).
+- Autorização de módulo nos demais módulos operacionais (Chat, Modelos,
+  Configurações) e no restante do Dashboard (clientes, processos,
+  tarefas, agenda).

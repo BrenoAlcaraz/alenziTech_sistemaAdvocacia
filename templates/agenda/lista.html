@@ -12,23 +12,36 @@
 
 {# Filtros por período #}
 <div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-6">
-  <a href="{% url 'agenda:index' %}?filtro=proximos_7"
+  <a href="{% url 'agenda:index' %}?filtro=proximos_7&escopo={{ escopo_atual }}"
      class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'proximos_7' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
     Próximos 7 dias
   </a>
-  <a href="{% url 'agenda:index' %}?filtro=hoje"
+  <a href="{% url 'agenda:index' %}?filtro=hoje&escopo={{ escopo_atual }}"
      class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'hoje' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
     Hoje
   </a>
-  <a href="{% url 'agenda:index' %}?filtro=vencidos"
+  <a href="{% url 'agenda:index' %}?filtro=vencidos&escopo={{ escopo_atual }}"
      class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'vencidos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
     Vencidos
   </a>
-  <a href="{% url 'agenda:index' %}?filtro=todos"
+  <a href="{% url 'agenda:index' %}?filtro=todos&escopo={{ escopo_atual }}"
      class="px-4 py-2 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
     Todos
   </a>
 </div>
+
+{% if escopo_maximo == "todos" %}
+<div class="flex items-center gap-2 mb-4">
+  <a href="?filtro={{ filtro }}&escopo=todos"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Todos
+  </a>
+  <a href="?filtro={{ filtro }}&escopo=somente_seus"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Somente os seus
+  </a>
+</div>
+{% endif %}
 
 <div class="flex flex-col gap-2">
   {% for c in compromissos %}
@@ -67,6 +80,7 @@
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Cancelado</span>
           {% endif %}
 
+          {% if is_admin or c.responsavel == user %}
           <a href="{% url 'agenda:editar' c.pk %}" class="text-gray-400 hover:text-gray-700 transition-colors" title="Editar compromisso" aria-label="Editar compromisso">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -82,6 +96,7 @@
               </svg>
             </button>
           </form>
+          {% endif %}
 
         </div>
       </div>
@@ -138,6 +153,7 @@
         {% endif %}
 
         {# Ações rápidas de status #}
+        {% if is_admin or c.responsavel == user %}
         {% if c.status == "agendado" %}
           <form method="post" action="{% url 'agenda:concluir' c.pk %}">
             {% csrf_token %}
@@ -155,6 +171,7 @@
             <input type="hidden" name="next" value="{{ next_url }}">
             <button type="submit" class="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors">Reabrir</button>
           </form>
+        {% endif %}
         {% endif %}
 
       </div>
