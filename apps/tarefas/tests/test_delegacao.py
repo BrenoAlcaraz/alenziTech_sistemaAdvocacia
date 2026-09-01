@@ -2,11 +2,18 @@
 Testes de delegação de tarefas (PDR-0002): criação com destinatário
 diferente do criador, criação sem destinatário explícito, reatribuição
 preservando o histórico mínimo, e edição comum não altera o responsável.
+
+O criador destas fixtures recebe módulo `tarefas` + `tarefas_atribuir_outros`
+— pré-requisito de autorização introduzido para o módulo (ver
+apps/tarefas/tests/test_autorizacao.py) sem o qual a própria delegação
+seria rejeitada.
 """
 
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
+from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PerfilUsuario, PermissaoPapel, UsuarioPapel
+from apps.accounts.permissoes_constants import HAB_TAREFAS_ATRIBUIR_OUTROS, MODULO_TAREFAS, NIVEL_TODOS
 from apps.tarefas.models import ReatribuicaoTarefa, Tarefa
 
 
@@ -14,6 +21,9 @@ class TarefasDelegacaoBase(TenantTestCase):
     @classmethod
     def get_test_schema_name(cls):
         return "wi_delegacao_tarefas"
+
+    def _set_admin(self, user, value=True):
+        PerfilUsuario.objects.filter(user=user).update(is_admin_escritorio=value)
 
     def setUp(self):
         super().setUp()
@@ -23,6 +33,14 @@ class TarefasDelegacaoBase(TenantTestCase):
         self.http_host = dominio.domain if dominio else "localhost"
         self.criador = User.objects.create_user("criador", password="testpass")
         self.destinatario = User.objects.create_user("destinatario", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Delegação Tarefas")
+        UsuarioPapel.objects.create(usuario=self.criador, papel=papel)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+        )
+        HabilitacaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, item=HAB_TAREFAS_ATRIBUIR_OUTROS, ativo=True
+        )
         self.client.force_login(self.criador)
 
 
@@ -70,8 +88,16 @@ class TestCriacaoComDelegacao(TarefasDelegacaoBase):
 
 
 class TestReatribuicao(TarefasDelegacaoBase):
+    """
+    O criador é promovido a admin: após a primeira reatribuição ele deixa
+    de ser o responsável atual, e só o Administrador do escritório
+    mantém acesso de mutação a uma tarefa alheia — necessário para o
+    cenário de duas reatribuições consecutivas pelo mesmo ator.
+    """
+
     def setUp(self):
         super().setUp()
+        self._set_admin(self.criador, True)
         self.tarefa = Tarefa.objects.create(
             titulo="Protocolar recurso",
             criador=self.criador,
@@ -115,8 +141,16 @@ class TestReatribuicao(TarefasDelegacaoBase):
 
 
 class TestEdicaoNaoAlteraResponsavel(TarefasDelegacaoBase):
+    """
+    Editor é diferente do responsável da tarefa (criador != destinatario)
+    — sob o escopo de mutação (responsável ou Administrador), só o
+    Administrador alcança essa tarefa, por isso o criador é promovido a
+    admin aqui especificamente para exercitar o cenário.
+    """
+
     def setUp(self):
         super().setUp()
+        self._set_admin(self.criador, True)
         self.tarefa = Tarefa.objects.create(
             titulo="Audiência",
             criador=self.criador,

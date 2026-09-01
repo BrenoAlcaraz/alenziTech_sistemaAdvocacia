@@ -28,8 +28,22 @@
   </a>
 </div>
 
+{% if escopo_maximo == "todos" %}
+<div class="flex items-center gap-2 mb-4">
+  <a href="?ordem={{ ordem }}&escopo=todos"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Todos
+  </a>
+  <a href="?ordem={{ ordem }}&escopo=somente_seus"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Somente as suas
+  </a>
+</div>
+{% endif %}
+
 {# Seletor de ordenação #}
 <form method="get" class="flex justify-end mb-4">
+  <input type="hidden" name="escopo" value="{{ escopo_atual }}">
   <div class="flex items-center gap-2 text-sm">
     <span class="text-gray-500">Ordenar por:</span>
     <select name="ordem" class="select py-1" onchange="this.form.submit()">

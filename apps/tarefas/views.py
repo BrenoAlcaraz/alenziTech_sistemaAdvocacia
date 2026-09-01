@@ -1,8 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Case, When, Value, IntegerField, F
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from apps.accounts.decorators import usuario_admin_escritorio
+from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
+from apps.accounts.permissoes_constants import (
+    MODULO_TAREFAS,
+    HAB_TAREFAS_ATRIBUIR_OUTROS,
+    NIVEL_SOMENTE_SEUS,
+    NIVEL_TODOS,
+)
 from .models import ReatribuicaoTarefa, Tarefa
 from .forms import ReatribuirForm, TarefaForm
 
@@ -32,6 +41,62 @@ def _redirect_seguro(request):
     ):
         return redirect(next_url)
     return redirect("tarefas:quadro")
+
+
+_ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
+
+
+def _resolver_escopo(request):
+    """
+    Resolve o escopo efetivo de LEITURA (somente_seus/todos), seguindo o
+    mesmo contrato usado em `apps/clientes/views.py`: parâmetro AUSENTE
+    usa o nível máximo do usuário como padrão; parâmetro PRESENTE com
+    valor inválido (incluindo string vazia) ou acima do nível máximo
+    autorizado é sempre negado (403). Nunca usado por mutação.
+    Retorna (escopo_efetivo, nivel_maximo).
+    """
+    nivel_maximo = nivel_acesso_modulo(request.user, MODULO_TAREFAS)
+    if nivel_maximo not in _ESCOPOS_VALIDOS:
+        nivel_maximo = NIVEL_SOMENTE_SEUS
+
+    solicitado = request.GET.get("escopo")
+    if solicitado is None:
+        return nivel_maximo, nivel_maximo
+
+    if solicitado not in _ESCOPOS_VALIDOS:
+        raise PermissionDenied
+    if solicitado == NIVEL_TODOS and nivel_maximo != NIVEL_TODOS:
+        raise PermissionDenied
+    return solicitado, nivel_maximo
+
+
+def _tarefas_no_escopo(request, escopo):
+    """QuerySet de LEITURA (quadro/lista), restrito pelo escopo efetivo."""
+    qs = Tarefa.objects.select_related("responsavel", "processo", "cliente")
+    if escopo == NIVEL_SOMENTE_SEUS:
+        qs = qs.filter(responsavel=request.user)
+    return qs
+
+
+def _tarefas_mutaveis(request):
+    """
+    QuerySet usado para mutação (editar/reatribuir/concluir/etc.).
+
+    "Todos" é escopo de visualização, não autorização de mutação sobre
+    qualquer tarefa: um usuário não-admin só muta tarefa da própria
+    responsabilidade, mesmo com nível máximo `todos`. Só o Administrador
+    do escritório alcança qualquer tarefa do tenant para mutação.
+    """
+    qs = Tarefa.objects.all()
+    if not usuario_admin_escritorio(request.user):
+        qs = qs.filter(responsavel=request.user)
+    return qs
+
+
+def _pode_atribuir_a_outros(request):
+    return usuario_admin_escritorio(request.user) or tem_habilitacao(
+        request.user, MODULO_TAREFAS, HAB_TAREFAS_ATRIBUIR_OUTROS
+    )
 
 
 def _get_order_args(ordem):
@@ -67,8 +132,11 @@ def _get_order_args(ordem):
 
 @login_required
 def quadro(request):
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
     ordem = _normalizar_ordem(request.GET.get("ordem", "prazo_proximo"))
-    tarefas = Tarefa.objects.select_related("responsavel", "processo", "cliente").order_by(*_get_order_args(ordem))
+    escopo, escopo_maximo = _resolver_escopo(request)
+    tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
     tarefas_por_status = {
         "a_fazer": [t for t in tarefas if t.status == "a_fazer"],
         "em_andamento": [t for t in tarefas if t.status == "em_andamento"],
@@ -78,6 +146,9 @@ def quadro(request):
     return render(request, "tarefas/quadro.html", {
         "tarefas_por_status": tarefas_por_status,
         "ordem": ordem,
+        "escopo_atual": escopo,
+        "escopo_maximo": escopo_maximo,
+        "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
     })
@@ -85,11 +156,17 @@ def quadro(request):
 
 @login_required
 def lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
     ordem = _normalizar_ordem(request.GET.get("ordem", "prazo_proximo"))
-    tarefas = Tarefa.objects.select_related("responsavel", "processo", "cliente").order_by(*_get_order_args(ordem))
+    escopo, escopo_maximo = _resolver_escopo(request)
+    tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
     return render(request, "tarefas/lista.html", {
         "tarefas": tarefas,
         "ordem": ordem,
+        "escopo_atual": escopo,
+        "escopo_maximo": escopo_maximo,
+        "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
     })
@@ -97,13 +174,18 @@ def lista(request):
 
 @login_required
 def nova(request):
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
     if request.method == "POST":
         form = TarefaForm(request.POST)
         if form.is_valid():
+            destinatario = form.cleaned_data.get("destinatario")
+            if destinatario and destinatario != request.user and not _pode_atribuir_a_outros(request):
+                raise PermissionDenied
             tarefa = form.save(commit=False)
             tarefa.criador = request.user
             tarefa.atribuidor = request.user
-            tarefa.responsavel = form.cleaned_data.get("destinatario") or request.user
+            tarefa.responsavel = destinatario or request.user
             tarefa.atribuido_em = timezone.now()
             tarefa.status = "a_fazer"
             if not tarefa.cliente and tarefa.processo and tarefa.processo.cliente:
@@ -117,7 +199,10 @@ def nova(request):
 
 @login_required
 def editar(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         form = TarefaForm(request.POST, instance=tarefa)
         if form.is_valid():
@@ -142,11 +227,16 @@ def editar(request, pk):
 
 @login_required
 def reatribuir(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         form = ReatribuirForm(request.POST)
         if form.is_valid():
             novo_responsavel = form.cleaned_data["destinatario"]
+            if novo_responsavel != request.user and not _pode_atribuir_a_outros(request):
+                raise PermissionDenied
             ReatribuicaoTarefa.objects.create(
                 tarefa=tarefa,
                 responsavel_anterior=tarefa.responsavel,
@@ -170,7 +260,10 @@ def reatribuir(request, pk):
 
 @login_required
 def concluir(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         tarefa.status = "concluida"
         tarefa.save(update_fields=["status"])
@@ -179,7 +272,10 @@ def concluir(request, pk):
 
 @login_required
 def reabrir(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         tarefa.status = "a_fazer"
         tarefa.save(update_fields=["status"])
@@ -188,7 +284,10 @@ def reabrir(request, pk):
 
 @login_required
 def iniciar(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         tarefa.status = "em_andamento"
         tarefa.save(update_fields=["status"])
@@ -197,7 +296,10 @@ def iniciar(request, pk):
 
 @login_required
 def cancelar(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         tarefa.status = "cancelada"
         tarefa.save(update_fields=["status"])
@@ -206,7 +308,10 @@ def cancelar(request, pk):
 
 @login_required
 def excluir(request, pk):
-    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
         tarefa.delete()
     return _redirect_seguro(request)
