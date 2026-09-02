@@ -8,9 +8,7 @@ from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS
 
 from .models import (
-    ParteProcesso,
     Processo,
-    RepresentanteParte,
     VinculoProcessoApenso,
 )
 
@@ -36,67 +34,9 @@ def cliente_do_processo_corresponde_documento(processo, documento):
     return processo.cliente
 
 
-def vincular_responsavel_como_advogado(parte):
-    """Cria idempotentemente a representação interna automática da parte."""
-    return RepresentanteParte.objects.get_or_create(
-        parte=parte,
-        tipo="interno",
-        usuario=parte.processo.responsavel,
-        defaults={
-            "nome_externo": "",
-            "oab": "",
-            "uf_oab": "",
-            "telefone": "",
-            "email": "",
-        },
-    )
-
-
-def garantir_participante_cliente(processo):
-    """Garante a Regra A por FK, inclusive quando o Cliente não tem documento."""
-    if not processo.cliente_id:
-        return None
-
-    with transaction.atomic():
-        processo_atual = (
-            Processo.objects.select_for_update(of=("self",))
-            .get(pk=processo.pk)
-        )
-        participante, _ = ParteProcesso.objects.get_or_create(
-            processo=processo_atual,
-            cliente=processo_atual.cliente,
-            defaults={
-                "nome": "",
-                "cpf_cnpj": "",
-                "vinculo_escritorio": "cliente",
-                "posicao": None,
-                "qualificacao": None,
-                "atuacao_ministerio_publico": "",
-                "classificacao_pendente": True,
-            },
-        )
-        vincular_responsavel_como_advogado(participante)
-        return participante
-
-
-def obter_ou_criar_representante_externo(parte, representante):
-    """Deduplica somente a mesma identidade externa normalizada na mesma Parte."""
-    representante.parte = parte
-    representante.normalizar_identidade_externa()
-    defaults = {
-        "usuario": None,
-        "nome_externo": representante.nome_externo,
-        "oab": representante.oab,
-        "uf_oab": representante.uf_oab,
-        "telefone": representante.telefone,
-        "email": representante.email,
-    }
-    return RepresentanteParte.objects.get_or_create(
-        parte=parte,
-        tipo="externo",
-        fingerprint_externo=representante.fingerprint_externo,
-        defaults=defaults,
-    )
+def nome_exibicao_usuario(usuario):
+    """Nome de exibição de um usuário interno, com fallback para o username."""
+    return usuario.get_full_name() or usuario.username
 
 
 def vincular_processos_apensos(processo_a, processo_b):
@@ -200,10 +140,7 @@ def transferir_processos_de_usuarios_sem_acesso(usuario_ids):
             continue
 
         administrador = _administrador_ativo()
-        processo_ids = list(processos.values_list("pk", flat=True))
         transferidos += processos.update(responsavel=administrador)
-        for processo in Processo.objects.filter(pk__in=processo_ids):
-            garantir_participante_cliente(processo)
     return transferidos
 
 

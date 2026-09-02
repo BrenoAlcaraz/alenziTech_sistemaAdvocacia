@@ -19,7 +19,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Módulo | Estado | Gap principal |
 |---|---|---|
 | Clientes | Feito (autorização + escopo + responsabilidade) | Escopo por equipe é só placeholder visual; sem habilitação própria para desativar/reativar; sem UI de admin para papéis/habilitações |
-| Processos | Feito (módulo, escopo, responsabilidade, apensos) | Partes usa modelo de 3 dimensões (PDR-0001/0011) que PDR-0013 já substituiu — simplificação pendente; `processos_atribuir_responsavel`/integrante habilitado (PDR-0014) não implementados; habilitação granular deliberadamente fora desta versão (PDR-0010) |
+| Processos | Feito (módulo, escopo, responsabilidade, apensos, Partes no modelo simplificado do PDR-0013) | `processos_atribuir_responsavel`/integrante habilitado (PDR-0014) não implementados; habilitação granular deliberadamente fora desta versão (PDR-0010) |
 | Tarefas | Feito (delegação PDR-0002 + autorização + escopo por responsável) | Notificação de conclusão (PDR-0016) ausente |
 | Agenda | Parcial (autorização de módulo + escopo por responsável aplicados nas views) | Escopo por participante não existe (campo não exposto em `CompromissoForm`, sem regra de produto); notificação 15min antes (PDR-0016) ausente; integridade cliente-processo não validada no backend |
 | Financeiro | Parcial (autorização de módulo aplicada nas views) | Sem modalidade parcelado/recorrente real; Solicitações e Honorários sem modelagem própria; nível `solicitacoes`/`dados` já existe no kernel mas não é aplicado — depende de Solicitações modeladas (PDR-0006) |
@@ -40,8 +40,6 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 
 - Definir a próxima unidade de trabalho a partir das pendências já
   listadas acima — não antecipar qual, sem decisão do Product Owner.
-- Simplificação do modelo de Partes de Processos (PDR-0013 já substituiu
-  o que está implementado).
 - `processos_atribuir_responsavel` + integrante habilitado (PDR-0014).
 - Autorização de módulo em Configurações — depende de decisão própria
   (PDR) sobre delegar as views administrativas via `MODULO_GERIR` em

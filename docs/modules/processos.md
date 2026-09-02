@@ -71,7 +71,10 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 - Autoridades além de juiz (relator, desembargador, perito).
 - Mecanismo exato de criação rápida de cliente durante o fluxo de
   processo.
-- Estrutura técnica do histórico de mudança de qualificação processual.
+- Materialização automática do Cliente como Parte ao vincular o
+  Processo (PDR-0013, ponto em aberto) — implementação atual usa só o
+  fluxo manual de adicionar parte, com nome/CPF-CNPJ reaproveitáveis
+  por atalho no formulário, sem criação automática.
 
 ## Referências
 

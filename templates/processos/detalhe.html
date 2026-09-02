@@ -139,26 +139,37 @@
 {% elif aba_ativa == "partes" %}
 
   {% if pode_modificar %}
-  <form method="post" action="{% url 'processos:adicionar_parte' processo.pk %}" class="card px-5 py-4 mb-4">
+  <form method="post" action="{% url 'processos:adicionar_parte' processo.pk %}" id="form-adicionar-parte" class="card px-5 py-4 mb-4">
     {% csrf_token %}
-    <p class="text-sm font-semibold text-gray-900 mb-3">Adicionar participante ou autoridade</p>
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-sm font-semibold text-gray-900">Adicionar parte</p>
+      {% if processo.cliente %}
+      <button type="button" class="text-xs text-juridico-verde hover:underline" onclick="preencherParteComCliente()">
+        Usar dados do Cliente do processo
+      </button>
+      {% endif %}
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-      <div>{{ form_parte.tipo }}</div>
-      <div>{{ form_parte.vinculo_escritorio }}</div>
+      <div>{{ form_parte.papel }}</div>
       <div>{{ form_parte.nome }}</div>
       <div>{{ form_parte.cpf_cnpj }}</div>
-      <div>{{ form_parte.atuacao_ministerio_publico }}</div>
-      <div>{{ form_parte.vara_orgao }}</div>
-      <div class="md:col-span-2 lg:col-span-3">{{ form_parte.observacao }}</div>
+      <div>{{ form_parte.advogado_nome }}</div>
+      <div>{{ form_parte.advogado_oab }}</div>
     </div>
-    <p class="text-xs text-gray-400 mb-3">
-      Juiz é salvo como autoridade processual. Advogados são vinculados depois à respectiva parte.
-    </p>
-    <button type="submit" class="btn-primary text-sm">+ Adicionar participante</button>
+    <button type="submit" class="btn-primary text-sm">+ Adicionar parte</button>
   </form>
+  {% if processo.cliente %}
+  <script>
+    function preencherParteComCliente() {
+      var form = document.getElementById("form-adicionar-parte");
+      form.querySelector('[name="nome"]').value = "{{ processo.cliente.nome_razao_social|escapejs }}";
+      form.querySelector('[name="cpf_cnpj"]').value = "{{ processo.cliente.cpf_cnpj|escapejs }}";
+    }
+  </script>
+  {% endif %}
   {% endif %}
 
-  {% if partes or autoridades %}
+  {% if partes %}
   <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
     <section>
       <h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Polo Ativo</h2>
@@ -187,28 +198,14 @@
       <div class="flex flex-col gap-3">
         {% for parte in partes_outros %}
           {% include "processos/_parte_card.html" with parte=parte %}
+        {% empty %}
+          <div class="card px-4 py-3 text-sm text-gray-400">Nenhum participante.</div>
         {% endfor %}
-        {% for autoridade in autoridades %}
-          <div class="card px-5 py-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="font-medium text-gray-900">{{ autoridade.nome }}</p>
-                <p class="text-xs text-gray-400">{{ autoridade.vara_orgao }}</p>
-                {% if autoridade.observacao %}<p class="text-xs text-gray-500 mt-2">{{ autoridade.observacao }}</p>{% endif %}
-              </div>
-              <span class="badge-area">{{ autoridade.get_tipo_display }}</span>
-            </div>
-            <p class="text-xs text-gray-400 mt-3">Autoridade processual — não admite advogado.</p>
-          </div>
-        {% endfor %}
-        {% if not partes_outros and not autoridades %}
-          <div class="card px-4 py-3 text-sm text-gray-400">Nenhum participante ou autoridade.</div>
-        {% endif %}
       </div>
     </section>
   </div>
   {% else %}
-    {% include "components/empty_state.html" with mensagem="Nenhuma parte ou autoridade cadastrada." %}
+    {% include "components/empty_state.html" with mensagem="Nenhuma parte cadastrada." %}
   {% endif %}
 
 {% elif aba_ativa == "documentos" %}

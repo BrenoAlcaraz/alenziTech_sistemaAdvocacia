@@ -24,18 +24,8 @@ urlpatterns = [
         name="remover_apenso",
     ),
     path(
-        "processos/<int:pk>/partes/<int:parte_pk>/advogados/novo/",
-        views.adicionar_advogado,
-        name="adicionar_advogado",
-    ),
-    path(
-        "processos/<int:pk>/partes/<int:parte_pk>/classificacao/",
-        views.alterar_classificacao_parte,
-        name="alterar_classificacao_parte",
-    ),
-    path(
-        "processos/<int:pk>/partes/<int:parte_pk>/advogados/<int:representante_pk>/remover/",
-        views.remover_advogado,
-        name="remover_advogado",
+        "processos/<int:pk>/partes/<int:parte_pk>/editar/",
+        views.editar_parte,
+        name="editar_parte",
     ),
 ]

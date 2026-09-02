@@ -186,7 +186,7 @@ class TestProcessosAutorizacaoModuloNegado(ProcessosAutorizacaoBase):
         antes = self.processo.partes.count()
         r = self.client.post(
             f"/processos/{self.processo.pk}/partes/nova/",
-            {"nome": "Parte Tentativa", "tipo": "autor", "vinculo_escritorio": "outro"},
+            {"nome": "Parte Tentativa", "papel": "autor"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
@@ -307,7 +307,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         antes = self.processo.partes.count()
         r = self.client.post(
             f"/processos/{self.processo.pk}/partes/nova/",
-            {"nome": "Parte Autorizada", "tipo": "autor", "vinculo_escritorio": "outro"},
+            {"nome": "Parte Autorizada", "papel": "autor"},
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(

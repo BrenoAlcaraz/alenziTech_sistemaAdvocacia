@@ -16,6 +16,17 @@ class TestMigrationApensosProcesso(TenantTestCase):
     def _fixture_teardown(self):
         return TransactionTestCase._fixture_teardown(self)
 
+    def tearDown(self):
+        # Recoloca o schema no HEAD de todas as apps antes do flush da
+        # TransactionTestCase — o teste move deliberadamente "processos"
+        # para um estado de migration anterior ao HEAD, e o flush usa o
+        # registry de models em Python (HEAD), não o estado físico do
+        # schema; sem isso, tabelas removidas do HEAD mas ainda presentes
+        # no estado testado quebram o TRUNCATE por FK pendente.
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        super().tearDown()
+
     @classmethod
     def get_test_schema_name(cls):
         return "wi0007_apensos_migration"

@@ -13,24 +13,19 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from .models import ParteProcesso, Processo, RepresentanteParte
+from .models import Processo
 from .forms import (
     AdicionarApensoForm,
-    ClassificacaoParteForm,
     MovimentacaoProcessualForm,
     ParteProcessoForm,
     ProcessoForm,
     ProcessoResponsavelForm,
-    RepresentanteParteForm,
 )
 from .services import (
-    cliente_do_processo_corresponde_documento,
     ids_processos_apensos_do,
-    obter_ou_criar_representante_externo,
     responsaveis_elegiveis,
     vincular_processos_apensos,
     vinculos_apensos_do,
-    vincular_responsavel_como_advogado,
 )
 
 
@@ -88,9 +83,7 @@ def detalhe(request, pk):
     escopo, _ = _resolver_escopo(request)
     processo = get_object_or_404(
         _processos_no_escopo(request, escopo).prefetch_related(
-            "partes__cliente",
-            "partes__representantes__usuario",
-            "autoridades",
+            "partes",
             "movimentacoes",
         ),
         pk=pk,
@@ -101,12 +94,8 @@ def detalhe(request, pk):
     )
     partes = list(processo.partes.all())
     for parte in partes:
-        if pode_modificar and not parte.registro_legado:
-            parte.form_classificacao = ClassificacaoParteForm(initial={
-                "tipo": parte.qualificacao,
-                "atuacao_ministerio_publico": parte.atuacao_ministerio_publico,
-            })
-    autoridades = list(processo.autoridades.all())
+        if pode_modificar:
+            parte.form_editar = ParteProcessoForm(instance=parte, processo=processo)
     vinculos_apensos = list(
         vinculos_apensos_do(
             processo,
@@ -153,14 +142,12 @@ def detalhe(request, pk):
         "partes_polo_ativo": [p for p in partes if p.grupo_visual == "polo_ativo"],
         "partes_polo_passivo": [p for p in partes if p.grupo_visual == "polo_passivo"],
         "partes_outros": [p for p in partes if p.grupo_visual == "outros"],
-        "autoridades": autoridades,
-        "participantes_total": len(partes) + len(autoridades),
+        "participantes_total": len(partes),
         "apensos": apensos,
         "apensos_total": len(apensos),
         "form_apenso": form_apenso,
         "tem_candidatos_apenso": candidatos_apenso.exists(),
-        "form_parte": ParteProcessoForm(initial={"vara_orgao": processo.vara_juizo}),
-        "form_advogado": RepresentanteParteForm(),
+        "form_parte": ParteProcessoForm(processo=processo),
         "form_movimentacao": MovimentacaoProcessualForm(),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
@@ -332,75 +319,23 @@ def adicionar_parte(request, pk):
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
     if request.method == "POST":
-        form = ParteProcessoForm(request.POST)
+        form = ParteProcessoForm(request.POST, processo=processo)
         if form.is_valid():
-            with transaction.atomic():
-                cliente = cliente_do_processo_corresponde_documento(
-                    processo,
-                    form.cleaned_data.get("cpf_cnpj"),
-                )
-                participante = form.criar_para_processo(
-                    processo,
-                    cliente=cliente,
-                    usuario=request.user,
-                )
-                if isinstance(participante, ParteProcesso) and cliente is not None:
-                    vincular_responsavel_como_advogado(participante)
+            parte = form.save(commit=False)
+            parte.processo = processo
+            parte.save()
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
 
 
 @login_required
-def adicionar_advogado(request, pk, parte_pk):
+def editar_parte(request, pk, parte_pk):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
     parte = get_object_or_404(processo.partes, pk=parte_pk)
     if request.method == "POST":
-        form = RepresentanteParteForm(request.POST)
+        form = ParteProcessoForm(request.POST, instance=parte, processo=processo)
         if form.is_valid():
-            representante = form.save(commit=False)
-            representante.parte = parte
-            if representante.tipo == "interno":
-                RepresentanteParte.objects.get_or_create(
-                    parte=parte,
-                    tipo="interno",
-                    usuario=representante.usuario,
-                )
-            else:
-                obter_ou_criar_representante_externo(parte, representante)
-    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
-
-
-@login_required
-def alterar_classificacao_parte(request, pk, parte_pk):
-    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
-        raise PermissionDenied
-    _resolver_escopo(request)
-    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
-    parte = get_object_or_404(
-        processo.partes.filter(registro_legado=False),
-        pk=parte_pk,
-    )
-    if request.method == "POST":
-        form = ClassificacaoParteForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                form.salvar(parte, usuario=request.user)
-    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
-
-
-@login_required
-def remover_advogado(request, pk, parte_pk, representante_pk):
-    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
-        raise PermissionDenied
-    _resolver_escopo(request)
-    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
-    parte = get_object_or_404(processo.partes, pk=parte_pk)
-    representante = get_object_or_404(
-        parte.representantes,
-        pk=representante_pk,
-    )
-    if request.method == "POST":
-        representante.delete()
+            form.save()
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
