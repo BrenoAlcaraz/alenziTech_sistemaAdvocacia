@@ -45,10 +45,11 @@ MODULO_CHOICES = [
 ]
 
 # Módulos que possuem itens de habilitação nesta versão.
-# Financeiro, Chat e Painel foram deliberadamente avaliados e não têm itens.
+# Chat e Painel foram deliberadamente avaliados e não têm itens.
 MODULO_HABILITACAO_CHOICES = [
     (MODULO_PROCESSOS, "Processos"),
     (MODULO_CLIENTES, "Clientes"),
+    (MODULO_FINANCEIRO, "Financeiro"),
     (MODULO_TAREFAS, "Tarefas"),
     (MODULO_MODELOS, "Modelos de peças"),
     (MODULO_AGENDA, "Agenda"),
@@ -103,6 +104,8 @@ HAB_MODELOS_EDITAR_ESTILO = "modelos_editar_estilo"
 
 HAB_AGENDA_CRIAR_PARA_OUTROS = "agenda_criar_para_outros"
 
+HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO = "financeiro_reabrir_lancamento_pago"
+
 HAB_GERIR_CRIAR_USUARIO = "gerir_criar_usuario"
 HAB_GERIR_HABILITAR_USUARIO_PROCESSOS = "gerir_habilitar_usuario_processos"
 HAB_GERIR_CRIAR_EQUIPE = "gerir_criar_equipe"
@@ -121,6 +124,7 @@ ITEM_CHOICES = [
     (HAB_MODELOS_CRIAR, "Criar modelo de peça"),
     (HAB_MODELOS_EDITAR_ESTILO, "Editar estilo de peças"),
     (HAB_AGENDA_CRIAR_PARA_OUTROS, "Criar compromisso para outros usuários"),
+    (HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO, "Reabrir lançamento gerado por solicitação paga"),
     (HAB_GERIR_CRIAR_USUARIO, "Criar usuário"),
     (HAB_GERIR_HABILITAR_USUARIO_PROCESSOS, "Habilitar usuário em processos"),
     (HAB_GERIR_CRIAR_EQUIPE, "Criar equipe"),
@@ -150,6 +154,9 @@ ITENS_POR_MODULO = {
     MODULO_AGENDA: [
         HAB_AGENDA_CRIAR_PARA_OUTROS,
     ],
+    MODULO_FINANCEIRO: [
+        HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
+    ],
     MODULO_GERIR: [
         HAB_GERIR_CRIAR_USUARIO,
         HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
@@ -157,7 +164,6 @@ ITENS_POR_MODULO = {
         HAB_GERIR_HABILITAR_TERCEIROS,
     ],
     # sem habilitações nesta versão
-    MODULO_FINANCEIRO: [],
     MODULO_CHAT: [],
     MODULO_PAINEL: [],
 }
@@ -196,6 +202,7 @@ NOMES_ITENS = {
     HAB_MODELOS_CRIAR: "Criar modelo de peça",
     HAB_MODELOS_EDITAR_ESTILO: "Editar estilo de peças",
     HAB_AGENDA_CRIAR_PARA_OUTROS: "Criar compromisso para outros usuários",
+    HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO: "Reabrir lançamento gerado por solicitação paga",
     HAB_GERIR_CRIAR_USUARIO: "Criar usuário",
     HAB_GERIR_HABILITAR_USUARIO_PROCESSOS: "Habilitar usuário em processos",
     HAB_GERIR_CRIAR_EQUIPE: "Criar equipe",

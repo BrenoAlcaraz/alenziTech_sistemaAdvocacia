@@ -499,6 +499,9 @@ class HabilitacaoPapel(models.Model):
                     | Q(modulo="agenda", item__in=[
                         "agenda_criar_para_outros",
                     ])
+                    | Q(modulo="financeiro", item__in=[
+                        "financeiro_reabrir_lancamento_pago",
+                    ])
                     | Q(modulo="gerir", item__in=[
                         "gerir_criar_usuario",
                         "gerir_habilitar_usuario_processos",
@@ -608,6 +611,9 @@ class HabilitacaoUsuario(models.Model):
                     ])
                     | Q(modulo="agenda", item__in=[
                         "agenda_criar_para_outros",
+                    ])
+                    | Q(modulo="financeiro", item__in=[
+                        "financeiro_reabrir_lancamento_pago",
                     ])
                     | Q(modulo="gerir", item__in=[
                         "gerir_criar_usuario",

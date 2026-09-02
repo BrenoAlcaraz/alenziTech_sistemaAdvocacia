@@ -9,8 +9,14 @@ from django.http import FileResponse, Http404
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS, NIVEL_SOLICITACOES
+from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo, tem_habilitacao
+from apps.accounts.permissoes_constants import (
+    HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
+    MODULO_FINANCEIRO,
+    NIVEL_DADOS,
+    NIVEL_SOLICITACOES,
+)
+from apps.notificacoes.models import Notificacao
 
 from .forms import LancamentoFinanceiroForm, CustaJudicialForm, SolicitacaoFinanceiraForm
 from .models import LancamentoFinanceiro, CustaJudicial, SolicitacaoFinanceira
@@ -276,12 +282,20 @@ def reabrir_lancamento(request, pk):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
-    if hasattr(lancamento, "solicitacao_origem"):
+    origem = getattr(lancamento, "solicitacao_origem", None)
+    if origem is not None and not tem_habilitacao(
+        request.user, MODULO_FINANCEIRO, HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO
+    ):
         raise PermissionDenied
     if request.method == "POST":
         lancamento.status = "pendente"
         lancamento.data_pagamento = None
         lancamento.save(update_fields=["status", "data_pagamento"])
+        if origem is not None and origem.solicitante_id and origem.solicitante_id != request.user.id:
+            Notificacao.objects.create(
+                destinatario=origem.solicitante,
+                mensagem=f'Lançamento reaberto: "{lancamento.descricao}"',
+            )
     return _redirect_seguro(request)
 
 

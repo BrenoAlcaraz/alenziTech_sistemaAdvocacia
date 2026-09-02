@@ -20,9 +20,15 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS, NIVEL_SOLICITACOES
+from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, UsuarioPapel
+from apps.accounts.permissoes_constants import (
+    HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
+    MODULO_FINANCEIRO,
+    NIVEL_DADOS,
+    NIVEL_SOLICITACOES,
+)
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
+from apps.notificacoes.models import Notificacao
 
 _MEDIA_TMP = tempfile.mkdtemp(prefix="lawsystem_test_media_")
 
@@ -50,12 +56,17 @@ class SolicitacaoFinanceiraBase(TenantTestCase):
     def _new_papel(self, nome):
         return PapelAcesso.objects.create(nome=nome, ativo=True)
 
-    def _conceder_modulo(self, user, *, nivel):
+    def _conceder_modulo(self, user, *, nivel, habilitacoes=None):
         papel = self._new_papel(f"Papel Financeiro {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
             papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
         )
+        for item in habilitacoes or []:
+            HabilitacaoPapel.objects.create(
+                papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, item=item, ativo=True
+            )
+        return papel
 
     def _solicitacao(self, *, solicitante, **kwargs):
         defaults = {
@@ -374,6 +385,74 @@ class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
         )
         self.assertEqual(r.status_code, 403)
         self.assertTrue(LancamentoFinanceiro.objects.filter(pk=lancamento.pk).exists())
+
+    def test_reabrir_lancamento_com_habilitacao_autorizado_e_notifica_solicitante(self):
+        habilitado = self._user("financeiro_habilitado")
+        self._conceder_modulo(
+            habilitado, nivel=NIVEL_DADOS, habilitacoes=[HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO]
+        )
+        self.client.force_login(habilitado)
+
+        self.solicitacao.avancar_para("em_analise")
+        self.solicitacao.avancar_para("aprovada")
+        self.solicitacao.avancar_para("paga")
+        lancamento = self.solicitacao.lancamento
+        antes = Notificacao.objects.count()
+
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/reabrir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        lancamento.refresh_from_db()
+        self.assertEqual(lancamento.status, "pendente")
+        self.assertIsNone(lancamento.data_pagamento)
+
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "paga")
+
+        self.assertEqual(Notificacao.objects.count(), antes + 1)
+        notificacao = Notificacao.objects.latest("criado_em")
+        self.assertEqual(notificacao.destinatario, self.solicitante)
+
+    def test_reabrir_lancamento_pelo_proprio_solicitante_nao_notifica_a_si_mesmo(self):
+        solicitante_habilitado = self._user("solicitante_habilitado")
+        self._conceder_modulo(
+            solicitante_habilitado,
+            nivel=NIVEL_DADOS,
+            habilitacoes=[HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO],
+        )
+        solicitacao = self._solicitacao(solicitante=solicitante_habilitado)
+        solicitacao.avancar_para("em_analise")
+        solicitacao.avancar_para("aprovada")
+        solicitacao.avancar_para("paga")
+        lancamento = solicitacao.lancamento
+
+        self.client.force_login(solicitante_habilitado)
+        antes = Notificacao.objects.count()
+
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/reabrir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        lancamento.refresh_from_db()
+        self.assertEqual(lancamento.status, "pendente")
+        self.assertEqual(Notificacao.objects.count(), antes)
+
+    def test_reabrir_lancamento_sem_origem_nao_exige_habilitacao(self):
+        lancamento = LancamentoFinanceiro.objects.create(
+            tipo="despesa",
+            descricao="Despesa avulsa",
+            valor="80.00",
+            data_vencimento="2026-08-25",
+            status="pago",
+            data_pagamento="2026-08-25",
+        )
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/reabrir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        lancamento.refresh_from_db()
+        self.assertEqual(lancamento.status, "pendente")
 
 
 class TestSolicitacoesModuloNegado(SolicitacaoFinanceiraBase):
