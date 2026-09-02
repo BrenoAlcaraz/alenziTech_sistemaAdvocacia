@@ -13,7 +13,6 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Autorização — kernel (`apps/accounts`) | Feito, testado (86 testes) | — |
 | Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas, Financeiro, Agenda, Chat e Modelos consultam o kernel; Laboratório (shell sem lógica de negócio) e Configurações usam só `@login_required`/`@requer_admin_escritorio`; Dashboard consulta o kernel em todos os blocos (clientes, processos, tarefas, agenda, financeiro) |
 | Escopo de dados | Parcial | Só Clientes, Processos, Tarefas e Agenda filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)) |
-| Alteração de senha | Ausente | Botão existe na UI, sem rota/view por trás |
 
 ## Módulos
 

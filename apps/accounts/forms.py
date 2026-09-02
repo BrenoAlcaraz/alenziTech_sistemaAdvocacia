@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import Group, User
 
 from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
@@ -204,6 +204,20 @@ class MembroEquipeForm(forms.ModelForm):
             .order_by("username")
         )
         self.fields["usuario"].empty_label = "Selecione um usuário"
+
+
+class AlterarSenhaForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["old_password"].widget.attrs.update(
+            {"class": "input", "placeholder": "Senha atual"}
+        )
+        self.fields["new_password1"].widget.attrs.update(
+            {"class": "input", "placeholder": "Nova senha"}
+        )
+        self.fields["new_password2"].widget.attrs.update(
+            {"class": "input", "placeholder": "Confirme a nova senha"}
+        )
 
 
 class PerfilUsuarioForm(forms.ModelForm):

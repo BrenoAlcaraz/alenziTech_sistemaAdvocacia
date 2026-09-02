@@ -1,4 +1,6 @@
 from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -9,7 +11,13 @@ from apps.accounts.decorators import (
     requer_admin_escritorio,
     usuario_admin_escritorio,
 )
-from apps.accounts.forms import CriarUsuarioEscritorioForm, EquipeForm, MembroEquipeForm, PerfilUsuarioForm
+from apps.accounts.forms import (
+    AlterarSenhaForm,
+    CriarUsuarioEscritorioForm,
+    EquipeForm,
+    MembroEquipeForm,
+    PerfilUsuarioForm,
+)
 from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario, PermissaoPapel
 from apps.accounts.permissoes_constants import TIPOS_CONTA_CONFIGURAVEIS
 from apps.processos.services import (
@@ -91,6 +99,28 @@ def editar_perfil(request):
         {
             "form": form,
             "perfil": perfil,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@login_required
+def alterar_senha(request):
+    if request.method == "POST":
+        form = AlterarSenhaForm(request.user, request.POST)
+        if form.is_valid():
+            usuario = form.save()
+            update_session_auth_hash(request, usuario)
+            messages.success(request, "Senha alterada com sucesso.")
+            return redirect("configuracoes:index")
+    else:
+        form = AlterarSenhaForm(request.user)
+
+    return render(
+        request,
+        "configuracoes/alterar_senha.html",
+        {
+            "form": form,
             "item_ativo": "configuracoes",
         },
     )
