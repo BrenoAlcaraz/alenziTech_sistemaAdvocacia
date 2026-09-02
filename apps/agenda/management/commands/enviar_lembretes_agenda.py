@@ -4,6 +4,12 @@ Compromisso agendado que esteja por volta de 15 minutos antes de
 `data_hora_inicio` e ainda não tenha gerado lembrete. Disparo periódico
 concreto (cron do SO, Windows Task Scheduler etc.) é externo a este
 comando.
+
+A janela é limitada também para trás (não só para a frente): um
+compromisso vencido há muito tempo sem ter sido concluído/cancelado não
+deve gerar lembrete tardio na primeira execução do job ou após uma
+pausa longa do agendador — o valor de "faltam 15 minutos" já não existe
+depois desse ponto.
 """
 
 from datetime import timedelta
@@ -27,17 +33,20 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        limite = timezone.now() + timedelta(minutes=MINUTOS_ANTECEDENCIA)
+        agora = timezone.now()
+        janela_inicio = agora - timedelta(minutes=MINUTOS_ANTECEDENCIA)
+        janela_fim = agora + timedelta(minutes=MINUTOS_ANTECEDENCIA)
         for escritorio in Escritorio.objects.filter(ativo=True):
             with schema_context(escritorio.schema_name):
-                self._notificar_tenant(limite)
+                self._notificar_tenant(janela_inicio, janela_fim)
 
-    def _notificar_tenant(self, limite):
+    def _notificar_tenant(self, janela_inicio, janela_fim):
         elegiveis = Compromisso.objects.filter(
             status="agendado",
             responsavel__isnull=False,
             lembrete_enviado=False,
-            data_hora_inicio__lte=limite,
+            data_hora_inicio__gt=janela_inicio,
+            data_hora_inicio__lte=janela_fim,
         )
         for compromisso in elegiveis:
             self._notificar_compromisso(compromisso)

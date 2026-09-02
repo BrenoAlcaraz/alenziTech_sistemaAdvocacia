@@ -68,6 +68,13 @@ class TestLembreteForaDaJanela(LembretesAgendaBase):
         compromisso.refresh_from_db()
         self.assertFalse(compromisso.lembrete_enviado)
 
+    def test_compromisso_vencido_ha_muito_tempo_nao_gera_lembrete_tardio(self):
+        compromisso = self._compromisso(minutos_para_inicio=-20)
+        self._rodar_comando()
+        self.assertFalse(Notificacao.objects.exists())
+        compromisso.refresh_from_db()
+        self.assertFalse(compromisso.lembrete_enviado)
+
 
 class TestLembreteNaoGeradoQuandoNaoElegivel(LembretesAgendaBase):
     def test_compromisso_concluido_nao_gera_notificacao(self):
