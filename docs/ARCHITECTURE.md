@@ -117,7 +117,13 @@ distintos.
   particionado); nenhum model de negócio tem `FileField` hoje.
 - Sem cache configurado, sem fila assíncrona (Celery/Redis/Channels) —
   qualquer introdução futura precisa carregar contexto de tenant
-  explicitamente.
+  explicitamente. Primeiro job periódico do projeto (PDR-0016, lembrete
+  de Agenda) segue esse padrão via management command (`python manage.py
+  enviar_lembretes_agenda`, `apps/agenda/management/commands/`),
+  iterando `Escritorio` ativo e entrando no schema de cada um com
+  `schema_context`; disparo periódico real (cron do SO, Task Scheduler)
+  é externo ao código. Reutilizar esse padrão antes de criar um novo
+  para qualquer próximo job por tenant.
 - Platform Admin não tem mecanismo de autorização dedicado — hoje é
   só superuser do Django Admin padrão.
 

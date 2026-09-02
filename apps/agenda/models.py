@@ -35,6 +35,7 @@ class Compromisso(models.Model):
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
     criado_em = models.DateTimeField(auto_now_add=True)
+    lembrete_enviado = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Compromisso"
@@ -43,3 +44,12 @@ class Compromisso(models.Model):
 
     def __str__(self):
         return self.titulo
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            data_anterior = Compromisso.objects.filter(pk=self.pk).values_list(
+                "data_hora_inicio", flat=True
+            ).first()
+            if data_anterior is not None and data_anterior != self.data_hora_inicio:
+                self.lembrete_enviado = False
+        super().save(*args, **kwargs)
