@@ -99,6 +99,13 @@
       </svg>
       Apensos <span class="text-gray-400">({{ apensos_total }})</span>
     </a>
+    <a href="?aba=integrantes"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'integrantes' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      Integrantes <span class="text-gray-400">({{ integrantes_total }})</span>
+    </a>
   </nav>
 </div>
 
@@ -259,6 +266,42 @@
     {% empty %}
       <div class="md:col-span-2">
         {% include "components/empty_state.html" with mensagem="Nenhum processo referenciado como apenso." %}
+      </div>
+    {% endfor %}
+  </div>
+
+{% elif aba_ativa == "integrantes" %}
+
+  {% if pode_gerenciar_integrantes %}
+  <form method="post" action="{% url 'processos:adicionar_integrante' processo.pk %}" class="card px-5 py-4 mb-4">
+    {% csrf_token %}
+    <p class="text-sm font-semibold text-gray-900 mb-3">Adicionar integrante habilitado</p>
+    <div class="flex items-center gap-3">
+      <div class="flex-1">{{ form_integrante.usuario }}</div>
+      <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_integrante %}disabled{% endif %}>
+        Adicionar integrante
+      </button>
+    </div>
+    {% if not tem_candidatos_integrante %}
+      <p class="text-xs text-gray-400 mt-2">Nenhum usuário elegível para adicionar.</p>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {% for integrante in integrantes %}
+      <div class="card px-5 py-4 flex items-center justify-between gap-4">
+        <p class="text-sm font-medium text-gray-900">{{ integrante.get_full_name|default:integrante.username }}</p>
+        {% if pode_gerenciar_integrantes %}
+        <form method="post" action="{% url 'processos:remover_integrante' processo.pk integrante.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
+        </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="md:col-span-2">
+        {% include "components/empty_state.html" with mensagem="Nenhum integrante habilitado além do responsável." %}
       </div>
     {% endfor %}
   </div>

@@ -87,7 +87,8 @@ class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
 
 
 class ProcessoResponsavelForm(ProcessoForm):
-    """Variante exclusiva do Administrador, com reatribuição explícita."""
+    """Variante com reatribuição explícita de responsável — Administrador
+    ou usuário com a habilitação `processos_atribuir_responsavel`."""
 
     responsavel = ResponsavelProcessoChoiceField(
         queryset=User.objects.none(),
@@ -110,6 +111,18 @@ class ProcessoApensoChoiceField(forms.ModelChoiceField):
         if obj.numero:
             return f"{obj.numero} — {obj.titulo}"
         return obj.titulo
+
+
+class AdicionarIntegranteForm(forms.Form):
+    usuario = ResponsavelProcessoChoiceField(
+        queryset=User.objects.none(),
+        label="Usuário",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, usuarios_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["usuario"].queryset = usuarios_queryset
 
 
 class AdicionarApensoForm(forms.Form):

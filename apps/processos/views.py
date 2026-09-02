@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -7,8 +8,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from apps.accounts.escopo import equipe_padrao_para_usuario
 from apps.accounts.decorators import usuario_admin_escritorio
-from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo
+from apps.accounts.permissoes import nivel_acesso_modulo, tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
+    HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
+    HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
+    MODULO_GERIR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -16,6 +20,7 @@ from apps.accounts.permissoes_constants import (
 from .models import Processo
 from .forms import (
     AdicionarApensoForm,
+    AdicionarIntegranteForm,
     MovimentacaoProcessualForm,
     ParteProcessoForm,
     ProcessoForm,
@@ -29,7 +34,20 @@ from .services import (
 )
 
 
+User = get_user_model()
+
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
+
+
+def _pode_atribuir_responsavel(user):
+    # tem_habilitacao já concede automaticamente ao Administrador do
+    # escritório (bypass interno do kernel), independentemente desta
+    # habilitação — ver apps/accounts/permissoes.py.
+    return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL)
+
+
+def _pode_gerenciar_integrantes(user):
+    return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_HABILITAR_USUARIO_PROCESSOS)
 
 
 def _resolver_escopo(request):
@@ -85,6 +103,7 @@ def detalhe(request, pk):
         _processos_no_escopo(request, escopo).prefetch_related(
             "partes",
             "movimentacoes",
+            "integrantes_habilitados",
         ),
         pk=pk,
     )
@@ -92,6 +111,7 @@ def detalhe(request, pk):
         usuario_admin_escritorio(request.user)
         or processo.responsavel_id == request.user.pk
     )
+    pode_gerenciar_integrantes = _pode_gerenciar_integrantes(request.user)
     partes = list(processo.partes.all())
     for parte in partes:
         if pode_modificar:
@@ -135,6 +155,13 @@ def detalhe(request, pk):
         processo_origem=processo,
         processos_queryset=candidatos_apenso,
     )
+    integrantes = list(processo.integrantes_habilitados.all())
+    candidatos_integrante = User.objects.none()
+    if pode_gerenciar_integrantes:
+        candidatos_integrante = responsaveis_elegiveis().exclude(
+            pk__in=[integrante.pk for integrante in integrantes]
+        )
+    form_integrante = AdicionarIntegranteForm(usuarios_queryset=candidatos_integrante)
     return render(request, "processos/detalhe.html", {
         "processo": processo,
         "movimentacoes": processo.movimentacoes.order_by("-data"),
@@ -147,6 +174,11 @@ def detalhe(request, pk):
         "apensos_total": len(apensos),
         "form_apenso": form_apenso,
         "tem_candidatos_apenso": candidatos_apenso.exists(),
+        "integrantes": integrantes,
+        "integrantes_total": len(integrantes),
+        "form_integrante": form_integrante,
+        "tem_candidatos_integrante": candidatos_integrante.exists(),
+        "pode_gerenciar_integrantes": pode_gerenciar_integrantes,
         "form_parte": ParteProcessoForm(processo=processo),
         "form_movimentacao": MovimentacaoProcessualForm(),
         "aba_ativa": request.GET.get("aba", "andamentos"),
@@ -199,19 +231,49 @@ def remover_apenso(request, pk, vinculo_pk):
 
 
 @login_required
+@require_POST
+def adicionar_integrante(request, pk):
+    if not _pode_gerenciar_integrantes(request.user):
+        raise PermissionDenied
+    processo = get_object_or_404(Processo, pk=pk)
+    formulario = AdicionarIntegranteForm(
+        request.POST,
+        usuarios_queryset=responsaveis_elegiveis().exclude(
+            pk__in=processo.integrantes_habilitados.values("pk")
+        ),
+    )
+    if not formulario.is_valid():
+        raise Http404
+    processo.integrantes_habilitados.add(formulario.cleaned_data["usuario"])
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
+
+
+@login_required
+@require_POST
+def remover_integrante(request, pk, usuario_pk):
+    if not _pode_gerenciar_integrantes(request.user):
+        raise PermissionDenied
+    processo = get_object_or_404(Processo, pk=pk)
+    usuario = get_object_or_404(processo.integrantes_habilitados, pk=usuario_pk)
+    processo.integrantes_habilitados.remove(usuario)
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
+
+
+@login_required
 def novo(request):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
-    is_admin = usuario_admin_escritorio(request.user)
-    FormClass = ProcessoResponsavelForm if is_admin else ProcessoForm
+    pode_atribuir_responsavel = _pode_atribuir_responsavel(request.user)
+    FormClass = ProcessoResponsavelForm if pode_atribuir_responsavel else ProcessoForm
     form_kwargs = (
-        {"responsaveis_queryset": responsaveis_elegiveis()} if is_admin else {}
+        {"responsaveis_queryset": responsaveis_elegiveis()}
+        if pode_atribuir_responsavel else {}
     )
     if request.method == "POST":
         form = FormClass(request.POST, **form_kwargs)
         if form.is_valid():
             processo = form.save(commit=False)
-            if not is_admin:
+            if not pode_atribuir_responsavel:
                 processo.responsavel = request.user
             processo.status = "ativo"
             if not processo.equipe:
@@ -219,13 +281,13 @@ def novo(request):
             processo.save()
             return redirect("processos:detalhe", pk=processo.pk)
     else:
-        initial = {"responsavel": request.user.pk} if is_admin else {}
+        initial = {"responsavel": request.user.pk} if pode_atribuir_responsavel else {}
         form = FormClass(initial=initial, **form_kwargs)
     return render(request, "processos/form.html", {
         "modo": "novo",
         "form": form,
         "item_ativo": "processos",
-        "is_admin": is_admin,
+        "pode_atribuir_responsavel": pode_atribuir_responsavel,
         "responsavel_exibido": request.user,
     })
 
@@ -236,10 +298,11 @@ def editar(request, pk):
         raise PermissionDenied
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
-    is_admin = usuario_admin_escritorio(request.user)
-    FormClass = ProcessoResponsavelForm if is_admin else ProcessoForm
+    pode_atribuir_responsavel = _pode_atribuir_responsavel(request.user)
+    FormClass = ProcessoResponsavelForm if pode_atribuir_responsavel else ProcessoForm
     form_kwargs = (
-        {"responsaveis_queryset": responsaveis_elegiveis()} if is_admin else {}
+        {"responsaveis_queryset": responsaveis_elegiveis()}
+        if pode_atribuir_responsavel else {}
     )
     if request.method == "POST":
         form = FormClass(request.POST, instance=processo, **form_kwargs)
@@ -252,7 +315,7 @@ def editar(request, pk):
         "modo": "editar",
         "form": form,
         "item_ativo": "processos",
-        "is_admin": is_admin,
+        "pode_atribuir_responsavel": pode_atribuir_responsavel,
         "responsavel_exibido": processo.responsavel,
     })
 

@@ -65,7 +65,7 @@
 
       <div>
         <label class="label">Responsável</label>
-        {% if is_admin %}
+        {% if pode_atribuir_responsavel %}
           {{ form.responsavel }}
         {% else %}
           <p class="input bg-gray-50 text-gray-600">{{ responsavel_exibido }}</p>

@@ -62,6 +62,12 @@ class Processo(models.Model):
         related_name="processos",
         verbose_name="Equipe",
     )
+    integrantes_habilitados = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="processos_integrante_habilitado",
+        verbose_name="Integrantes habilitados",
+    )
     prazo_proximo = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 

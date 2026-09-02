@@ -483,6 +483,7 @@ class HabilitacaoPapel(models.Model):
                         "processos_andamento_adicionar",
                         "processos_usar_ia",
                         "processos_usar_laboratorio",
+                        "processos_atribuir_responsavel",
                     ])
                     | Q(modulo="clientes", item__in=[
                         "clientes_criar",
@@ -592,6 +593,7 @@ class HabilitacaoUsuario(models.Model):
                         "processos_andamento_adicionar",
                         "processos_usar_ia",
                         "processos_usar_laboratorio",
+                        "processos_atribuir_responsavel",
                     ])
                     | Q(modulo="clientes", item__in=[
                         "clientes_criar",

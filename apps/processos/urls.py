@@ -28,4 +28,14 @@ urlpatterns = [
         views.editar_parte,
         name="editar_parte",
     ),
+    path(
+        "processos/<int:pk>/integrantes/adicionar/",
+        views.adicionar_integrante,
+        name="adicionar_integrante",
+    ),
+    path(
+        "processos/<int:pk>/integrantes/<int:usuario_pk>/remover/",
+        views.remover_integrante,
+        name="remover_integrante",
+    ),
 ]

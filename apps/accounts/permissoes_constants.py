@@ -91,6 +91,7 @@ HAB_PROCESSOS_EDITAR = "processos_editar"
 HAB_PROCESSOS_ANDAMENTO_ADICIONAR = "processos_andamento_adicionar"
 HAB_PROCESSOS_USAR_IA = "processos_usar_ia"
 HAB_PROCESSOS_USAR_LABORATORIO = "processos_usar_laboratorio"
+HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL = "processos_atribuir_responsavel"
 
 HAB_CLIENTES_CRIAR = "clientes_criar"
 HAB_CLIENTES_EDITAR = "clientes_editar"
@@ -113,6 +114,7 @@ ITEM_CHOICES = [
     (HAB_PROCESSOS_ANDAMENTO_ADICIONAR, "Adicionar andamento"),
     (HAB_PROCESSOS_USAR_IA, "Usar assistência de IA"),
     (HAB_PROCESSOS_USAR_LABORATORIO, "Usar Laboratório Jurídico"),
+    (HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL, "Atribuir responsabilidade de processos"),
     (HAB_CLIENTES_CRIAR, "Criar cliente"),
     (HAB_CLIENTES_EDITAR, "Editar cliente"),
     (HAB_TAREFAS_ATRIBUIR_OUTROS, "Atribuir tarefa a outros usuários"),
@@ -132,6 +134,7 @@ ITENS_POR_MODULO = {
         HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
         HAB_PROCESSOS_USAR_IA,
         HAB_PROCESSOS_USAR_LABORATORIO,
+        HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
     ],
     MODULO_CLIENTES: [
         HAB_CLIENTES_CRIAR,
@@ -186,6 +189,7 @@ NOMES_ITENS = {
     HAB_PROCESSOS_ANDAMENTO_ADICIONAR: "Adicionar andamento",
     HAB_PROCESSOS_USAR_IA: "Usar assistência de IA",
     HAB_PROCESSOS_USAR_LABORATORIO: "Usar Laboratório Jurídico",
+    HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL: "Atribuir responsabilidade de processos",
     HAB_CLIENTES_CRIAR: "Criar cliente",
     HAB_CLIENTES_EDITAR: "Editar cliente",
     HAB_TAREFAS_ATRIBUIR_OUTROS: "Atribuir tarefa a outros usuários",
