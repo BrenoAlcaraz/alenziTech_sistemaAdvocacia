@@ -5,8 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.accounts.permissoes import tem_permissao_modulo
-from apps.accounts.permissoes_constants import MODULO_MODELOS
+from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo
+from apps.accounts.permissoes_constants import HAB_MODELOS_CRIAR, MODULO_MODELOS
 from apps.modelos.forms import ImportarModeloPecaForm, ModeloPecaForm
 from apps.modelos.models import ModeloPeca
 from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
@@ -41,6 +41,8 @@ def lista(request):
 @login_required
 def novo(request):
     if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_MODELOS, HAB_MODELOS_CRIAR):
         raise PermissionDenied
 
     if request.method == "POST":
@@ -99,6 +101,8 @@ def editar(request, pk):
 @login_required
 def importar(request):
     if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_MODELOS, HAB_MODELOS_CRIAR):
         raise PermissionDenied
 
     if request.method == "POST":
