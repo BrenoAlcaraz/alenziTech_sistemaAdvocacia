@@ -36,6 +36,24 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
   anual/parcelamento mensal vs. também semanal/quinzenal/trimestral/
   semestral/personalizada). Bloqueia detalhamento e migration de
   recorrência financeira. Sem decisão.
+- **OPEN-002** — ciclo de vida de tenant inadimplente (evolução de
+  `Assinatura.status`, hoje sem uso real). Decidido: régua por dias sem
+  pagamento identificado — dia 1-7: acesso normal + aviso no topo da
+  tela; dia 8-30: somente leitura, bloqueando escrita para todos os
+  usuários sem exceção (inclusive Admin do escritório); a partir do dia
+  31: acesso bloqueado, dados retidos por mais 90 dias (retomada de onde
+  parou se o pagamento for identificado nesse período). Cada faixa passa
+  a valer no dia exato do limite. Antes do expurgo final, oferecer
+  exportação dos dados ao escritório, com aviso. Pendente: (1) validação
+  jurídica do prazo de retenção pós-cancelamento frente à obrigação
+  própria do escritório de guardar processo/documento; (2) validação
+  jurídica se anonimização (em vez de hard delete) atende à LGPD sem
+  esvaziar o propósito de defesa jurídica da própria plataforma; (3)
+  confirmação de escopo do registro de acesso exigido pelo art. 15 do
+  Marco Civil da Internet (retenção de 6 meses de IP/timestamp de
+  acesso — distinto de auditoria completa de ações). Bloqueia
+  integração de gateway de pagamento (pré-requisito técnico) + as três
+  validações jurídicas acima. Sem essas peças, não vira PDR.
 
 ## Próximos passos
 
