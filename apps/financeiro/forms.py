@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import LancamentoFinanceiro, CustaJudicial
+from .models import LancamentoFinanceiro, CustaJudicial, SolicitacaoFinanceira
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 
@@ -107,3 +107,73 @@ class CustaJudicialForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return valor
+
+
+class SolicitacaoFinanceiraForm(forms.ModelForm):
+    class Meta:
+        model = SolicitacaoFinanceira
+        fields = [
+            "tipo",
+            "descricao",
+            "valor",
+            "cliente",
+            "processo",
+            "vencimento",
+            "data_gasto",
+            "anexo",
+            "observacao",
+        ]
+        widgets = {
+            "tipo":        forms.Select(attrs={"class": "select"}),
+            "descricao":   forms.TextInput(attrs={"class": "input"}),
+            "valor":       forms.NumberInput(attrs={"class": "input", "step": "0.01"}),
+            "cliente":     forms.Select(attrs={"class": "select"}),
+            "processo":    forms.Select(attrs={"class": "select"}),
+            "vencimento":  forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "data_gasto":  forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "anexo":       forms.ClearableFileInput(attrs={"class": "input"}),
+            "observacao":  forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
+        }
+        labels = {
+            "anexo": "Anexo (boleto para pagamento, comprovante para reembolso)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
+        self.fields["cliente"].required = False
+        self.fields["cliente"].empty_label = "Nenhum"
+
+        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
+        self.fields["processo"].required = False
+        self.fields["processo"].empty_label = "Nenhum"
+
+        self.fields["vencimento"].required = False
+        self.fields["vencimento"].input_formats = ["%Y-%m-%d"]
+        self.fields["data_gasto"].required = False
+        self.fields["data_gasto"].input_formats = ["%Y-%m-%d"]
+        self.fields["observacao"].required = False
+
+    def clean_valor(self):
+        valor = self.cleaned_data.get("valor")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo = cleaned_data.get("tipo")
+
+        if tipo == "pagamento":
+            if not cleaned_data.get("cliente"):
+                self.add_error("cliente", "Informe o cliente para solicitação de pagamento.")
+            if not cleaned_data.get("processo"):
+                self.add_error("processo", "Informe o processo para solicitação de pagamento.")
+            if not cleaned_data.get("vencimento"):
+                self.add_error("vencimento", "Informe o vencimento para solicitação de pagamento.")
+        elif tipo == "reembolso":
+            if not cleaned_data.get("data_gasto"):
+                self.add_error("data_gasto", "Informe a data do gasto para solicitação de reembolso.")
+
+        return cleaned_data

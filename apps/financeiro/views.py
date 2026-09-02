@@ -5,14 +5,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
+from django.http import FileResponse, Http404
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from apps.accounts.permissoes import tem_permissao_modulo
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO
+from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo
+from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS, NIVEL_SOLICITACOES
 
-from .forms import LancamentoFinanceiroForm, CustaJudicialForm
-from .models import LancamentoFinanceiro, CustaJudicial
+from .forms import LancamentoFinanceiroForm, CustaJudicialForm, SolicitacaoFinanceiraForm
+from .models import LancamentoFinanceiro, CustaJudicial, SolicitacaoFinanceira
 
 
 def _redirect_seguro(request):
@@ -48,10 +49,29 @@ def _formatar_moeda(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+_NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, NIVEL_DADOS}
+
+
+def _nivel_financeiro(user):
+    nivel = nivel_acesso_modulo(user, MODULO_FINANCEIRO)
+    if nivel not in _NIVEIS_FINANCEIRO_VALIDOS:
+        return NIVEL_SOLICITACOES
+    return nivel
+
+
+def _exige_nivel_dados(user):
+    if _nivel_financeiro(user) != NIVEL_DADOS:
+        raise PermissionDenied
+
+
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    if _nivel_financeiro(request.user) != NIVEL_DADOS:
+        # Entrada única do módulo na sidebar — nível "solicitacoes" não
+        # alcança o caixa geral, então é levado direto às solicitações.
+        return redirect("financeiro:solicitacoes_lista")
     hoje = timezone.localdate()
     filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
 
@@ -133,6 +153,7 @@ def index(request):
 def custas(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     custas_qs = list(
         CustaJudicial.objects.select_related("cliente", "processo").order_by("-data", "-criado_em")
     )
@@ -173,6 +194,7 @@ def custas(request):
 def form_lancamento(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     if request.method == "POST":
         form = LancamentoFinanceiroForm(request.POST)
         if form.is_valid():
@@ -198,6 +220,7 @@ def form_lancamento(request):
 def editar_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
 
     if request.method == "POST":
@@ -226,6 +249,7 @@ def editar_lancamento(request, pk):
 def marcar_pago(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.status = "pago"
@@ -238,6 +262,7 @@ def marcar_pago(request, pk):
 def cancelar_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
     if request.method == "POST":
         lancamento.status = "cancelado"
@@ -249,7 +274,10 @@ def cancelar_lancamento(request, pk):
 def reabrir_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if hasattr(lancamento, "solicitacao_origem"):
+        raise PermissionDenied
     if request.method == "POST":
         lancamento.status = "pendente"
         lancamento.data_pagamento = None
@@ -261,7 +289,10 @@ def reabrir_lancamento(request, pk):
 def excluir_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    if hasattr(lancamento, "solicitacao_origem"):
+        raise PermissionDenied
     if request.method == "POST":
         lancamento.delete()
     return _redirect_seguro(request)
@@ -271,6 +302,7 @@ def excluir_lancamento(request, pk):
 def form_custa(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    _exige_nivel_dados(request.user)
     if request.method == "POST":
         form = CustaJudicialForm(request.POST)
         if form.is_valid():
@@ -284,3 +316,90 @@ def form_custa(request):
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
+
+
+def _solicitacoes_no_escopo(request):
+    qs = SolicitacaoFinanceira.objects.select_related("cliente", "processo", "solicitante", "lancamento")
+    if _nivel_financeiro(request.user) != NIVEL_DADOS:
+        qs = qs.filter(solicitante=request.user)
+    return qs
+
+
+_ACOES_SOLICITACAO = {
+    "analisar": "em_analise",
+    "aprovar": "aprovada",
+    "rejeitar": "rejeitada",
+    "pagar": "paga",
+}
+
+
+@login_required
+def solicitacoes_lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    return render(request, "financeiro/solicitacoes_lista.html", {
+        "solicitacoes": _solicitacoes_no_escopo(request),
+        "nivel": _nivel_financeiro(request.user),
+        "aba_ativa": "solicitacoes",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def form_solicitacao(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    if request.method == "POST":
+        form = SolicitacaoFinanceiraForm(request.POST, request.FILES)
+        if form.is_valid():
+            solicitacao = form.save(commit=False)
+            solicitacao.solicitante = request.user
+            if solicitacao.processo and not solicitacao.cliente:
+                solicitacao.cliente = solicitacao.processo.cliente
+            solicitacao.save()
+            return redirect("financeiro:solicitacoes_lista")
+    else:
+        form = SolicitacaoFinanceiraForm()
+
+    return render(request, "financeiro/form_solicitacao.html", {
+        "form": form,
+        "aba_ativa": "solicitacoes",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def detalhe_solicitacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
+    return render(request, "financeiro/detalhe_solicitacao.html", {
+        "solicitacao": solicitacao,
+        "pode_processar": _nivel_financeiro(request.user) == NIVEL_DADOS,
+        "aba_ativa": "solicitacoes",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def anexo_solicitacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
+    if not solicitacao.anexo:
+        raise Http404
+    return FileResponse(solicitacao.anexo.open("rb"), filename=solicitacao.anexo.name.rsplit("/", 1)[-1])
+
+
+@login_required
+def processar_solicitacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    solicitacao = get_object_or_404(SolicitacaoFinanceira, pk=pk)
+    if request.method == "POST":
+        novo_status = _ACOES_SOLICITACAO.get(request.POST.get("acao"))
+        if novo_status is None or not solicitacao.pode_transicionar_para(novo_status):
+            raise PermissionDenied
+        solicitacao.avancar_para(novo_status)
+    return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)

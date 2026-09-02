@@ -1,0 +1,419 @@
+"""
+Testes de Solicitações financeiras (PDR-0006, fluxo em PDR-0015).
+
+Cobre: transições de estado no model, escopo de visibilidade por nível
+(`solicitacoes` vs `dados`), autorização das rotas novas e o efeito do
+nível `dados`/`solicitacoes` já existente no kernel sobre as rotas
+antigas de caixa geral (`index`, `custas`, lançamentos), que passam a
+negar acesso a quem só tem nível `solicitacoes`.
+
+Segue o mesmo padrão de fixtures de
+apps/financeiro/tests/test_autorizacao.py sobre
+django_tenants.test.cases.TenantTestCase.
+"""
+
+import shutil
+import tempfile
+
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
+from django_tenants.test.cases import TenantTestCase
+
+from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
+from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS, NIVEL_SOLICITACOES
+from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
+
+_MEDIA_TMP = tempfile.mkdtemp(prefix="lawsystem_test_media_")
+
+
+def _anexo(nome="boleto.pdf"):
+    return SimpleUploadedFile(nome, b"conteudo-teste", content_type="application/pdf")
+
+
+@override_settings(MEDIA_ROOT=_MEDIA_TMP)
+class SolicitacaoFinanceiraBase(TenantTestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(_MEDIA_TMP, ignore_errors=True)
+
+    def setUp(self):
+        super().setUp()
+        from apps.saas_tenants.models import Dominio
+        domain_obj = Dominio.objects.filter(tenant=self.tenant).first()
+        self.http_host = domain_obj.domain if domain_obj else "localhost"
+
+    def _user(self, username):
+        return User.objects.create_user(username=username, password="testpass")
+
+    def _new_papel(self, nome):
+        return PapelAcesso.objects.create(nome=nome, ativo=True)
+
+    def _conceder_modulo(self, user, *, nivel):
+        papel = self._new_papel(f"Papel Financeiro {user.username}")
+        UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
+        )
+
+    def _solicitacao(self, *, solicitante, **kwargs):
+        defaults = {
+            "tipo": "reembolso",
+            "descricao": "Reembolso Teste",
+            "valor": "150.00",
+            "data_gasto": "2026-08-20",
+            "anexo": _anexo("comprovante.pdf"),
+            "solicitante": solicitante,
+        }
+        defaults.update(kwargs)
+        return SolicitacaoFinanceira.objects.create(**defaults)
+
+
+# ── Model: transições de estado ────────────────────────────────────────────────
+
+class TestSolicitacaoFinanceiraTransicoes(SolicitacaoFinanceiraBase):
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_transicoes"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Transicoes"
+        tenant.slug = "solicitacoes-transicoes"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("solicitante")
+
+    def test_nasce_solicitada(self):
+        s = self._solicitacao(solicitante=self.user)
+        self.assertEqual(s.status, "solicitada")
+        self.assertIsNone(s.lancamento)
+
+    def test_fluxo_completo_ate_paga_cria_um_lancamento(self):
+        s = self._solicitacao(solicitante=self.user)
+        antes = LancamentoFinanceiro.objects.count()
+
+        s.avancar_para("em_analise")
+        s.avancar_para("aprovada")
+        s.avancar_para("paga")
+
+        s.refresh_from_db()
+        self.assertEqual(s.status, "paga")
+        self.assertIsNotNone(s.lancamento)
+        self.assertEqual(LancamentoFinanceiro.objects.count(), antes + 1)
+        self.assertEqual(s.lancamento.status, "pago")
+        self.assertEqual(s.lancamento.tipo, "despesa")
+        self.assertEqual(s.lancamento.valor, s.valor)
+        self.assertEqual(s.lancamento.responsavel, self.user)
+
+    def test_fluxo_rejeitado_nao_cria_lancamento(self):
+        s = self._solicitacao(solicitante=self.user)
+        antes = LancamentoFinanceiro.objects.count()
+
+        s.avancar_para("em_analise")
+        s.avancar_para("rejeitada")
+
+        s.refresh_from_db()
+        self.assertEqual(s.status, "rejeitada")
+        self.assertIsNone(s.lancamento)
+        self.assertEqual(LancamentoFinanceiro.objects.count(), antes)
+
+    def test_nao_pula_etapa_solicitada_para_aprovada(self):
+        s = self._solicitacao(solicitante=self.user)
+        self.assertFalse(s.pode_transicionar_para("aprovada"))
+        with self.assertRaises(ValueError):
+            s.avancar_para("aprovada")
+
+    def test_nao_pula_etapa_direto_para_paga(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        s.avancar_para("aprovada")
+        self.assertTrue(s.pode_transicionar_para("paga"))
+
+        s2 = self._solicitacao(solicitante=self.user)
+        self.assertFalse(s2.pode_transicionar_para("paga"))
+
+    def test_rejeitada_e_terminal(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        s.avancar_para("rejeitada")
+        self.assertFalse(s.pode_transicionar_para("aprovada"))
+        self.assertFalse(s.pode_transicionar_para("paga"))
+
+    def test_criar_solicitacao_nao_gera_lancamento(self):
+        antes = LancamentoFinanceiro.objects.count()
+        self._solicitacao(solicitante=self.user)
+        self.assertEqual(LancamentoFinanceiro.objects.count(), antes)
+
+
+# ── Views: autorização e escopo ─────────────────────────────────────────────────
+
+class TestSolicitacoesEscopoNivelSolicitacoes(SolicitacaoFinanceiraBase):
+    """Usuário com nível `solicitacoes`: cria e acompanha só as próprias."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_nivel_solicitacoes"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Nivel Solicitacoes"
+        tenant.slug = "solicitacoes-nivel-solicitacoes"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("advogado_sem_caixa")
+        self._conceder_modulo(self.user, nivel=NIVEL_SOLICITACOES)
+        self.client.force_login(self.user)
+
+        self.outro = self._user("outro_advogado")
+        self._conceder_modulo(self.outro, nivel=NIVEL_SOLICITACOES)
+
+        self.minha = self._solicitacao(solicitante=self.user, descricao="Minha solicitação")
+        self.alheia = self._solicitacao(solicitante=self.outro, descricao="Solicitação alheia")
+
+    def test_index_redireciona_para_solicitacoes(self):
+        r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
+        self.assertRedirects(r, "/financeiro/solicitacoes/", fetch_redirect_response=False)
+
+    def test_custas_negado(self):
+        r = self.client.get("/financeiro/custas/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_form_lancamento_negado(self):
+        r = self.client.get("/financeiro/lancamentos/novo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_lista_mostra_so_as_proprias(self):
+        r = self.client.get("/financeiro/solicitacoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        descricoes = {s.descricao for s in r.context["solicitacoes"]}
+        self.assertIn("Minha solicitação", descricoes)
+        self.assertNotIn("Solicitação alheia", descricoes)
+
+    def test_detalhe_da_propria_autorizado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.minha.pk}/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_detalhe_alheia_nao_encontrada(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.alheia.pk}/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 404)
+
+    def test_anexo_da_propria_autorizado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.minha.pk}/anexo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_anexo_alheio_nao_encontrado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.alheia.pk}/anexo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 404)
+
+    def test_nao_pode_processar_a_propria(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.minha.pk}/processar/",
+            {"acao": "analisar"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.minha.refresh_from_db()
+        self.assertEqual(self.minha.status, "solicitada")
+
+    def test_criar_solicitacao_pagamento_completa(self):
+        from apps.clientes.models import Cliente
+        from apps.processos.models import Processo
+
+        cliente = Cliente.objects.create(nome_razao_social="Cliente Teste", responsavel=self.user)
+        processo = Processo.objects.create(
+            titulo="Processo Teste", cliente=cliente, responsavel=self.user,
+        )
+        antes = SolicitacaoFinanceira.objects.count()
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "tipo": "pagamento",
+                "descricao": "Custa judicial urgente",
+                "valor": "300.00",
+                "cliente": cliente.pk,
+                "processo": processo.pk,
+                "vencimento": "2026-10-10",
+                "anexo": _anexo("boleto.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, "/financeiro/solicitacoes/", fetch_redirect_response=False)
+        self.assertEqual(SolicitacaoFinanceira.objects.count(), antes + 1)
+        nova = SolicitacaoFinanceira.objects.get(descricao="Custa judicial urgente")
+        self.assertEqual(nova.solicitante, self.user)
+        self.assertEqual(nova.status, "solicitada")
+
+    def test_criar_solicitacao_pagamento_sem_processo_falha(self):
+        antes = SolicitacaoFinanceira.objects.count()
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "tipo": "pagamento",
+                "descricao": "Pagamento incompleto",
+                "valor": "100.00",
+                "vencimento": "2026-10-10",
+                "anexo": _anexo("boleto.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(SolicitacaoFinanceira.objects.count(), antes)
+        self.assertTrue(r.context["form"].errors)
+
+    def test_criar_solicitacao_reembolso_sem_data_gasto_falha(self):
+        antes = SolicitacaoFinanceira.objects.count()
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "tipo": "reembolso",
+                "descricao": "Reembolso incompleto",
+                "valor": "80.00",
+                "anexo": _anexo("comprovante.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(SolicitacaoFinanceira.objects.count(), antes)
+        self.assertTrue(r.context["form"].errors)
+
+
+class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
+    """Usuário com nível `dados`: enxerga e processa todas as solicitações."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_nivel_dados"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Nivel Dados"
+        tenant.slug = "solicitacoes-nivel-dados"
+
+    def setUp(self):
+        super().setUp()
+        self.financeiro = self._user("financeiro_dados")
+        self._conceder_modulo(self.financeiro, nivel=NIVEL_DADOS)
+        self.client.force_login(self.financeiro)
+
+        self.solicitante = self._user("advogado")
+        self._conceder_modulo(self.solicitante, nivel=NIVEL_SOLICITACOES)
+        self.solicitacao = self._solicitacao(solicitante=self.solicitante)
+
+    def test_index_autorizado(self):
+        r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_lista_mostra_todas(self):
+        r = self.client.get("/financeiro/solicitacoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.solicitacao, list(r.context["solicitacoes"]))
+
+    def test_detalhe_de_qualquer_solicitacao_autorizado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.solicitacao.pk}/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_anexo_de_qualquer_solicitacao_autorizado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.solicitacao.pk}/anexo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_processa_fluxo_completo(self):
+        pk = self.solicitacao.pk
+        for acao, status_esperado in [
+            ("analisar", "em_analise"),
+            ("aprovar", "aprovada"),
+            ("pagar", "paga"),
+        ]:
+            r = self.client.post(
+                f"/financeiro/solicitacoes/{pk}/processar/", {"acao": acao}, HTTP_HOST=self.http_host
+            )
+            self.assertEqual(r.status_code, 302)
+            self.solicitacao.refresh_from_db()
+            self.assertEqual(self.solicitacao.status, status_esperado)
+
+        self.assertIsNotNone(self.solicitacao.lancamento)
+        self.assertEqual(self.solicitacao.lancamento.status, "pago")
+
+    def test_pular_etapa_negado(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {"acao": "pagar"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "solicitada")
+
+    def test_reabrir_lancamento_gerado_por_solicitacao_negado(self):
+        self.solicitacao.avancar_para("em_analise")
+        self.solicitacao.avancar_para("aprovada")
+        self.solicitacao.avancar_para("paga")
+        lancamento = self.solicitacao.lancamento
+
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/reabrir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        lancamento.refresh_from_db()
+        self.assertEqual(lancamento.status, "pago")
+
+    def test_excluir_lancamento_gerado_por_solicitacao_negado(self):
+        self.solicitacao.avancar_para("em_analise")
+        self.solicitacao.avancar_para("aprovada")
+        self.solicitacao.avancar_para("paga")
+        lancamento = self.solicitacao.lancamento
+
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(LancamentoFinanceiro.objects.filter(pk=lancamento.pk).exists())
+
+
+class TestSolicitacoesModuloNegado(SolicitacaoFinanceiraBase):
+    """Usuário sem nenhum acesso ao módulo financeiro — nega em todas as rotas."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_modulo_negado"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Modulo Negado"
+        tenant.slug = "solicitacoes-modulo-negado"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("sem_financeiro")
+        self.client.force_login(self.user)
+        self.solicitacao = self._solicitacao(solicitante=self.user)
+
+    def test_lista_negada(self):
+        r = self.client.get("/financeiro/solicitacoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_form_negado(self):
+        r = self.client.get("/financeiro/solicitacoes/nova/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_detalhe_negado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.solicitacao.pk}/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_anexo_negado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.solicitacao.pk}/anexo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_processar_negado(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {"acao": "analisar"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)

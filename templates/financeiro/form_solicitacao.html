@@ -1,0 +1,121 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Nova solicitação — Financeiro{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'financeiro:solicitacoes_lista' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Nova solicitação</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for error in form.non_field_errors %}
+          <p>{{ error }}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="flex flex-col gap-4">
+
+      {# Tipo #}
+      <div>
+        <label class="label">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Descrição #}
+      <div>
+        <label class="label">{{ form.descricao.label }}</label>
+        {{ form.descricao }}
+        {% if form.descricao.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+
+        {# Valor #}
+        <div>
+          <label class="label">Valor (R$)</label>
+          {{ form.valor }}
+          {% if form.valor.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.valor.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Vencimento — obrigatório só para pagamento #}
+        <div>
+          <label class="label">Vencimento <span class="text-gray-400 font-normal">(pagamento)</span></label>
+          {{ form.vencimento }}
+          {% if form.vencimento.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.vencimento.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Data do gasto — obrigatório só para reembolso #}
+        <div>
+          <label class="label">Data do gasto <span class="text-gray-400 font-normal">(reembolso)</span></label>
+          {{ form.data_gasto }}
+          {% if form.data_gasto.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.data_gasto.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Cliente #}
+        <div>
+          <label class="label">Cliente <span class="text-gray-400 font-normal">(obrigatório para pagamento)</span></label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+        {# Processo #}
+        <div>
+          <label class="label">Processo <span class="text-gray-400 font-normal">(obrigatório para pagamento)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+
+      </div>
+
+      {# Anexo #}
+      <div>
+        <label class="label">{{ form.anexo.label }}</label>
+        {{ form.anexo }}
+        {% if form.anexo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.anexo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Observação #}
+      <div>
+        <label class="label">Observação <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.observacao }}
+        {% if form.observacao.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.observacao.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Criar solicitação</button>
+      <a href="{% url 'financeiro:solicitacoes_lista' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
