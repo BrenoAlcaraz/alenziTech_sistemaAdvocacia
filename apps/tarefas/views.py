@@ -12,6 +12,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.notificacoes.models import Notificacao
 from .models import ReatribuicaoTarefa, Tarefa
 from .forms import ReatribuirForm, TarefaForm
 
@@ -267,6 +268,11 @@ def concluir(request, pk):
     if request.method == "POST":
         tarefa.status = "concluida"
         tarefa.save(update_fields=["status"])
+        if tarefa.criador_id and tarefa.criador_id != tarefa.responsavel_id:
+            Notificacao.objects.create(
+                destinatario=tarefa.criador,
+                mensagem=f'Tarefa concluída: "{tarefa.titulo}"',
+            )
     return _redirect_seguro(request)
 
 

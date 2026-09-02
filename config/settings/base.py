@@ -35,6 +35,7 @@ TENANT_APPS = [
     "apps.clientes",
     "apps.processos",
     "apps.tarefas",
+    "apps.notificacoes",
     "apps.financeiro",
     "apps.agenda",
     "apps.chat",
@@ -91,6 +92,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 # Injeta dados do tenant e configuração visual em todos os templates
                 "apps.saas_tenants.context_processors.tenant_config",
+                # Injeta notificações não lidas do usuário logado (header)
+                "apps.notificacoes.context_processors.notificacoes",
             ],
         },
     },

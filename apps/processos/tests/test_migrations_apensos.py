@@ -3,6 +3,8 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django_tenants.test.cases import TenantTestCase
 
+from ._migration_targets import targets_seguros_para_rollback
+
 
 PROCESSOS_ANTES = ("processos", "0009_participantes_campos_obrigatorios")
 PROCESSOS_DEPOIS = ("processos", "0010_vinculoprocessoapenso")
@@ -37,10 +39,7 @@ class TestMigrationApensosProcesso(TenantTestCase):
         tenant.slug = "wi0007-migration-apensos"
 
     def _targets(self, executor, target):
-        return [
-            *[node for node in executor.loader.graph.leaf_nodes() if node[0] != "processos"],
-            target,
-        ]
+        return targets_seguros_para_rollback(executor.loader.graph, target)
 
     def _migrar(self, target):
         executor = MigrationExecutor(connection)

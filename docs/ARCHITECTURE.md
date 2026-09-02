@@ -24,9 +24,9 @@ instaladas.
 **Schema de cada tenant** (`TENANT_APPS`) — um schema PostgreSQL por
 escritório, criado automaticamente (`auto_create_schema=True`):
 `accounts`, `dashboard`, `clientes`, `processos`, `tarefas`,
-`financeiro`, `agenda`, `chat`, `modelos`, `laboratorio`,
-`configuracoes`. `django.contrib.auth` está em SHARED e TENANT — cada
-tenant tem sua própria tabela `auth_user`.
+`notificacoes`, `financeiro`, `agenda`, `chat`, `modelos`,
+`laboratorio`, `configuracoes`. `django.contrib.auth` está em SHARED e
+TENANT — cada tenant tem sua própria tabela `auth_user`.
 
 **Resolução do tenant**: `TenantMainMiddleware` (primeiro middleware)
 resolve o schema a partir do domínio (`Dominio → Escritorio`) antes de
@@ -37,7 +37,7 @@ público e tenant.
 
 ```
 processos   → clientes, accounts (equipe)
-tarefas     → processos, clientes (opcional)
+tarefas     → processos, clientes (opcional), notificacoes
 agenda      → processos, clientes (opcional)
 financeiro  → clientes, processos (opcional)
 dashboard   → clientes, processos, tarefas, agenda, financeiro (agregação, sem model próprio)

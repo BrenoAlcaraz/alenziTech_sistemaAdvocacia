@@ -4,6 +4,8 @@ from django.db.migrations.recorder import MigrationRecorder
 from django.test import TransactionTestCase
 from django_tenants.test.cases import TenantTestCase
 
+from ._migration_targets import targets_seguros_para_rollback
+
 
 PROCESSOS_ANTES = ("processos", "0004_rename_departamento_equipe")
 PROCESSOS_BACKFILL = ("processos", "0005_normalizar_responsavel")
@@ -33,12 +35,7 @@ class TestMigrationResponsavelProcesso(TenantTestCase):
         tenant.slug = "wi0005-migration-processos"
 
     def _targets_com_processos_em(self, executor, target):
-        outros_leaves = [
-            node
-            for node in executor.loader.graph.leaf_nodes()
-            if node[0] != "processos"
-        ]
-        return [*outros_leaves, target]
+        return targets_seguros_para_rollback(executor.loader.graph, target)
 
     def _migrar_processos_para(self, target):
         executor = MigrationExecutor(connection)
