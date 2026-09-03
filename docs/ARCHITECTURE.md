@@ -33,6 +33,13 @@ resolve o schema a partir do domínio (`Dominio → Escritorio`) antes de
 qualquer view rodar. `ROOT_URLCONF` é único, compartilhado entre
 público e tenant.
 
+**Storage de arquivos**: uploads usam namespaces
+`tenants/<schema>/<publico|protegido>/...`. Arquivos protegidos usam um
+storage sem URL pública e são entregues somente por views que carregam o
+objeto pelo `QuerySet` autorizado. Ativos públicos de identidade visual
+são resolvidos pelo domínio/tenant da requisição em rota própria. Não
+servir `MEDIA_ROOT` por `MEDIA_URL`, inclusive em desenvolvimento.
+
 ## Dependências entre módulos de negócio (direção permitida)
 
 ```
@@ -113,8 +120,6 @@ distintos.
 
 ## Riscos arquiteturais conhecidos
 
-- Sem estratégia de segregação de arquivo por tenant (`MEDIA_ROOT` não
-  particionado); nenhum model de negócio tem `FileField` hoje.
 - Sem cache configurado, sem fila assíncrona (Celery/Redis/Channels) —
   qualquer introdução futura precisa carregar contexto de tenant
   explicitamente. Primeiro job periódico do projeto (PDR-0016, lembrete

@@ -7,12 +7,18 @@
 
   {# Logo e nome do escritório — dinâmico por tenant #}
   <div class="text-center mb-8">
-    <div class="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-4">
-      <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
-      </svg>
-    </div>
+    {% if config_visual.logo %}
+      <img src="{% url 'saas_tenants:arquivo_identidade_visual' 'logo' %}"
+           alt="Logo de {{ config_visual.nome_exibicao|default:tenant.nome }}"
+           class="max-w-40 max-h-16 object-contain mx-auto mb-4">
+    {% else %}
+      <div class="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+        </svg>
+      </div>
+    {% endif %}
     <h1 class="text-xl font-semibold text-gray-900">
       {% if config_visual.nome_exibicao %}
         {{ config_visual.nome_exibicao }}

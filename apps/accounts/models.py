@@ -4,6 +4,12 @@ from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
 
+from apps.saas_tenants.storage import (
+    CaminhoArquivoTenant,
+    PROTEGIDO,
+    StorageProtegido,
+)
+
 from .permissoes_constants import (
     TIPOS_CONTA_CONFIGURAVEIS,
     TIPOS_CONTA_CHOICES,
@@ -31,7 +37,12 @@ class PerfilUsuario(models.Model):
         blank=True,
         help_text="Apenas descritivo. Não controla permissões.",
     )
-    avatar = models.ImageField(upload_to="avatares/", blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "accounts/avatares"),
+        storage=StorageProtegido(),
+        blank=True,
+        null=True,
+    )
     is_admin_escritorio = models.BooleanField(
         default=False,
         help_text="Indica se este usuário é administrador do escritório.",

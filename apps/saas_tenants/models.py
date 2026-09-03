@@ -1,6 +1,8 @@
 from django.db import models
 from django_tenants.models import TenantMixin, DomainMixin
 
+from .storage import CaminhoArquivoTenant, PUBLICO, StorageIdentidadeVisual
+
 
 class Escritorio(TenantMixin):
     """Representa um escritório de advocacia — um tenant isolado no banco."""
@@ -45,11 +47,26 @@ class ConfiguracaoVisual(models.Model):
         related_name="configuracao_visual",
     )
     nome_exibicao = models.CharField(max_length=255, blank=True)
-    logo = models.ImageField(upload_to="logos/", blank=True, null=True)
-    favicon = models.ImageField(upload_to="favicons/", blank=True, null=True)
+    logo = models.ImageField(
+        upload_to=CaminhoArquivoTenant(PUBLICO, "identidade-visual/logos"),
+        storage=StorageIdentidadeVisual("logo"),
+        blank=True,
+        null=True,
+    )
+    favicon = models.ImageField(
+        upload_to=CaminhoArquivoTenant(PUBLICO, "identidade-visual/favicons"),
+        storage=StorageIdentidadeVisual("favicon"),
+        blank=True,
+        null=True,
+    )
     cor_primaria = models.CharField(max_length=7, default="#1a1a1a")
     cor_secundaria = models.CharField(max_length=7, default="#8B7355")
-    imagem_fundo_login = models.ImageField(upload_to="backgrounds/", blank=True, null=True)
+    imagem_fundo_login = models.ImageField(
+        upload_to=CaminhoArquivoTenant(PUBLICO, "identidade-visual/fundos-login"),
+        storage=StorageIdentidadeVisual("fundo-login"),
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         verbose_name = "Configuração Visual"

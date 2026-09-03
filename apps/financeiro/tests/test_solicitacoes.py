@@ -16,9 +16,12 @@ import shutil
 import tempfile
 
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
+from django.db import connection
+from django.test import TransactionTestCase, override_settings
 from django_tenants.test.cases import TenantTestCase
+from django_tenants.utils import schema_context, tenant_context
 
 from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import (
@@ -29,6 +32,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.notificacoes.models import Notificacao
+from apps.saas_tenants.models import Dominio, Escritorio
 
 _MEDIA_TMP = tempfile.mkdtemp(prefix="lawsystem_test_media_")
 
@@ -45,8 +49,10 @@ class SolicitacaoFinanceiraBase(TenantTestCase):
         shutil.rmtree(_MEDIA_TMP, ignore_errors=True)
 
     def setUp(self):
+        self._media_override = override_settings(MEDIA_ROOT=_MEDIA_TMP)
+        self._media_override.enable()
+        self.addCleanup(self._media_override.disable)
         super().setUp()
-        from apps.saas_tenants.models import Dominio
         domain_obj = Dominio.objects.filter(tenant=self.tenant).first()
         self.http_host = domain_obj.domain if domain_obj else "localhost"
 
@@ -101,6 +107,14 @@ class TestSolicitacaoFinanceiraTransicoes(SolicitacaoFinanceiraBase):
         s = self._solicitacao(solicitante=self.user)
         self.assertEqual(s.status, "solicitada")
         self.assertIsNone(s.lancamento)
+
+    def test_anexo_novo_usa_namespace_protegido_do_tenant(self):
+        solicitacao = self._solicitacao(solicitante=self.user)
+
+        self.assertTrue(solicitacao.anexo.name.startswith(
+            "tenants/solicitacoes_transicoes/protegido/financeiro/solicitacoes/"
+        ))
+        self.assertIsNone(solicitacao.anexo.url)
 
     def test_fluxo_completo_ate_paga_cria_um_lancamento(self):
         s = self._solicitacao(solicitante=self.user)
@@ -215,6 +229,39 @@ class TestSolicitacoesEscopoNivelSolicitacoes(SolicitacaoFinanceiraBase):
     def test_anexo_da_propria_autorizado(self):
         r = self.client.get(f"/financeiro/solicitacoes/{self.minha.pk}/anexo/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
+
+    def test_anexo_legado_da_propria_continua_autorizado(self):
+        nome_legado = "solicitacoes_financeiras/2026/08/comprovante-legado.pdf"
+        self.minha.anexo.storage.save(nome_legado, ContentFile(b"conteudo-legado"))
+        self.minha.anexo = nome_legado
+        self.minha.save(update_fields=["anexo"])
+
+        resposta = self.client.get(
+            f"/financeiro/solicitacoes/{self.minha.pk}/anexo/",
+            HTTP_HOST=self.http_host,
+        )
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(b"".join(resposta.streaming_content), b"conteudo-legado")
+
+    def test_anexo_nao_e_servido_diretamente_por_media_url(self):
+        resposta = self.client.get(
+            f"/media/{self.minha.anexo.name}",
+            HTTP_HOST=self.http_host,
+        )
+
+        self.assertEqual(resposta.status_code, 404)
+
+    def test_usuario_anonimo_nao_recebe_conteudo_do_anexo(self):
+        self.client.logout()
+
+        resposta = self.client.get(
+            f"/financeiro/solicitacoes/{self.minha.pk}/anexo/",
+            HTTP_HOST=self.http_host,
+        )
+
+        self.assertEqual(resposta.status_code, 302)
+        self.assertIn("/login/", resposta.url)
 
     def test_anexo_alheio_nao_encontrado(self):
         r = self.client.get(f"/financeiro/solicitacoes/{self.alheia.pk}/anexo/", HTTP_HOST=self.http_host)
@@ -496,3 +543,76 @@ class TestSolicitacoesModuloNegado(SolicitacaoFinanceiraBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
+
+
+class TestAnexoSolicitacaoIsolamentoMultiTenant(SolicitacaoFinanceiraBase):
+    @classmethod
+    def _fixture_setup(cls):
+        return TransactionTestCase._fixture_setup.__func__(cls)
+
+    def _fixture_teardown(self):
+        return TransactionTestCase._fixture_teardown(self)
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_storage_iso_a"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitações Storage A"
+        tenant.slug = "solicitacoes-storage-a"
+
+    def test_mesmo_id_e_nome_entregam_apenas_conteudo_do_tenant_do_dominio(self):
+        usuario_a = self._user("financeiro_storage_a")
+        self._conceder_modulo(usuario_a, nivel=NIVEL_DADOS)
+        solicitacao_a = self._solicitacao(
+            solicitante=usuario_a,
+            anexo=SimpleUploadedFile("mesmo.pdf", b"conteudo-a"),
+        )
+
+        tenant_b = Escritorio(
+            schema_name="solicitacoes_storage_iso_b",
+            nome="Solicitações Storage B",
+            slug="solicitacoes-storage-b",
+        )
+        with schema_context("public"):
+            tenant_b.save()
+            dominio_b = Dominio.objects.create(
+                tenant=tenant_b,
+                domain="solicitacoes-storage-b.test.com",
+                is_primary=True,
+            )
+
+        try:
+            with tenant_context(tenant_b):
+                usuario_b = self._user("financeiro_storage_b")
+                self._conceder_modulo(usuario_b, nivel=NIVEL_DADOS)
+                solicitacao_b = self._solicitacao(
+                    solicitante=usuario_b,
+                    anexo=SimpleUploadedFile("mesmo.pdf", b"conteudo-b"),
+                )
+
+            self.client.force_login(usuario_a)
+            resposta_a = self.client.get(
+                f"/financeiro/solicitacoes/{solicitacao_a.pk}/anexo/",
+                HTTP_HOST=self.http_host,
+            )
+            conteudo_a = b"".join(resposta_a.streaming_content)
+
+            self.client.logout()
+            with tenant_context(tenant_b):
+                self.client.force_login(usuario_b)
+            resposta_b = self.client.get(
+                f"/financeiro/solicitacoes/{solicitacao_b.pk}/anexo/",
+                HTTP_HOST=dominio_b.domain,
+            )
+            conteudo_b = b"".join(resposta_b.streaming_content)
+
+            self.assertEqual(solicitacao_a.pk, solicitacao_b.pk)
+            self.assertEqual(conteudo_a, b"conteudo-a")
+            self.assertEqual(conteudo_b, b"conteudo-b")
+            self.assertNotEqual(solicitacao_a.anexo.name, solicitacao_b.anexo.name)
+        finally:
+            with schema_context("public"):
+                tenant_b.delete(force_drop=True)
+            connection.set_tenant(self.tenant)

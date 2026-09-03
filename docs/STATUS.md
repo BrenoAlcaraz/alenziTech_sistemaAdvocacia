@@ -8,8 +8,8 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 
 | Área | Estado | Gap principal |
 |---|---|---|
-| Multitenancy | Feito | Sem segregação de arquivo por tenant; sem teste automatizado de isolamento cross-tenant |
-| Storage de arquivo (`MEDIA_ROOT`) | Parcial | `FileField`/`ImageField` são servidos por URL direta (`MEDIA_URL`) fora das views — sem checagem de autorização/escopo por request, independente do módulo. Views de app (ex.: `apps/financeiro`, solicitações financeiras) podem exigir autorização para linkar o arquivo, mas quem descobrir/adivinhar a URL direta contorna isso. Fica mais sensível à medida que mais módulos passam a anexar documento (hoje: avatar de usuário, boleto/comprovante de solicitação financeira). Correção real exige storage protegido (view autenticada servindo o arquivo, ou backend de storage que não responda a request direto) aplicado uniformemente — não é responsabilidade de um módulo isolado corrigir sozinho. |
+| Multitenancy | Feito, testado | — |
+| Storage de arquivo (`MEDIA_ROOT`) | Feito, testado (namespaces por tenant; arquivos protegidos sem URL pública; identidade visual pública resolvida pelo tenant) | — |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (86 testes) | — |
 | Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas, Financeiro, Agenda, Chat e Modelos consultam o kernel; Laboratório (shell sem lógica de negócio) e Configurações usam só `@login_required`/`@requer_admin_escritorio`; Dashboard consulta o kernel em todos os blocos (clientes, processos, tarefas, agenda, financeiro) |
 | Escopo de dados | Parcial | Só Clientes, Processos, Tarefas e Agenda filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)) |

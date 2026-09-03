@@ -6,6 +6,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
 
+    # Identidade visual pública, resolvida pelo tenant da requisição
+    path("", include("apps.saas_tenants.urls")),
+
     # Autenticação
     path("", include("apps.accounts.urls")),
 
@@ -23,5 +26,4 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

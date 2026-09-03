@@ -3,6 +3,11 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
+from apps.saas_tenants.storage import (
+    CaminhoArquivoTenant,
+    PROTEGIDO,
+    StorageProtegido,
+)
 
 
 class LancamentoFinanceiro(models.Model):
@@ -131,7 +136,10 @@ class SolicitacaoFinanceira(models.Model):
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True)
     vencimento = models.DateField(null=True, blank=True)
     data_gasto = models.DateField(null=True, blank=True)
-    anexo = models.FileField(upload_to="solicitacoes_financeiras/%Y/%m/")
+    anexo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/solicitacoes"),
+        storage=StorageProtegido(),
+    )
     observacao = models.TextField(blank=True)
     solicitante = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
