@@ -16,7 +16,7 @@ from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
-from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS
+from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS
 from apps.financeiro.models import CustaJudicial, LancamentoFinanceiro
 
 
@@ -33,7 +33,7 @@ class FinanceiroAutorizacaoBase(TenantTestCase):
     def _new_papel(self, nome):
         return PapelAcesso.objects.create(nome=nome, ativo=True)
 
-    def _conceder_modulo(self, user, *, nivel=NIVEL_DADOS):
+    def _conceder_modulo(self, user, *, nivel=NIVEL_DADOS_TODOS):
         papel = self._new_papel(f"Papel Financeiro {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
@@ -155,8 +155,9 @@ class TestFinanceiroAutorizacaoModuloNegado(FinanceiroAutorizacaoBase):
 
 class TestFinanceiroAutorizacaoModuloConcedido(FinanceiroAutorizacaoBase):
     """
-    Usuário autorizado ao módulo `financeiro` (nível `dados`, via papel
-    dinâmico) preserva o comportamento HTTP existente das nove rotas.
+    Usuário autorizado ao módulo `financeiro` (nível `dados_todos`, via
+    papel dinâmico) preserva o comportamento HTTP existente das nove
+    rotas.
     """
 
     @classmethod
@@ -254,3 +255,79 @@ class TestFinanceiroAutorizacaoModuloConcedido(FinanceiroAutorizacaoBase):
         )
         self.assertRedirects(r, "/financeiro/custas/", fetch_redirect_response=False)
         self.assertTrue(CustaJudicial.objects.filter(descricao="Custa Autorizada").exists())
+
+
+class TestFinanceiroEscopoDadosProprios(FinanceiroAutorizacaoBase):
+    """
+    Nível `dados_proprios`: LancamentoFinanceiro só é visível/mutável
+    quando `responsavel == request.user` — mutação sobre lançamento de
+    outro responsável retorna 404 (fora do escopo, mesmo padrão de
+    Clientes/Processos). CustaJudicial não tem `responsavel` e não é
+    afetada (spec: specs/escopo-financeiro-lancamentos.md).
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "financeiro_escopo_dados_proprios"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Financeiro Escopo Dados Proprios"
+        tenant.slug = "financeiro-escopo-dados-proprios"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("dados_proprios_user")
+        self._conceder_modulo(self.user, nivel=NIVEL_DADOS_PROPRIOS)
+        self.client.force_login(self.user)
+        self.outro = self._user("outro_responsavel")
+        self.meu = self._lancamento(descricao="Lançamento Próprio", responsavel=self.user, valor="1000.00")
+        self.alheio = self._lancamento(descricao="Lançamento Alheio", responsavel=self.outro, valor="5000.00")
+
+    def test_index_lista_so_lancamentos_proprios(self):
+        r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        lancamentos = list(r.context["lancamentos"])
+        self.assertIn(self.meu, lancamentos)
+        self.assertNotIn(self.alheio, lancamentos)
+
+    def test_resumo_soma_apenas_lancamentos_proprios(self):
+        r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.context["resumo"]["a_receber"], "R$ 1.000,00")
+
+    def test_editar_lancamento_proprio_autorizado(self):
+        r = self.client.get(f"/financeiro/lancamentos/{self.meu.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_editar_lancamento_alheio_404(self):
+        r = self.client.get(f"/financeiro/lancamentos/{self.alheio.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 404)
+
+    def test_marcar_pago_lancamento_alheio_404_nao_altera(self):
+        r = self.client.post(
+            f"/financeiro/lancamentos/{self.alheio.pk}/marcar-pago/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 404)
+        self.alheio.refresh_from_db()
+        self.assertEqual(self.alheio.status, "pendente")
+
+    def test_excluir_lancamento_alheio_404_nao_apaga(self):
+        r = self.client.post(
+            f"/financeiro/lancamentos/{self.alheio.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 404)
+        self.assertTrue(LancamentoFinanceiro.objects.filter(pk=self.alheio.pk).exists())
+
+    def test_excluir_lancamento_proprio_autorizado(self):
+        r = self.client.post(
+            f"/financeiro/lancamentos/{self.meu.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(LancamentoFinanceiro.objects.filter(pk=self.meu.pk).exists())
+
+    def test_custas_nao_e_afetada_pelo_escopo(self):
+        """CustaJudicial não tem responsavel — dados_proprios continua vendo todas as custas."""
+        custa_alheia = self._custa(descricao="Custa de outro usuário")
+        r = self.client.get("/financeiro/custas/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(custa_alheia, list(r.context["custas"]))

@@ -54,7 +54,7 @@ from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_USUARIO,
     NIVEL_TODOS,
     NIVEL_SOMENTE_SEUS,
-    NIVEL_DADOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
 
@@ -742,12 +742,12 @@ class TestKernelNiveis(KernelBase):
         self.assertEqual(r["nivel"], NIVEL_TODOS)
 
     def test_admin_nivel_maximo_financeiro(self):
-        """Admin → nivel='dados' em financeiro (máximo da lista NIVEIS_POR_MODULO)."""
+        """Admin → nivel='dados_todos' em financeiro (máximo da lista NIVEIS_POR_MODULO)."""
         u = self._user("u_adm_niv_fin")
         self._set_admin_flag(u)
         r = permissao_efetiva(u, MODULO_FINANCEIRO)
         self.assertEqual(r["nivel"], self._nivel_admin_para(MODULO_FINANCEIRO))
-        self.assertEqual(r["nivel"], NIVEL_DADOS)
+        self.assertEqual(r["nivel"], NIVEL_DADOS_TODOS)
 
     def test_grupo_limitado_processos_nivel_somente_seus(self):
         """Group=limitado → processos seed deve retornar nivel correto do seed."""
@@ -758,7 +758,7 @@ class TestKernelNiveis(KernelBase):
         self.assertEqual(r["nivel"], seed.nivel)
 
     def test_grupo_financeiro_financeiro_nivel_dados(self):
-        """Group=financeiro → financeiro seed (ativo=True) → nivel=dados."""
+        """Group=financeiro → financeiro seed (ativo=True) → nivel=dados_todos (migrado de 'dados')."""
         u = self._user("u_fin_niv_fin")
         self._add_group(u, "financeiro")
         seed = PermissaoPapel.objects.get(tipo_conta="financeiro", modulo=MODULO_FINANCEIRO)

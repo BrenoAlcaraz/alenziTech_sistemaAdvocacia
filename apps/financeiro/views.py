@@ -13,7 +13,8 @@ from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo, 
 from apps.accounts.permissoes_constants import (
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
     MODULO_FINANCEIRO,
-    NIVEL_DADOS,
+    NIVEL_DADOS_PROPRIOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
 from apps.notificacoes.models import Notificacao
@@ -55,7 +56,8 @@ def _formatar_moeda(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-_NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, NIVEL_DADOS}
+_NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
+_NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, *_NIVEIS_FINANCEIRO_DADOS}
 
 
 def _nivel_financeiro(user):
@@ -65,27 +67,34 @@ def _nivel_financeiro(user):
     return nivel
 
 
+def _tem_acesso_dados(user):
+    return _nivel_financeiro(user) in _NIVEIS_FINANCEIRO_DADOS
+
+
 def _exige_nivel_dados(user):
-    if _nivel_financeiro(user) != NIVEL_DADOS:
+    if not _tem_acesso_dados(user):
         raise PermissionDenied
+
+
+def _lancamentos_no_escopo(user):
+    qs = LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel")
+    if _nivel_financeiro(user) == NIVEL_DADOS_PROPRIOS:
+        qs = qs.filter(responsavel=user)
+    return qs
 
 
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
-    if _nivel_financeiro(request.user) != NIVEL_DADOS:
+    if not _tem_acesso_dados(request.user):
         # Entrada única do módulo na sidebar — nível "solicitacoes" não
         # alcança o caixa geral, então é levado direto às solicitações.
         return redirect("financeiro:solicitacoes_lista")
     hoje = timezone.localdate()
     filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
 
-    lancamentos = LancamentoFinanceiro.objects.select_related(
-        "cliente",
-        "processo",
-        "responsavel",
-    )
+    lancamentos = _lancamentos_no_escopo(request.user)
 
     if filtro == "pendentes":
         lancamentos = lancamentos.filter(status="pendente")
@@ -106,18 +115,20 @@ def index(request):
             data_vencimento__month=hoje.month,
         )
 
+    escopo = _lancamentos_no_escopo(request.user)
+
     a_receber = (
-        LancamentoFinanceiro.objects.filter(tipo="receita", status="pendente")
+        escopo.filter(tipo="receita", status="pendente")
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
     )
     a_pagar = (
-        LancamentoFinanceiro.objects.filter(tipo="despesa", status="pendente")
+        escopo.filter(tipo="despesa", status="pendente")
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
     )
     recebido_mes = (
-        LancamentoFinanceiro.objects.filter(
+        escopo.filter(
             tipo="receita",
             status="pago",
             data_pagamento__year=hoje.year,
@@ -127,7 +138,7 @@ def index(request):
         or Decimal("0")
     )
     pago_mes = (
-        LancamentoFinanceiro.objects.filter(
+        escopo.filter(
             tipo="despesa",
             status="pago",
             data_pagamento__year=hoje.year,
@@ -227,7 +238,7 @@ def editar_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
-    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
 
     if request.method == "POST":
         form = LancamentoFinanceiroForm(request.POST, instance=lancamento)
@@ -256,7 +267,7 @@ def marcar_pago(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
-    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if request.method == "POST":
         lancamento.status = "pago"
         lancamento.data_pagamento = timezone.localdate()
@@ -269,7 +280,7 @@ def cancelar_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
-    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if request.method == "POST":
         lancamento.status = "cancelado"
         lancamento.save(update_fields=["status"])
@@ -281,7 +292,11 @@ def reabrir_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
-    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    # Escopo (dados_proprios) é checado antes da habilitação abaixo: em
+    # dados_proprios, HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO nunca alcança
+    # lançamento de responsável diferente do usuário atual (404 aqui, antes
+    # de chegar na checagem de habilitação) — ver ARCHITECTURE.md.
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     origem = getattr(lancamento, "solicitacao_origem", None)
     if origem is not None and not tem_habilitacao(
         request.user, MODULO_FINANCEIRO, HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO
@@ -304,7 +319,7 @@ def excluir_lancamento(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
-    lancamento = get_object_or_404(LancamentoFinanceiro, pk=pk)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if hasattr(lancamento, "solicitacao_origem"):
         raise PermissionDenied
     if request.method == "POST":
@@ -334,7 +349,7 @@ def form_custa(request):
 
 def _solicitacoes_no_escopo(request):
     qs = SolicitacaoFinanceira.objects.select_related("cliente", "processo", "solicitante", "lancamento")
-    if _nivel_financeiro(request.user) != NIVEL_DADOS:
+    if not _tem_acesso_dados(request.user):
         qs = qs.filter(solicitante=request.user)
     return qs
 
@@ -353,7 +368,7 @@ def solicitacoes_lista(request):
         raise PermissionDenied
     return render(request, "financeiro/solicitacoes_lista.html", {
         "solicitacoes": _solicitacoes_no_escopo(request),
-        "nivel": _nivel_financeiro(request.user),
+        "tem_acesso_dados": _tem_acesso_dados(request.user),
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })
@@ -389,7 +404,7 @@ def detalhe_solicitacao(request, pk):
     solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
     return render(request, "financeiro/detalhe_solicitacao.html", {
         "solicitacao": solicitacao,
-        "pode_processar": _nivel_financeiro(request.user) == NIVEL_DADOS,
+        "pode_processar": _tem_acesso_dados(request.user),
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })

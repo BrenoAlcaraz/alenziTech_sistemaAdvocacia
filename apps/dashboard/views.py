@@ -13,7 +13,8 @@ from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
-    NIVEL_DADOS,
+    NIVEL_DADOS_PROPRIOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -26,7 +27,8 @@ from apps.financeiro.models import LancamentoFinanceiro
 
 
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
-_NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, NIVEL_DADOS}
+_NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
+_NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, *_NIVEIS_FINANCEIRO_DADOS}
 
 
 def _nivel_escopo(user, modulo):
@@ -44,6 +46,10 @@ def _nivel_financeiro(user):
     return nivel
 
 
+def _tem_acesso_dados_financeiro(user):
+    return _nivel_financeiro(user) in _NIVEIS_FINANCEIRO_DADOS
+
+
 def _formatar_moeda(valor):
     valor = valor or Decimal("0")
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -59,7 +65,7 @@ def painel(request):
     acesso_agenda = tem_permissao_modulo(request.user, MODULO_AGENDA)
     acesso_financeiro = (
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
-        and _nivel_financeiro(request.user) == NIVEL_DADOS
+        and _tem_acesso_dados_financeiro(request.user)
     )
 
     resumo = {}
@@ -95,13 +101,16 @@ def painel(request):
         resumo["compromissos_proximos"] = qs_compromissos.count()
 
     if acesso_financeiro:
+        qs_lancamentos = LancamentoFinanceiro.objects.all()
+        if _nivel_financeiro(request.user) == NIVEL_DADOS_PROPRIOS:
+            qs_lancamentos = qs_lancamentos.filter(responsavel=request.user)
         a_receber = (
-            LancamentoFinanceiro.objects.filter(tipo="receita", status="pendente")
+            qs_lancamentos.filter(tipo="receita", status="pendente")
             .aggregate(total=Sum("valor"))["total"]
             or Decimal("0")
         )
         a_pagar = (
-            LancamentoFinanceiro.objects.filter(tipo="despesa", status="pendente")
+            qs_lancamentos.filter(tipo="despesa", status="pendente")
             .aggregate(total=Sum("valor"))["total"]
             or Decimal("0")
         )
@@ -130,13 +139,14 @@ def painel(request):
             compromissos_dashboard = compromissos_dashboard.filter(responsavel=request.user)
         compromissos_dashboard = compromissos_dashboard.order_by("data_hora_inicio")[:5]
 
-    financeiro_dashboard = (
-        LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel")
-        .filter(status="pendente")
-        .order_by("data_vencimento")[:5]
-        if acesso_financeiro
-        else LancamentoFinanceiro.objects.none()
-    )
+    financeiro_dashboard = LancamentoFinanceiro.objects.none()
+    if acesso_financeiro:
+        financeiro_dashboard = LancamentoFinanceiro.objects.select_related(
+            "cliente", "processo", "responsavel"
+        ).filter(status="pendente")
+        if _nivel_financeiro(request.user) == NIVEL_DADOS_PROPRIOS:
+            financeiro_dashboard = financeiro_dashboard.filter(responsavel=request.user)
+        financeiro_dashboard = financeiro_dashboard.order_by("data_vencimento")[:5]
 
     assinatura = getattr(request.tenant, "assinatura", None)
     plano_nome = assinatura.plano.nome if assinatura else None

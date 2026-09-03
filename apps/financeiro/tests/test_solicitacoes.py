@@ -27,7 +27,8 @@ from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, 
 from apps.accounts.permissoes_constants import (
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
     MODULO_FINANCEIRO,
-    NIVEL_DADOS,
+    NIVEL_DADOS_PROPRIOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
@@ -357,7 +358,7 @@ class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
     def setUp(self):
         super().setUp()
         self.financeiro = self._user("financeiro_dados")
-        self._conceder_modulo(self.financeiro, nivel=NIVEL_DADOS)
+        self._conceder_modulo(self.financeiro, nivel=NIVEL_DADOS_TODOS)
         self.client.force_login(self.financeiro)
 
         self.solicitante = self._user("advogado")
@@ -436,7 +437,7 @@ class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
     def test_reabrir_lancamento_com_habilitacao_autorizado_e_notifica_solicitante(self):
         habilitado = self._user("financeiro_habilitado")
         self._conceder_modulo(
-            habilitado, nivel=NIVEL_DADOS, habilitacoes=[HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO]
+            habilitado, nivel=NIVEL_DADOS_TODOS, habilitacoes=[HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO]
         )
         self.client.force_login(habilitado)
 
@@ -465,7 +466,7 @@ class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
         solicitante_habilitado = self._user("solicitante_habilitado")
         self._conceder_modulo(
             solicitante_habilitado,
-            nivel=NIVEL_DADOS,
+            nivel=NIVEL_DADOS_TODOS,
             habilitacoes=[HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO],
         )
         solicitacao = self._solicitacao(solicitante=solicitante_habilitado)
@@ -500,6 +501,49 @@ class TestSolicitacoesEscopoNivelDados(SolicitacaoFinanceiraBase):
         self.assertEqual(r.status_code, 302)
         lancamento.refresh_from_db()
         self.assertEqual(lancamento.status, "pendente")
+
+
+class TestSolicitacoesEscopoNivelDadosProprios(SolicitacaoFinanceiraBase):
+    """
+    Nível `dados_proprios` não restringe Solicitações — o eixo novo
+    (specs/escopo-financeiro-lancamentos.md) só afeta LancamentoFinanceiro;
+    SolicitacaoFinanceira continua com seu próprio escopo por
+    `solicitante`, igual para os dois níveis "dados".
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_nivel_dados_proprios"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Nivel Dados Proprios"
+        tenant.slug = "solicitacoes-nivel-dados-proprios"
+
+    def setUp(self):
+        super().setUp()
+        self.financeiro = self._user("financeiro_dados_proprios")
+        self._conceder_modulo(self.financeiro, nivel=NIVEL_DADOS_PROPRIOS)
+        self.client.force_login(self.financeiro)
+
+        self.solicitante = self._user("advogado")
+        self._conceder_modulo(self.solicitante, nivel=NIVEL_SOLICITACOES)
+        self.solicitacao = self._solicitacao(solicitante=self.solicitante)
+
+    def test_lista_mostra_solicitacoes_de_outros_usuarios(self):
+        r = self.client.get("/financeiro/solicitacoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(self.solicitacao, list(r.context["solicitacoes"]))
+
+    def test_processa_solicitacao_de_outro_usuario(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {"acao": "analisar"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "em_analise")
 
 
 class TestSolicitacoesModuloNegado(SolicitacaoFinanceiraBase):
@@ -564,7 +608,7 @@ class TestAnexoSolicitacaoIsolamentoMultiTenant(SolicitacaoFinanceiraBase):
 
     def test_mesmo_id_e_nome_entregam_apenas_conteudo_do_tenant_do_dominio(self):
         usuario_a = self._user("financeiro_storage_a")
-        self._conceder_modulo(usuario_a, nivel=NIVEL_DADOS)
+        self._conceder_modulo(usuario_a, nivel=NIVEL_DADOS_TODOS)
         solicitacao_a = self._solicitacao(
             solicitante=usuario_a,
             anexo=SimpleUploadedFile("mesmo.pdf", b"conteudo-a"),
@@ -586,7 +630,7 @@ class TestAnexoSolicitacaoIsolamentoMultiTenant(SolicitacaoFinanceiraBase):
         try:
             with tenant_context(tenant_b):
                 usuario_b = self._user("financeiro_storage_b")
-                self._conceder_modulo(usuario_b, nivel=NIVEL_DADOS)
+                self._conceder_modulo(usuario_b, nivel=NIVEL_DADOS_TODOS)
                 solicitacao_b = self._solicitacao(
                     solicitante=usuario_b,
                     anexo=SimpleUploadedFile("mesmo.pdf", b"conteudo-b"),

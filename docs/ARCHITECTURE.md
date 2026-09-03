@@ -75,9 +75,13 @@ Kernel dinâmico em `apps/accounts`: `PapelAcesso`, `UsuarioPapel`,
 - `tem_habilitacao(user, "modulo", "item")` — item específico dentro do
   módulo já aberto está habilitado?
 - `nivel_acesso_modulo(user, "modulo")` — resolve `somente_seus`/
-  `todos` (ou `solicitacoes`/`dados` em Financeiro). Só é escopo de
-  fato quando uma view efetivamente filtra o `QuerySet` por ele — o
-  valor sozinho não prova nada.
+  `todos` (ou `solicitacoes`/`dados_proprios`/`dados_todos` em
+  Financeiro — `dados_proprios`/`dados_todos` funcionam como o
+  `somente_seus`/`todos` dos demais módulos, mas só sobre
+  `LancamentoFinanceiro`; `SolicitacaoFinanceira` permanece com escopo
+  próprio por `solicitante`, igual para os dois). Só é escopo de fato
+  quando uma view efetivamente filtra o `QuerySet` por ele — o valor
+  sozinho não prova nada.
 - Precedência: admin do escritório (acesso total) → `PermissaoUsuario`
   individual → união dos `PapelAcesso` ativos do usuário (maior nível
   entre eles) → fallback legado por `auth.Group` (só quando o usuário
@@ -101,6 +105,20 @@ distintos.
   (`get_object_or_404(<queryset>, pk=pk)`); nunca `Model.objects.get`
   seguido de checagem de posse depois. Fora do escopo → 404, não 403
   (não revela existência do registro a quem não tem escopo).
+
+Exceção deliberada em `LancamentoFinanceiro` (`apps/financeiro/views.py`):
+`dados_todos` amplia leitura **e** mutação (sem QuerySet separado) —
+não é um nível de coordenação de equipe como `todos` nos demais
+módulos, é um nível de confiança mais alto dentro do próprio módulo
+Financeiro. `dados_proprios` usa o mesmo `QuerySet` filtrado por
+`responsavel` tanto para leitura quanto mutação.
+
+Consequência a ter em mente ao configurar permissões: em `reabrir_lancamento`,
+o escopo é checado antes da habilitação `financeiro_reabrir_lancamento_pago`
+— com `dados_proprios`, essa habilitação nunca alcança um lançamento cujo
+`responsavel` é outro usuário (404 antes de chegar na checagem da
+habilitação). Um usuário pensado para reabrir lançamento pago de terceiros
+precisa de `dados_todos`, não `dados_proprios` + a habilitação.
 
 ## Limites que não podem ser quebrados
 

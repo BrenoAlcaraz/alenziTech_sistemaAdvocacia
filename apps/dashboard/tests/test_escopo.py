@@ -17,7 +17,8 @@ from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
-    NIVEL_DADOS,
+    NIVEL_DADOS_PROPRIOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -232,7 +233,7 @@ class TestPainelFinanceiroNivelSolicitacoes(DashboardEscopoBase):
 
 
 class TestPainelFinanceiroNivelDados(DashboardEscopoBase):
-    """Nível `dados` continua vendo o bloco financeiro, sem regressão."""
+    """Nível `dados_todos` continua vendo o bloco financeiro, sem regressão."""
 
     @classmethod
     def get_test_schema_name(cls):
@@ -242,7 +243,7 @@ class TestPainelFinanceiroNivelDados(DashboardEscopoBase):
         super().setUp()
         self.usuario = self._user("dashboard_financeiro_dados")
         papel = self._papel_com_niveis(
-            "Papel Dashboard Financeiro Dados", {MODULO_FINANCEIRO: NIVEL_DADOS}
+            "Papel Dashboard Financeiro Dados", {MODULO_FINANCEIRO: NIVEL_DADOS_TODOS}
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
@@ -261,3 +262,50 @@ class TestPainelFinanceiroNivelDados(DashboardEscopoBase):
         self.assertTrue(resposta.context["acesso_financeiro"])
         self.assertIn("a_receber", resposta.context["resumo"])
         self.assertContains(resposta, "Honorário Pendente")
+
+
+class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
+    """
+    Nível `dados_proprios` (specs/escopo-financeiro-lancamentos.md): o
+    bloco financeiro do Dashboard segue o mesmo escopo do módulo
+    Financeiro — só soma/lista lançamentos do próprio usuário.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_financeiro_nivel_dados_proprios"
+
+    def setUp(self):
+        super().setUp()
+        self.usuario = self._user("dashboard_financeiro_dados_proprios")
+        self.outro = self._user("dashboard_financeiro_outro")
+        papel = self._papel_com_niveis(
+            "Papel Dashboard Financeiro Dados Próprios", {MODULO_FINANCEIRO: NIVEL_DADOS_PROPRIOS}
+        )
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        self.client.force_login(self.usuario)
+        LancamentoFinanceiro.objects.create(
+            tipo="receita",
+            descricao="Honorário Próprio",
+            valor="1000.00",
+            data_vencimento="2026-09-30",
+            status="pendente",
+            responsavel=self.usuario,
+        )
+        LancamentoFinanceiro.objects.create(
+            tipo="receita",
+            descricao="Honorário Alheio",
+            valor="5000.00",
+            data_vencimento="2026-09-30",
+            status="pendente",
+            responsavel=self.outro,
+        )
+
+    def test_bloco_financeiro_mostra_e_soma_apenas_lancamentos_proprios(self):
+        resposta = self._get_painel()
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(resposta.context["acesso_financeiro"])
+        self.assertEqual(resposta.context["resumo"]["a_receber"], "R$ 1.000,00")
+        self.assertContains(resposta, "Honorário Próprio")
+        self.assertNotContains(resposta, "Honorário Alheio")

@@ -317,7 +317,7 @@ class PermissaoPapel(models.Model):
                         modulo__in=["processos", "clientes", "tarefas", "modelos", "painel", "agenda"],
                         nivel__in=["somente_seus", "todos"],
                     )
-                    | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados"])
+                    | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados_proprios", "dados_todos"])
                     | Q(modulo__in=["chat", "gerir"], nivel="")
                 ),
                 name="chk_permissaopapel_nivel",
@@ -405,7 +405,7 @@ class PermissaoUsuario(models.Model):
                         modulo__in=["processos", "clientes", "tarefas", "modelos", "painel", "agenda"],
                         nivel__in=["somente_seus", "todos"],
                     )
-                    | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados"])
+                    | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados_proprios", "dados_todos"])
                     | Q(modulo__in=["chat", "gerir"], nivel="")
                 ),
                 name="chk_permissaousuario_nivel",

@@ -61,13 +61,15 @@ MODULO_HABILITACAO_CHOICES = [
 NIVEL_SOMENTE_SEUS = "somente_seus"
 NIVEL_TODOS = "todos"
 NIVEL_SOLICITACOES = "solicitacoes"
-NIVEL_DADOS = "dados"
+NIVEL_DADOS_PROPRIOS = "dados_proprios"
+NIVEL_DADOS_TODOS = "dados_todos"
 
 NIVEL_CHOICES = [
     (NIVEL_SOMENTE_SEUS, "Somente os seus"),
     (NIVEL_TODOS, "Todos"),
     (NIVEL_SOLICITACOES, "Apenas solicitações"),
-    (NIVEL_DADOS, "Acesso a dados"),
+    (NIVEL_DADOS_PROPRIOS, "Dados — só os meus lançamentos"),
+    (NIVEL_DADOS_TODOS, "Dados — todos os lançamentos"),
 ]
 
 # nivel vazio ("") é válido para chat e gerir — não incluso em NIVEL_CHOICES
@@ -80,7 +82,7 @@ NIVEIS_POR_MODULO = {
     MODULO_MODELOS: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_PAINEL: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_AGENDA: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
-    MODULO_FINANCEIRO: [NIVEL_SOLICITACOES, NIVEL_DADOS],
+    MODULO_FINANCEIRO: [NIVEL_SOLICITACOES, NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS],
     MODULO_CHAT: [""],
     MODULO_GERIR: [""],
 }
@@ -186,7 +188,8 @@ NOMES_NIVEIS = {
     NIVEL_SOMENTE_SEUS: "Somente os seus",
     NIVEL_TODOS: "Todos",
     NIVEL_SOLICITACOES: "Apenas solicitações",
-    NIVEL_DADOS: "Acesso a dados",
+    NIVEL_DADOS_PROPRIOS: "Dados — só os meus lançamentos",
+    NIVEL_DADOS_TODOS: "Dados — todos os lançamentos",
 }
 
 NOMES_ITENS = {

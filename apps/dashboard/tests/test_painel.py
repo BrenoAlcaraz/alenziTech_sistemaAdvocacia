@@ -19,7 +19,7 @@ from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
-    NIVEL_DADOS,
+    NIVEL_DADOS_TODOS,
     NIVEL_TODOS,
 )
 from apps.financeiro.models import LancamentoFinanceiro
@@ -115,7 +115,7 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Financeiro Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS
+            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS
         )
         self.client.force_login(self.usuario)
         LancamentoFinanceiro.objects.create(

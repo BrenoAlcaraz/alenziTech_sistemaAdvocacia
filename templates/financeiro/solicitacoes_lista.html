@@ -7,7 +7,7 @@
   <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
 </div>
 
-{% if nivel == "dados" %}
+{% if tem_acesso_dados %}
 {# Abas — só quem tem acesso ao caixa geral navega entre as três áreas #}
 <div class="border-b border-gray-200 mb-6">
   <nav class="-mb-px flex gap-6">
@@ -42,7 +42,7 @@
 {% endif %}
 
 <div class="flex items-center justify-between mb-4">
-  <h2 class="font-semibold text-gray-900">{% if nivel == "dados" %}Solicitações{% else %}Minhas solicitações{% endif %}</h2>
+  <h2 class="font-semibold text-gray-900">{% if tem_acesso_dados %}Solicitações{% else %}Minhas solicitações{% endif %}</h2>
   <a href="{% url 'financeiro:form_solicitacao' %}" class="btn-primary">+ Nova solicitação</a>
 </div>
 
@@ -61,7 +61,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
           <span>{{ s.get_tipo_display }}</span>
-          {% if nivel == "dados" %}<span>{{ s.solicitante }}</span>{% endif %}
+          {% if tem_acesso_dados %}<span>{{ s.solicitante }}</span>{% endif %}
           {% if s.processo %}<span>{{ s.processo }}</span>{% elif s.cliente %}<span>{{ s.cliente }}</span>{% endif %}
           <span>{{ s.criado_em|date:"d/m/Y" }}</span>
         </div>

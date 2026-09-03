@@ -291,7 +291,7 @@ def permissoes(request):
     _MODULOS_CONFIG = [
         ("processos",  "Processos",       [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
         ("clientes",   "Clientes",        [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
-        ("financeiro", "Financeiro",      [("solicitacoes", "Apenas solicitações"), ("dados", "Acesso a dados")]),
+        ("financeiro", "Financeiro",      [("solicitacoes", "Apenas solicitações"), ("dados_proprios", "Dados — só os meus lançamentos"), ("dados_todos", "Dados — todos os lançamentos")]),
         ("tarefas",    "Tarefas",         [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
         ("modelos",    "Modelos de peças",[("somente_seus", "Somente os seus"), ("todos", "Todos")]),
         ("chat",       "Chat",            []),
