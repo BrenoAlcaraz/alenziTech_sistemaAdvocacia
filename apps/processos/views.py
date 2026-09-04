@@ -11,7 +11,10 @@ from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import nivel_acesso_modulo, tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
+    HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
     HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
+    HAB_PROCESSOS_CRIAR,
+    HAB_PROCESSOS_EDITAR,
     MODULO_GERIR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
@@ -263,6 +266,8 @@ def remover_integrante(request, pk, usuario_pk):
 def novo(request):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR):
+        raise PermissionDenied
     pode_atribuir_responsavel = _pode_atribuir_responsavel(request.user)
     FormClass = ProcessoResponsavelForm if pode_atribuir_responsavel else ProcessoForm
     form_kwargs = (
@@ -295,6 +300,8 @@ def novo(request):
 @login_required
 def editar(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_PROCESSOS, HAB_PROCESSOS_EDITAR):
         raise PermissionDenied
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
@@ -362,6 +369,8 @@ def reabrir(request, pk):
 @login_required
 def adicionar_movimentacao(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_PROCESSOS, HAB_PROCESSOS_ANDAMENTO_ADICIONAR):
         raise PermissionDenied
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)

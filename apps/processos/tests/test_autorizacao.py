@@ -1,26 +1,41 @@
 """
-Testes de autorização de módulo para apps/processos/views.py.
+Testes de autorização de módulo e de habilitação para
+apps/processos/views.py.
 
-Cobre exclusivamente tem_permissao_modulo(user, "processos") nas nove
-rotas existentes (lista, detalhe, novo, editar, arquivados, arquivar,
-reabrir, adicionar_movimentacao, adicionar_parte). Por decisão de
-produto (PDR-0010), esta versão de Processos NÃO aplica as
-habilitações granulares já existentes no kernel (processos_criar,
-processos_editar, processos_andamento_adicionar) — um usuário com o
-módulo processos autorizado alcança todas as operações atuais,
-independentemente dessas habilitações. Escopo de dados por responsável
-(Fase B) também não é tratado por este arquivo.
+Cobre tem_permissao_modulo(user, "processos") nas nove rotas
+existentes (lista, detalhe, novo, editar, arquivados, arquivar,
+reabrir, adicionar_movimentacao, adicionar_parte), e, a partir de
+PDR-0017, tem_habilitacao(user, "processos", <item>) para
+processos_criar (novo), processos_editar (editar) e
+processos_andamento_adicionar (adicionar_movimentacao) — módulo
+autorizado não equivale mais a poder criar/editar/adicionar andamento
+sem a habilitação específica. As demais rotas (arquivar, reabrir,
+apensos, partes) continuam regidas apenas pela autorização binária de
+módulo, conforme PDR-0010. Escopo de dados por responsável (Fase B)
+também não é tratado por este arquivo.
 
 Segue o mesmo padrão de fixtures de
 apps/clientes/tests/test_autorizacao.py (_user, _new_papel,
-_assign_papel, _pp) sobre django_tenants.test.cases.TenantTestCase.
+_assign_papel, _pp, _hp) sobre django_tenants.test.cases.TenantTestCase.
 """
 
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PapelAcesso, PerfilUsuario, PermissaoPapel, UsuarioPapel
-from apps.accounts.permissoes_constants import MODULO_PROCESSOS, NIVEL_TODOS
+from apps.accounts.models import (
+    HabilitacaoPapel,
+    PapelAcesso,
+    PerfilUsuario,
+    PermissaoPapel,
+    UsuarioPapel,
+)
+from apps.accounts.permissoes_constants import (
+    HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
+    HAB_PROCESSOS_CRIAR,
+    HAB_PROCESSOS_EDITAR,
+    MODULO_PROCESSOS,
+    NIVEL_TODOS,
+)
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 
@@ -58,6 +73,11 @@ class ProcessosAutorizacaoBase(TenantTestCase):
     def _pp(self, papel, modulo, *, ativo=True, nivel=NIVEL_TODOS):
         return PermissaoPapel.objects.create(
             papel=papel, tipo_conta=None, modulo=modulo, ativo=ativo, nivel=nivel
+        )
+
+    def _hp(self, papel, modulo, item, *, ativo=True):
+        return HabilitacaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=modulo, item=item, ativo=ativo
         )
 
     def _cliente(self, *, responsavel, **kwargs):
@@ -195,11 +215,11 @@ class TestProcessosAutorizacaoModuloNegado(ProcessosAutorizacaoBase):
 
 class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
     """
-    Usuário autorizado ao módulo `processos` (via papel dinâmico)
-    preserva o comportamento HTTP existente das nove rotas — incluindo
-    criar/editar/adicionar movimentação, mesmo sem processos_criar/
-    processos_editar/processos_andamento_adicionar (PDR-0010:
-    habilitações não aplicadas nesta versão).
+    Usuário autorizado ao módulo `processos` (via papel dinâmico) e às
+    três habilitações de PDR-0017 (processos_criar, processos_editar,
+    processos_andamento_adicionar) preserva o comportamento HTTP
+    existente das nove rotas — caminho autorizado completo (Camada 1 +
+    Camada 2).
     """
 
     @classmethod
@@ -217,9 +237,12 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         papel = self._new_papel("Papel Processos Concedido")
         self._assign_papel(self.user, papel)
         self._pp(papel, MODULO_PROCESSOS)
-        # Nenhuma HabilitacaoPapel concedida — PDR-0010 determina que
-        # processos_criar/processos_editar/processos_andamento_adicionar
-        # não restringem operações de Processos nesta versão.
+        # As três habilitações de PDR-0017 são concedidas neste fixture
+        # para representar o caminho autorizado completo de novo/editar/
+        # adicionar_movimentacao (Camada 1 + Camada 2).
+        self._hp(papel, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
+        self._hp(papel, MODULO_PROCESSOS, HAB_PROCESSOS_EDITAR)
+        self._hp(papel, MODULO_PROCESSOS, HAB_PROCESSOS_ANDAMENTO_ADICIONAR)
         self.client.force_login(self.user)
         self.cliente = self._cliente(responsavel=self.user)
         self.processo = self._processo(responsavel=self.user, cliente=self.cliente)
@@ -244,7 +267,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         self.assertEqual(r.status_code, 200)
         self.assertTemplateUsed(r, "processos/form.html")
 
-    def test_novo_post_autorizado_cria_processo_sem_habilitacao(self):
+    def test_novo_post_autorizado_cria_processo(self):
         antes = Processo.objects.count()
         r = self.client.post(
             "/processos/novo/",
@@ -261,7 +284,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         self.assertEqual(r.status_code, 200)
         self.assertTemplateUsed(r, "processos/form.html")
 
-    def test_editar_post_autorizado_altera_processo_sem_habilitacao(self):
+    def test_editar_post_autorizado_altera_processo(self):
         r = self.client.post(
             f"/processos/{self.processo.pk}/editar/",
             self._processo_payload(self.cliente, titulo="Titulo Alterado Autorizado"),
@@ -291,7 +314,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         self.processo.refresh_from_db()
         self.assertEqual(self.processo.status, "ativo")
 
-    def test_adicionar_movimentacao_post_autorizado_sem_habilitacao(self):
+    def test_adicionar_movimentacao_post_autorizado(self):
         antes = self.processo.movimentacoes.count()
         r = self.client.post(
             f"/processos/{self.processo.pk}/movimentacoes/nova/",
@@ -314,6 +337,132 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
             r, f"/processos/{self.processo.pk}/?aba=partes", fetch_redirect_response=False
         )
         self.assertEqual(self.processo.partes.count(), antes + 1)
+
+
+class TestProcessosAutorizacaoHabilitacaoCriarAusente(ProcessosAutorizacaoBase):
+    """
+    Usuário com módulo `processos` autorizado, mas sem
+    `processos_criar` (Camada 2, PDR-0017) — prova que módulo
+    autorizado não equivale a poder criar processo.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi0004_processos_sem_criar"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "WI-0004 Processos Sem Criar"
+        tenant.slug = "wi0004-processos-sem-criar"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("modulo_sem_processos_criar")
+        papel = self._new_papel("Papel Processos Sem Criar")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_PROCESSOS)
+        # Nenhuma HabilitacaoPapel para HAB_PROCESSOS_CRIAR — módulo
+        # aberto, habilitação de criação ausente.
+        self.client.force_login(self.user)
+        self.cliente = self._cliente(responsavel=self.user)
+
+    def test_novo_get_negado(self):
+        r = self.client.get("/processos/novo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_novo_post_negado_nao_cria_processo(self):
+        antes = Processo.objects.count()
+        r = self.client.post(
+            "/processos/novo/",
+            self._processo_payload(self.cliente, titulo="Tentativa Sem Habilitacao"),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Processo.objects.count(), antes)
+
+
+class TestProcessosAutorizacaoHabilitacaoEditarAusente(ProcessosAutorizacaoBase):
+    """
+    Usuário com módulo `processos` autorizado, mas sem
+    `processos_editar` (Camada 2, PDR-0017) — prova que módulo
+    autorizado não equivale a poder editar processo, mesmo dentro do
+    próprio escopo de mutação.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi0004_processos_sem_editar"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "WI-0004 Processos Sem Editar"
+        tenant.slug = "wi0004-processos-sem-editar"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("modulo_sem_processos_editar")
+        papel = self._new_papel("Papel Processos Sem Editar")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_PROCESSOS)
+        # Nenhuma HabilitacaoPapel para HAB_PROCESSOS_EDITAR — módulo
+        # aberto, habilitação de edição ausente.
+        self.client.force_login(self.user)
+        self.cliente = self._cliente(responsavel=self.user)
+        self.processo = self._processo(responsavel=self.user, cliente=self.cliente)
+
+    def test_editar_get_negado(self):
+        r = self.client.get(f"/processos/{self.processo.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_post_negado_preserva_valores(self):
+        titulo_original = self.processo.titulo
+        r = self.client.post(
+            f"/processos/{self.processo.pk}/editar/",
+            self._processo_payload(self.cliente, titulo="Titulo Alterado Sem Habilitacao"),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.titulo, titulo_original)
+
+
+class TestProcessosAutorizacaoHabilitacaoAndamentoAusente(ProcessosAutorizacaoBase):
+    """
+    Usuário com módulo `processos` autorizado, mas sem
+    `processos_andamento_adicionar` (Camada 2, PDR-0017) — prova que
+    módulo autorizado não equivale a poder adicionar andamento.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi0004_processos_sem_andamento"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "WI-0004 Processos Sem Andamento"
+        tenant.slug = "wi0004-processos-sem-andamento"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("modulo_sem_processos_andamento")
+        papel = self._new_papel("Papel Processos Sem Andamento")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_PROCESSOS)
+        # Nenhuma HabilitacaoPapel para HAB_PROCESSOS_ANDAMENTO_ADICIONAR
+        # — módulo aberto, habilitação de andamento ausente.
+        self.client.force_login(self.user)
+        self.cliente = self._cliente(responsavel=self.user)
+        self.processo = self._processo(responsavel=self.user, cliente=self.cliente)
+
+    def test_adicionar_movimentacao_post_negado_nao_cria(self):
+        antes = self.processo.movimentacoes.count()
+        r = self.client.post(
+            f"/processos/{self.processo.pk}/movimentacoes/nova/",
+            {"tipo": "andamento", "data": "2026-08-19T10:00", "descricao": "Tentativa negada"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(self.processo.movimentacoes.count(), antes)
 
 
 class TestProcessosAutorizacaoAdministrador(ProcessosAutorizacaoBase):
@@ -370,3 +519,28 @@ class TestProcessosAutorizacaoAdministrador(ProcessosAutorizacaoBase):
         r = self.client.post(f"/processos/{self.processo.pk}/arquivar/", HTTP_HOST=self.http_host)
         self.processo.refresh_from_db()
         self.assertEqual(self.processo.status, "arquivado")
+
+    def test_editar_post_autorizado_para_admin_sem_habilitacao(self):
+        # tem_habilitacao() já concede automaticamente ao Administrador
+        # do escritório (bypass interno do kernel) — sem depender de
+        # HabilitacaoPapel para processos_editar.
+        r = self.client.post(
+            f"/processos/{self.processo.pk}/editar/",
+            self._processo_payload(
+                self.cliente, titulo="Titulo Alterado Admin", responsavel=self.user.pk
+            ),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.titulo, "Titulo Alterado Admin")
+
+    def test_adicionar_movimentacao_post_autorizado_para_admin_sem_habilitacao(self):
+        antes = self.processo.movimentacoes.count()
+        r = self.client.post(
+            f"/processos/{self.processo.pk}/movimentacoes/nova/",
+            {"tipo": "andamento", "data": "2026-08-19T10:00", "descricao": "Movimentação admin"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.processo.movimentacoes.count(), antes + 1)

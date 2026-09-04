@@ -5,11 +5,16 @@ documentos, andamentos, vínculos, prazos, apensos. Arquivo próprio por
 volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
-## Autorização e responsabilidade (PDR-0010, PDR-0014)
+## Autorização e responsabilidade (PDR-0010, PDR-0014, PDR-0017)
 
-- Módulo `processos` é autorização binária nesta versão: módulo
-  habilitado dá acesso a todas as operações existentes, sem
-  habilitação granular por operação (decisão deliberada, não lacuna).
+- Módulo `processos` habilitado é pré-requisito para todas as
+  operações existentes. Além disso, `processos_criar`,
+  `processos_editar` e `processos_andamento_adicionar` já são
+  habilitações granulares aplicadas (PDR-0017), condicionando
+  respectivamente `novo`, `editar` e `adicionar_movimentacao`.
+  `processos_usar_ia` e `processos_usar_laboratorio` continuam sem
+  nenhum ponto de aplicação (PDR-0010, PDR-0008); arquivar, reabrir,
+  apensos e partes seguem regidos apenas pela autorização de módulo.
 - Escopo por `Processo.responsavel` (`somente_seus`/`todos`) e
   responsabilidade obrigatória são a direção vigente. Equipe não
   concede acesso nem filtra Processos.
@@ -83,4 +88,5 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 - [PDR-0012](../decisions/PDR-0012-relacao-simetrica-processos-apensos.md)
 - [PDR-0013](../decisions/PDR-0013-partes-processo-modelo-simplificado.md)
 - [PDR-0014](../decisions/PDR-0014-responsavel-integrantes-processos.md)
+- [PDR-0017](../decisions/PDR-0017-habilitacoes-criar-editar-andamento-processos.md)
 - [STATUS.md](../STATUS.md#processos) para o estado real de implementação

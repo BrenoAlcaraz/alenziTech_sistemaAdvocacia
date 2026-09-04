@@ -44,3 +44,4 @@ serem efetivamente decididas.
 | PDR-0014 | Responsável principal e integrantes habilitados de Processos | accepted | [PDR-0014-responsavel-integrantes-processos.md](PDR-0014-responsavel-integrantes-processos.md) |
 | PDR-0015 | Fluxo de aprovação das solicitações financeiras | accepted | [PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md](PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md) |
 | PDR-0016 | Notificações de Tarefas e Agenda | accepted | [PDR-0016-notificacoes-tarefas-agenda.md](PDR-0016-notificacoes-tarefas-agenda.md) |
+| PDR-0017 | Habilitações granulares de criar, editar e adicionar andamento em Processos | accepted | [PDR-0017-habilitacoes-criar-editar-andamento-processos.md](PDR-0017-habilitacoes-criar-editar-andamento-processos.md) |
