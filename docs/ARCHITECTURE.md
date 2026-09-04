@@ -101,6 +101,26 @@ juntas, com uma migration nova (`AlterField` de `item` +
 banco rejeita a gravação da habilitação nova com violação de
 `chk_habilitacaopapel_modulo_item`/`chk_habilitacaousuario_modulo_item`.
 
+**Gravar em `PermissaoPapel`/`HabilitacaoPapel`**: filtrar e gravar
+sempre por um único identificador por vez — `tipo_conta` OU `papel`,
+nunca os dois juntos no mesmo `filter`/`update_or_create`. A migration
+`0011_migrar_papeis_e_presets` associou `papel` a linhas legadas de
+`tipo_conta` ('limitado'/'financeiro' apontam também para os presets
+'Advogado Associado'/'Gestor Financeiro') sem zerar o `tipo_conta`
+original — essas linhas ficam com os dois campos preenchidos ao mesmo
+tempo. Um lookup pelos dois campos juntos não encontra essa linha e
+tenta inserir uma duplicata, violando a `UniqueConstraint`. Referência:
+`apps/configuracoes/views.py::_build_modulos_permissao`/`_salvar_permissoes`.
+
+**Efeito colateral em Processos ao mudar permissão de um usuário**:
+qualquer código que grave `PermissaoPapel`/`HabilitacaoPapel` (por
+papel ou tipo de conta) ou `PermissaoUsuario`/`HabilitacaoUsuario`
+(override individual) e que possa remover acesso ao módulo Processos
+deve chamar `transferir_processos_de_usuarios_sem_acesso`
+(`apps/processos/services.py`) na mesma transação — sem isso, o
+`responsavel` de um Processo fica "órfão" (aponta para alguém sem
+`tem_permissao_modulo`). Referência: `apps/configuracoes/views.py::_salvar_permissoes`/`usuario_overrides`.
+
 **Padrão de escopo de dados** (referência: `apps/clientes/views.py`,
 `apps/processos/views.py`): leitura e mutação usam `QuerySet`s
 distintos.
