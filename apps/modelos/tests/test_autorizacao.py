@@ -3,11 +3,13 @@ Testes de autorização de módulo (Camada 1) e de habilitação funcional
 (Camada 2) para apps/modelos/views.py.
 
 Camada 1 cobre o enforcement de tem_permissao_modulo(user, MODULO_MODELOS)
-nas cinco rotas existentes (lista, novo, detalhe, editar, importar).
+nas seis rotas existentes (lista, novo, detalhe, editar, excluir, importar).
 Camada 2 cobre o enforcement de tem_habilitacao() em `novo` e `importar`
-(modelos_criar) — únicas rotas que criam ModeloPeca. `modelos_editar_estilo`
-não tem view própria ainda (aba "Meu estilo" é placeholder) e continua
-fora do escopo (ver docs/STATUS.md).
+(modelos_criar) — únicas rotas que criam ModeloPeca — e em `editar`/
+`excluir` para peça de outro usuário (modelos_editar_alheio/
+modelos_excluir_alheio — PDR-0018). `modelos_editar_estilo` não tem view
+própria ainda (aba "Meu estilo" é placeholder) e continua fora do
+escopo (ver docs/STATUS.md).
 
 Segue o mesmo padrão de fixtures de apps/clientes/tests/test_autorizacao.py.
 """
@@ -24,10 +26,13 @@ from apps.accounts.models import (
 )
 from apps.accounts.permissoes_constants import (
     HAB_MODELOS_CRIAR,
+    HAB_MODELOS_EDITAR_ALHEIO,
+    HAB_MODELOS_EXCLUIR_ALHEIO,
     MODULO_MODELOS,
     NIVEL_TODOS,
 )
 from apps.modelos.models import ModeloPeca
+from apps.notificacoes.models import Notificacao
 
 
 class ModelosAutorizacaoBase(TenantTestCase):
@@ -217,3 +222,193 @@ class TestModelosAutorizacaoAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
     def test_importar_ok(self):
         r = self.client.get("/modelos/importar/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
+
+
+def _payload_edicao(**overrides):
+    dados = {
+        "titulo": "Modelo Editado",
+        "categoria": "Contestação",
+        "area_direito": "civil",
+        "conteudo": "Conteúdo editado.",
+    }
+    dados.update(overrides)
+    return dados
+
+
+class TestModelosDonoSempreEditaExclui(ModelosAutorizacaoBase):
+    """
+    PDR-0018: o autor sempre edita/exclui o que criou, mesmo sem
+    modelos_criar ativa e sem as habilitações de edição/exclusão alheia.
+    Ações sobre a própria peça não geram Notificacao.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_dono_sempre"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("dono_modelo")
+        papel = self._new_papel("Papel Dono")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        # Sem modelos_criar, sem modelos_editar_alheio, sem modelos_excluir_alheio.
+        self.client.force_login(self.user)
+        self.modelo = self._modelo(criado_por=self.user)
+
+    def test_editar_proprio_ok_sem_notificar(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/editar/",
+            _payload_edicao(),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.modelo.refresh_from_db()
+        self.assertEqual(self.modelo.titulo, "Modelo Editado")
+        self.assertFalse(Notificacao.objects.exists())
+
+    def test_excluir_proprio_ok_sem_notificar(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(ModeloPeca.objects.filter(pk=self.modelo.pk).exists())
+        self.assertFalse(Notificacao.objects.exists())
+
+
+class TestModelosEdicaoExclusaoAlheiaNegadas(ModelosAutorizacaoBase):
+    """Usuário sem autoria e sem habilitação alheia não edita/exclui peça de outro."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_alheio_negado"
+
+    def setUp(self):
+        super().setUp()
+        self.autor = self._user("autor_modelo")
+        self.outro = self._user("outro_usuario")
+        papel = self._new_papel("Papel Outro")
+        self._assign_papel(self.outro, papel)
+        self._pp(papel, MODULO_MODELOS)
+        # Sem modelos_editar_alheio, sem modelos_excluir_alheio.
+        self.client.force_login(self.outro)
+        self.modelo = self._modelo(criado_por=self.autor)
+
+    def test_editar_alheio_negado_get(self):
+        r = self.client.get(
+            f"/modelos/{self.modelo.pk}/editar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_alheio_negado_post(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/editar/",
+            _payload_edicao(),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.modelo.refresh_from_db()
+        self.assertNotEqual(self.modelo.titulo, "Modelo Editado")
+
+    def test_excluir_alheio_negado(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(ModeloPeca.objects.filter(pk=self.modelo.pk).exists())
+
+
+class TestModelosEdicaoAlheiaConcedida(ModelosAutorizacaoBase):
+    """Com modelos_editar_alheio, edita peça de outro e notifica o autor original."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_editar_alheio_ok"
+
+    def setUp(self):
+        super().setUp()
+        self.autor = self._user("autor_modelo_2")
+        self.editor = self._user("editor_alheio")
+        papel = self._new_papel("Papel Editor Alheio")
+        self._assign_papel(self.editor, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self._hp(papel, MODULO_MODELOS, HAB_MODELOS_EDITAR_ALHEIO)
+        self.client.force_login(self.editor)
+        self.modelo = self._modelo(criado_por=self.autor)
+
+    def test_editar_alheio_ok_e_notifica_autor(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/editar/",
+            _payload_edicao(),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.modelo.refresh_from_db()
+        self.assertEqual(self.modelo.titulo, "Modelo Editado")
+        notificacao = Notificacao.objects.get()
+        self.assertEqual(notificacao.destinatario_id, self.autor.id)
+
+    def test_excluir_alheio_continua_negado_sem_habilitacao_propria(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
+
+class TestModelosExclusaoAlheiaConcedida(ModelosAutorizacaoBase):
+    """Com modelos_excluir_alheio, exclui peça de outro e notifica o autor original."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_excluir_alheio_ok"
+
+    def setUp(self):
+        super().setUp()
+        self.autor = self._user("autor_modelo_3")
+        self.excluidor = self._user("excluidor_alheio")
+        papel = self._new_papel("Papel Excluidor Alheio")
+        self._assign_papel(self.excluidor, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self._hp(papel, MODULO_MODELOS, HAB_MODELOS_EXCLUIR_ALHEIO)
+        self.client.force_login(self.excluidor)
+        self.modelo = self._modelo(criado_por=self.autor)
+
+    def test_excluir_alheio_ok_e_notifica_autor(self):
+        r = self.client.post(
+            f"/modelos/{self.modelo.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(ModeloPeca.objects.filter(pk=self.modelo.pk).exists())
+        notificacao = Notificacao.objects.get()
+        self.assertEqual(notificacao.destinatario_id, self.autor.id)
+
+
+class TestModelosAdminEdicaoExclusaoAlheiaIndependeDeHabilitacao(ModelosAutorizacaoBase):
+    """Administrador do escritório edita/exclui peça de qualquer autor (bypass do kernel)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_admin_alheio"
+
+    def setUp(self):
+        super().setUp()
+        self.autor = self._user("autor_modelo_4")
+        self.admin = self._admin("admin_modelos_alheio")
+        self.client.force_login(self.admin)
+
+    def test_editar_alheio_ok(self):
+        modelo = self._modelo(criado_por=self.autor)
+        r = self.client.post(
+            f"/modelos/{modelo.pk}/editar/",
+            _payload_edicao(),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+
+    def test_excluir_alheio_ok(self):
+        modelo = self._modelo(criado_por=self.autor)
+        r = self.client.post(
+            f"/modelos/{modelo.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(ModeloPeca.objects.filter(pk=modelo.pk).exists())

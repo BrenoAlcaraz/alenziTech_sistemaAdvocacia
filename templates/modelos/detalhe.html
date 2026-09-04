@@ -46,10 +46,22 @@
 
   {# Ações #}
   <div class="flex gap-3">
-    <a href="{% url 'modelos:editar' modelo.pk %}" class="btn-primary">Editar</a>
+    {% if pode_editar %}
+      <a href="{% url 'modelos:editar' modelo.pk %}" class="btn-primary">Editar</a>
+    {% endif %}
     <button type="button"
             id="copiar-conteudo"
             class="btn-secondary">Copiar conteúdo</button>
+    {% if pode_excluir %}
+      <form method="post" action="{% url 'modelos:excluir' modelo.pk %}" class="inline">
+        {% csrf_token %}
+        <button type="submit"
+                class="btn-secondary text-red-600 hover:text-red-700"
+                onclick="return confirm('{% if modelo.criado_por_id != request.user.id %}Este modelo foi criado por {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name|escapejs }}{% else %}{{ modelo.criado_por.username|escapejs }}{% endif %}. Excluir permanentemente?{% else %}Este modelo de peça será excluído permanentemente. Deseja continuar?{% endif %}')">
+          Excluir
+        </button>
+      </form>
+    {% endif %}
     <a href="{% url 'modelos:lista' %}" class="btn-secondary">Voltar</a>
   </div>
 

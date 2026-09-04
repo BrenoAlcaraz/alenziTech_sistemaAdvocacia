@@ -508,6 +508,8 @@ class HabilitacaoPapel(models.Model):
                     | Q(modulo="modelos", item__in=[
                         "modelos_criar",
                         "modelos_editar_estilo",
+                        "modelos_editar_alheio",
+                        "modelos_excluir_alheio",
                     ])
                     | Q(modulo="agenda", item__in=[
                         "agenda_criar_para_outros",
@@ -623,6 +625,8 @@ class HabilitacaoUsuario(models.Model):
                     | Q(modulo="modelos", item__in=[
                         "modelos_criar",
                         "modelos_editar_estilo",
+                        "modelos_editar_alheio",
+                        "modelos_excluir_alheio",
                     ])
                     | Q(modulo="agenda", item__in=[
                         "agenda_criar_para_outros",
