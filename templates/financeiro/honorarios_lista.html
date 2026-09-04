@@ -1,0 +1,98 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Honorários — Financeiro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Financeiro</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
+</div>
+
+{# Abas #}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="{% url 'financeiro:index' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      Lançamentos
+    </a>
+    <a href="{% url 'financeiro:custas' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
+      </svg>
+      Custas Judiciais
+    </a>
+    <a href="{% url 'financeiro:honorarios_lista' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-active">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6V6m0 1.5v9M12 15v1.5m9-4.5a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Honorários
+    </a>
+    <a href="{% url 'financeiro:solicitacoes_lista' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Solicitações
+    </a>
+  </nav>
+</div>
+
+<div class="flex items-center justify-between mb-4">
+  <h2 class="font-semibold text-gray-900">Honorários</h2>
+  <a href="{% url 'financeiro:form_honorario' %}" class="btn-primary">+ Novo honorário</a>
+</div>
+
+<div class="flex flex-col gap-2">
+  {% for h in honorarios %}
+    <div class="card px-5 py-4">
+      <div class="flex items-start justify-between gap-4 mb-1">
+        <p class="font-medium text-gray-900">{{ h.get_tipo_display }}</p>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if h.status == "previsto" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Previsto</span>
+          {% elif h.status == "recebido" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Recebido</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
+          {% endif %}
+          <p class="font-semibold text-gray-900">
+            R$ {{ h.valor_efetivo|default:h.valor_estimado|floatformat:2 }}
+          </p>
+          <a href="{% url 'financeiro:editar_honorario' h.pk %}"
+             title="Editar honorário" aria-label="Editar honorário"
+             class="text-gray-300 hover:text-gray-500 ml-1">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-2">
+        {% if h.processo %}<span>{{ h.processo }}</span>{% elif h.cliente %}<span>{{ h.cliente }}</span>{% endif %}
+        {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
+        {% if h.data_recebida %}<span>Recebido em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}
+      </div>
+
+      {% if h.status == "previsto" %}
+        <div class="flex flex-wrap items-center gap-3">
+          {% if is_admin %}
+            <a href="{% url 'financeiro:confirmar_recebimento_honorario' h.pk %}" class="text-xs text-green-700 hover:text-green-900 hover:underline">Confirmar recebimento</a>
+            <span class="text-gray-200 text-xs">|</span>
+          {% endif %}
+          <form method="post" action="{% url 'financeiro:cancelar_honorario' h.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum honorário registrado." %}
+  {% endfor %}
+</div>
+{% endblock %}

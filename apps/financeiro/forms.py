@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from .models import LancamentoFinanceiro, CustaJudicial, SolicitacaoFinanceira
+from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 
@@ -107,6 +107,75 @@ class CustaJudicialForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return valor
+
+
+class HonorarioForm(forms.ModelForm):
+    class Meta:
+        model = Honorario
+        fields = ["tipo", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes"]
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "valor_estimado": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
+            "processo": forms.Select(attrs={"class": "select"}),
+            "cliente": forms.Select(attrs={"class": "select"}),
+            "data_prevista": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "observacoes": forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
+        }
+        labels = {
+            "valor_estimado": "Valor estimado (R$)",
+            "data_prevista": "Data prevista",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
+        self.fields["cliente"].required = False
+        self.fields["cliente"].empty_label = "Nenhum"
+        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
+        self.fields["processo"].required = False
+        self.fields["processo"].empty_label = "Nenhum"
+        self.fields["data_prevista"].required = False
+        self.fields["data_prevista"].input_formats = ["%Y-%m-%d"]
+        self.fields["observacoes"].required = False
+
+    def clean_valor_estimado(self):
+        valor = self.cleaned_data.get("valor_estimado")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor
+
+
+class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
+    class Meta:
+        model = Honorario
+        fields = ["valor_efetivo", "data_recebida"]
+        widgets = {
+            "valor_efetivo": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
+            "data_recebida": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+        }
+        labels = {
+            "valor_efetivo": "Valor efetivo recebido (R$)",
+            "data_recebida": "Data recebida",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["valor_efetivo"].required = True
+        self.fields["data_recebida"].required = True
+        self.fields["data_recebida"].input_formats = ["%Y-%m-%d"]
+
+    def clean_valor_efetivo(self):
+        valor = self.cleaned_data.get("valor_efetivo")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor
+
+    def save(self, commit=True):
+        honorario = super().save(commit=False)
+        honorario.status = "recebido"
+        if commit:
+            honorario.save()
+        return honorario
 
 
 class SolicitacaoFinanceiraForm(forms.ModelForm):

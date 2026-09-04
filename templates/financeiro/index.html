@@ -24,6 +24,13 @@
       </svg>
       Custas Judiciais
     </a>
+    <a href="{% url 'financeiro:honorarios_lista' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'honorarios' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6V6m0 1.5v9M12 15v1.5m9-4.5a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Honorários
+    </a>
     <a href="{% url 'financeiro:solicitacoes_lista' %}"
        class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'solicitacoes' %}tab-active{% else %}tab-inactive{% endif %}">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

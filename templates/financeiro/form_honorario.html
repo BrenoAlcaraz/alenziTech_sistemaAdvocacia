@@ -1,0 +1,81 @@
+{% extends "base/base_auth.html" %}
+{% block title %}{% if modo == "editar" %}Editar honorário — Financeiro{% else %}Novo honorário — Financeiro{% endif %}{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'financeiro:honorarios_lista' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">{% if modo == "editar" %}Editar honorário{% else %}Novo honorário{% endif %}</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for erro in form.non_field_errors %}{{ erro }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="flex flex-col gap-4">
+
+      <div>
+        <label class="label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="label" for="{{ form.valor_estimado.id_for_label }}">{{ form.valor_estimado.label }}</label>
+          {{ form.valor_estimado }}
+          {% if form.valor_estimado.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.valor_estimado.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.data_prevista.id_for_label }}">{{ form.data_prevista.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.data_prevista }}
+          {% if form.data_prevista.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.data_prevista.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div>
+        <label class="label" for="{{ form.observacoes.id_for_label }}">{{ form.observacoes.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.observacoes }}
+        {% if form.observacoes.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">{% if modo == "editar" %}Salvar alterações{% else %}Registrar honorário{% endif %}</button>
+      <a href="{% url 'financeiro:honorarios_lista' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -9,6 +9,7 @@ from django.http import FileResponse, Http404
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo, tem_habilitacao
 from apps.accounts.permissoes_constants import (
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
@@ -19,8 +20,14 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.notificacoes.models import Notificacao
 
-from .forms import LancamentoFinanceiroForm, CustaJudicialForm, SolicitacaoFinanceiraForm
-from .models import LancamentoFinanceiro, CustaJudicial, SolicitacaoFinanceira
+from .forms import (
+    ConfirmarRecebimentoHonorarioForm,
+    CustaJudicialForm,
+    HonorarioForm,
+    LancamentoFinanceiroForm,
+    SolicitacaoFinanceiraForm,
+)
+from .models import CustaJudicial, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
 
 
 def _redirect_seguro(request):
@@ -345,6 +352,114 @@ def form_custa(request):
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
+
+
+def _honorarios_no_escopo():
+    return Honorario.objects.select_related("cliente", "processo")
+
+
+@login_required
+def honorarios_lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    return render(request, "financeiro/honorarios_lista.html", {
+        "honorarios": _honorarios_no_escopo().order_by("-criado_em"),
+        "is_admin": usuario_admin_escritorio(request.user),
+        "aba_ativa": "honorarios",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def form_honorario(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    if request.method == "POST":
+        form = HonorarioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("financeiro:honorarios_lista")
+    else:
+        form = HonorarioForm()
+
+    return render(request, "financeiro/form_honorario.html", {
+        "form": form,
+        "modo": "novo",
+        "aba_ativa": "honorarios",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def editar_honorario(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+
+    if request.method == "POST":
+        form = HonorarioForm(request.POST, instance=honorario)
+        if form.is_valid():
+            form.save()
+            return redirect("financeiro:honorarios_lista")
+    else:
+        form = HonorarioForm(instance=honorario)
+
+    return render(request, "financeiro/form_honorario.html", {
+        "form": form,
+        "modo": "editar",
+        "honorario": honorario,
+        "aba_ativa": "honorarios",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def confirmar_recebimento_honorario(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    if not usuario_admin_escritorio(request.user):
+        raise PermissionDenied
+    honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+
+    if request.method == "POST":
+        form = ConfirmarRecebimentoHonorarioForm(request.POST, instance=honorario)
+        if form.is_valid():
+            form.save()
+            responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
+            if responsavel_id and responsavel_id != request.user.id:
+                Notificacao.objects.create(
+                    destinatario=honorario.processo.responsavel,
+                    mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
+                )
+            return redirect("financeiro:honorarios_lista")
+    else:
+        form = ConfirmarRecebimentoHonorarioForm(
+            instance=honorario,
+            initial={"valor_efetivo": honorario.valor_estimado, "data_recebida": timezone.localdate()},
+        )
+
+    return render(request, "financeiro/confirmar_recebimento_honorario.html", {
+        "form": form,
+        "honorario": honorario,
+        "aba_ativa": "honorarios",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def cancelar_honorario(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+    if request.method == "POST":
+        honorario.status = "cancelado"
+        honorario.save(update_fields=["status"])
+    return redirect("financeiro:honorarios_lista")
 
 
 def _solicitacoes_no_escopo(request):

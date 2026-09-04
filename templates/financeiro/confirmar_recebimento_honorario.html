@@ -1,0 +1,51 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Confirmar recebimento — Financeiro{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'financeiro:honorarios_lista' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Confirmar recebimento</h1>
+</div>
+
+<div class="card p-6 max-w-lg">
+  <p class="text-sm text-gray-600 mb-5">
+    {{ honorario.get_tipo_display }} — valor estimado R$ {{ honorario.valor_estimado|floatformat:2 }}{% if honorario.processo %} — {{ honorario.processo }}{% endif %}
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for erro in form.non_field_errors %}{{ erro }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="label" for="{{ form.valor_efetivo.id_for_label }}">{{ form.valor_efetivo.label }}</label>
+        {{ form.valor_efetivo }}
+        {% if form.valor_efetivo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.valor_efetivo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+      <div>
+        <label class="label" for="{{ form.data_recebida.id_for_label }}">{{ form.data_recebida.label }}</label>
+        {{ form.data_recebida }}
+        {% if form.data_recebida.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.data_recebida.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Confirmar recebimento</button>
+      <a href="{% url 'financeiro:honorarios_lista' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

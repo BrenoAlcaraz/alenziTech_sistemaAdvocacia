@@ -1,14 +1,18 @@
 """
 Testes de autorização de módulo para apps/financeiro/views.py.
 
-Este arquivo cobre só a camada de tem_permissao_modulo(user, "financeiro"),
-aplicada nas nove rotas existentes (index, custas, form_lancamento,
+Este arquivo cobre só a camada de tem_permissao_modulo(user, "financeiro")
+e do nível de acesso a dados (`_exige_nivel_dados`), aplicada nas rotas
+de Lançamentos, Custas e Honorários (index, custas, form_lancamento,
 editar_lancamento, marcar_pago, cancelar_lancamento,
-reabrir_lancamento, excluir_lancamento, form_custa). A habilitação
+reabrir_lancamento, excluir_lancamento, form_custa,
+honorarios_lista, form_honorario, editar_honorario). A habilitação
 granular HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO
 (ITENS_POR_MODULO[MODULO_FINANCEIRO]), aplicada condicionalmente em
-reabrir_lancamento (PDR-0006), é coberta em test_solicitacoes.py, não
-aqui.
+reabrir_lancamento (PDR-0006), é coberta em test_solicitacoes.py; as
+regras de negócio de Honorários (confirmar recebimento exclusivo do
+Administrador, notificação, cancelamento) são cobertas em
+test_honorarios.py — não aqui.
 
 Segue o mesmo padrão de fixtures de apps/tarefas/tests/test_autorizacao.py
 sobre django_tenants.test.cases.TenantTestCase.
@@ -19,7 +23,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS
-from apps.financeiro.models import CustaJudicial, LancamentoFinanceiro
+from apps.financeiro.models import CustaJudicial, Honorario, LancamentoFinanceiro
 
 
 class FinanceiroAutorizacaoBase(TenantTestCase):
@@ -63,6 +67,14 @@ class FinanceiroAutorizacaoBase(TenantTestCase):
         defaults.update(kwargs)
         return CustaJudicial.objects.create(**defaults)
 
+    def _honorario(self, **kwargs):
+        defaults = {
+            "tipo": "contratual",
+            "valor_estimado": "2000.00",
+        }
+        defaults.update(kwargs)
+        return Honorario.objects.create(**defaults)
+
 
 class TestFinanceiroAutorizacaoModuloNegado(FinanceiroAutorizacaoBase):
     """
@@ -85,6 +97,7 @@ class TestFinanceiroAutorizacaoModuloNegado(FinanceiroAutorizacaoBase):
         self.client.force_login(self.user)
         self.lancamento = self._lancamento()
         self.custa = self._custa()
+        self.honorario = self._honorario()
 
     def test_index_negado(self):
         r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
@@ -154,6 +167,44 @@ class TestFinanceiroAutorizacaoModuloNegado(FinanceiroAutorizacaoBase):
         r = self.client.get("/financeiro/custas/nova/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 403)
 
+    def test_honorarios_lista_negado(self):
+        r = self.client.get("/financeiro/honorarios/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_form_honorario_get_negado(self):
+        r = self.client.get("/financeiro/honorarios/novo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_form_honorario_post_negado_nao_cria(self):
+        antes = Honorario.objects.count()
+        r = self.client.post(
+            "/financeiro/honorarios/novo/",
+            {"tipo": "contratual", "valor_estimado": "500.00"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Honorario.objects.count(), antes)
+
+    def test_editar_honorario_negado(self):
+        r = self.client.get(
+            f"/financeiro/honorarios/{self.honorario.pk}/editar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_cancelar_honorario_negado(self):
+        r = self.client.post(
+            f"/financeiro/honorarios/{self.honorario.pk}/cancelar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.honorario.refresh_from_db()
+        self.assertEqual(self.honorario.status, "previsto")
+
+    def test_confirmar_recebimento_honorario_negado(self):
+        r = self.client.get(
+            f"/financeiro/honorarios/{self.honorario.pk}/confirmar-recebimento/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
 
 class TestFinanceiroAutorizacaoModuloConcedido(FinanceiroAutorizacaoBase):
     """
@@ -178,6 +229,7 @@ class TestFinanceiroAutorizacaoModuloConcedido(FinanceiroAutorizacaoBase):
         self.client.force_login(self.user)
         self.lancamento = self._lancamento()
         self.custa = self._custa()
+        self.honorario = self._honorario()
 
     def test_index_autorizado(self):
         r = self.client.get("/financeiro/", HTTP_HOST=self.http_host)
@@ -258,6 +310,43 @@ class TestFinanceiroAutorizacaoModuloConcedido(FinanceiroAutorizacaoBase):
         self.assertRedirects(r, "/financeiro/custas/", fetch_redirect_response=False)
         self.assertTrue(CustaJudicial.objects.filter(descricao="Custa Autorizada").exists())
 
+    def test_honorarios_lista_autorizado(self):
+        r = self.client.get("/financeiro/honorarios/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertTemplateUsed(r, "financeiro/honorarios_lista.html")
+
+    def test_form_honorario_post_autorizado(self):
+        r = self.client.post(
+            "/financeiro/honorarios/novo/",
+            {"tipo": "contratual", "valor_estimado": "500.00"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, "/financeiro/honorarios/", fetch_redirect_response=False)
+        self.assertTrue(Honorario.objects.filter(valor_estimado="500.00").exists())
+
+    def test_editar_honorario_autorizado(self):
+        r = self.client.get(
+            f"/financeiro/honorarios/{self.honorario.pk}/editar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 200)
+
+    def test_cancelar_honorario_autorizado(self):
+        r = self.client.post(
+            f"/financeiro/honorarios/{self.honorario.pk}/cancelar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.honorario.refresh_from_db()
+        self.assertEqual(self.honorario.status, "cancelado")
+
+    def test_confirmar_recebimento_honorario_negado_sem_ser_admin(self):
+        """Nível dados_todos concede acesso ao módulo, mas confirmar
+        recebimento é exclusivo do Administrador do escritório (PDR-0007) —
+        detalhado em test_honorarios.py."""
+        r = self.client.get(
+            f"/financeiro/honorarios/{self.honorario.pk}/confirmar-recebimento/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
 
 class TestFinanceiroEscopoDadosProprios(FinanceiroAutorizacaoBase):
     """
@@ -333,3 +422,10 @@ class TestFinanceiroEscopoDadosProprios(FinanceiroAutorizacaoBase):
         r = self.client.get("/financeiro/custas/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
         self.assertIn(custa_alheia, list(r.context["custas"]))
+
+    def test_honorarios_nao_e_afetado_pelo_escopo(self):
+        """Honorario não tem responsavel — dados_proprios continua vendo todos os honorários."""
+        honorario_alheio = self._honorario()
+        r = self.client.get("/financeiro/honorarios/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(honorario_alheio, list(r.context["honorarios"]))

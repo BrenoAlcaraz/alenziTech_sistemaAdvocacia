@@ -103,6 +103,43 @@ class CustaJudicial(models.Model):
         return f"{self.descricao} — {self.valor}"
 
 
+class Honorario(models.Model):
+    """Cadastro manual de honorário advocatício (PDR-0007). Área própria,
+    distinta do financeiro geral e de custas judiciais (PDR-0003)."""
+
+    TIPO_CHOICES = [
+        ("contratual", "Contratual"),
+        ("sucumbencial", "Sucumbencial"),
+        ("exito", "Êxito"),
+        ("outro", "Outro"),
+    ]
+
+    STATUS_CHOICES = [
+        ("previsto", "Previsto"),
+        ("recebido", "Recebido"),
+        ("cancelado", "Cancelado"),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
+    valor_estimado = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_efetivo = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
+    data_prevista = models.DateField(null=True, blank=True)
+    data_recebida = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="previsto")
+    observacoes = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Honorário"
+        verbose_name_plural = "Honorários"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.valor_estimado}"
+
+
 class SolicitacaoFinanceira(models.Model):
     """Solicitação de pagamento ou reembolso feita por quem não tem acesso
     ao caixa geral (PDR-0006). Fluxo de estados definido por PDR-0015."""
