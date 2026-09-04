@@ -90,6 +90,17 @@ Kernel dinâmico em `apps/accounts`: `PapelAcesso`, `UsuarioPapel`,
   único caminho: `PerfilUsuario.is_admin_escritorio=True` +
   `is_active=True`. Sem atalho por `is_superuser` ou grupo.
 
+**Adicionar um item novo em `ITENS_POR_MODULO`** (`apps/accounts/permissoes_constants.py`)
+não basta sozinho: o `CheckConstraint` de `modulo`/`item` em
+`HabilitacaoPapel.Meta` e `HabilitacaoUsuario.Meta`
+(`apps/accounts/models.py`) usa uma lista literal própria por módulo,
+não derivada de `ITENS_POR_MODULO` — ambas precisam ser atualizadas
+juntas, com uma migration nova (`AlterField` de `item` +
+`Remove`/`AddConstraint`, gerada por `makemigrations`), no formato de
+`0015_adicionar_habilitacao_reabrir_lancamento_pago.py`. Sem isso, o
+banco rejeita a gravação da habilitação nova com violação de
+`chk_habilitacaopapel_modulo_item`/`chk_habilitacaousuario_modulo_item`.
+
 **Padrão de escopo de dados** (referência: `apps/clientes/views.py`,
 `apps/processos/views.py`): leitura e mutação usam `QuerySet`s
 distintos.

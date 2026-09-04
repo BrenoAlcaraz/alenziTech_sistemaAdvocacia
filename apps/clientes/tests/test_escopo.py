@@ -22,6 +22,8 @@ from apps.accounts.models import (
 from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_CRIAR,
     HAB_CLIENTES_EDITAR,
+    HAB_CLIENTES_DESATIVAR,
+    HAB_CLIENTES_REATIVAR,
     MODULO_CLIENTES,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -93,6 +95,8 @@ class TestClientesEscopoSomenteSeus(ClientesEscopoBase):
         self._pp(papel, MODULO_CLIENTES, nivel=NIVEL_SOMENTE_SEUS)
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_CRIAR)
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_EDITAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_DESATIVAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_REATIVAR)
         self.client.force_login(self.user)
 
         self.cliente_proprio = self._cliente(
@@ -272,6 +276,8 @@ class TestClientesEscopoTodos(ClientesEscopoBase):
         self._assign_papel(self.user, papel)
         self._pp(papel, MODULO_CLIENTES, nivel=NIVEL_TODOS)
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_EDITAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_DESATIVAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_REATIVAR)
         self.client.force_login(self.user)
 
         self.cliente_proprio = self._cliente(

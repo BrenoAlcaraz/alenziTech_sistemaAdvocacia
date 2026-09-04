@@ -1,12 +1,14 @@
 """
 Testes de autorização de módulo para apps/financeiro/views.py.
 
-Financeiro não tem habilitação granular nesta versão
-(ITENS_POR_MODULO[MODULO_FINANCEIRO] == []), então só existe uma camada
-de checagem aqui: tem_permissao_modulo(user, "financeiro"), aplicada nas
-nove rotas existentes (index, custas, form_lancamento,
+Este arquivo cobre só a camada de tem_permissao_modulo(user, "financeiro"),
+aplicada nas nove rotas existentes (index, custas, form_lancamento,
 editar_lancamento, marcar_pago, cancelar_lancamento,
-reabrir_lancamento, excluir_lancamento, form_custa).
+reabrir_lancamento, excluir_lancamento, form_custa). A habilitação
+granular HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO
+(ITENS_POR_MODULO[MODULO_FINANCEIRO]), aplicada condicionalmente em
+reabrir_lancamento (PDR-0006), é coberta em test_solicitacoes.py, não
+aqui.
 
 Segue o mesmo padrão de fixtures de apps/tarefas/tests/test_autorizacao.py
 sobre django_tenants.test.cases.TenantTestCase.

@@ -18,7 +18,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 
 | Módulo | Estado | Gap principal |
 |---|---|---|
-| Clientes | Feito (autorização + escopo + responsabilidade) | Escopo por equipe é só placeholder visual; sem habilitação própria para desativar/reativar; sem UI de admin para papéis/habilitações |
+| Clientes | Feito (autorização + escopo + responsabilidade + habilitações `clientes_criar`/`clientes_editar`/`clientes_desativar`/`clientes_reativar` aplicadas) | Escopo por equipe é só placeholder visual; sem UI de admin para papéis/habilitações |
 | Processos | Feito (módulo, escopo, responsabilidade, apensos, Partes no modelo simplificado do PDR-0013, atribuição de responsável e integrantes habilitados do PDR-0014, habilitações `processos_criar`/`processos_editar`/`processos_andamento_adicionar` aplicadas do PDR-0017) | `processos_usar_ia` e `processos_usar_laboratorio` continuam fora desta versão (PDR-0010, PDR-0008) |
 | Tarefas | Feito (delegação PDR-0002 + autorização + escopo por responsável + notificação de conclusão PDR-0016) | — |
 | Agenda | Parcial (autorização de módulo + escopo por responsável aplicados nas views; lembrete automático 15min antes — PDR-0016) | Escopo por participante não existe (campo não exposto em `CompromissoForm`, sem regra de produto); integridade cliente-processo não validada no backend |

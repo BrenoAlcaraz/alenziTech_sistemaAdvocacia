@@ -8,6 +8,8 @@ from apps.accounts.permissoes_constants import (
     MODULO_CLIENTES,
     HAB_CLIENTES_CRIAR,
     HAB_CLIENTES_EDITAR,
+    HAB_CLIENTES_DESATIVAR,
+    HAB_CLIENTES_REATIVAR,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
@@ -185,6 +187,8 @@ def editar(request, pk):
 def desativar(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
         raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_DESATIVAR):
+        raise PermissionDenied
     _resolver_escopo(request)
     if request.method == "POST":
         cliente = get_object_or_404(_clientes_mutaveis(request, ativo=True), pk=pk)
@@ -211,6 +215,8 @@ def inativos(request):
 @login_required
 def reativar(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_REATIVAR):
         raise PermissionDenied
     _resolver_escopo(request)
     if request.method == "POST":

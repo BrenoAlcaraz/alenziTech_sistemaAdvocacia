@@ -4,12 +4,12 @@ Testes de autorização de módulo (Camada 1) e de habilitação funcional
 
 Camada 1 cobre o enforcement de tem_permissao_modulo(user, "clientes") nas
 sete rotas existentes (lista, detalhe, novo, editar, desativar, inativos,
-reativar). Camada 2 cobre o enforcement de tem_habilitacao() apenas em
-`novo` (clientes_criar) e `editar` (clientes_editar) — nenhuma outra
+reativar). Camada 2 cobre o enforcement de tem_habilitacao() em `novo`
+(clientes_criar), `editar` (clientes_editar), `desativar`
+(clientes_desativar) e `reativar` (clientes_reativar) — nenhuma outra
 operação possui habilitação específica no kernel atual. Os usuários
-positivos de "novo" e "editar" já recebiam clientes_criar/clientes_editar
-desde a preparação da Camada 1, justamente para permanecer estáveis com a
-Camada 2 agora implementada.
+positivos de "novo", "editar", "desativar" e "reativar" já recebem as
+quatro habilitações, justamente para permanecer estáveis com a Camada 2.
 
 Segue o mesmo padrão de fixtures de apps/accounts/tests/ (_user, _new_papel,
 _assign_papel, _pp, _hp) sobre django_tenants.test.cases.TenantTestCase.
@@ -27,6 +27,8 @@ from apps.accounts.models import (
 from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_CRIAR,
     HAB_CLIENTES_EDITAR,
+    HAB_CLIENTES_DESATIVAR,
+    HAB_CLIENTES_REATIVAR,
     MODULO_CLIENTES,
     NIVEL_TODOS,
 )
@@ -190,11 +192,13 @@ class TestClientesAutorizacaoModuloConcedido(ClientesAutorizacaoBase):
         papel = self._new_papel("Papel Clientes Concedido")
         self._assign_papel(self.user, papel)
         self._pp(papel, MODULO_CLIENTES)
-        # As habilitações de criação e edição são concedidas neste fixture
-        # para representar o caminho autorizado completo de novo/editar
-        # (Camada 1 + Camada 2).
+        # As quatro habilitações são concedidas neste fixture para
+        # representar o caminho autorizado completo de novo/editar/
+        # desativar/reativar (Camada 1 + Camada 2).
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_CRIAR)
         self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_EDITAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_DESATIVAR)
+        self._hp(papel, MODULO_CLIENTES, HAB_CLIENTES_REATIVAR)
         self.client.force_login(self.user)
         self.cliente_ativo = self._cliente(
             nome_razao_social="Cliente Ativo", responsavel=self.user
@@ -375,3 +379,89 @@ class TestClientesAutorizacaoHabilitacaoEditarAusente(ClientesAutorizacaoBase):
         self.assertEqual(r.status_code, 403)
         self.cliente_ativo.refresh_from_db()
         self.assertEqual(self.cliente_ativo.nome_razao_social, nome_original)
+
+
+class TestClientesAutorizacaoHabilitacaoDesativarAusente(ClientesAutorizacaoBase):
+    """
+    Usuário com módulo `clientes` autorizado, mas sem `clientes_desativar`
+    (Camada 2) — prova que módulo autorizado não equivale a poder desativar.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi0001_clientes_sem_desativar"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "WI-0001 Clientes Sem Desativar"
+        tenant.slug = "wi0001-clientes-sem-desativar"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("modulo_sem_clientes_desativar")
+        papel = self._new_papel("Papel Clientes Sem Desativar")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_CLIENTES)
+        # Nenhuma HabilitacaoPapel para HAB_CLIENTES_DESATIVAR — módulo
+        # aberto, habilitação de desativação ausente.
+        self.client.force_login(self.user)
+        self.cliente_ativo = self._cliente(
+            nome_razao_social="Cliente Ativo", responsavel=self.user
+        )
+
+    def test_desativar_get_negado(self):
+        r = self.client.get(
+            f"/clientes/{self.cliente_ativo.pk}/desativar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_desativar_post_negado_nao_altera_ativo(self):
+        r = self.client.post(
+            f"/clientes/{self.cliente_ativo.pk}/desativar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.cliente_ativo.refresh_from_db()
+        self.assertTrue(self.cliente_ativo.ativo)
+
+
+class TestClientesAutorizacaoHabilitacaoReativarAusente(ClientesAutorizacaoBase):
+    """
+    Usuário com módulo `clientes` autorizado, mas sem `clientes_reativar`
+    (Camada 2) — prova que módulo autorizado não equivale a poder reativar.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi0001_clientes_sem_reativar"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "WI-0001 Clientes Sem Reativar"
+        tenant.slug = "wi0001-clientes-sem-reativar"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("modulo_sem_clientes_reativar")
+        papel = self._new_papel("Papel Clientes Sem Reativar")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_CLIENTES)
+        # Nenhuma HabilitacaoPapel para HAB_CLIENTES_REATIVAR — módulo
+        # aberto, habilitação de reativação ausente.
+        self.client.force_login(self.user)
+        self.cliente_inativo = self._cliente(
+            nome_razao_social="Cliente Inativo", ativo=False, responsavel=self.user
+        )
+
+    def test_reativar_get_negado(self):
+        r = self.client.get(
+            f"/clientes/{self.cliente_inativo.pk}/reativar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_reativar_post_negado_nao_altera_ativo(self):
+        r = self.client.post(
+            f"/clientes/{self.cliente_inativo.pk}/reativar/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.cliente_inativo.refresh_from_db()
+        self.assertFalse(self.cliente_inativo.ativo)

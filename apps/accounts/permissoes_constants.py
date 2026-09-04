@@ -98,6 +98,8 @@ HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL = "processos_atribuir_responsavel"
 
 HAB_CLIENTES_CRIAR = "clientes_criar"
 HAB_CLIENTES_EDITAR = "clientes_editar"
+HAB_CLIENTES_DESATIVAR = "clientes_desativar"
+HAB_CLIENTES_REATIVAR = "clientes_reativar"
 
 HAB_TAREFAS_ATRIBUIR_OUTROS = "tarefas_atribuir_outros"
 
@@ -122,6 +124,8 @@ ITEM_CHOICES = [
     (HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL, "Atribuir responsabilidade de processos"),
     (HAB_CLIENTES_CRIAR, "Criar cliente"),
     (HAB_CLIENTES_EDITAR, "Editar cliente"),
+    (HAB_CLIENTES_DESATIVAR, "Desativar cliente"),
+    (HAB_CLIENTES_REATIVAR, "Reativar cliente"),
     (HAB_TAREFAS_ATRIBUIR_OUTROS, "Atribuir tarefa a outros usuários"),
     (HAB_MODELOS_CRIAR, "Criar modelo de peça"),
     (HAB_MODELOS_EDITAR_ESTILO, "Editar estilo de peças"),
@@ -145,6 +149,8 @@ ITENS_POR_MODULO = {
     MODULO_CLIENTES: [
         HAB_CLIENTES_CRIAR,
         HAB_CLIENTES_EDITAR,
+        HAB_CLIENTES_DESATIVAR,
+        HAB_CLIENTES_REATIVAR,
     ],
     MODULO_TAREFAS: [
         HAB_TAREFAS_ATRIBUIR_OUTROS,
@@ -201,6 +207,8 @@ NOMES_ITENS = {
     HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL: "Atribuir responsabilidade de processos",
     HAB_CLIENTES_CRIAR: "Criar cliente",
     HAB_CLIENTES_EDITAR: "Editar cliente",
+    HAB_CLIENTES_DESATIVAR: "Desativar cliente",
+    HAB_CLIENTES_REATIVAR: "Reativar cliente",
     HAB_TAREFAS_ATRIBUIR_OUTROS: "Atribuir tarefa a outros usuários",
     HAB_MODELOS_CRIAR: "Criar modelo de peça",
     HAB_MODELOS_EDITAR_ESTILO: "Editar estilo de peças",
