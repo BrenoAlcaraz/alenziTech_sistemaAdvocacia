@@ -68,7 +68,7 @@
       <p class="text-xs text-gray-400 mb-0.5">{{ plano_nome }}</p>
       <p class="font-bold text-gray-900">{{ usuarios_ativos }} de {{ limite_usuarios }} usuários ativos</p>
     </div>
-    {% if usuario_e_admin_escritorio %}
+    {% if pode_criar_usuario %}
     <a href="{% url 'configuracoes:novo_usuario' %}" class="btn-primary">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
@@ -132,11 +132,12 @@
   </div>
 </div>
 
-{% if usuario_e_admin_escritorio %}
-{# Card de ações administrativas — visível apenas para admin #}
+{% if pode_gerenciar_equipes or pode_gerenciar_permissoes %}
+{# Card de ações administrativas — cada item visível conforme a habilitação do usuário #}
 <div class="card p-5 mt-4">
   <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Administração</h2>
 
+  {% if pode_gerenciar_equipes %}
   <div class="flex items-center justify-between py-2">
     <div>
       <p class="text-sm font-medium text-gray-700">Equipes</p>
@@ -146,8 +147,10 @@
       Gerenciar
     </a>
   </div>
+  {% endif %}
 
-  <div class="flex items-center justify-between py-2 border-t border-gray-100">
+  {% if pode_gerenciar_permissoes %}
+  <div class="flex items-center justify-between py-2{% if pode_gerenciar_equipes %} border-t border-gray-100{% endif %}">
     <div>
       <p class="text-sm font-medium text-gray-700">Permissões</p>
       <p class="text-xs text-gray-400 mt-0.5">Definir o que cada tipo de conta pode visualizar e acessar</p>
@@ -156,6 +159,7 @@
       Gerenciar
     </a>
   </div>
+  {% endif %}
 </div>
 {% endif %}
 

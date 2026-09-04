@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -19,7 +20,14 @@ from apps.accounts.forms import (
     PerfilUsuarioForm,
 )
 from apps.accounts.models import Equipe, MembroEquipe, PerfilUsuario, PermissaoPapel
-from apps.accounts.permissoes_constants import TIPOS_CONTA_CONFIGURAVEIS
+from apps.accounts.permissoes import tem_habilitacao
+from apps.accounts.permissoes_constants import (
+    HAB_GERIR_CRIAR_EQUIPE,
+    HAB_GERIR_CRIAR_USUARIO,
+    HAB_GERIR_HABILITAR_TERCEIROS,
+    MODULO_GERIR,
+    TIPOS_CONTA_CONFIGURAVEIS,
+)
 from apps.processos.services import (
     transferir_processos_de_usuarios_sem_acesso,
     usuarios_com_acesso_processos,
@@ -31,6 +39,18 @@ from .forms import ConfiguracaoEscritorioForm
 def _obter_configuracao_escritorio():
     configuracao, _ = ConfiguracaoEscritorio.objects.get_or_create(pk=1)
     return configuracao
+
+
+def _pode_criar_usuario(user):
+    return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_CRIAR_USUARIO)
+
+
+def _pode_gerenciar_equipes(user):
+    return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_CRIAR_EQUIPE)
+
+
+def _pode_gerenciar_permissoes(user):
+    return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_HABILITAR_TERCEIROS)
 
 
 @login_required
@@ -77,6 +97,9 @@ def index(request):
         "limite_usuarios": 10,
         "configuracao_escritorio": configuracao_escritorio,
         "usuario_e_admin_escritorio": usuario_e_admin_escritorio,
+        "pode_criar_usuario": _pode_criar_usuario(request.user),
+        "pode_gerenciar_equipes": _pode_gerenciar_equipes(request.user),
+        "pode_gerenciar_permissoes": _pode_gerenciar_permissoes(request.user),
         "item_ativo": "configuracoes",
     })
 
@@ -126,8 +149,11 @@ def alterar_senha(request):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def novo_usuario(request):
+    if not _pode_criar_usuario(request.user):
+        raise PermissionDenied
+
     if request.method == "POST":
         form = CriarUsuarioEscritorioForm(request.POST)
         if form.is_valid():
@@ -146,8 +172,11 @@ def novo_usuario(request):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def equipes(request):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     deps = (
         Equipe.objects
         .select_related("equipe_pai")
@@ -174,8 +203,11 @@ def equipes(request):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def nova_equipe(request):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     if request.method == "POST":
         form = EquipeForm(request.POST)
         if form.is_valid():
@@ -196,8 +228,11 @@ def nova_equipe(request):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def editar_equipe(request, pk):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     equipe = get_object_or_404(Equipe, pk=pk)
 
     if request.method == "POST":
@@ -221,8 +256,11 @@ def editar_equipe(request, pk):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def equipe_membros(request, pk):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     equipe = get_object_or_404(Equipe, pk=pk)
 
     if request.method == "POST":
@@ -255,8 +293,11 @@ def equipe_membros(request, pk):
     )
 
 
-@requer_admin_escritorio
+@login_required
 def remover_membro_equipe(request, pk, membro_pk):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     equipe = get_object_or_404(Equipe, pk=pk)
     membro = get_object_or_404(
         MembroEquipe,
@@ -270,8 +311,11 @@ def remover_membro_equipe(request, pk, membro_pk):
     return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
 
-@requer_admin_escritorio
+@login_required
 def alternar_gerente_equipe(request, pk, membro_pk):
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
     equipe = get_object_or_404(Equipe, pk=pk)
     membro = get_object_or_404(
         MembroEquipe,
@@ -286,8 +330,11 @@ def alternar_gerente_equipe(request, pk, membro_pk):
     return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
 
-@requer_admin_escritorio
+@login_required
 def permissoes(request):
+    if not _pode_gerenciar_permissoes(request.user):
+        raise PermissionDenied
+
     _MODULOS_CONFIG = [
         ("processos",  "Processos",       [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
         ("clientes",   "Clientes",        [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
