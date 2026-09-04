@@ -1,0 +1,131 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Permissões individuais — {{ usuario_alvo.username }} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-xs text-gray-400 mb-0.5">Permissões individuais</p>
+    <h1 class="text-2xl font-bold text-gray-900">
+      {% if usuario_alvo.perfil and usuario_alvo.perfil.nome_completo %}
+        {{ usuario_alvo.perfil.nome_completo }}
+      {% else %}
+        {{ usuario_alvo.get_full_name|default:usuario_alvo.username }}
+      {% endif %}
+    </h1>
+    <p class="text-sm text-gray-500 mt-0.5">
+      @{{ usuario_alvo.username }} — valor herdado via papel/tipo de conta e overrides individuais.
+    </p>
+  </div>
+  <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm flex-shrink-0">
+    Voltar
+  </a>
+</div>
+
+{% if is_admin_alvo %}
+<div class="px-4 py-3 bg-gray-50 border border-gray-200 text-gray-600 text-sm rounded-xl">
+  Este usuário é Administrador do escritório e tem acesso total por bypass —
+  overrides individuais não têm efeito para ele.
+</div>
+{% else %}
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card p-0 overflow-hidden mb-4">
+    <div class="px-5 py-3 bg-gray-50 border-b border-gray-100">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Módulos</p>
+    </div>
+    <div class="divide-y divide-gray-100">
+      {% for mod in modulos_contexto %}
+      <div class="px-5 py-4">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div class="w-40 flex-shrink-0">
+            <p class="text-sm font-medium text-gray-800">{{ mod.label }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              Herdado:
+              {% if mod.herdado.ativo %}
+                <span class="text-green-700">ativo{% if mod.herdado.nivel %} ({{ mod.herdado.nivel }}){% endif %}</span>
+              {% else %}
+                <span class="text-gray-400">inativo</span>
+              {% endif %}
+            </p>
+          </div>
+
+          <div class="flex items-center gap-6 ml-auto flex-wrap">
+            {% if mod.niveis %}
+            <div class="flex items-center gap-3">
+              {% for nivel in mod.niveis %}
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="nivel_override_{{ mod.slug }}" value="{{ nivel.valor }}"
+                  {% if mod.nivel_override == nivel.valor %}checked{% endif %}
+                  class="accent-gray-800 cursor-pointer">
+                <span class="text-xs text-gray-600 whitespace-nowrap">{{ nivel.label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="override_{{ mod.slug }}" value="herdar"
+                  {% if mod.estado == "herdar" %}checked{% endif %} class="cursor-pointer">
+                <span class="text-xs text-gray-600">Herdar</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="override_{{ mod.slug }}" value="ligado"
+                  {% if mod.estado == "ligado" %}checked{% endif %} class="cursor-pointer">
+                <span class="text-xs text-green-700">Ativar</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="override_{{ mod.slug }}" value="desligado"
+                  {% if mod.estado == "desligado" %}checked{% endif %} class="cursor-pointer">
+                <span class="text-xs text-red-600">Desativar</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {% if mod.itens %}
+        <div class="mt-3 pl-0 flex flex-col gap-2">
+          {% for item in mod.itens %}
+          <div class="flex items-center justify-between gap-4 flex-wrap">
+            <p class="text-xs text-gray-600">
+              {{ item.label }}
+              <span class="text-gray-400">
+                — herdado: {% if item.herdado %}<span class="text-green-700">ativo</span>{% else %}inativo{% endif %}
+              </span>
+            </p>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="hab_override_{{ mod.slug }}_{{ item.slug }}" value="herdar"
+                  {% if item.estado == "herdar" %}checked{% endif %}>
+                <span class="text-xs text-gray-500">Herdar</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="hab_override_{{ mod.slug }}_{{ item.slug }}" value="ligado"
+                  {% if item.estado == "ligado" %}checked{% endif %}>
+                <span class="text-xs text-green-700">Ativar</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="hab_override_{{ mod.slug }}_{{ item.slug }}" value="desligado"
+                  {% if item.estado == "desligado" %}checked{% endif %}>
+                <span class="text-xs text-red-600">Desativar</span>
+              </label>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="flex justify-end">
+    <button type="submit" class="btn-primary text-sm">Salvar overrides</button>
+  </div>
+</form>
+
+{% endif %}
+
+{% endblock %}

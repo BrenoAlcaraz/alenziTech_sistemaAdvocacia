@@ -1,0 +1,105 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Usuários — {{ papel.nome }} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-xs text-gray-400 mb-0.5">Papel</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ papel.nome }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Usuários vinculados a este papel</p>
+  </div>
+  <a href="{% url 'configuracoes:papeis' %}" class="btn-secondary text-sm flex-shrink-0">
+    Voltar
+  </a>
+</div>
+
+{# Formulário para atribuir papel a um usuário #}
+<div class="card p-5 mb-4">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Atribuir papel a um usuário</h2>
+
+  {% if form.fields.usuario.queryset.exists %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 px-3 py-2 rounded-lg text-sm bg-red-50 text-red-600">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="flex items-end gap-3 flex-wrap">
+        <div class="flex-1 min-w-48">
+          <label for="{{ form.usuario.id_for_label }}" class="label">Usuário</label>
+          {{ form.usuario }}
+          {% if form.usuario.errors %}
+            <p class="mt-1 text-xs text-red-600">{{ form.usuario.errors.0 }}</p>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn-primary text-sm">
+          Atribuir papel
+        </button>
+      </div>
+
+    </form>
+
+  {% else %}
+    <p class="text-sm text-gray-400 italic">
+      Todos os usuários ativos já têm este papel atribuído ou não há usuários disponíveis.
+    </p>
+  {% endif %}
+
+</div>
+
+{# Lista de usuários vinculados #}
+<div class="card p-0 overflow-hidden">
+
+  {% if vinculos %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+          <th class="text-left px-5 py-3 font-medium">Usuário</th>
+          <th class="text-left px-5 py-3 font-medium">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for vinculo in vinculos %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-4">
+            <p class="font-medium text-gray-900">
+              {% if vinculo.usuario.perfil and vinculo.usuario.perfil.nome_completo %}
+                {{ vinculo.usuario.perfil.nome_completo }}
+              {% else %}
+                {{ vinculo.usuario.get_full_name|default:vinculo.usuario.username }}
+              {% endif %}
+            </p>
+            <p class="text-xs text-gray-400">@{{ vinculo.usuario.username }}</p>
+            {% if vinculo.usuario.email %}
+              <p class="text-xs text-gray-400">{{ vinculo.usuario.email }}</p>
+            {% endif %}
+          </td>
+          <td class="px-5 py-4">
+            <form method="post" action="{% url 'configuracoes:remover_usuario_papel' papel.pk vinculo.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
+                Remover
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% else %}
+  <div class="p-10 text-center">
+    <p class="text-sm font-medium text-gray-500">Nenhum usuário vinculado a este papel ainda.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

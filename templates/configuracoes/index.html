@@ -118,6 +118,12 @@
           </p>
         </div>
         <div class="flex items-center gap-2">
+          {% if pode_gerenciar_permissoes %}
+            <a href="{% url 'configuracoes:usuario_overrides' u.pk %}"
+               class="text-xs text-gray-500 hover:text-gray-900 underline underline-offset-2 whitespace-nowrap">
+              Permissões individuais
+            </a>
+          {% endif %}
           {% if u != request.user %}
             <button class="text-gray-300 hover:text-red-400 transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -151,6 +157,16 @@
 
   {% if pode_gerenciar_permissoes %}
   <div class="flex items-center justify-between py-2{% if pode_gerenciar_equipes %} border-t border-gray-100{% endif %}">
+    <div>
+      <p class="text-sm font-medium text-gray-700">Papéis de acesso</p>
+      <p class="text-xs text-gray-400 mt-0.5">Criar papéis dinâmicos e atribuí-los a usuários</p>
+    </div>
+    <a href="{% url 'configuracoes:papeis' %}" class="btn-secondary text-sm flex-shrink-0">
+      Gerenciar
+    </a>
+  </div>
+
+  <div class="flex items-center justify-between py-2 border-t border-gray-100">
     <div>
       <p class="text-sm font-medium text-gray-700">Permissões</p>
       <p class="text-xs text-gray-400 mt-0.5">Definir o que cada tipo de conta pode visualizar e acessar</p>

@@ -4,7 +4,7 @@ from django.contrib.auth.models import Group, User
 
 from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
 
-from .models import Equipe, MembroEquipe, PerfilUsuario
+from .models import Equipe, MembroEquipe, PapelAcesso, PerfilUsuario, UsuarioPapel
 
 
 class GrupoPapelChoiceField(forms.ModelChoiceField):
@@ -204,6 +204,58 @@ class MembroEquipeForm(forms.ModelForm):
             .order_by("username")
         )
         self.fields["usuario"].empty_label = "Selecione um usuário"
+
+
+class PapelAcessoForm(forms.ModelForm):
+    class Meta:
+        model = PapelAcesso
+        fields = [
+            "nome",
+            "descricao",
+            "ativo",
+        ]
+        widgets = {
+            "nome": forms.TextInput(
+                attrs={
+                    "class": "input",
+                    "placeholder": "Nome do papel",
+                }
+            ),
+            "descricao": forms.Textarea(
+                attrs={
+                    "class": "input h-24 resize-none",
+                    "placeholder": "Descrição opcional do papel",
+                }
+            ),
+            "ativo": forms.CheckboxInput(
+                attrs={
+                    "class": "rounded border-gray-300",
+                }
+            ),
+        }
+
+
+class AtribuirPapelForm(forms.Form):
+    usuario = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        empty_label="Selecione um usuário",
+        widget=forms.Select(attrs={"class": "input"}),
+    )
+
+    def __init__(self, *args, papel=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        usuarios_ja_vinculados = UsuarioPapel.objects.none()
+        if papel and papel.pk:
+            usuarios_ja_vinculados = UsuarioPapel.objects.filter(
+                papel=papel, ativo=True
+            ).values_list("usuario_id", flat=True)
+
+        self.fields["usuario"].queryset = (
+            User.objects.filter(is_active=True)
+            .exclude(id__in=usuarios_ja_vinculados)
+            .order_by("username")
+        )
 
 
 class AlterarSenhaForm(PasswordChangeForm):
