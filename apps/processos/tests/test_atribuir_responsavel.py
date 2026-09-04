@@ -22,7 +22,10 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import (
+    HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
     HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
+    HAB_PROCESSOS_CRIAR,
+    HAB_PROCESSOS_EDITAR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
 )
@@ -61,6 +64,18 @@ class AtribuirResponsavelBase(TenantTestCase):
         PermissaoPapel.objects.create(
             papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
         )
+        for item in (
+            HAB_PROCESSOS_CRIAR,
+            HAB_PROCESSOS_EDITAR,
+            HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
+        ):
+            HabilitacaoPapel.objects.create(
+                papel=papel,
+                tipo_conta=None,
+                modulo=MODULO_PROCESSOS,
+                item=item,
+                ativo=True,
+            )
         if com_habilitacao:
             HabilitacaoPapel.objects.create(
                 papel=papel,

@@ -3,8 +3,17 @@ from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PapelAcesso, PerfilUsuario, PermissaoPapel, UsuarioPapel
+from apps.accounts.models import (
+    HabilitacaoPapel,
+    PapelAcesso,
+    PerfilUsuario,
+    PermissaoPapel,
+    UsuarioPapel,
+)
 from apps.accounts.permissoes_constants import (
+    HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
+    HAB_PROCESSOS_CRIAR,
+    HAB_PROCESSOS_EDITAR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -54,6 +63,18 @@ class ProcessosEscopoBase(TenantTestCase):
             ativo=True,
             nivel=nivel,
         )
+        for item in (
+            HAB_PROCESSOS_CRIAR,
+            HAB_PROCESSOS_EDITAR,
+            HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
+        ):
+            HabilitacaoPapel.objects.create(
+                papel=papel,
+                tipo_conta=None,
+                modulo=MODULO_PROCESSOS,
+                item=item,
+                ativo=True,
+            )
         return papel
 
     def _cliente(self, responsavel, nome="Cliente Processo", *, ativo=True):
