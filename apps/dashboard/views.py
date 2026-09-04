@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -11,6 +12,7 @@ from apps.accounts.permissoes_constants import (
     MODULO_AGENDA,
     MODULO_CLIENTES,
     MODULO_FINANCEIRO,
+    MODULO_PAINEL,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
     NIVEL_DADOS_PROPRIOS,
@@ -57,6 +59,9 @@ def _formatar_moeda(valor):
 
 @login_required
 def painel(request):
+    if not tem_permissao_modulo(request.user, MODULO_PAINEL):
+        raise PermissionDenied
+
     hoje = timezone.localdate()
 
     acesso_clientes = tem_permissao_modulo(request.user, MODULO_CLIENTES)

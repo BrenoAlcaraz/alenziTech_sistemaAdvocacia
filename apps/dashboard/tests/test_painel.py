@@ -17,6 +17,7 @@ from apps.accounts.permissoes_constants import (
     MODULO_AGENDA,
     MODULO_CLIENTES,
     MODULO_FINANCEIRO,
+    MODULO_PAINEL,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
     NIVEL_DADOS_TODOS,
@@ -42,6 +43,9 @@ class TestPainelTarefasPendentes(TenantTestCase):
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
             papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+        )
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
 
@@ -81,6 +85,11 @@ class TestPainelFinanceiroSemAcesso(TenantTestCase):
         dominio = Dominio.objects.filter(tenant=self.tenant).first()
         self.http_host = dominio.domain if dominio else "localhost"
         self.usuario = User.objects.create_user("sem_financeiro", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Painel Sem Financeiro", ativo=True)
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+        )
         self.client.force_login(self.usuario)
         LancamentoFinanceiro.objects.create(
             tipo="receita",
@@ -117,6 +126,9 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         PermissaoPapel.objects.create(
             papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS
         )
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+        )
         self.client.force_login(self.usuario)
         LancamentoFinanceiro.objects.create(
             tipo="receita",
@@ -147,6 +159,11 @@ class TestPainelClientesProcessosAgendaSemAcesso(TenantTestCase):
         dominio = Dominio.objects.filter(tenant=self.tenant).first()
         self.http_host = dominio.domain if dominio else "localhost"
         self.usuario = User.objects.create_user("sem_cpa", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Painel Sem CPA", ativo=True)
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+        )
         self.client.force_login(self.usuario)
 
     def test_painel_sem_blocos_de_clientes_processos_tarefas_agenda(self):
@@ -175,7 +192,7 @@ class TestPainelClientesProcessosAgendaComAcesso(TenantTestCase):
         self.usuario = User.objects.create_user("com_cpa", password="testpass")
         papel = PapelAcesso.objects.create(nome="Papel CPA Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
-        for modulo in (MODULO_CLIENTES, MODULO_PROCESSOS, MODULO_AGENDA):
+        for modulo in (MODULO_CLIENTES, MODULO_PROCESSOS, MODULO_AGENDA, MODULO_PAINEL):
             PermissaoPapel.objects.create(
                 papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
             )

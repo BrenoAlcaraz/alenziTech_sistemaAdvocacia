@@ -15,6 +15,7 @@ from apps.accounts.permissoes_constants import (
     MODULO_AGENDA,
     MODULO_CLIENTES,
     MODULO_FINANCEIRO,
+    MODULO_PAINEL,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
     NIVEL_DADOS_PROPRIOS,
@@ -76,6 +77,7 @@ class TestPainelEscopoSomenteSeus(DashboardEscopoBase):
                 MODULO_PROCESSOS: NIVEL_SOMENTE_SEUS,
                 MODULO_TAREFAS: NIVEL_SOMENTE_SEUS,
                 MODULO_AGENDA: NIVEL_SOMENTE_SEUS,
+                MODULO_PAINEL: NIVEL_TODOS,
             },
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
@@ -164,7 +166,7 @@ class TestPainelEscopoTodosVeTudo(DashboardEscopoBase):
         self.usuario = self._user("dashboard_nivel_todos")
         self.outro = self._user("dashboard_outro_nivel_todos")
         papel = self._papel_com_niveis(
-            "Papel Dashboard Todos", {MODULO_TAREFAS: NIVEL_TODOS}
+            "Papel Dashboard Todos", {MODULO_TAREFAS: NIVEL_TODOS, MODULO_PAINEL: NIVEL_TODOS}
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
@@ -209,7 +211,7 @@ class TestPainelFinanceiroNivelSolicitacoes(DashboardEscopoBase):
         self.usuario = self._user("dashboard_financeiro_solicitacoes")
         papel = self._papel_com_niveis(
             "Papel Dashboard Financeiro Solicitacoes",
-            {MODULO_FINANCEIRO: NIVEL_SOLICITACOES},
+            {MODULO_FINANCEIRO: NIVEL_SOLICITACOES, MODULO_PAINEL: NIVEL_TODOS},
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
@@ -243,7 +245,8 @@ class TestPainelFinanceiroNivelDados(DashboardEscopoBase):
         super().setUp()
         self.usuario = self._user("dashboard_financeiro_dados")
         papel = self._papel_com_niveis(
-            "Papel Dashboard Financeiro Dados", {MODULO_FINANCEIRO: NIVEL_DADOS_TODOS}
+            "Papel Dashboard Financeiro Dados",
+            {MODULO_FINANCEIRO: NIVEL_DADOS_TODOS, MODULO_PAINEL: NIVEL_TODOS},
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
@@ -280,7 +283,8 @@ class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
         self.usuario = self._user("dashboard_financeiro_dados_proprios")
         self.outro = self._user("dashboard_financeiro_outro")
         papel = self._papel_com_niveis(
-            "Papel Dashboard Financeiro Dados Próprios", {MODULO_FINANCEIRO: NIVEL_DADOS_PROPRIOS}
+            "Papel Dashboard Financeiro Dados Próprios",
+            {MODULO_FINANCEIRO: NIVEL_DADOS_PROPRIOS, MODULO_PAINEL: NIVEL_TODOS},
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
