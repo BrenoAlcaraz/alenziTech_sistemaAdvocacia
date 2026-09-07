@@ -10,7 +10,10 @@ Monólito modular Django — uma única aplicação, um único processo de
 deploy. Módulos internos são apps Django, não microserviços; não usar
 esse termo para descrever um app. PostgreSQL via `django-tenants`.
 Server-side rendering (templates Django); sem API REST nem SPA
-instaladas.
+instaladas — exceção pontual: endpoints utilitários que devolvem JSON
+para alimentar um único campo dependente de formulário (ver "Campos
+dependentes em formulário", abaixo); não é uma superfície de API, não
+versionar nem expor fora do próprio formulário que o consome.
 
 ## Camadas e schemas
 
@@ -150,6 +153,42 @@ o escopo é checado antes da habilitação `financeiro_reabrir_lancamento_pago`
 `responsavel` é outro usuário (404 antes de chegar na checagem da
 habilitação). Um usuário pensado para reabrir lançamento pago de terceiros
 precisa de `dados_todos`, não `dados_proprios` + a habilitação.
+
+## Campos dependentes em formulário (ex.: Cliente → Processo) — padrão a reutilizar
+
+Quando um campo `ModelChoiceField` deve ser restrito pelo valor de
+outro campo do mesmo formulário (hoje: Processo restrito ao Cliente
+selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
+`HonorarioForm`, `SolicitacaoFinanceiraForm` — `apps/financeiro/forms.py`;
+`TarefaForm` — `apps/tarefas/forms.py`; `CompromissoForm` —
+`apps/agenda/forms.py`):
+
+- **Filtro inicial no `__init__` do form**: o queryset do campo
+  dependente já nasce restrito ao valor do campo "pai" conhecido no
+  momento (`self.data`, `self.initial` ou `self.instance`) — cobre
+  reenvio após erro de validação e edição, sem depender de JS.
+- **Atualização em tela sem reload**: o campo pai leva o atributo
+  `data-cliente-filtro` e o campo dependente leva `data-processos-url`
+  apontando para o endpoint JSON do próprio app (`reverse(...)` no
+  `__init__` do form). O JS genérico em `static/js/main.js` (seção
+  "Filtro de Processo por Cliente") liga os dois por esses atributos —
+  nenhuma template precisa de alteração, os `data-*` já saem no widget
+  renderizado por `{{ form.<campo> }}`.
+- **Endpoint por app, não compartilhado entre apps**: cada app expõe
+  sua própria rota (`<app>/processos-por-cliente/`) que reaproveita a
+  mesma checagem de `tem_permissao_modulo` já usada pela view que
+  renderiza o formulário — nunca uma autorização nova ou mais ampla só
+  para o endpoint. A consulta em si vem de um helper único e
+  compartilhado, `apps/processos/services.py::processos_do_cliente`.
+- **Validação no backend é sempre obrigatória**, independente do JS, e
+  mora no `clean()` do **model** (não do form):
+  `apps/processos/services.py::processo_pertence_ao_cliente` usado no
+  `clean()` de `LancamentoFinanceiro`, `CustaJudicial`, `Honorario`,
+  `SolicitacaoFinanceira`, `Tarefa` e `Compromisso` — rejeita salvar
+  uma combinação inconsistente por qualquer via, incluindo o Django
+  Admin desses models (que usa `ModelForm` automático, sem o form
+  customizado do app). Colocar a mesma checagem só no `clean()` do
+  form deixaria o Admin descoberto.
 
 ## Limites que não podem ser quebrados
 

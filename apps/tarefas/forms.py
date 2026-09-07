@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.urls import reverse
 from .models import Tarefa
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
@@ -52,6 +53,16 @@ class TarefaForm(forms.ModelForm):
             }),
             "prioridade": forms.Select(attrs={"class": "select"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cliente_id = self.data.get("cliente") or self.initial.get("cliente") or getattr(self.instance, "cliente_id", None)
+        qs = Processo.objects.select_related("cliente").exclude(status="arquivado")
+        if cliente_id:
+            qs = qs.filter(cliente_id=cliente_id)
+        self.fields["processo"].queryset = qs
+        self.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
+        self.fields["processo"].widget.attrs["data-processos-url"] = reverse("tarefas:processos_por_cliente")
 
 
 class ReatribuirForm(forms.Form):

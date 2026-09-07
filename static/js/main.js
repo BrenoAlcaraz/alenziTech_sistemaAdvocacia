@@ -63,4 +63,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Filtro de Processo por Cliente ──────────────────────────────────────────
+  // O campo Processo (marcado com data-processos-url) acompanha o Cliente
+  // (marcado com data-cliente-filtro) do mesmo <form>, sem recarregar a página.
+  document.querySelectorAll("[data-processos-url]").forEach((processoSelect) => {
+    const form = processoSelect.closest("form");
+    const clienteSelect = form?.querySelector("[data-cliente-filtro]");
+    if (!clienteSelect) return;
+
+    const url = processoSelect.dataset.processosUrl;
+    const opcoesOriginais = Array.from(processoSelect.options).map((o) => o.cloneNode(true));
+
+    clienteSelect.addEventListener("change", () => {
+      const clienteId = clienteSelect.value;
+
+      if (!clienteId) {
+        processoSelect.innerHTML = "";
+        opcoesOriginais.forEach((o) => processoSelect.appendChild(o.cloneNode(true)));
+        processoSelect.disabled = false;
+        return;
+      }
+
+      fetch(`${url}?cliente=${encodeURIComponent(clienteId)}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          processoSelect.innerHTML = "";
+          const vazio = document.createElement("option");
+          vazio.value = "";
+          vazio.textContent = data.processos.length ? "Nenhum" : "Nenhum processo para este cliente";
+          processoSelect.appendChild(vazio);
+          data.processos.forEach(({ id, label }) => {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = label;
+            processoSelect.appendChild(opt);
+          });
+          processoSelect.disabled = data.processos.length === 0;
+        });
+    });
+  });
+
 });

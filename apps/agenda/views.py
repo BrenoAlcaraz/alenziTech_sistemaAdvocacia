@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -14,6 +15,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.processos.services import processos_do_cliente
 
 from .models import Compromisso
 from .forms import CompromissoForm
@@ -157,6 +159,18 @@ def editar(request, pk):
         "modo": "editar",
         "compromisso": compromisso,
         "item_ativo": "agenda",
+    })
+
+
+@login_required
+def processos_por_cliente(request):
+    """Processos do cliente informado, para o filtro dinâmico dos
+    formulários de criação/edição de compromissos."""
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    processos = processos_do_cliente(request.GET.get("cliente"))
+    return JsonResponse({
+        "processos": [{"id": p.id, "label": str(p)} for p in processos],
     })
 
 

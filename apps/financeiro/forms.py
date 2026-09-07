@@ -1,9 +1,28 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.urls import reverse
 
 from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
+
+
+def _cliente_id_atual(form):
+    """Cliente já conhecido no form (reenvio, edição ou pré-seleção) para
+    filtrar o queryset de Processo antes de qualquer interação via JS."""
+    return form.data.get("cliente") or form.initial.get("cliente") or getattr(form.instance, "cliente_id", None)
+
+
+def _filtrar_processo_por_cliente(form, url_name):
+    """Restringe o campo Processo ao cliente já conhecido e prepara os
+    atributos consumidos pelo filtro dinâmico em static/js/main.js."""
+    cliente_id = _cliente_id_atual(form)
+    qs = Processo.objects.select_related("cliente").exclude(status="arquivado")
+    if cliente_id:
+        qs = qs.filter(cliente_id=cliente_id)
+    form.fields["processo"].queryset = qs
+    form.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
+    form.fields["processo"].widget.attrs["data-processos-url"] = reverse(url_name)
 
 
 class LancamentoFinanceiroForm(forms.ModelForm):
@@ -45,9 +64,9 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
 
-        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
+        _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
 
         self.fields["responsavel"].queryset = User.objects.filter(is_active=True).order_by("first_name", "username")
         self.fields["responsavel"].required = False
@@ -97,9 +116,9 @@ class CustaJudicialForm(forms.ModelForm):
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
-        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
+        _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
         self.fields["data"].input_formats = ["%Y-%m-%d"]
 
     def clean_valor(self):
@@ -131,9 +150,9 @@ class HonorarioForm(forms.ModelForm):
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
-        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
+        _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
         self.fields["data_prevista"].required = False
         self.fields["data_prevista"].input_formats = ["%Y-%m-%d"]
         self.fields["observacoes"].required = False
@@ -214,9 +233,9 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
 
-        self.fields["processo"].queryset = Processo.objects.select_related("cliente").exclude(status="arquivado")
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
+        _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
 
         self.fields["vencimento"].required = False
         self.fields["vencimento"].input_formats = ["%Y-%m-%d"]

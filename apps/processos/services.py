@@ -39,6 +39,22 @@ def nome_exibicao_usuario(usuario):
     return usuario.get_full_name() or usuario.username
 
 
+def processos_do_cliente(cliente_id):
+    """Processos ativos vinculados a um cliente, para seletores dependentes."""
+    try:
+        cliente_id = int(cliente_id)
+    except (TypeError, ValueError):
+        return Processo.objects.none()
+    return Processo.objects.filter(cliente_id=cliente_id).exclude(status="arquivado")
+
+
+def processo_pertence_ao_cliente(cliente, processo):
+    """False apenas quando os dois estão preenchidos e não coincidem."""
+    if not cliente or not processo:
+        return True
+    return processo.cliente_id == cliente.id
+
+
 def vincular_processos_apensos(processo_a, processo_b):
     """Cria idempotentemente um único vínculo físico para o par A ↔ B."""
     if processo_a.pk == processo_b.pk:

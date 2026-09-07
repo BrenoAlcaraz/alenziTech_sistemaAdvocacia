@@ -1,7 +1,9 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.processos.models import Processo
+from apps.processos.services import processo_pertence_ao_cliente
 from apps.clientes.models import Cliente
 
 
@@ -36,6 +38,10 @@ class Tarefa(models.Model):
         verbose_name = "Tarefa"
         verbose_name_plural = "Tarefas"
         ordering = ["prazo", "-prioridade"]
+
+    def clean(self):
+        if not processo_pertence_ao_cliente(self.cliente, self.processo):
+            raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
 
     @property
     def prazo_urgente(self):

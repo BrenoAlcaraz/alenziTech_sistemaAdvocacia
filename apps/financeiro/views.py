@@ -5,7 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -19,6 +19,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOLICITACOES,
 )
 from apps.notificacoes.models import Notificacao
+from apps.processos.services import processos_do_cliente
 
 from .forms import (
     ConfirmarRecebimentoHonorarioForm,
@@ -211,6 +212,18 @@ def custas(request):
         "saldo_clientes": saldo_clientes,
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def processos_por_cliente(request):
+    """Processos do cliente informado, para o filtro dinâmico dos
+    formulários de criação/edição do módulo financeiro."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    processos = processos_do_cliente(request.GET.get("cliente"))
+    return JsonResponse({
+        "processos": [{"id": p.id, "label": str(p)} for p in processos],
     })
 
 

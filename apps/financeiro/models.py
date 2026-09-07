@@ -1,8 +1,10 @@
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
+from apps.processos.services import processo_pertence_ao_cliente
 from apps.saas_tenants.storage import (
     CaminhoArquivoTenant,
     PROTEGIDO,
@@ -70,6 +72,10 @@ class LancamentoFinanceiro(models.Model):
     def __str__(self):
         return f"{self.tipo} — {self.descricao} ({self.valor})"
 
+    def clean(self):
+        if not processo_pertence_ao_cliente(self.cliente, self.processo):
+            raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
     @property
     def atrasado(self):
         from django.utils import timezone
@@ -101,6 +107,10 @@ class CustaJudicial(models.Model):
 
     def __str__(self):
         return f"{self.descricao} — {self.valor}"
+
+    def clean(self):
+        if not processo_pertence_ao_cliente(self.cliente, self.processo):
+            raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
 
 
 class Honorario(models.Model):
@@ -138,6 +148,10 @@ class Honorario(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.valor_estimado}"
+
+    def clean(self):
+        if not processo_pertence_ao_cliente(self.cliente, self.processo):
+            raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
 
 
 class SolicitacaoFinanceira(models.Model):
@@ -195,6 +209,10 @@ class SolicitacaoFinanceira(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.descricao} ({self.valor})"
+
+    def clean(self):
+        if not processo_pertence_ao_cliente(self.cliente, self.processo):
+            raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
 
     def pode_transicionar_para(self, novo_status):
         return novo_status in self.TRANSICOES_VALIDAS.get(self.status, set())

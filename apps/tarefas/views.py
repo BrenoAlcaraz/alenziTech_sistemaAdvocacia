@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Case, When, Value, IntegerField, F
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from apps.accounts.decorators import usuario_admin_escritorio
@@ -13,6 +14,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.notificacoes.models import Notificacao
+from apps.processos.services import processos_do_cliente
 from .models import ReatribuicaoTarefa, Tarefa
 from .forms import ReatribuirForm, TarefaForm
 
@@ -170,6 +172,18 @@ def lista(request):
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
+    })
+
+
+@login_required
+def processos_por_cliente(request):
+    """Processos do cliente informado, para o filtro dinâmico dos
+    formulários de criação/edição de tarefas."""
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    processos = processos_do_cliente(request.GET.get("cliente"))
+    return JsonResponse({
+        "processos": [{"id": p.id, "label": str(p)} for p in processos],
     })
 
 
