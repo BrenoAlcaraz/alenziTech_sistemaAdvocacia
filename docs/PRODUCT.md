@@ -147,8 +147,7 @@ reais e autorizados — nunca mock ou número fixo.
 Comunicação interna dentro do mesmo tenant.
 
 - Nenhuma conversa atravessa tenant.
-- Conversas individuais e em grupo são conceitos distintos (nem toda
-  já implementada).
+- Conversas individuais e em grupo são conceitos distintos.
 - Acesso a mensagens/anexos verificado no backend — conhecer o
   identificador não concede acesso.
 - Equipe não gera grupo de chat automaticamente.
