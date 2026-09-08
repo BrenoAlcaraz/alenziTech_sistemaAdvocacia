@@ -116,6 +116,27 @@ class TestBlocoConfirmados(DashboardAgendaPessoalBase):
         resposta = self._get_painel()
         self.assertEqual(resposta.context["resumo"]["compromissos_proximos"], 2)
 
+    def test_proprio_com_multiplos_participantes_nao_duplica(self):
+        """
+        Regressão: `_compromissos_confirmados` faz LEFT JOIN com
+        `participacoes` para checar `Q(responsavel=...) | Q(participacoes__...)`;
+        sem `.distinct()`, um compromisso próprio com N participantes
+        convidados aparecia N vezes no bloco e inflava a contagem do resumo.
+        """
+        convidado_1 = self._user("dashboard_convidado_1")
+        convidado_2 = self._user("dashboard_convidado_2")
+        ParticipanteCompromisso.objects.create(
+            compromisso=self.proprio, usuario=convidado_1
+        )
+        ParticipanteCompromisso.objects.create(
+            compromisso=self.proprio, usuario=convidado_2
+        )
+
+        resposta = self._get_painel()
+        titulos = [c.titulo for c in resposta.context["compromissos_dashboard"]]
+        self.assertEqual(titulos.count("Compromisso Próprio"), 1)
+        self.assertEqual(resposta.context["resumo"]["compromissos_proximos"], 2)
+
 
 class TestBlocoPendentesDeConfirmacao(DashboardAgendaPessoalBase):
     @classmethod

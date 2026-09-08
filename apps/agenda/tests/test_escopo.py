@@ -23,7 +23,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from apps.agenda.models import Compromisso
+from apps.agenda.models import Compromisso, ParticipanteCompromisso
 
 
 class AgendaEscopoBase(TenantTestCase):
@@ -101,6 +101,27 @@ class TestAgendaEscopoSomenteSeus(AgendaEscopoBase):
         titulos = [c.titulo for c in r.context["compromissos"]]
         self.assertIn("Compromisso Próprio", titulos)
         self.assertNotIn("Compromisso Alheio", titulos)
+
+    def test_index_nao_duplica_compromisso_proprio_com_multiplos_participantes(self):
+        """
+        Regressão: `_aplicar_escopo` faz LEFT JOIN com `participacoes`
+        para checar `Q(responsavel=...) | Q(participacoes__usuario=...)`;
+        sem `.distinct()`, um compromisso próprio com N participantes
+        convidados aparecia N vezes na listagem.
+        """
+        convidado_1 = self._user("convidado_1")
+        convidado_2 = self._user("convidado_2")
+        ParticipanteCompromisso.objects.create(
+            compromisso=self.compromisso_proprio, usuario=convidado_1
+        )
+        ParticipanteCompromisso.objects.create(
+            compromisso=self.compromisso_proprio, usuario=convidado_2
+        )
+
+        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        titulos = [c.titulo for c in r.context["compromissos"]]
+        self.assertEqual(titulos.count("Compromisso Próprio"), 1)
 
     def test_editar_alheio_retorna_404(self):
         r = self.client.get(

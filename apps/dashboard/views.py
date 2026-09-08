@@ -73,7 +73,7 @@ def _compromissos_confirmados(user, hoje):
             participacoes__usuario=user,
             participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
         )
-    )
+    ).distinct()
 
 
 @login_required

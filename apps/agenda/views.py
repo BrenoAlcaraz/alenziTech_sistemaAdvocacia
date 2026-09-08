@@ -78,7 +78,7 @@ def _aplicar_escopo(qs, request, escopo):
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(
             Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
-        )
+        ).distinct()
     return qs
 
 
