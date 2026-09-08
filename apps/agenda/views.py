@@ -69,20 +69,30 @@ def _resolver_escopo(request):
     return solicitado, nivel_maximo
 
 
-def _compromissos_no_escopo(request, escopo):
+def _aplicar_escopo(qs, request, escopo):
     """
-    QuerySet de LEITURA (index), restrito pelo escopo efetivo.
-
-    Em `somente_seus`, inclui compromisso onde o usuário é responsável
-    OU participante (qualquer status de confirmação) — participante
-    nunca é responsável, só ganha visibilidade.
+    Em `somente_seus`, restringe a compromisso onde o usuário é
+    responsável OU participante (qualquer status de confirmação) —
+    participante nunca é responsável, só ganha visibilidade.
     """
-    qs = Compromisso.objects.select_related("responsavel", "processo", "cliente")
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(
             Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
         )
     return qs
+
+
+def _compromissos_no_escopo(request, escopo):
+    """
+    QuerySet de LEITURA (index), restrito pelo escopo efetivo.
+
+    Compromisso cancelado nunca aparece na grade operacional padrão —
+    só na seção "Cancelados" (ver `cancelados`).
+    """
+    qs = Compromisso.objects.select_related(
+        "responsavel", "processo", "cliente"
+    ).exclude(status="cancelado")
+    return _aplicar_escopo(qs, request, escopo)
 
 
 def _compromissos_mutaveis(request):
@@ -153,6 +163,20 @@ def _resetar_confirmacoes_por_reagendamento(compromisso):
     ).update(status=ParticipanteCompromisso.STATUS_PENDENTE, lembrete_enviado=False)
 
 
+def _notificar_cancelamento(compromisso):
+    """Notificação distinta de convite/lembrete — responsável e todos os
+    participantes, independente do status de confirmação de cada um."""
+    horario = _horario_curto(compromisso)
+    mensagem = f'Compromisso cancelado: "{compromisso.titulo}" em {horario}'
+    destinatarios = list(
+        compromisso.participacoes.values_list("usuario_id", flat=True)
+    )
+    if compromisso.responsavel_id:
+        destinatarios.append(compromisso.responsavel_id)
+    for destinatario_id in destinatarios:
+        Notificacao.objects.create(destinatario_id=destinatario_id, mensagem=mensagem)
+
+
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
@@ -196,6 +220,32 @@ def index(request):
         "is_admin": usuario_admin_escritorio(request.user),
         "item_ativo": "agenda",
         "next_url": request.get_full_path(),
+    })
+
+
+@login_required
+def cancelados(request):
+    """
+    Consulta-only, sem reativar (decisão da spec): compromisso cancelado
+    fica disponível aqui por até 7 dias após o cancelamento — depois
+    disso o job `expurgar_compromissos_cancelados` o remove.
+    """
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    escopo, escopo_maximo = _resolver_escopo(request)
+    compromissos = _aplicar_escopo(
+        Compromisso.objects.select_related("responsavel", "processo", "cliente").filter(
+            status="cancelado"
+        ),
+        request,
+        escopo,
+    ).prefetch_related("participacoes__usuario").order_by("-cancelado_em")
+
+    return render(request, "agenda/cancelados.html", {
+        "compromissos": compromissos,
+        "escopo_atual": escopo,
+        "escopo_maximo": escopo_maximo,
+        "item_ativo": "agenda",
     })
 
 
@@ -291,7 +341,9 @@ def cancelar(request, pk):
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
         compromisso.status = "cancelado"
-        compromisso.save(update_fields=["status"])
+        compromisso.cancelado_em = timezone.now()
+        compromisso.save(update_fields=["status", "cancelado_em"])
+        _notificar_cancelamento(compromisso)
     return _redirect_seguro(request)
 
 
@@ -303,7 +355,8 @@ def reabrir(request, pk):
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
         compromisso.status = "agendado"
-        compromisso.save(update_fields=["status"])
+        compromisso.cancelado_em = None
+        compromisso.save(update_fields=["status", "cancelado_em"])
     return _redirect_seguro(request)
 
 

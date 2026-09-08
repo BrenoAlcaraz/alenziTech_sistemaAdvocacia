@@ -43,6 +43,7 @@ class Compromisso(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
     criado_em = models.DateTimeField(auto_now_add=True)
     lembrete_enviado = models.BooleanField(default=False)
+    cancelado_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Compromisso"

@@ -147,12 +147,44 @@
   {% endif %}
 
   {% if acesso_agenda %}
-  {# Bloco 2 — Agenda próxima #}
+  {# Bloco 2 — Agenda próxima: confirmados dos próximos 7 dias + pendentes de confirmação #}
   <div class="card p-4 flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Agenda próxima</h2>
       <a href="{% url 'agenda:index' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver agenda →</a>
     </div>
+
+    {% if compromissos_pendentes_dashboard %}
+    <details class="rounded-lg bg-amber-50 border border-amber-100">
+      <summary class="cursor-pointer text-xs font-medium text-amber-700 px-3 py-2 list-none flex items-center justify-between">
+        <span>{{ compromissos_pendentes_dashboard|length }} convite{{ compromissos_pendentes_dashboard|length|pluralize }} aguardando sua confirmação</span>
+        <span class="text-amber-500">▾</span>
+      </summary>
+      <div class="px-3 pb-3 flex flex-col gap-2">
+        {% for participacao in compromissos_pendentes_dashboard %}
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ participacao.compromisso.titulo }}</p>
+              <p class="text-xs text-gray-400">{{ participacao.compromisso.data_hora_inicio|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <form method="post" action="{% url 'agenda:confirmar_presenca' participacao.compromisso.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
+                <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors">Confirmar</button>
+              </form>
+              <form method="post" action="{% url 'agenda:recusar_presenca' participacao.compromisso.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
+                <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 transition-colors">Recusar</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+
     <div class="flex flex-col">
       {% for c in compromissos_dashboard %}
         <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">

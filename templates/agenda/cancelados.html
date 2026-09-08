@@ -1,0 +1,61 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Compromissos cancelados — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Compromissos cancelados</h1>
+    <p class="text-sm text-gray-500 mt-0.5">
+      Fora da agenda operacional &bull;
+      <a href="{% url 'agenda:index' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">← Voltar à agenda</a>
+    </p>
+  </div>
+</div>
+
+<div class="mb-4 px-4 py-3 rounded-lg bg-amber-50 text-amber-700 text-sm">
+  Compromisso cancelado fica disponível aqui só para consulta por 7 dias após o cancelamento — depois disso é excluído automaticamente.
+</div>
+
+{% if escopo_maximo == "todos" %}
+<form method="get" class="card px-4 py-3 mb-4 flex items-center gap-3">
+  <label for="escopo" class="text-sm font-medium text-gray-700">Visualizar</label>
+  <select id="escopo" name="escopo" class="select max-w-xs" onchange="this.form.submit()">
+    <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
+    <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+  </select>
+</form>
+{% endif %}
+
+<div class="flex flex-col gap-3">
+  {% for c in compromissos %}
+    <div class="card px-5 py-4">
+      <div class="flex items-start justify-between gap-4 mb-2">
+        <p class="font-semibold text-gray-500">{{ c.titulo }}</p>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Cancelado</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+        <span>
+          <span class="font-semibold text-gray-900">Início:</span>
+          {{ c.data_hora_inicio|date:"d/m/Y H:i" }}
+        </span>
+        {% if c.responsavel %}
+          <span>
+            <span class="font-semibold text-gray-900">Responsável:</span>
+            {{ c.responsavel }}
+          </span>
+        {% endif %}
+        <span>
+          <span class="font-semibold text-gray-900">Participantes:</span>
+          {% for participacao in c.participacoes.all %}{{ participacao.usuario.get_full_name|default:participacao.usuario.username }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+        </span>
+        <span>
+          <span class="font-semibold text-gray-900">Cancelado em:</span>
+          {{ c.cancelado_em|date:"d/m/Y H:i" }}
+        </span>
+      </div>
+    </div>
+  {% empty %}
+    {% include "components/empty_state.html" with mensagem="Nenhum compromisso cancelado." %}
+  {% endfor %}
+</div>
+{% endblock %}

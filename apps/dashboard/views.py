@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from apps.accounts.permissoes import tem_permissao_modulo, nivel_acesso_modulo
@@ -24,7 +24,7 @@ from apps.accounts.permissoes_constants import (
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.tarefas.models import Tarefa
-from apps.agenda.models import Compromisso
+from apps.agenda.models import Compromisso, ParticipanteCompromisso
 from apps.financeiro.models import LancamentoFinanceiro
 
 
@@ -94,15 +94,21 @@ def painel(request):
             qs_tarefas = qs_tarefas.filter(responsavel=request.user)
         resumo["tarefas_pendentes"] = qs_tarefas.count()
 
-    escopo_agenda = _nivel_escopo(request.user, MODULO_AGENDA) if acesso_agenda else None
+    # Blocos de Agenda no Dashboard são sempre pessoais (quem sou eu como
+    # responsável ou participante confirmado) — independentes do nível
+    # somente_seus/todos do módulo, que só rege a tela de Agenda em si.
     if acesso_agenda:
         qs_compromissos = Compromisso.objects.filter(
             status="agendado",
             data_hora_inicio__date__gte=hoje,
             data_hora_inicio__date__lte=hoje + timedelta(days=7),
+        ).filter(
+            Q(responsavel=request.user)
+            | Q(
+                participacoes__usuario=request.user,
+                participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+            )
         )
-        if escopo_agenda == NIVEL_SOMENTE_SEUS:
-            qs_compromissos = qs_compromissos.filter(responsavel=request.user)
         resumo["compromissos_proximos"] = qs_compromissos.count()
 
     if acesso_financeiro:
@@ -132,6 +138,7 @@ def painel(request):
         tarefas_dashboard = tarefas_dashboard.order_by("prazo", "-prioridade")[:5]
 
     compromissos_dashboard = Compromisso.objects.none()
+    compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.none()
     if acesso_agenda:
         compromissos_dashboard = Compromisso.objects.select_related(
             "cliente", "processo", "responsavel"
@@ -139,10 +146,21 @@ def painel(request):
             status="agendado",
             data_hora_inicio__date__gte=hoje,
             data_hora_inicio__date__lte=hoje + timedelta(days=7),
-        )
-        if escopo_agenda == NIVEL_SOMENTE_SEUS:
-            compromissos_dashboard = compromissos_dashboard.filter(responsavel=request.user)
-        compromissos_dashboard = compromissos_dashboard.order_by("data_hora_inicio")[:5]
+        ).filter(
+            Q(responsavel=request.user)
+            | Q(
+                participacoes__usuario=request.user,
+                participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+            )
+        ).order_by("data_hora_inicio")[:5]
+
+        compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.select_related(
+            "compromisso", "compromisso__cliente", "compromisso__processo"
+        ).filter(
+            usuario=request.user,
+            status=ParticipanteCompromisso.STATUS_PENDENTE,
+            compromisso__status="agendado",
+        ).order_by("compromisso__data_hora_inicio")
 
     financeiro_dashboard = LancamentoFinanceiro.objects.none()
     if acesso_financeiro:
@@ -160,6 +178,7 @@ def painel(request):
         "resumo": resumo,
         "tarefas_dashboard": tarefas_dashboard,
         "compromissos_dashboard": compromissos_dashboard,
+        "compromissos_pendentes_dashboard": compromissos_pendentes_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
         "acesso_clientes": acesso_clientes,
         "acesso_processos": acesso_processos,
