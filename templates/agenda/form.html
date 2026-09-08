@@ -88,15 +88,8 @@
         {% endif %}
       </div>
 
-      {# Processo | Cliente #}
+      {# Cliente | Processo — cliente filtra as opções de processo, por isso vem primeiro #}
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="label">Processo vinculado <span class="text-gray-400 font-normal">(opcional)</span></label>
-          {{ form.processo }}
-          {% if form.processo.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
-          {% endif %}
-        </div>
         <div>
           <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.cliente }}
@@ -104,7 +97,34 @@
             <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
           {% endif %}
         </div>
+        <div>
+          <label class="label">Processo vinculado <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
       </div>
+
+      {% if modo != "editar" %}
+      {# Participantes — só na criação; na edição, gestão fica na seção dedicada abaixo #}
+      <div>
+        <label class="label">Participantes <span class="text-gray-400 font-normal">(opcional)</span></label>
+        <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2">
+          {% for checkbox in form.participantes %}
+            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+              {{ checkbox.tag }}
+              {{ checkbox.choice_label }}
+            </label>
+          {% empty %}
+            <p class="text-xs text-gray-400">Nenhum usuário disponível.</p>
+          {% endfor %}
+        </div>
+        {% if form.participantes.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.participantes.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
 
       {# Descrição #}
       <div>

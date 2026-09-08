@@ -312,6 +312,13 @@ def form_compromisso(request):
             if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
                 compromisso.cliente = compromisso.processo.cliente
             compromisso.save()
+            for usuario in form.cleaned_data.get("participantes") or []:
+                if usuario.pk == compromisso.responsavel_id:
+                    continue
+                participacao = ParticipanteCompromisso.objects.create(
+                    compromisso=compromisso, usuario=usuario
+                )
+                _notificar_convite(participacao)
             return redirect("agenda:index")
     else:
         form = CompromissoForm(initial={"responsavel": request.user})

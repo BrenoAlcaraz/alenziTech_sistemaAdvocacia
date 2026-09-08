@@ -6,6 +6,20 @@ from apps.processos.models import Processo
 from apps.clientes.models import Cliente
 
 
+class _LabelNomeUsernameMixin:
+    def label_from_instance(self, obj):
+        nome = obj.get_full_name()
+        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+
+
+class ParticipanteChoiceField(_LabelNomeUsernameMixin, forms.ModelChoiceField):
+    pass
+
+
+class ParticipanteMultipleChoiceField(_LabelNomeUsernameMixin, forms.ModelMultipleChoiceField):
+    pass
+
+
 class CompromissoForm(forms.ModelForm):
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.filter(ativo=True),
@@ -24,6 +38,11 @@ class CompromissoForm(forms.ModelForm):
         required=False,
         widget=forms.Select(attrs={"class": "select"}),
         empty_label="Nenhum",
+    )
+    participantes = ParticipanteMultipleChoiceField(
+        queryset=User.objects.filter(is_active=True).order_by("first_name", "username"),
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "rounded border-gray-300"}),
     )
     data_hora_inicio = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M"],
@@ -74,12 +93,6 @@ class CompromissoForm(forms.ModelForm):
         self.fields["processo"].queryset = qs
         self.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
         self.fields["processo"].widget.attrs["data-processos-url"] = reverse("agenda:processos_por_cliente")
-
-
-class ParticipanteChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        nome = obj.get_full_name()
-        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
 
 
 class AdicionarParticipanteForm(forms.Form):
