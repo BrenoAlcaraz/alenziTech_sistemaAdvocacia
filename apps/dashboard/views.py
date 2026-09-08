@@ -57,6 +57,25 @@ def _formatar_moeda(valor):
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _compromissos_confirmados(user, hoje):
+    """
+    Compromissos dos próximos 7 dias onde `user` é responsável ou
+    participante confirmado — sempre pessoal, independente do nível
+    somente_seus/todos do módulo Agenda (só rege a tela de Agenda).
+    """
+    return Compromisso.objects.filter(
+        status="agendado",
+        data_hora_inicio__date__gte=hoje,
+        data_hora_inicio__date__lte=hoje + timedelta(days=7),
+    ).filter(
+        Q(responsavel=user)
+        | Q(
+            participacoes__usuario=user,
+            participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+        )
+    )
+
+
 @login_required
 def painel(request):
     if not tem_permissao_modulo(request.user, MODULO_PAINEL):
@@ -94,22 +113,8 @@ def painel(request):
             qs_tarefas = qs_tarefas.filter(responsavel=request.user)
         resumo["tarefas_pendentes"] = qs_tarefas.count()
 
-    # Blocos de Agenda no Dashboard são sempre pessoais (quem sou eu como
-    # responsável ou participante confirmado) — independentes do nível
-    # somente_seus/todos do módulo, que só rege a tela de Agenda em si.
     if acesso_agenda:
-        qs_compromissos = Compromisso.objects.filter(
-            status="agendado",
-            data_hora_inicio__date__gte=hoje,
-            data_hora_inicio__date__lte=hoje + timedelta(days=7),
-        ).filter(
-            Q(responsavel=request.user)
-            | Q(
-                participacoes__usuario=request.user,
-                participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
-            )
-        )
-        resumo["compromissos_proximos"] = qs_compromissos.count()
+        resumo["compromissos_proximos"] = _compromissos_confirmados(request.user, hoje).count()
 
     if acesso_financeiro:
         qs_lancamentos = LancamentoFinanceiro.objects.all()
@@ -140,18 +145,8 @@ def painel(request):
     compromissos_dashboard = Compromisso.objects.none()
     compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.none()
     if acesso_agenda:
-        compromissos_dashboard = Compromisso.objects.select_related(
+        compromissos_dashboard = _compromissos_confirmados(request.user, hoje).select_related(
             "cliente", "processo", "responsavel"
-        ).filter(
-            status="agendado",
-            data_hora_inicio__date__gte=hoje,
-            data_hora_inicio__date__lte=hoje + timedelta(days=7),
-        ).filter(
-            Q(responsavel=request.user)
-            | Q(
-                participacoes__usuario=request.user,
-                participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
-            )
         ).order_by("data_hora_inicio")[:5]
 
         compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.select_related(

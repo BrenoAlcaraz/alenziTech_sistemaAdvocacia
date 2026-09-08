@@ -339,7 +339,7 @@ def cancelar(request, pk):
         raise PermissionDenied
     _resolver_escopo(request)
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
-    if request.method == "POST":
+    if request.method == "POST" and compromisso.status != "cancelado":
         compromisso.status = "cancelado"
         compromisso.cancelado_em = timezone.now()
         compromisso.save(update_fields=["status", "cancelado_em"])

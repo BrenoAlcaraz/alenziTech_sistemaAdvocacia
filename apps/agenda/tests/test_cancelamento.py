@@ -115,6 +115,54 @@ class TestCancelarNotificaEExclui(AgendaCancelamentoBase):
             self.assertNotIn("Reunião a Cancelar", titulos)
 
 
+class TestCancelarEIdempotente(AgendaCancelamentoBase):
+    """
+    Regressão do review final: cancelar um compromisso já cancelado não
+    pode resetar `cancelado_em` (quebraria a janela de retenção de 7
+    dias) nem reenviar notificação de cancelamento.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "agenda_cancelar_idempotente"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Agenda Cancelar Idempotente"
+        tenant.slug = "agenda-cancelar-idempotente"
+
+    def setUp(self):
+        super().setUp()
+        self.responsavel = self._user("responsavel")
+        self.confirmado = self._user("confirmado")
+        self._dar_acesso_agenda(self.responsavel)
+
+        self.compromisso = self._compromisso(
+            titulo="Reunião a Cancelar Duas Vezes", responsavel=self.responsavel
+        )
+        self._participacao(
+            self.compromisso, self.confirmado, status=ParticipanteCompromisso.STATUS_CONFIRMADO
+        )
+        self.client.force_login(self.responsavel)
+        self.client.post(f"/agenda/{self.compromisso.pk}/cancelar/", HTTP_HOST=self.http_host)
+        self.compromisso.refresh_from_db()
+        self.cancelado_em_original = self.compromisso.cancelado_em
+
+    def test_segundo_cancelar_nao_reseta_cancelado_em(self):
+        self.client.post(f"/agenda/{self.compromisso.pk}/cancelar/", HTTP_HOST=self.http_host)
+        self.compromisso.refresh_from_db()
+        self.assertEqual(self.compromisso.cancelado_em, self.cancelado_em_original)
+
+    def test_segundo_cancelar_nao_duplica_notificacao(self):
+        self.client.post(f"/agenda/{self.compromisso.pk}/cancelar/", HTTP_HOST=self.http_host)
+        self.assertEqual(
+            Notificacao.objects.filter(destinatario=self.confirmado).count(), 1
+        )
+        self.assertEqual(
+            Notificacao.objects.filter(destinatario=self.responsavel).count(), 1
+        )
+
+
 class TestSecaoCancelados(AgendaCancelamentoBase):
     @classmethod
     def get_test_schema_name(cls):
