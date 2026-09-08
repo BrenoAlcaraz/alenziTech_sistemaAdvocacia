@@ -47,3 +47,4 @@ serem efetivamente decididas.
 | PDR-0017 | Habilitações granulares de criar, editar e adicionar andamento em Processos | accepted | [PDR-0017-habilitacoes-criar-editar-andamento-processos.md](PDR-0017-habilitacoes-criar-editar-andamento-processos.md) |
 | PDR-0018 | Banco compartilhado de Modelos de Peça — CRUD por autoria e habilitações de edição/exclusão alheia | accepted | [PDR-0018-modelos-banco-compartilhado-autoria.md](PDR-0018-modelos-banco-compartilhado-autoria.md) |
 | PDR-0019 | Autorização do módulo Gerir aplicada às views administrativas de Configurações | accepted | [PDR-0019-autorizacao-gerir-configuracoes.md](PDR-0019-autorizacao-gerir-configuracoes.md) |
+| PDR-0020 | Participantes e confirmação de presença em Compromisso (Agenda) | accepted | [PDR-0020-participantes-confirmacao-agenda.md](PDR-0020-participantes-confirmacao-agenda.md) |
