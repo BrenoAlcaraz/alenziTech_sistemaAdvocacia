@@ -1,9 +1,11 @@
 from datetime import timedelta
 
+from django.contrib.auth.models import User
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -15,10 +17,11 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente
 
-from .models import Compromisso
-from .forms import CompromissoForm
+from .models import Compromisso, ParticipanteCompromisso
+from .forms import AdicionarParticipanteForm, CompromissoForm
 
 
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
@@ -67,10 +70,18 @@ def _resolver_escopo(request):
 
 
 def _compromissos_no_escopo(request, escopo):
-    """QuerySet de LEITURA (index), restrito pelo escopo efetivo."""
+    """
+    QuerySet de LEITURA (index), restrito pelo escopo efetivo.
+
+    Em `somente_seus`, inclui compromisso onde o usuário é responsável
+    OU participante (qualquer status de confirmação) — participante
+    nunca é responsável, só ganha visibilidade.
+    """
     qs = Compromisso.objects.select_related("responsavel", "processo", "cliente")
     if escopo == NIVEL_SOMENTE_SEUS:
-        qs = qs.filter(responsavel=request.user)
+        qs = qs.filter(
+            Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
+        )
     return qs
 
 
@@ -94,6 +105,52 @@ def _pode_criar_para_outros(request):
     return usuario_admin_escritorio(request.user) or tem_habilitacao(
         request.user, MODULO_AGENDA, HAB_AGENDA_CRIAR_PARA_OUTROS
     )
+
+
+def _usuarios_elegiveis_para_participante(compromisso):
+    """Usuários que ainda podem ser convidados: mesmo universo do
+    responsável, exceto o próprio responsável e quem já participa."""
+    return User.objects.filter(is_active=True).exclude(
+        pk__in=compromisso.participacoes.values("usuario_id")
+    ).exclude(pk=compromisso.responsavel_id).order_by("first_name", "username")
+
+
+def _horario_curto(compromisso):
+    return timezone.localtime(compromisso.data_hora_inicio).strftime("%d/%m %H:%M")
+
+
+def _notificar_convite(participacao):
+    Notificacao.objects.create(
+        destinatario=participacao.usuario,
+        mensagem=(
+            f'Você foi convidado para "{participacao.compromisso.titulo}" '
+            f"em {_horario_curto(participacao.compromisso)} — confirme sua presença."
+        ),
+    )
+
+
+def _resetar_confirmacoes_por_reagendamento(compromisso):
+    """
+    Volta para pendente a confirmação de todo participante já confirmado
+    e notifica cada um — chamado quando `data_hora_inicio` muda numa
+    edição (compromisso já reflete a nova data neste ponto).
+    """
+    confirmados = list(
+        compromisso.participacoes.filter(
+            status=ParticipanteCompromisso.STATUS_CONFIRMADO
+        ).select_related("usuario")
+    )
+    for participacao in confirmados:
+        Notificacao.objects.create(
+            destinatario=participacao.usuario,
+            mensagem=(
+                f'"{compromisso.titulo}" foi reagendado para '
+                f"{_horario_curto(compromisso)} — confirme sua presença novamente."
+            ),
+        )
+    compromisso.participacoes.filter(
+        pk__in=[p.pk for p in confirmados]
+    ).update(status=ParticipanteCompromisso.STATUS_PENDENTE, lembrete_enviado=False)
 
 
 @login_required
@@ -121,7 +178,15 @@ def index(request):
         )
     # "todos": sem filtro de data ou status
 
-    compromissos = compromissos.order_by("data_hora_inicio")
+    compromissos = list(compromissos.order_by("data_hora_inicio"))
+    participacoes_usuario = {
+        p.compromisso_id: p
+        for p in ParticipanteCompromisso.objects.filter(
+            compromisso_id__in=[c.pk for c in compromissos], usuario=request.user
+        )
+    }
+    for compromisso in compromissos:
+        compromisso.minha_participacao = participacoes_usuario.get(compromisso.pk)
 
     return render(request, "agenda/lista.html", {
         "compromissos": compromissos,
@@ -142,6 +207,7 @@ def editar(request, pk):
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
         responsavel_original = compromisso.responsavel
+        data_anterior = compromisso.data_hora_inicio
         form = CompromissoForm(request.POST, instance=compromisso)
         if form.is_valid():
             status_original = compromisso.status
@@ -151,6 +217,8 @@ def editar(request, pk):
             if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
                 compromisso.cliente = compromisso.processo.cliente
             compromisso.save()
+            if compromisso.data_hora_inicio != data_anterior:
+                _resetar_confirmacoes_por_reagendamento(compromisso)
             return redirect("agenda:index")
     else:
         form = CompromissoForm(instance=compromisso)
@@ -158,6 +226,10 @@ def editar(request, pk):
         "form": form,
         "modo": "editar",
         "compromisso": compromisso,
+        "participacoes": compromisso.participacoes.select_related("usuario"),
+        "form_participante": AdicionarParticipanteForm(
+            usuarios_queryset=_usuarios_elegiveis_para_participante(compromisso)
+        ),
         "item_ativo": "agenda",
     })
 
@@ -243,4 +315,71 @@ def excluir(request, pk):
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
         compromisso.delete()
+    return _redirect_seguro(request)
+
+
+@login_required
+def adicionar_participante(request, pk):
+    """Gerenciar participantes reaproveita a autorização de edição do
+    compromisso já existente — sem habilitação granular própria."""
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
+    if request.method == "POST":
+        form = AdicionarParticipanteForm(
+            request.POST,
+            usuarios_queryset=_usuarios_elegiveis_para_participante(compromisso),
+        )
+        if not form.is_valid():
+            raise Http404
+        participacao = ParticipanteCompromisso.objects.create(
+            compromisso=compromisso, usuario=form.cleaned_data["usuario"]
+        )
+        _notificar_convite(participacao)
+    return redirect("agenda:editar", pk=pk)
+
+
+@login_required
+def remover_participante(request, pk, usuario_pk):
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
+    if request.method == "POST":
+        participacao = get_object_or_404(
+            ParticipanteCompromisso, compromisso=compromisso, usuario_id=usuario_pk
+        )
+        participacao.delete()
+    return redirect("agenda:editar", pk=pk)
+
+
+@login_required
+def confirmar_presenca(request, pk):
+    """Confirmar/recusar presença é ação do próprio participante sobre o
+    próprio registro — não passa pela autorização de edição do
+    compromisso, só pela autorização de módulo."""
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    participacao = get_object_or_404(
+        ParticipanteCompromisso, compromisso_id=pk, usuario=request.user
+    )
+    if request.method == "POST":
+        participacao.status = ParticipanteCompromisso.STATUS_CONFIRMADO
+        participacao.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def recusar_presenca(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    participacao = get_object_or_404(
+        ParticipanteCompromisso, compromisso_id=pk, usuario=request.user
+    )
+    if request.method == "POST":
+        participacao.status = ParticipanteCompromisso.STATUS_RECUSADO
+        participacao.save(update_fields=["status"])
     return _redirect_seguro(request)

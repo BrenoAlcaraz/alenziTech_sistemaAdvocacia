@@ -123,4 +123,39 @@
     </div>
   </form>
 </div>
+
+{% if modo == "editar" %}
+<div class="card p-6 max-w-2xl mt-4">
+  <p class="text-sm font-semibold text-gray-900 mb-3">Participantes</p>
+
+  <form method="post" action="{% url 'agenda:adicionar_participante' compromisso.pk %}" class="flex gap-2 mb-4">
+    {% csrf_token %}
+    <div class="flex-1">{{ form_participante.usuario }}</div>
+    <button type="submit" class="btn-primary text-sm">Convidar</button>
+  </form>
+
+  <div class="flex flex-col gap-2">
+    {% for participacao in participacoes %}
+      <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50">
+        <p class="text-sm font-medium text-gray-900">{{ participacao.usuario.get_full_name|default:participacao.usuario.username }}</p>
+        <div class="flex items-center gap-2">
+          {% if participacao.status == "confirmado" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Confirmado</span>
+          {% elif participacao.status == "recusado" %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Recusado</span>
+          {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600">Pendente</span>
+          {% endif %}
+          <form method="post" action="{% url 'agenda:remover_participante' compromisso.pk participacao.usuario.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-gray-400 hover:text-red-400 transition-colors text-xs" title="Remover participante" aria-label="Remover participante">Remover</button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum participante convidado além do responsável." %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -33,7 +33,12 @@ class Compromisso(models.Model):
     data_hora_fim = models.DateTimeField(null=True, blank=True)
     local = models.CharField(max_length=255, blank=True)
     responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
-    participantes = models.ManyToManyField(User, blank=True, related_name="compromissos_participando")
+    participantes = models.ManyToManyField(
+        User,
+        through="ParticipanteCompromisso",
+        blank=True,
+        related_name="compromissos_participando",
+    )
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -59,3 +64,39 @@ class Compromisso(models.Model):
             if data_anterior is not None and data_anterior != self.data_hora_inicio:
                 self.lembrete_enviado = False
         super().save(*args, **kwargs)
+
+
+class ParticipanteCompromisso(models.Model):
+    """
+    Participação de um usuário (não responsável) num Compromisso —
+    convite com confirmação de presença própria, sem herdar a
+    responsabilidade do compromisso.
+    """
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_CONFIRMADO = "confirmado"
+    STATUS_RECUSADO = "recusado"
+    STATUS_CHOICES = [
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_CONFIRMADO, "Confirmado"),
+        (STATUS_RECUSADO, "Recusado"),
+    ]
+
+    compromisso = models.ForeignKey(Compromisso, on_delete=models.CASCADE, related_name="participacoes")
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="participacoes_compromissos")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDENTE)
+    lembrete_enviado = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Participante do compromisso"
+        verbose_name_plural = "Participantes do compromisso"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["compromisso", "usuario"],
+                name="agenda_participante_unico_por_compromisso",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} em {self.compromisso} ({self.status})"

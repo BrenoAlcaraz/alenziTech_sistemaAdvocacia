@@ -12,4 +12,8 @@ urlpatterns = [
     path("agenda/<int:pk>/cancelar/", views.cancelar, name="cancelar"),
     path("agenda/<int:pk>/reabrir/", views.reabrir, name="reabrir"),
     path("agenda/<int:pk>/excluir/", views.excluir, name="excluir"),
+    path("agenda/<int:pk>/participantes/adicionar/", views.adicionar_participante, name="adicionar_participante"),
+    path("agenda/<int:pk>/participantes/<int:usuario_pk>/remover/", views.remover_participante, name="remover_participante"),
+    path("agenda/<int:pk>/confirmar-presenca/", views.confirmar_presenca, name="confirmar_presenca"),
+    path("agenda/<int:pk>/recusar-presenca/", views.recusar_presenca, name="recusar_presenca"),
 ]

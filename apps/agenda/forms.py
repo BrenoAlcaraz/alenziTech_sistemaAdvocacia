@@ -74,3 +74,21 @@ class CompromissoForm(forms.ModelForm):
         self.fields["processo"].queryset = qs
         self.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
         self.fields["processo"].widget.attrs["data-processos-url"] = reverse("agenda:processos_por_cliente")
+
+
+class ParticipanteChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        nome = obj.get_full_name()
+        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+
+
+class AdicionarParticipanteForm(forms.Form):
+    usuario = ParticipanteChoiceField(
+        queryset=User.objects.none(),
+        label="Usuário",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, usuarios_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["usuario"].queryset = usuarios_queryset

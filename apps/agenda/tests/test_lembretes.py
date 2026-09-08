@@ -5,6 +5,10 @@ compromisso está por volta de 15 minutos antes do início; concluído,
 cancelado ou sem responsável nunca notifica; reagendar reabre o
 lembrete; execuções repetidas na mesma janela não duplicam; job com
 dados em dois tenants nunca cria notificação cruzada entre eles.
+
+Também cobre a extensão do job para participantes confirmados (ticket
+"Agenda: participantes e confirmação de presença em compromisso" —
+spec `specs/agenda-participantes-confirmacao.md`).
 """
 
 from datetime import timedelta
@@ -16,7 +20,7 @@ from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.utils import schema_context, tenant_context
 
-from apps.agenda.models import Compromisso
+from apps.agenda.models import Compromisso, ParticipanteCompromisso
 from apps.notificacoes.models import Notificacao
 from apps.saas_tenants.models import Escritorio
 
@@ -39,6 +43,11 @@ class LembretesAgendaBase(TenantTestCase):
         }
         defaults.update(kwargs)
         return Compromisso.objects.create(**defaults)
+
+    def _participacao(self, compromisso, usuario, *, status=ParticipanteCompromisso.STATUS_CONFIRMADO):
+        return ParticipanteCompromisso.objects.create(
+            compromisso=compromisso, usuario=usuario, status=status
+        )
 
     def _rodar_comando(self):
         call_command("enviar_lembretes_agenda")
@@ -188,3 +197,66 @@ class TestLembreteIsolamentoMultiTenant(LembretesAgendaBase):
         finally:
             with schema_context("public"):
                 outro_tenant.delete(force_drop=True)
+
+
+class TestLembreteParticipanteConfirmado(LembretesAgendaBase):
+    def test_participante_confirmado_recebe_lembrete(self):
+        participante = User.objects.create_user("participante", password="testpass")
+        compromisso = self._compromisso(minutos_para_inicio=10)
+        self._participacao(compromisso, participante)
+
+        self._rodar_comando()
+
+        notificacao = Notificacao.objects.get(destinatario=participante)
+        self.assertIn(compromisso.titulo, notificacao.mensagem)
+        participacao = ParticipanteCompromisso.objects.get(
+            compromisso=compromisso, usuario=participante
+        )
+        self.assertTrue(participacao.lembrete_enviado)
+
+        # Responsável continua recebendo o próprio lembrete normalmente.
+        self.assertTrue(Notificacao.objects.filter(destinatario=self.responsavel).exists())
+
+    def test_participante_pendente_nao_recebe_lembrete(self):
+        participante = User.objects.create_user("participante_pendente", password="testpass")
+        compromisso = self._compromisso(minutos_para_inicio=10)
+        self._participacao(
+            compromisso, participante, status=ParticipanteCompromisso.STATUS_PENDENTE
+        )
+
+        self._rodar_comando()
+
+        self.assertFalse(Notificacao.objects.filter(destinatario=participante).exists())
+
+    def test_participante_recusado_nao_recebe_lembrete(self):
+        participante = User.objects.create_user("participante_recusado", password="testpass")
+        compromisso = self._compromisso(minutos_para_inicio=10)
+        self._participacao(
+            compromisso, participante, status=ParticipanteCompromisso.STATUS_RECUSADO
+        )
+
+        self._rodar_comando()
+
+        self.assertFalse(Notificacao.objects.filter(destinatario=participante).exists())
+
+    def test_execucoes_repetidas_nao_duplicam_lembrete_do_participante(self):
+        participante = User.objects.create_user("participante_dup", password="testpass")
+        compromisso = self._compromisso(minutos_para_inicio=10)
+        self._participacao(compromisso, participante)
+
+        self._rodar_comando()
+        self._rodar_comando()
+
+        self.assertEqual(
+            Notificacao.objects.filter(destinatario=participante).count(), 1
+        )
+
+    def test_participante_confirmado_de_compromisso_sem_responsavel_recebe_lembrete(self):
+        """Compromisso sem responsável não impede o lembrete do participante confirmado."""
+        participante = User.objects.create_user("participante_sem_resp", password="testpass")
+        compromisso = self._compromisso(minutos_para_inicio=10, responsavel=None)
+        self._participacao(compromisso, participante)
+
+        self._rodar_comando()
+
+        self.assertTrue(Notificacao.objects.filter(destinatario=participante).exists())

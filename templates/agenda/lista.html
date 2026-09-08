@@ -152,6 +152,34 @@
           </span>
         {% endif %}
 
+        {# Minha participação — só quando não sou o responsável #}
+        {% if c.minha_participacao %}
+          <span>
+            <span class="font-semibold text-gray-900">Sua presença:</span>
+            {% if c.minha_participacao.status == "confirmado" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Confirmada</span>
+            {% elif c.minha_participacao.status == "recusado" %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Recusada</span>
+            {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600">Pendente de confirmação</span>
+            {% endif %}
+          </span>
+          {% if c.minha_participacao.status != "confirmado" %}
+            <form method="post" action="{% url 'agenda:confirmar_presenca' c.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ next_url }}">
+              <button type="submit" class="text-xs font-medium text-gray-500 hover:text-green-600 transition-colors">Confirmar presença</button>
+            </form>
+          {% endif %}
+          {% if c.minha_participacao.status != "recusado" %}
+            <form method="post" action="{% url 'agenda:recusar_presenca' c.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ next_url }}">
+              <button type="submit" class="text-xs font-medium text-gray-500 hover:text-red-400 transition-colors">Recusar presença</button>
+            </form>
+          {% endif %}
+        {% endif %}
+
         {# Ações rápidas de status #}
         {% if is_admin or c.responsavel == user %}
         {% if c.status == "agendado" %}
