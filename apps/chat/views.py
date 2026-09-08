@@ -151,7 +151,7 @@ def global_sala(request):
         subtitulo="Todos do escritório",
         avatar_letra=None,
         post_url=reverse("chat:global"),
-        voltar_url=None,
+        voltar_url=reverse("chat:lista"),
     )
 
 
