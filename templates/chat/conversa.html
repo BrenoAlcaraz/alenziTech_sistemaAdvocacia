@@ -1,20 +1,31 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Sala Geral — Chat{% endblock %}
+{% block title %}{{ titulo }} — Chat{% endblock %}
 
 {% block content %}
 <div class="flex flex-col" style="height: calc(100vh - 10rem);">
 
   {# Cabeçalho #}
   <div class="flex items-center gap-3 mb-4 flex-shrink-0">
-    <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-      </svg>
+    {% if voltar_url %}
+      <a href="{{ voltar_url }}" class="text-gray-400 hover:text-gray-700">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </a>
+    {% endif %}
+    <div class="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold">
+      {% if avatar_letra %}
+        {{ avatar_letra }}
+      {% else %}
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+      {% endif %}
     </div>
     <div>
-      <h1 class="font-bold text-gray-900 leading-tight">Sala Geral</h1>
-      <p class="text-xs text-gray-400">Todos do escritório</p>
+      <h1 class="font-bold text-gray-900 leading-tight">{{ titulo }}</h1>
+      <p class="text-xs text-gray-400">{{ subtitulo }}</p>
     </div>
   </div>
 
@@ -72,7 +83,7 @@
     {% if erro %}
       <p class="text-sm text-red-600 mb-2">{{ erro }}</p>
     {% endif %}
-    <form method="post" action="{% url 'chat:global' %}">
+    <form method="post" action="{{ post_url }}">
       {% csrf_token %}
       <div class="flex gap-3">
         <input type="text"

@@ -36,6 +36,25 @@ class Conversa(models.Model):
     def __str__(self):
         return self.titulo or f"Conversa #{self.pk}"
 
+    def outro_participante(self, user):
+        """Na conversa individual, o participante que não é `user` —
+        None fora desse tipo ou se o outro já foi removido."""
+        if self.tipo != self.TIPO_INDIVIDUAL:
+            return None
+        return self.participantes.exclude(pk=user.pk).first()
+
+    def nome_para(self, user):
+        """Rótulo de exibição desta conversa do ponto de vista de `user`
+        — nome do outro participante na individual, título no grupo."""
+        if self.tipo == self.TIPO_GRUPO:
+            return self.titulo or f"Grupo #{self.pk}"
+        if self.tipo == self.TIPO_INDIVIDUAL:
+            outro = self.outro_participante(user)
+            if outro is None:
+                return "Conversa"
+            return outro.get_full_name() or f"@{outro.username}"
+        return self.titulo or "Sala Geral"
+
 
 class Mensagem(models.Model):
     conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name="mensagens")

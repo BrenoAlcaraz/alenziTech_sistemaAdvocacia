@@ -1,10 +1,14 @@
 """
 Testes de autorização de módulo para apps/chat/views.py.
 
-Cobre o enforcement de tem_permissao_modulo(user, MODULO_CHAT) nas três
-rotas existentes (lista, detalhe, global). MODULO_CHAT não tem níveis
-(NIVEIS_POR_MODULO[MODULO_CHAT] == [""]) — é checagem binária pura, sem
-escopo de leitura a resolver (ver specs/autorizacao-modulo-chat-modelos-painel.md).
+Cobre o enforcement de tem_permissao_modulo(user, MODULO_CHAT) nas
+rotas de módulo (lista, detalhe, global, nova conversa, novo grupo).
+MODULO_CHAT não tem níveis (NIVEIS_POR_MODULO[MODULO_CHAT] == [""]) — é
+checagem binária pura, sem escopo de leitura a resolver.
+
+Acesso por participação a uma conversa individual/grupo (posse, 404 vs
+403) é coberto em apps/chat/tests/test_conversas.py — este arquivo cobre
+só o gate de módulo.
 
 Segue o mesmo padrão de fixtures de apps/clientes/tests/test_autorizacao.py.
 """
@@ -41,7 +45,7 @@ class ChatAutorizacaoBase(TenantTestCase):
 
 
 class TestChatAutorizacaoModuloNegado(ChatAutorizacaoBase):
-    """Usuário sem autorização do módulo `chat` — as três rotas negam."""
+    """Usuário sem autorização do módulo `chat` — todas as rotas negam."""
 
     @classmethod
     def get_test_schema_name(cls):
@@ -70,9 +74,17 @@ class TestChatAutorizacaoModuloNegado(ChatAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 403)
 
+    def test_nova_individual_negada(self):
+        r = self.client.get("/chat/nova/individual/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_nova_grupo_negada(self):
+        r = self.client.get("/chat/nova/grupo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
 
 class TestChatAutorizacaoModuloConcedido(ChatAutorizacaoBase):
-    """Usuário com autorização do módulo `chat` — as três rotas operam normalmente."""
+    """Usuário com autorização do módulo `chat` — as rotas operam normalmente."""
 
     @classmethod
     def get_test_schema_name(cls):
@@ -86,13 +98,13 @@ class TestChatAutorizacaoModuloConcedido(ChatAutorizacaoBase):
         self._pp(papel, MODULO_CHAT)
         self.client.force_login(self.user)
 
-    def test_lista_redireciona_para_global(self):
+    def test_lista_retorna_200(self):
         r = self.client.get("/chat/", HTTP_HOST=self.http_host)
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 200)
 
-    def test_detalhe_redireciona_para_global(self):
+    def test_detalhe_de_conversa_inexistente_retorna_404(self):
         r = self.client.get("/chat/1/", HTTP_HOST=self.http_host)
-        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.status_code, 404)
 
     def test_global_get_ok(self):
         r = self.client.get("/chat/global/", HTTP_HOST=self.http_host)
@@ -103,3 +115,11 @@ class TestChatAutorizacaoModuloConcedido(ChatAutorizacaoBase):
             "/chat/global/", {"conteudo": "oi"}, HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
+
+    def test_nova_individual_get_ok(self):
+        r = self.client.get("/chat/nova/individual/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_nova_grupo_get_ok(self):
+        r = self.client.get("/chat/nova/grupo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
