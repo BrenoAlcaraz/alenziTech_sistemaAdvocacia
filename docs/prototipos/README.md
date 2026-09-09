@@ -26,7 +26,7 @@ tabelas, queries e outros detalhes dos blocos “Como construir” são
 orientações técnicas do protótipo e devem ser conciliados com o HEAD e com
 as fontes canônicas de arquitetura e segurança antes de implementação
 literal. A hierarquia completa está em
-[docs/README.md](../README.md#hierarquia-das-fontes-de-verdade).
+[AGENTS.md](../../AGENTS.md#carregamento-de-contexto).
 
 ## Como utilizar
 
