@@ -151,6 +151,12 @@ Comunicação interna dentro do mesmo tenant.
 - Acesso a mensagens/anexos verificado no backend — conhecer o
   identificador não concede acesso.
 - Equipe não gera grupo de chat automaticamente.
+- Notificação: ao enviar mensagem em conversa individual ou em grupo,
+  cada participante exceto o autor é notificado dentro do sistema
+  (mesmo mecanismo de PDR-0016); sala global não notifica —
+  compartilhada por todo o tenant, sem nível de escopo.
+- Leitura: indicador de não lida é sempre por participante, nunca
+  compartilhado entre eles — inclusive na sala global.
 - Fora de escopo: chamada de áudio/vídeo, integração com apps externos,
   IA dentro do chat.
 

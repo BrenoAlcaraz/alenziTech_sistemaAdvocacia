@@ -1,5 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
+from apps.saas_tenants.storage import (
+    CaminhoArquivoTenant,
+    PROTEGIDO,
+    StorageProtegido,
+)
 
 
 class Conversa(models.Model):
@@ -55,13 +61,33 @@ class Conversa(models.Model):
             return outro.get_full_name() or f"@{outro.username}"
         return self.titulo or "Sala Geral"
 
+    def marcar_lida_para(self, usuario):
+        """Atualiza o marco de leitura desta conversa para `usuario` —
+        não afeta o marco dos demais participantes."""
+        LeituraConversa.objects.update_or_create(
+            conversa=self, usuario=usuario, defaults={"lida_em": timezone.now()}
+        )
+
+    def tem_mensagem_nao_lida_para(self, usuario):
+        """Há mensagem de outro participante após o marco de leitura de
+        `usuario` nesta conversa — ou nunca lida, se o marco não existe."""
+        mensagens_de_outros = self.mensagens.exclude(autor=usuario)
+        leitura = self.leituras.filter(usuario=usuario).first()
+        if leitura is not None:
+            mensagens_de_outros = mensagens_de_outros.filter(enviada_em__gt=leitura.lida_em)
+        return mensagens_de_outros.exists()
+
 
 class Mensagem(models.Model):
     conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name="mensagens")
     autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    conteudo = models.TextField()
+    conteudo = models.TextField(blank=True)
+    anexo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "chat/mensagens"),
+        storage=StorageProtegido(),
+        blank=True,
+    )
     enviada_em = models.DateTimeField(auto_now_add=True)
-    lida = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Mensagem"
@@ -70,3 +96,29 @@ class Mensagem(models.Model):
 
     def __str__(self):
         return f"{self.autor} — {self.conteudo[:50]}"
+
+    def nome_do_anexo(self):
+        return self.anexo.name.rsplit("/", 1)[-1] if self.anexo else ""
+
+
+class LeituraConversa(models.Model):
+    """Marco de leitura de uma Conversa por usuário — cada participante
+    tem o próprio marco, independente dos demais (necessário para
+    conversa em grupo com mais de 2 participantes)."""
+
+    conversa = models.ForeignKey(Conversa, on_delete=models.CASCADE, related_name="leituras")
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="leituras_conversas")
+    lida_em = models.DateTimeField()
+
+    class Meta:
+        verbose_name = "Leitura da conversa"
+        verbose_name_plural = "Leituras da conversa"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["conversa", "usuario"],
+                name="chat_leitura_unica_por_usuario",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} leu {self.conversa} em {self.lida_em}"

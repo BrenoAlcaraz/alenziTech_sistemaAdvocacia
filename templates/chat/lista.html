@@ -23,7 +23,12 @@
       </svg>
     </div>
     <div class="flex-1 min-w-0">
-      <p class="font-semibold text-gray-900 group-hover:text-gray-700">Sala Geral</p>
+      <p class="font-semibold text-gray-900 group-hover:text-gray-700 flex items-center gap-2">
+        Sala Geral
+        {% if sala_global.tem_nao_lida %}
+          <span class="w-2 h-2 rounded-full bg-juridico-vermelho flex-shrink-0"></span>
+        {% endif %}
+      </p>
       <p class="text-xs text-gray-400">Todos do escritório</p>
     </div>
     <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -47,7 +52,12 @@
         {% endif %}
       </div>
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ conversa.nome_exibicao }}</p>
+        <p class="font-semibold text-gray-900 group-hover:text-gray-700 flex items-center gap-2">
+          {{ conversa.nome_exibicao }}
+          {% if conversa.tem_nao_lida %}
+            <span class="w-2 h-2 rounded-full bg-juridico-vermelho flex-shrink-0"></span>
+          {% endif %}
+        </p>
         <p class="text-xs text-gray-400">{% if conversa.tipo == "grupo" %}Grupo{% else %}Conversa individual{% endif %}</p>
       </div>
       <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

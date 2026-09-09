@@ -64,7 +64,19 @@
           {# Bolha #}
           <div style="overflow-wrap: break-word;" class="px-4 py-2.5 rounded-2xl text-sm
                       {% if mensagem.autor_id == request.user.id %}bg-gray-900 text-white rounded-tr-sm{% else %}bg-white border border-gray-100 text-gray-900 rounded-tl-sm{% endif %}">
-            {{ mensagem.conteudo }}
+            {% if mensagem.conteudo %}
+              <p>{{ mensagem.conteudo }}</p>
+            {% endif %}
+            {% if mensagem.anexo %}
+              <a href="{% url 'chat:anexo_mensagem' mensagem.pk %}"
+                 class="flex items-center gap-2 underline {% if mensagem.conteudo %}mt-1{% endif %}">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.485 8.486L20 13"/>
+                </svg>
+                {{ mensagem.nome_do_anexo }}
+              </a>
+            {% endif %}
           </div>
 
           {# Horário #}
@@ -83,9 +95,16 @@
     {% if erro %}
       <p class="text-sm text-red-600 mb-2">{{ erro }}</p>
     {% endif %}
-    <form method="post" action="{{ post_url }}">
+    <form method="post" action="{{ post_url }}" enctype="multipart/form-data">
       {% csrf_token %}
       <div class="flex gap-3">
+        <label class="btn-secondary px-3 flex items-center cursor-pointer" title="Anexar arquivo">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.485 8.486L20 13"/>
+          </svg>
+          <input type="file" name="anexo" class="hidden">
+        </label>
         <input type="text"
                name="conteudo"
                value="{{ conteudo_digitado }}"

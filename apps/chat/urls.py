@@ -9,4 +9,5 @@ urlpatterns = [
     path("chat/nova/individual/", views.nova_individual, name="nova_individual"),
     path("chat/nova/grupo/", views.nova_grupo, name="nova_grupo"),
     path("chat/<int:pk>/", views.detalhe, name="detalhe"),
+    path("chat/mensagem/<int:pk>/anexo/", views.anexo_mensagem, name="anexo_mensagem"),
 ]

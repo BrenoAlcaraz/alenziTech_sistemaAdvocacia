@@ -1,16 +1,20 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
-from django.db.models import F, Max
+from django.db.models import F, Max, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_CHAT
+from apps.notificacoes.models import Notificacao
 
 from .forms import NovaConversaGrupoForm, NovaConversaIndividualForm
 from .models import Conversa, Mensagem
+
+TAMANHO_MAXIMO_ANEXO_BYTES = 10 * 1024 * 1024  # 10 MB — mesmo limite de apps/modelos/forms.py
 
 
 def _usuarios_disponiveis(user):
@@ -43,6 +47,32 @@ def _conversas_do_usuario(user):
     )
 
 
+def _mensagens_visiveis_para(usuario):
+    """Mensagens de conversas em que `usuario` participa, mais as da
+    sala global (aberta a todo o módulo, sem lista de participantes) —
+    mesmo padrão de escopo de
+    `apps/financeiro/views.py::_solicitacoes_no_escopo`."""
+    return Mensagem.objects.filter(
+        Q(conversa__tipo=Conversa.TIPO_GLOBAL) | Q(conversa__participantes=usuario)
+    )
+
+
+def _notificar_nova_mensagem(mensagem):
+    """Notifica cada participante da conversa, exceto o autor — sala
+    global não notifica (compartilhada por todo o tenant, volume alto
+    tornaria a notificação inútil)."""
+    conversa = mensagem.conversa
+    if conversa.tipo == Conversa.TIPO_GLOBAL:
+        return
+    autor_nome = mensagem.autor.get_full_name() or f"@{mensagem.autor.username}"
+    if conversa.tipo == Conversa.TIPO_GRUPO:
+        texto = f'Nova mensagem de {autor_nome} em "{conversa.nome_para(mensagem.autor)}"'
+    else:
+        texto = f"Nova mensagem de {autor_nome}"
+    for destinatario in conversa.participantes.exclude(pk=mensagem.autor_id):
+        Notificacao.objects.create(destinatario=destinatario, mensagem=texto)
+
+
 def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, post_url, voltar_url):
     """Lista mensagens e processa envio — reaproveitado pela sala global
     e pela conversa individual/grupo (mesmo fluxo POST + redirect)."""
@@ -52,15 +82,20 @@ def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, 
     if request.method == "POST":
         conteudo_digitado = request.POST.get("conteudo", "")
         conteudo = conteudo_digitado.strip()
+        anexo = request.FILES.get("anexo")
 
-        if not conteudo:
-            erro = "Digite uma mensagem antes de enviar."
+        if not conteudo and not anexo:
+            erro = "Digite uma mensagem ou anexe um arquivo antes de enviar."
+        elif anexo and anexo.size > TAMANHO_MAXIMO_ANEXO_BYTES:
+            erro = "O arquivo deve ter no máximo 10 MB."
         else:
-            Mensagem.objects.create(
+            mensagem = Mensagem.objects.create(
                 conversa=conversa,
                 autor=request.user,
                 conteudo=conteudo,
+                anexo=anexo or "",
             )
+            _notificar_nova_mensagem(mensagem)
             return redirect(post_url)
 
     mensagens = list(
@@ -69,6 +104,8 @@ def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, 
         .order_by("-enviada_em", "-pk")[:100]
     )
     mensagens.reverse()
+
+    conversa.marcar_lida_para(request.user)
 
     return render(
         request,
@@ -93,10 +130,12 @@ def lista(request):
         raise PermissionDenied
 
     sala_global = _sala_global()
+    sala_global.tem_nao_lida = sala_global.tem_mensagem_nao_lida_para(request.user)
 
     conversas = list(_conversas_do_usuario(request.user).prefetch_related("participantes"))
     for conversa in conversas:
         conversa.nome_exibicao = conversa.nome_para(request.user)
+        conversa.tem_nao_lida = conversa.tem_mensagem_nao_lida_para(request.user)
 
     return render(
         request,
@@ -153,6 +192,18 @@ def global_sala(request):
         post_url=reverse("chat:global"),
         voltar_url=reverse("chat:lista"),
     )
+
+
+@login_required
+def anexo_mensagem(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_CHAT):
+        raise PermissionDenied
+
+    mensagem = get_object_or_404(_mensagens_visiveis_para(request.user), pk=pk)
+    if not mensagem.anexo:
+        raise Http404
+
+    return FileResponse(mensagem.anexo.open("rb"), filename=mensagem.nome_do_anexo())
 
 
 @login_required
