@@ -205,6 +205,13 @@ inalterado e um caminho `websocket` próprio (rotas em
   pelo domínio) + `AuthenticationMiddleware` (usuário pela sessão) no
   caminho HTTP — resolve os dois numa única chamada síncrona, sem
   `await` no meio.
+- **Origem do handshake validada antes de tudo**: o mesmo middleware
+  recusa a conexão (`4403`) se o host do header `Origin` não bater com
+  o `Host` da própria conexão — proteção contra Cross-Site WebSocket
+  Hijacking, já que a autenticação depende só do cookie de sessão, sem
+  CSRF token no handshake. Por ser checagem de middleware compartilhado,
+  cobre automaticamente qualquer consumer novo, sem repetir a checagem
+  por consumer.
 - **Regra crítica, não óbvia**: o schema resolvido no `connect()` não
   pode ser tratado como ambiente para o resto da vida da conexão —
   `channels`/`asgiref` serializam chamadas síncronas de conexões

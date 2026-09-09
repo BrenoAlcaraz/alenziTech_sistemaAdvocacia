@@ -35,8 +35,15 @@ def _criar_sessao_para(usuario):
     return sessao.session_key
 
 
-def _headers(dominio, session_key):
-    return [(b"host", dominio.encode()), (b"cookie", f"sessionid={session_key}".encode())]
+def _headers(dominio, session_key, origin=None):
+    """`origin=None` usa a origem confiável padrão (mesmo domínio da
+    conexão); `origin=""` omite o header; qualquer outro valor é usado
+    como está — para simular handshake de outro domínio."""
+    origem = f"http://{dominio}" if origin is None else origin
+    headers = [(b"host", dominio.encode()), (b"cookie", f"sessionid={session_key}".encode())]
+    if origem:
+        headers.append((b"origin", origem.encode()))
+    return headers
 
 
 class ChatTempoRealBase(TenantTestCase):
@@ -174,6 +181,65 @@ class TestConversaIndividualTempoReal(ChatTempoRealBase):
     def test_envio_de_mensagem_por_http_funciona_sem_channel_layer_configurado(self):
         r = self._enviar_por_http(self.ana, f"/chat/{self.conversa.pk}/", "oi bruno")
         self.assertEqual(r.status_code, 302)
+
+
+class TestOrigemDoHandshake(ChatTempoRealBase):
+    """Spec em specs/websocket-validar-origin-handshake.md — correção de
+    Cross-Site WebSocket Hijacking (CSWH)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "chat_ws_origem"
+
+    def setUp(self):
+        super().setUp()
+        self.ana = self._user("ana")
+        self._dar_acesso_chat(self.ana)
+
+    def test_conexao_recusada_sem_header_origin(self):
+        session_key = _criar_sessao_para(self.ana)
+
+        async def cenario():
+            comunicador = WebsocketCommunicator(
+                application,
+                "/ws/chat/global/",
+                headers=_headers(self.http_host, session_key, origin=""),
+            )
+            conectado, codigo = await comunicador.connect()
+            self.assertFalse(conectado)
+            self.assertEqual(codigo, 4403)
+
+        async_to_sync(cenario)()
+
+    def test_conexao_recusada_com_origin_de_outro_dominio(self):
+        session_key = _criar_sessao_para(self.ana)
+
+        async def cenario():
+            comunicador = WebsocketCommunicator(
+                application,
+                "/ws/chat/global/",
+                headers=_headers(self.http_host, session_key, origin="http://evil.example.com"),
+            )
+            conectado, codigo = await comunicador.connect()
+            self.assertFalse(conectado)
+            self.assertEqual(codigo, 4403)
+
+        async_to_sync(cenario)()
+
+    def test_conexao_aceita_com_origin_do_proprio_dominio(self):
+        session_key = _criar_sessao_para(self.ana)
+
+        async def cenario():
+            comunicador = WebsocketCommunicator(
+                application,
+                "/ws/chat/global/",
+                headers=_headers(self.http_host, session_key, origin=f"https://{self.http_host}"),
+            )
+            conectado, _ = await comunicador.connect()
+            self.assertTrue(conectado)
+            await comunicador.disconnect()
+
+        async_to_sync(cenario)()
 
 
 class TestSalaGlobalTempoReal(ChatTempoRealBase):

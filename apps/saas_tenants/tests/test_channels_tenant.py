@@ -41,10 +41,16 @@ def _criar_sessao_para(usuario):
     return sessao.session_key
 
 
-def _headers(dominio, session_key=None):
+def _headers(dominio, session_key=None, origin=None):
+    """`origin=None` usa a origem confiável padrão (mesmo domínio da
+    conexão); `origin=""` omite o header; qualquer outro valor é usado
+    como está — para simular handshake de outro domínio."""
+    origem = f"http://{dominio}" if origin is None else origin
     headers = [(b"host", dominio.encode())]
     if session_key:
         headers.append((b"cookie", f"sessionid={session_key}".encode()))
+    if origem:
+        headers.append((b"origin", origem.encode()))
     return headers
 
 
@@ -142,6 +148,40 @@ class TestTenantWebsocketMiddleware(TenantTestCase):
                 _aplicacao_de_teste(),
                 CAMINHO_QUALQUER,
                 headers=_headers("dominio-sem-tenant.test.com", session_key),
+            )
+            conectado, codigo = await communicator.connect()
+            self.assertFalse(conectado)
+            self.assertEqual(codigo, 4403)
+
+        async_to_sync(cenario)()
+
+    def test_conexao_sem_header_origin_e_rejeitada(self):
+        """Spec em specs/websocket-validar-origin-handshake.md — correção
+        de Cross-Site WebSocket Hijacking (CSWH)."""
+        session_key = _criar_sessao_para(self.usuario_a)
+
+        async def cenario():
+            communicator = WebsocketCommunicator(
+                _aplicacao_de_teste(),
+                CAMINHO_QUALQUER,
+                headers=_headers(self.domain.domain, session_key, origin=""),
+            )
+            conectado, codigo = await communicator.connect()
+            self.assertFalse(conectado)
+            self.assertEqual(codigo, 4403)
+
+        async_to_sync(cenario)()
+
+    def test_conexao_com_origin_de_outro_dominio_e_rejeitada(self):
+        session_key = _criar_sessao_para(self.usuario_a)
+
+        async def cenario():
+            communicator = WebsocketCommunicator(
+                _aplicacao_de_teste(),
+                CAMINHO_QUALQUER,
+                headers=_headers(
+                    self.domain.domain, session_key, origin="http://evil.example.com"
+                ),
             )
             conectado, codigo = await communicator.connect()
             self.assertFalse(conectado)
