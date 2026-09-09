@@ -3,6 +3,8 @@ import mimetypes
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import FileResponse, Http404
 
+from .storage import nome_do_arquivo
+
 
 _CAMPOS_IDENTIDADE_VISUAL = {
     "logo": "logo",
@@ -35,5 +37,5 @@ def arquivo_identidade_visual(request, tipo_arquivo):
     return FileResponse(
         arquivo_aberto,
         content_type=content_type or "application/octet-stream",
-        filename=arquivo.name.rsplit("/", 1)[-1],
+        filename=nome_do_arquivo(arquivo),
     )

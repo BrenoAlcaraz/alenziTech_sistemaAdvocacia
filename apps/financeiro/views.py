@@ -20,6 +20,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente
+from apps.saas_tenants.storage import nome_do_arquivo
 
 from .forms import (
     ConfirmarRecebimentoHonorarioForm,
@@ -545,7 +546,7 @@ def anexo_solicitacao(request, pk):
     solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
     if not solicitacao.anexo:
         raise Http404
-    return FileResponse(solicitacao.anexo.open("rb"), filename=solicitacao.anexo.name.rsplit("/", 1)[-1])
+    return FileResponse(solicitacao.anexo.open("rb"), filename=nome_do_arquivo(solicitacao.anexo))
 
 
 @login_required

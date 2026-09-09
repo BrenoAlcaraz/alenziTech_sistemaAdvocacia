@@ -11,6 +11,12 @@ PROTEGIDO = "protegido"
 _NAMESPACES_VALIDOS = {PUBLICO, PROTEGIDO}
 
 
+def nome_do_arquivo(campo_arquivo):
+    """Nome de exibição de um arquivo a partir do path armazenado num
+    FileField — "" se não houver arquivo."""
+    return campo_arquivo.name.rsplit("/", 1)[-1] if campo_arquivo else ""
+
+
 def _schema_name_do_tenant(instance):
     escritorio = getattr(instance, "escritorio", None)
     schema_name = getattr(escritorio, "schema_name", None)

@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.saas_tenants.storage import (
     CaminhoArquivoTenant,
+    nome_do_arquivo,
     PROTEGIDO,
     StorageProtegido,
 )
@@ -98,7 +99,7 @@ class Mensagem(models.Model):
         return f"{self.autor} — {self.conteudo[:50]}"
 
     def nome_do_anexo(self):
-        return self.anexo.name.rsplit("/", 1)[-1] if self.anexo else ""
+        return nome_do_arquivo(self.anexo)
 
 
 class LeituraConversa(models.Model):
