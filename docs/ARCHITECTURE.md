@@ -190,6 +190,42 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   customizado do app). Colocar a mesma checagem só no `clean()` do
   form deixaria o Admin descoberto.
 
+## Tempo real (WebSocket / Channels) — padrão a reutilizar
+
+Único uso de WebSocket no projeto até aqui: entrega em tempo real de
+mensagem nova no Chat (`apps/chat/consumers.py`). Runtime ASGI
+(`channels` + `daphne`) roda ao lado do WSGI já existente —
+`config/asgi.py` expõe um `ProtocolTypeRouter` com o caminho HTTP
+inalterado e um caminho `websocket` próprio (rotas em
+`config/routing.py`).
+
+- **Resolução de tenant e usuário**:
+  `apps/saas_tenants/channels_middleware.py::TenantWebsocketMiddleware`
+  é o equivalente, para WebSocket, de `TenantMainMiddleware` (schema
+  pelo domínio) + `AuthenticationMiddleware` (usuário pela sessão) no
+  caminho HTTP — resolve os dois numa única chamada síncrona, sem
+  `await` no meio.
+- **Regra crítica, não óbvia**: o schema resolvido no `connect()` não
+  pode ser tratado como ambiente para o resto da vida da conexão —
+  `channels`/`asgiref` serializam chamadas síncronas de conexões
+  concorrentes numa única thread compartilhada, sem contexto
+  thread-sensitive próprio por conexão; outra conexão pode trocar o
+  schema dessa mesma thread entre duas chamadas do mesmo consumer. Toda
+  operação de banco dentro de um consumer passa por
+  `tenant_database_sync_to_async` (mesmo módulo), que troca o schema e
+  roda a consulta numa única chamada síncrona — nunca em chamadas
+  separadas.
+- **Grupo do channel layer sempre prefixado por `tenant.schema_name`**
+  (`apps/chat/realtime.py`) — nunca um identificador de conversa/usuário
+  sozinho, já que o mesmo pk existe em schemas diferentes.
+- **Mensagem trafega como fragmento HTML renderizado no backend**
+  (`render_to_string`, reaproveitando o mesmo template do envio por
+  HTTP), nunca como JSON interpretado por lógica no cliente — mantém o
+  padrão de renderização no servidor da seção "Estilo".
+- Autorização para entrar num grupo replica exatamente a checagem já
+  feita na view HTTP equivalente (`tem_permissao_modulo` + posse) —
+  nunca uma regra nova ou mais ampla só para o consumer.
+
 ## Limites que não podem ser quebrados
 
 - **Backend é a autoridade.** Toda verificação relevante deve ser
@@ -208,7 +244,7 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
 
 ## Riscos arquiteturais conhecidos
 
-- Sem cache configurado, sem fila assíncrona (Celery/Redis/Channels) —
+- Sem cache configurado, sem fila assíncrona de jobs (Celery/Redis) —
   qualquer introdução futura precisa carregar contexto de tenant
   explicitamente. Primeiro job periódico do projeto (PDR-0016, lembrete
   de Agenda) segue esse padrão via management command (`python manage.py
@@ -217,6 +253,10 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   `schema_context`; disparo periódico real (cron do SO, Task Scheduler)
   é externo ao código. Reutilizar esse padrão antes de criar um novo
   para qualquer próximo job por tenant.
+- Channel layer do WebSocket (Chat) roda em `InMemoryChannelLayer` —
+  só serve um único processo. Produção com mais de um worker exige um
+  backend compartilhado (ex.: Redis); decisão ainda não tomada (ver
+  `docs/STATUS.md`, módulo Chat).
 - Platform Admin não tem mecanismo de autorização dedicado — hoje é
   só superuser do Django Admin padrão.
 

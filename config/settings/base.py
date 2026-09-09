@@ -14,6 +14,8 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,.localhost").spl
 
 # ─── Multi-Tenancy ─────────────────────────────────────────────────────────────
 SHARED_APPS = [
+    "daphne",  # antes de staticfiles: assume o runserver em modo ASGI
+    "channels",
     "django_tenants",
     "django.contrib.contenttypes",
     "django.contrib.auth",
@@ -100,6 +102,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+# Channel layer em memória — só serve um único processo (suficiente para
+# validar a issue #14). Produção com mais de um worker exige um backend
+# compartilhado (ex.: Redis); decisão registrada como escopo da issue #15,
+# não desta.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # ─── Auth ──────────────────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [

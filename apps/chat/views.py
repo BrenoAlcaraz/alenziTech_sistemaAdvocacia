@@ -1,3 +1,5 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
@@ -13,6 +15,7 @@ from apps.notificacoes.models import Notificacao
 
 from .forms import NovaConversaGrupoForm, NovaConversaIndividualForm
 from .models import Conversa, Mensagem
+from .realtime import grupo_conversa, grupo_global, grupo_lista, grupo_usuario
 
 TAMANHO_MAXIMO_ANEXO_BYTES = 10 * 1024 * 1024  # 10 MB — mesmo limite de apps/modelos/forms.py
 
@@ -73,7 +76,33 @@ def _notificar_nova_mensagem(mensagem):
         Notificacao.objects.create(destinatario=destinatario, mensagem=texto)
 
 
-def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, post_url, voltar_url):
+def _transmitir_mensagem_tempo_real(request, conversa, mensagem):
+    """Publica a mensagem nova pelo channel layer — issue #15 — para quem
+    está com esta conversa aberta, mais um aviso de não lida para quem
+    está na lista (`chat:lista`). Indisponibilidade do channel layer
+    nunca interrompe o fluxo HTTP: só a atualização em tempo real fica
+    de fora, o envio por HTTP já terminou antes desta chamada."""
+    channel_layer = get_channel_layer()
+    if channel_layer is None:
+        return
+    enviar = async_to_sync(channel_layer.group_send)
+    tenant = request.tenant
+
+    if conversa.tipo == Conversa.TIPO_GLOBAL:
+        enviar(grupo_global(tenant), {"type": "chat.mensagem", "mensagem_id": mensagem.pk})
+        enviar(grupo_lista(tenant), {"type": "chat.nao_lida", "conversa_id": "global"})
+    else:
+        enviar(grupo_conversa(tenant, conversa.pk), {"type": "chat.mensagem", "mensagem_id": mensagem.pk})
+        for participante_id in conversa.participantes.exclude(pk=mensagem.autor_id).values_list(
+            "pk", flat=True
+        ):
+            enviar(
+                grupo_usuario(tenant, participante_id),
+                {"type": "chat.nao_lida", "conversa_id": str(conversa.pk)},
+            )
+
+
+def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, post_url, voltar_url, ws_url):
     """Lista mensagens e processa envio — reaproveitado pela sala global
     e pela conversa individual/grupo (mesmo fluxo POST + redirect)."""
     erro = None
@@ -96,6 +125,7 @@ def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, 
                 anexo=anexo or "",
             )
             _notificar_nova_mensagem(mensagem)
+            _transmitir_mensagem_tempo_real(request, conversa, mensagem)
             return redirect(post_url)
 
     mensagens = list(
@@ -119,6 +149,7 @@ def _visualizar_conversa(request, conversa, *, titulo, subtitulo, avatar_letra, 
             "conteudo_digitado": conteudo_digitado,
             "post_url": post_url,
             "voltar_url": voltar_url,
+            "ws_url": ws_url,
             "item_ativo": "chat",
         },
     )
@@ -174,6 +205,7 @@ def detalhe(request, pk):
         avatar_letra=avatar_letra,
         post_url=reverse("chat:detalhe", args=[conversa.pk]),
         voltar_url=reverse("chat:lista"),
+        ws_url=f"/ws/chat/{conversa.pk}/",
     )
 
 
@@ -191,6 +223,7 @@ def global_sala(request):
         avatar_letra=None,
         post_url=reverse("chat:global"),
         voltar_url=reverse("chat:lista"),
+        ws_url="/ws/chat/global/",
     )
 
 

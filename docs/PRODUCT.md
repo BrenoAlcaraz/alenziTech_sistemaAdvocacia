@@ -157,6 +157,10 @@ Comunicação interna dentro do mesmo tenant.
   compartilhada por todo o tenant, sem nível de escopo.
 - Leitura: indicador de não lida é sempre por participante, nunca
   compartilhado entre eles — inclusive na sala global.
+- Mensagem nova chega em tempo real (WebSocket) para quem está com a
+  conversa aberta, e o indicador de não lida atualiza em tempo real na
+  lista de conversas; sem conexão em tempo real disponível, envio e
+  leitura continuam funcionando normalmente por HTTP.
 - Fora de escopo: chamada de áudio/vídeo, integração com apps externos,
   IA dentro do chat.
 

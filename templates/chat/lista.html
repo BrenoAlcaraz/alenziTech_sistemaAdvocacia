@@ -15,7 +15,7 @@
 
 <div class="flex flex-col gap-2">
 
-  <a href="{% url 'chat:global' %}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
+  <a href="{% url 'chat:global' %}" data-conversa-id="global" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
     <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -25,9 +25,7 @@
     <div class="flex-1 min-w-0">
       <p class="font-semibold text-gray-900 group-hover:text-gray-700 flex items-center gap-2">
         Sala Geral
-        {% if sala_global.tem_nao_lida %}
-          <span class="w-2 h-2 rounded-full bg-juridico-vermelho flex-shrink-0"></span>
-        {% endif %}
+        <span data-nao-lida-slot>{% if sala_global.tem_nao_lida %}{% include "chat/_indicador_nao_lida.html" %}{% endif %}</span>
       </p>
       <p class="text-xs text-gray-400">Todos do escritório</p>
     </div>
@@ -37,7 +35,7 @@
   </a>
 
   {% for conversa in conversas %}
-    <a href="{% url 'chat:detalhe' conversa.pk %}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
+    <a href="{% url 'chat:detalhe' conversa.pk %}" data-conversa-id="{{ conversa.pk }}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
       <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
         {% if conversa.tipo == "grupo" %}
           <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,9 +52,7 @@
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-gray-900 group-hover:text-gray-700 flex items-center gap-2">
           {{ conversa.nome_exibicao }}
-          {% if conversa.tem_nao_lida %}
-            <span class="w-2 h-2 rounded-full bg-juridico-vermelho flex-shrink-0"></span>
-          {% endif %}
+          <span data-nao-lida-slot>{% if conversa.tem_nao_lida %}{% include "chat/_indicador_nao_lida.html" %}{% endif %}</span>
         </p>
         <p class="text-xs text-gray-400">{% if conversa.tipo == "grupo" %}Grupo{% else %}Conversa individual{% endif %}</p>
       </div>
@@ -69,4 +65,5 @@
   {% endfor %}
 
 </div>
+<div data-ws-lista="/ws/chat/lista/" hidden></div>
 {% endblock %}

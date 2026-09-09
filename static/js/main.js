@@ -105,4 +105,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Chat em tempo real (WebSocket) ──────────────────────────────────────────
+  // Progressivo: sem WebSocket disponível, o Chat continua funcionando só
+  // por HTTP (envio e leitura de mensagem), como antes desta feature.
+  function conectarComReconexao(caminho, aoReceberTexto) {
+    let tentativa = 0;
+
+    function conectar() {
+      const protocolo = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const socket = new WebSocket(`${protocolo}//${window.location.host}${caminho}`);
+      socket.addEventListener("message", (evento) => aoReceberTexto(evento.data));
+      socket.addEventListener("close", () => {
+        tentativa += 1;
+        const espera = Math.min(30000, 1000 * 2 ** tentativa);
+        setTimeout(conectar, espera);
+      });
+    }
+
+    conectar();
+  }
+
+  // Conversa individual/grupo/sala global aberta: cada frame recebido já
+  // é o fragmento HTML da mensagem, renderizado no backend — só anexa.
+  const containerMensagens = document.querySelector("[data-ws-mensagens]");
+  if (containerMensagens && containerMensagens.dataset.wsMensagens) {
+    conectarComReconexao(containerMensagens.dataset.wsMensagens, (html) => {
+      containerMensagens.insertAdjacentHTML("beforeend", html);
+      containerMensagens.scrollTop = containerMensagens.scrollHeight;
+    });
+  }
+
+  // Lista de conversas: cada frame é "<id-da-conversa>\n<fragmento-html-do-indicador>".
+  const listaDeConversas = document.querySelector("[data-ws-lista]");
+  if (listaDeConversas) {
+    conectarComReconexao(listaDeConversas.dataset.wsLista, (payload) => {
+      const fim = payload.indexOf("\n");
+      const conversaId = payload.slice(0, fim);
+      const html = payload.slice(fim + 1);
+      const slot = document.querySelector(`[data-conversa-id="${conversaId}"] [data-nao-lida-slot]`);
+      if (slot && !slot.innerHTML.trim()) slot.innerHTML = html;
+    });
+  }
+
 });

@@ -1,0 +1,47 @@
+<div class="flex {% if mensagem.autor_id == usuario_atual.id %}justify-end{% endif %} gap-2 items-end">
+
+  {# Avatar — somente para mensagens alheias #}
+  {% if mensagem.autor_id != usuario_atual.id %}
+    <div class="w-8 h-8 rounded-full bg-stone-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+      {% if mensagem.autor %}{{ mensagem.autor.username|first|upper }}{% else %}?{% endif %}
+    </div>
+  {% endif %}
+
+  <div class="max-w-sm">
+
+    {# Nome do autor — somente para mensagens alheias #}
+    {% if mensagem.autor_id != usuario_atual.id %}
+      <p class="text-xs text-gray-500 mb-1 ml-1">
+        {% if mensagem.autor %}
+          {% if mensagem.autor.get_full_name %}{{ mensagem.autor.get_full_name }}{% else %}{{ mensagem.autor.username }}{% endif %}
+        {% else %}
+          Usuário removido
+        {% endif %}
+      </p>
+    {% endif %}
+
+    {# Bolha #}
+    <div style="overflow-wrap: break-word;" class="px-4 py-2.5 rounded-2xl text-sm
+                {% if mensagem.autor_id == usuario_atual.id %}bg-gray-900 text-white rounded-tr-sm{% else %}bg-white border border-gray-100 text-gray-900 rounded-tl-sm{% endif %}">
+      {% if mensagem.conteudo %}
+        <p>{{ mensagem.conteudo }}</p>
+      {% endif %}
+      {% if mensagem.anexo %}
+        <a href="{% url 'chat:anexo_mensagem' mensagem.pk %}"
+           class="flex items-center gap-2 underline {% if mensagem.conteudo %}mt-1{% endif %}">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.485 8.486L20 13"/>
+          </svg>
+          {{ mensagem.nome_do_anexo }}
+        </a>
+      {% endif %}
+    </div>
+
+    {# Horário #}
+    <p class="text-xs text-gray-400 mt-1 {% if mensagem.autor_id == usuario_atual.id %}text-right{% endif %}">
+      {{ mensagem.enviada_em|date:"d/m/Y H:i" }}
+    </p>
+
+  </div>
+</div>
