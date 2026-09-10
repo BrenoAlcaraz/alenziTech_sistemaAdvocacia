@@ -85,12 +85,37 @@
   </div>
 
 {% else %}
-  {# Aba "Meu estilo" — funcionalidade futura #}
+  {# Aba "Meu estilo" #}
   <div class="card p-6 max-w-2xl">
-    <h2 class="font-semibold text-gray-900 mb-1">Tom de voz do escritório</h2>
-    <p class="text-sm text-gray-500">
-      A configuração de estilo do escritório será implementada na próxima fase de revisão.
-    </p>
+    {% if pode_editar_estilo %}
+      <form method="post" action="{% url 'modelos:editar_estilo' %}">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label class="label" for="{{ form_estilo.tom_voz.id_for_label }}">{{ form_estilo.tom_voz.label }}</label>
+          {{ form_estilo.tom_voz }}
+          {% if form_estilo.tom_voz.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form_estilo.tom_voz.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div class="mb-4">
+          <label class="label" for="{{ form_estilo.instrucoes_gerais.id_for_label }}">{{ form_estilo.instrucoes_gerais.label }}</label>
+          {{ form_estilo.instrucoes_gerais }}
+          {% if form_estilo.instrucoes_gerais.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form_estilo.instrucoes_gerais.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn-primary">Salvar alterações</button>
+      </form>
+    {% else %}
+      <h2 class="font-semibold text-gray-900 mb-1">Tom de voz</h2>
+      <p class="text-sm text-gray-500 mb-4">
+        {{ estilo.tom_voz|default:"Nenhum tom de voz definido." }}
+      </p>
+      <h2 class="font-semibold text-gray-900 mb-1">Instruções gerais</h2>
+      <p class="text-sm text-gray-500">
+        {{ estilo.instrucoes_gerais|default:"Nenhuma instrução geral definida." }}
+      </p>
+    {% endif %}
   </div>
 {% endif %}
 {% endblock %}

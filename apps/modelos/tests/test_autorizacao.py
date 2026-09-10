@@ -3,13 +3,13 @@ Testes de autorização de módulo (Camada 1) e de habilitação funcional
 (Camada 2) para apps/modelos/views.py.
 
 Camada 1 cobre o enforcement de tem_permissao_modulo(user, MODULO_MODELOS)
-nas seis rotas existentes (lista, novo, detalhe, editar, excluir, importar).
-Camada 2 cobre o enforcement de tem_habilitacao() em `novo` e `importar`
-(modelos_criar) — únicas rotas que criam ModeloPeca — e em `editar`/
-`excluir` para peça de outro usuário (modelos_editar_alheio/
-modelos_excluir_alheio — PDR-0018). `modelos_editar_estilo` não tem view
-própria ainda (aba "Meu estilo" é placeholder) e continua fora do
-escopo (ver docs/STATUS.md).
+nas sete rotas existentes (lista, novo, detalhe, editar, excluir,
+importar, editar_estilo). Camada 2 cobre o enforcement de
+tem_habilitacao() em `novo` e `importar` (modelos_criar) — únicas rotas
+que criam ModeloPeca —, em `editar`/`excluir` para peça de outro usuário
+(modelos_editar_alheio/modelos_excluir_alheio — PDR-0018), e em
+`editar_estilo` para a config singleton `EstiloEscritorio`
+(modelos_editar_estilo).
 
 Segue o mesmo padrão de fixtures de apps/clientes/tests/test_autorizacao.py.
 """
@@ -27,11 +27,12 @@ from apps.accounts.models import (
 from apps.accounts.permissoes_constants import (
     HAB_MODELOS_CRIAR,
     HAB_MODELOS_EDITAR_ALHEIO,
+    HAB_MODELOS_EDITAR_ESTILO,
     HAB_MODELOS_EXCLUIR_ALHEIO,
     MODULO_MODELOS,
     NIVEL_TODOS,
 )
-from apps.modelos.models import ModeloPeca
+from apps.modelos.models import EstiloEscritorio, ModeloPeca
 from apps.notificacoes.models import Notificacao
 
 
@@ -112,6 +113,14 @@ class TestModelosAutorizacaoModuloNegado(ModelosAutorizacaoBase):
 
     def test_importar_negado(self):
         r = self.client.get("/modelos/importar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_estilo_negado(self):
+        r = self.client.post(
+            "/modelos/estilo/editar/",
+            {"tom_voz": "Formal", "instrucoes_gerais": "Direto"},
+            HTTP_HOST=self.http_host,
+        )
         self.assertEqual(r.status_code, 403)
 
 
@@ -412,3 +421,108 @@ class TestModelosAdminEdicaoExclusaoAlheiaIndependeDeHabilitacao(ModelosAutoriza
         )
         self.assertEqual(r.status_code, 302)
         self.assertFalse(ModeloPeca.objects.filter(pk=modelo.pk).exists())
+
+
+class TestModelosEstiloSemHabilitacao(ModelosAutorizacaoBase):
+    """
+    Módulo `modelos` autorizado mas sem modelos_editar_estilo — aba "Meu
+    estilo" fica só leitura (sem formulário) e a rota de edição nega
+    GET e POST.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_estilo_sem_hab"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("sem_editar_estilo")
+        papel = self._new_papel("Papel Sem Editar Estilo")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        # Sem modelos_editar_estilo.
+        self.client.force_login(self.user)
+
+    def test_lista_estilo_sem_formulario(self):
+        r = self.client.get(
+            "/modelos/?aba=estilo", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.context["pode_editar_estilo"])
+        self.assertIsNone(r.context["form_estilo"])
+
+    def test_editar_estilo_negado_get(self):
+        r = self.client.get("/modelos/estilo/editar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_estilo_negado_post(self):
+        r = self.client.post(
+            "/modelos/estilo/editar/",
+            {"tom_voz": "Formal", "instrucoes_gerais": "Direto"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(EstiloEscritorio.objects.exists())
+
+
+class TestModelosEstiloComHabilitacao(ModelosAutorizacaoBase):
+    """Com modelos_editar_estilo, visualiza o formulário e edita o estilo singleton do escritório."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_estilo_ok"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("com_editar_estilo")
+        papel = self._new_papel("Papel Editar Estilo")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self._hp(papel, MODULO_MODELOS, HAB_MODELOS_EDITAR_ESTILO)
+        self.client.force_login(self.user)
+
+    def test_lista_estilo_com_formulario(self):
+        r = self.client.get(
+            "/modelos/?aba=estilo", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.context["pode_editar_estilo"])
+        self.assertIsNotNone(r.context["form_estilo"])
+
+    def test_editar_estilo_ok(self):
+        r = self.client.post(
+            "/modelos/estilo/editar/",
+            {"tom_voz": "Formal e direto", "instrucoes_gerais": "Evitar gírias."},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        estilo = EstiloEscritorio.objects.get(pk=1)
+        self.assertEqual(estilo.tom_voz, "Formal e direto")
+        self.assertEqual(estilo.instrucoes_gerais, "Evitar gírias.")
+
+    def test_editar_estilo_get_redireciona_para_aba(self):
+        r = self.client.get("/modelos/estilo/editar/", HTTP_HOST=self.http_host)
+        self.assertRedirects(r, "/modelos/?aba=estilo", fetch_redirect_response=False)
+
+
+class TestModelosEstiloAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
+    """Administrador do escritório edita o estilo sem habilitação explícita (bypass do kernel)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_estilo_admin"
+
+    def setUp(self):
+        super().setUp()
+        self.admin = self._admin("admin_modelos_estilo")
+        self.client.force_login(self.admin)
+
+    def test_editar_estilo_ok(self):
+        r = self.client.post(
+            "/modelos/estilo/editar/",
+            {"tom_voz": "Institucional", "instrucoes_gerais": "Sempre citar lei."},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        estilo = EstiloEscritorio.objects.get(pk=1)
+        self.assertEqual(estilo.tom_voz, "Institucional")

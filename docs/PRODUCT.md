@@ -175,6 +175,10 @@ Repositório de modelos de peças/documentos reutilizáveis.
 - Upload manual não depende de IA; integração com IA é futura (PDR-0008)
   e nunca salva definitivo sem confirmação humana.
 - Reutilizar um modelo não altera o original.
+- Estilo do escritório (tom de voz e instruções gerais para peças) é
+  configuração única do tenant, sem autoria — leitura sempre liberada a
+  quem tem o módulo, edição restrita a quem tem `modelos_editar_estilo`
+  ou é Administrador.
 - Fora de escopo: dedup automática, geração em massa, edição
   colaborativa em tempo real.
 

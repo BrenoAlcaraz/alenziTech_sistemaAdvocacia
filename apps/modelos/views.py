@@ -4,28 +4,32 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
     HAB_MODELOS_CRIAR,
     HAB_MODELOS_EDITAR_ALHEIO,
+    HAB_MODELOS_EDITAR_ESTILO,
     HAB_MODELOS_EXCLUIR_ALHEIO,
     MODULO_MODELOS,
 )
-from apps.modelos.forms import ImportarModeloPecaForm, ModeloPecaForm
-from apps.modelos.models import ModeloPeca
+from apps.modelos.forms import EstiloEscritorioForm, ImportarModeloPecaForm, ModeloPecaForm
+from apps.modelos.models import EstiloEscritorio, ModeloPeca
 from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
 from apps.notificacoes.models import Notificacao
 
 
-@login_required
-def lista(request):
-    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
-        raise PermissionDenied
+def _obter_estilo_escritorio():
+    estilo, _ = EstiloEscritorio.objects.get_or_create(pk=1)
+    return estilo
 
-    aba_ativa = request.GET.get("aba", "modelos")
-    busca = request.GET.get("q", "").strip()
 
+def _pode_editar_estilo(user):
+    return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_EDITAR_ESTILO)
+
+
+def _listar_modelos(busca):
     modelos = ModeloPeca.objects.select_related("criado_por").order_by("-criado_em", "-pk")
 
     if busca:
@@ -36,11 +40,35 @@ def lista(request):
             | Q(conteudo__icontains=busca)
         )
 
+    return modelos
+
+
+@login_required
+def lista(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    aba_ativa = request.GET.get("aba", "modelos")
+    busca = request.GET.get("q", "").strip()
+
+    modelos = _listar_modelos(busca)
+
+    pode_editar_estilo = False
+    estilo = None
+    form_estilo = None
+    if aba_ativa != "modelos":
+        pode_editar_estilo = _pode_editar_estilo(request.user)
+        estilo = _obter_estilo_escritorio()
+        form_estilo = EstiloEscritorioForm(instance=estilo) if pode_editar_estilo else None
+
     return render(request, "modelos/lista.html", {
         "modelos": modelos,
         "aba_ativa": aba_ativa,
         "busca": busca,
         "item_ativo": "modelos",
+        "estilo": estilo,
+        "pode_editar_estilo": pode_editar_estilo,
+        "form_estilo": form_estilo,
     })
 
 
@@ -152,6 +180,35 @@ def excluir(request, pk):
         return redirect("modelos:lista")
 
     return redirect("modelos:detalhe", pk=modelo.pk)
+
+
+@login_required
+def editar_estilo(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_editar_estilo(request.user):
+        raise PermissionDenied
+
+    destino = f"{reverse('modelos:lista')}?aba=estilo"
+
+    if request.method != "POST":
+        return redirect(destino)
+
+    estilo = _obter_estilo_escritorio()
+    form = EstiloEscritorioForm(request.POST, instance=estilo)
+    if form.is_valid():
+        form.save()
+        return redirect(destino)
+
+    return render(request, "modelos/lista.html", {
+        "modelos": _listar_modelos(""),
+        "aba_ativa": "estilo",
+        "busca": "",
+        "item_ativo": "modelos",
+        "estilo": estilo,
+        "pode_editar_estilo": True,
+        "form_estilo": form,
+    })
 
 
 @login_required

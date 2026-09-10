@@ -7,6 +7,7 @@ urlpatterns = [
     path("modelos/", views.lista, name="lista"),
     path("modelos/novo/", views.novo, name="novo"),
     path("modelos/importar/", views.importar, name="importar"),
+    path("modelos/estilo/editar/", views.editar_estilo, name="editar_estilo"),
     path("modelos/<int:pk>/editar/", views.editar, name="editar"),
     path("modelos/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("modelos/<int:pk>/", views.detalhe, name="detalhe"),

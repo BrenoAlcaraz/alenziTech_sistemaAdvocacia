@@ -1,5 +1,5 @@
 from django import forms
-from apps.modelos.models import ModeloPeca
+from apps.modelos.models import EstiloEscritorio, ModeloPeca
 
 TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024  # 10 MB
 EXTENSOES_ACEITAS = {".pdf", ".docx"}
@@ -93,3 +93,23 @@ class ImportarModeloPecaForm(forms.Form):
         if not valor:
             raise forms.ValidationError("Selecione uma área do direito.")
         return valor
+
+
+class EstiloEscritorioForm(forms.ModelForm):
+    class Meta:
+        model = EstiloEscritorio
+        fields = ["tom_voz", "instrucoes_gerais"]
+        widgets = {
+            "tom_voz": forms.Textarea(attrs={
+                "class": "input h-32 resize-y",
+                "placeholder": "Ex: Formal, direto, sem gírias.",
+            }),
+            "instrucoes_gerais": forms.Textarea(attrs={
+                "class": "input h-32 resize-y",
+                "placeholder": "Instruções gerais que a IA deve seguir ao redigir peças.",
+            }),
+        }
+        labels = {
+            "tom_voz": "Tom de voz",
+            "instrucoes_gerais": "Instruções gerais",
+        }
