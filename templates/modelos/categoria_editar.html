@@ -1,0 +1,38 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Editar categoria — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'modelos:categorias' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Editar categoria</h1>
+</div>
+
+<div class="card p-6 max-w-lg">
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for erro in form.non_field_errors %}{{ erro }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="mb-4">
+      <label class="label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+      {{ form.nome }}
+      {% if form.nome.errors %}
+        <p class="text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+      <button type="submit" class="btn-primary">Salvar alterações</button>
+      <a href="{% url 'modelos:categorias' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

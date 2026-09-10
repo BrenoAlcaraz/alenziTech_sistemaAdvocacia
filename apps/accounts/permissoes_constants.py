@@ -107,6 +107,7 @@ HAB_MODELOS_CRIAR = "modelos_criar"
 HAB_MODELOS_EDITAR_ESTILO = "modelos_editar_estilo"
 HAB_MODELOS_EDITAR_ALHEIO = "modelos_editar_alheio"
 HAB_MODELOS_EXCLUIR_ALHEIO = "modelos_excluir_alheio"
+HAB_MODELOS_GERIR_CATEGORIAS = "modelos_gerir_categorias"
 
 HAB_AGENDA_CRIAR_PARA_OUTROS = "agenda_criar_para_outros"
 
@@ -133,6 +134,7 @@ ITEM_CHOICES = [
     (HAB_MODELOS_EDITAR_ESTILO, "Editar estilo de peças"),
     (HAB_MODELOS_EDITAR_ALHEIO, "Editar modelo de peça de outro usuário"),
     (HAB_MODELOS_EXCLUIR_ALHEIO, "Excluir modelo de peça de outro usuário"),
+    (HAB_MODELOS_GERIR_CATEGORIAS, "Gerir categorias de modelo de peça"),
     (HAB_AGENDA_CRIAR_PARA_OUTROS, "Criar compromisso para outros usuários"),
     (HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO, "Reabrir lançamento gerado por solicitação paga"),
     (HAB_GERIR_CRIAR_USUARIO, "Criar usuário"),
@@ -164,6 +166,7 @@ ITENS_POR_MODULO = {
         HAB_MODELOS_EDITAR_ESTILO,
         HAB_MODELOS_EDITAR_ALHEIO,
         HAB_MODELOS_EXCLUIR_ALHEIO,
+        HAB_MODELOS_GERIR_CATEGORIAS,
     ],
     MODULO_AGENDA: [
         HAB_AGENDA_CRIAR_PARA_OUTROS,
@@ -220,6 +223,7 @@ NOMES_ITENS = {
     HAB_MODELOS_EDITAR_ESTILO: "Editar estilo de peças",
     HAB_MODELOS_EDITAR_ALHEIO: "Editar modelo de peça de outro usuário",
     HAB_MODELOS_EXCLUIR_ALHEIO: "Excluir modelo de peça de outro usuário",
+    HAB_MODELOS_GERIR_CATEGORIAS: "Gerir categorias de modelo de peça",
     HAB_AGENDA_CRIAR_PARA_OUTROS: "Criar compromisso para outros usuários",
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO: "Reabrir lançamento gerado por solicitação paga",
     HAB_GERIR_CRIAR_USUARIO: "Criar usuário",

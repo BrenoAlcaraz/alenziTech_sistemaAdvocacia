@@ -1,5 +1,5 @@
 from django import forms
-from apps.modelos.models import EstiloEscritorio, ModeloPeca
+from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca
 
 TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024  # 10 MB
 EXTENSOES_ACEITAS = {".pdf", ".docx"}
@@ -14,6 +14,12 @@ AREAS_DIREITO = [
 
 
 class ModeloPecaForm(forms.ModelForm):
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaModeloPeca.objects.all(),
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Categoria",
+        empty_label="Selecione uma categoria",
+    )
     area_direito = forms.ChoiceField(
         choices=AREAS_DIREITO,
         widget=forms.Select(attrs={"class": "select"}),
@@ -28,10 +34,6 @@ class ModeloPecaForm(forms.ModelForm):
                 "class": "input",
                 "placeholder": "Ex: Petição inicial – Ação de cobrança",
             }),
-            "categoria": forms.TextInput(attrs={
-                "class": "input",
-                "placeholder": "Ex: Petição inicial, Contestação",
-            }),
             "conteudo": forms.Textarea(attrs={
                 "class": "input h-64 resize-y font-mono text-xs",
                 "placeholder": "EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO...",
@@ -39,7 +41,6 @@ class ModeloPecaForm(forms.ModelForm):
         }
         labels = {
             "titulo": "Título do modelo",
-            "categoria": "Categoria",
             "conteudo": "Conteúdo do modelo",
         }
 
@@ -59,13 +60,11 @@ class ImportarModeloPecaForm(forms.Form):
             "placeholder": "Deixe em branco para usar o nome do arquivo",
         }),
     )
-    categoria = forms.CharField(
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaModeloPeca.objects.all(),
+        widget=forms.Select(attrs={"class": "select"}),
         label="Categoria",
-        max_length=100,
-        widget=forms.TextInput(attrs={
-            "class": "input",
-            "placeholder": "Ex: Petição inicial, Contestação",
-        }),
+        empty_label="Selecione uma categoria",
     )
     area_direito = forms.ChoiceField(
         choices=AREAS_DIREITO,
@@ -113,3 +112,16 @@ class EstiloEscritorioForm(forms.ModelForm):
             "tom_voz": "Tom de voz",
             "instrucoes_gerais": "Instruções gerais",
         }
+
+
+class CategoriaModeloPecaForm(forms.ModelForm):
+    class Meta:
+        model = CategoriaModeloPeca
+        fields = ["nome"]
+        widgets = {
+            "nome": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Petição inicial, Contestação, Recurso",
+            }),
+        }
+        labels = {"nome": "Nome da categoria"}

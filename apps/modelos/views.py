@@ -1,10 +1,13 @@
 from pathlib import Path
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+
+from django.db.models import ProtectedError
 
 from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
@@ -12,10 +15,16 @@ from apps.accounts.permissoes_constants import (
     HAB_MODELOS_EDITAR_ALHEIO,
     HAB_MODELOS_EDITAR_ESTILO,
     HAB_MODELOS_EXCLUIR_ALHEIO,
+    HAB_MODELOS_GERIR_CATEGORIAS,
     MODULO_MODELOS,
 )
-from apps.modelos.forms import EstiloEscritorioForm, ImportarModeloPecaForm, ModeloPecaForm
-from apps.modelos.models import EstiloEscritorio, ModeloPeca
+from apps.modelos.forms import (
+    CategoriaModeloPecaForm,
+    EstiloEscritorioForm,
+    ImportarModeloPecaForm,
+    ModeloPecaForm,
+)
+from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca
 from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
 from apps.notificacoes.models import Notificacao
 
@@ -29,16 +38,25 @@ def _pode_editar_estilo(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_EDITAR_ESTILO)
 
 
-def _listar_modelos(busca):
-    modelos = ModeloPeca.objects.select_related("criado_por").order_by("-criado_em", "-pk")
+def _pode_gerir_categorias(user):
+    return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_GERIR_CATEGORIAS)
+
+
+def _listar_modelos(busca, categoria_id=None):
+    modelos = ModeloPeca.objects.select_related("criado_por", "categoria").order_by(
+        "-criado_em", "-pk"
+    )
 
     if busca:
         modelos = modelos.filter(
             Q(titulo__icontains=busca)
-            | Q(categoria__icontains=busca)
+            | Q(categoria__nome__icontains=busca)
             | Q(area_direito__icontains=busca)
             | Q(conteudo__icontains=busca)
         )
+
+    if categoria_id:
+        modelos = modelos.filter(categoria_id=categoria_id)
 
     return modelos
 
@@ -50,8 +68,9 @@ def lista(request):
 
     aba_ativa = request.GET.get("aba", "modelos")
     busca = request.GET.get("q", "").strip()
+    categoria_id = request.GET.get("categoria", "").strip()
 
-    modelos = _listar_modelos(busca)
+    modelos = _listar_modelos(busca, categoria_id or None)
 
     pode_editar_estilo = False
     estilo = None
@@ -65,9 +84,12 @@ def lista(request):
         "modelos": modelos,
         "aba_ativa": aba_ativa,
         "busca": busca,
+        "categorias": CategoriaModeloPeca.objects.all(),
+        "categoria_selecionada": categoria_id,
         "item_ativo": "modelos",
         "estilo": estilo,
         "pode_editar_estilo": pode_editar_estilo,
+        "pode_gerir_categorias": _pode_gerir_categorias(request.user),
         "form_estilo": form_estilo,
     })
 
@@ -247,3 +269,70 @@ def importar(request):
         "form": form,
         "item_ativo": "modelos",
     })
+
+
+@login_required
+def categorias(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_gerir_categorias(request.user):
+        raise PermissionDenied
+
+    if request.method == "POST":
+        form = CategoriaModeloPecaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("modelos:categorias")
+    else:
+        form = CategoriaModeloPecaForm()
+
+    return render(request, "modelos/categorias.html", {
+        "categorias": CategoriaModeloPeca.objects.all(),
+        "form": form,
+        "item_ativo": "modelos",
+    })
+
+
+@login_required
+def categoria_editar(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_gerir_categorias(request.user):
+        raise PermissionDenied
+
+    categoria = get_object_or_404(CategoriaModeloPeca, pk=pk)
+
+    if request.method == "POST":
+        form = CategoriaModeloPecaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            form.save()
+            return redirect("modelos:categorias")
+    else:
+        form = CategoriaModeloPecaForm(instance=categoria)
+
+    return render(request, "modelos/categoria_editar.html", {
+        "form": form,
+        "categoria": categoria,
+        "item_ativo": "modelos",
+    })
+
+
+@login_required
+def categoria_excluir(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_gerir_categorias(request.user):
+        raise PermissionDenied
+
+    categoria = get_object_or_404(CategoriaModeloPeca, pk=pk)
+
+    if request.method == "POST":
+        try:
+            categoria.delete()
+        except ProtectedError:
+            messages.error(
+                request,
+                f'Categoria "{categoria.nome}" está em uso por algum modelo de peça e não pode ser excluída.',
+            )
+
+    return redirect("modelos:categorias")

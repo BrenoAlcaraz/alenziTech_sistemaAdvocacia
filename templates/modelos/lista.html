@@ -10,6 +10,9 @@
   <div class="flex gap-2">
     <a href="{% url 'modelos:novo' %}" class="btn-primary">+ Novo modelo</a>
     <a href="{% url 'modelos:importar' %}" class="btn-secondary">Importar arquivo</a>
+    {% if pode_gerir_categorias %}
+      <a href="{% url 'modelos:categorias' %}" class="btn-secondary">Gerir categorias</a>
+    {% endif %}
   </div>
 </div>
 
@@ -38,14 +41,22 @@
   {# Pesquisa #}
   <form method="get" action="{% url 'modelos:lista' %}" class="mb-5">
     <input type="hidden" name="aba" value="modelos">
-    <div class="flex gap-3 max-w-xl">
+    <div class="flex gap-3 max-w-2xl">
       <input type="text"
              name="q"
              value="{{ busca }}"
              class="input flex-1"
              placeholder="Pesquisar por título, categoria, área ou conteúdo...">
+      <select name="categoria" class="select">
+        <option value="">Todas as categorias</option>
+        {% for categoria in categorias %}
+          <option value="{{ categoria.pk }}" {% if categoria_selecionada == categoria.pk|stringformat:"s" %}selected{% endif %}>
+            {{ categoria.nome }}
+          </option>
+        {% endfor %}
+      </select>
       <button type="submit" class="btn-primary px-4">Pesquisar</button>
-      {% if busca %}
+      {% if busca or categoria_selecionada %}
         <a href="?aba=modelos" class="btn-secondary px-4">Limpar</a>
       {% endif %}
     </div>

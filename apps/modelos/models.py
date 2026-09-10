@@ -2,9 +2,23 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+class CategoriaModeloPeca(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "Categoria de Modelo de Peça"
+        verbose_name_plural = "Categorias de Modelo de Peça"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
 class ModeloPeca(models.Model):
     titulo = models.CharField(max_length=255)
-    categoria = models.CharField(max_length=100, help_text="Ex: Petição inicial, Contestação, Recurso")
+    categoria = models.ForeignKey(
+        CategoriaModeloPeca, on_delete=models.PROTECT, related_name="modelos"
+    )
     area_direito = models.CharField(max_length=50)
     conteudo = models.TextField(help_text="Conteúdo em texto ou HTML da peça modelo")
     criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)

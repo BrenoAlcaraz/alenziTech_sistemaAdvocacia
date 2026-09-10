@@ -29,10 +29,11 @@ from apps.accounts.permissoes_constants import (
     HAB_MODELOS_EDITAR_ALHEIO,
     HAB_MODELOS_EDITAR_ESTILO,
     HAB_MODELOS_EXCLUIR_ALHEIO,
+    HAB_MODELOS_GERIR_CATEGORIAS,
     MODULO_MODELOS,
     NIVEL_TODOS,
 )
-from apps.modelos.models import EstiloEscritorio, ModeloPeca
+from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca
 from apps.notificacoes.models import Notificacao
 
 
@@ -69,15 +70,29 @@ class ModelosAutorizacaoBase(TenantTestCase):
         PerfilUsuario.objects.filter(user=admin).update(is_admin_escritorio=True)
         return admin
 
+    def _categoria(self, nome="Petição inicial"):
+        categoria, _ = CategoriaModeloPeca.objects.get_or_create(nome=nome)
+        return categoria
+
     def _modelo(self, *, criado_por, **kwargs):
         defaults = {
             "titulo": "Modelo Teste",
-            "categoria": "Petição inicial",
+            "categoria": self._categoria(),
             "area_direito": "civil",
             "conteudo": "Conteúdo de teste.",
         }
         defaults.update(kwargs)
         return ModeloPeca.objects.create(criado_por=criado_por, **defaults)
+
+    def _payload_edicao(self, **overrides):
+        dados = {
+            "titulo": "Modelo Editado",
+            "categoria": self._categoria("Contestação").pk,
+            "area_direito": "civil",
+            "conteudo": "Conteúdo editado.",
+        }
+        dados.update(overrides)
+        return dados
 
 
 class TestModelosAutorizacaoModuloNegado(ModelosAutorizacaoBase):
@@ -233,17 +248,6 @@ class TestModelosAutorizacaoAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
         self.assertEqual(r.status_code, 200)
 
 
-def _payload_edicao(**overrides):
-    dados = {
-        "titulo": "Modelo Editado",
-        "categoria": "Contestação",
-        "area_direito": "civil",
-        "conteudo": "Conteúdo editado.",
-    }
-    dados.update(overrides)
-    return dados
-
-
 class TestModelosDonoSempreEditaExclui(ModelosAutorizacaoBase):
     """
     PDR-0018: o autor sempre edita/exclui o que criou, mesmo sem
@@ -268,7 +272,7 @@ class TestModelosDonoSempreEditaExclui(ModelosAutorizacaoBase):
     def test_editar_proprio_ok_sem_notificar(self):
         r = self.client.post(
             f"/modelos/{self.modelo.pk}/editar/",
-            _payload_edicao(),
+            self._payload_edicao(),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
@@ -312,7 +316,7 @@ class TestModelosEdicaoExclusaoAlheiaNegadas(ModelosAutorizacaoBase):
     def test_editar_alheio_negado_post(self):
         r = self.client.post(
             f"/modelos/{self.modelo.pk}/editar/",
-            _payload_edicao(),
+            self._payload_edicao(),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
@@ -348,7 +352,7 @@ class TestModelosEdicaoAlheiaConcedida(ModelosAutorizacaoBase):
     def test_editar_alheio_ok_e_notifica_autor(self):
         r = self.client.post(
             f"/modelos/{self.modelo.pk}/editar/",
-            _payload_edicao(),
+            self._payload_edicao(),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
@@ -409,7 +413,7 @@ class TestModelosAdminEdicaoExclusaoAlheiaIndependeDeHabilitacao(ModelosAutoriza
         modelo = self._modelo(criado_por=self.autor)
         r = self.client.post(
             f"/modelos/{modelo.pk}/editar/",
-            _payload_edicao(),
+            self._payload_edicao(),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
@@ -526,3 +530,161 @@ class TestModelosEstiloAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
         self.assertEqual(r.status_code, 302)
         estilo = EstiloEscritorio.objects.get(pk=1)
         self.assertEqual(estilo.tom_voz, "Institucional")
+
+
+class TestModelosCategoriasSemHabilitacao(ModelosAutorizacaoBase):
+    """
+    Módulo `modelos` autorizado mas sem `modelos_gerir_categorias` — CRUD
+    do catálogo de categorias fica negado (listar, criar, editar, excluir).
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_categorias_sem_hab"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("sem_gerir_categorias")
+        papel = self._new_papel("Papel Sem Gerir Categorias")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        # Sem modelos_gerir_categorias.
+        self.client.force_login(self.user)
+        self.categoria = self._categoria("Recurso")
+
+    def test_listar_negado(self):
+        r = self.client.get("/modelos/categorias/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_criar_negado(self):
+        r = self.client.post(
+            "/modelos/categorias/", {"nome": "Nova categoria"}, HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(CategoriaModeloPeca.objects.filter(nome="Nova categoria").exists())
+
+    def test_editar_negado(self):
+        r = self.client.post(
+            f"/modelos/categorias/{self.categoria.pk}/editar/",
+            {"nome": "Renomeada"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_excluir_negado(self):
+        r = self.client.post(
+            f"/modelos/categorias/{self.categoria.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        self.assertTrue(CategoriaModeloPeca.objects.filter(pk=self.categoria.pk).exists())
+
+
+class TestModelosCategoriasComHabilitacao(ModelosAutorizacaoBase):
+    """Com `modelos_gerir_categorias`, o usuário administra o catálogo do tenant."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_categorias_ok"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("com_gerir_categorias")
+        papel = self._new_papel("Papel Gerir Categorias")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self._hp(papel, MODULO_MODELOS, HAB_MODELOS_GERIR_CATEGORIAS)
+        self.client.force_login(self.user)
+
+    def test_criar_ok(self):
+        r = self.client.post(
+            "/modelos/categorias/", {"nome": "Agravo"}, HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(CategoriaModeloPeca.objects.filter(nome="Agravo").exists())
+
+    def test_editar_ok(self):
+        categoria = self._categoria("Original")
+        r = self.client.post(
+            f"/modelos/categorias/{categoria.pk}/editar/",
+            {"nome": "Renomeada"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        categoria.refresh_from_db()
+        self.assertEqual(categoria.nome, "Renomeada")
+
+    def test_excluir_sem_uso_ok(self):
+        categoria = self._categoria("Sem uso")
+        r = self.client.post(
+            f"/modelos/categorias/{categoria.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(CategoriaModeloPeca.objects.filter(pk=categoria.pk).exists())
+
+    def test_excluir_em_uso_bloqueado(self):
+        categoria = self._categoria("Em uso")
+        self._modelo(criado_por=self.user, categoria=categoria)
+        r = self.client.post(
+            f"/modelos/categorias/{categoria.pk}/excluir/", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(CategoriaModeloPeca.objects.filter(pk=categoria.pk).exists())
+
+
+class TestModelosCategoriasAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
+    """Administrador do escritório administra o catálogo sem habilitação explícita (bypass do kernel)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_categorias_admin"
+
+    def setUp(self):
+        super().setUp()
+        self.admin = self._admin("admin_modelos_categorias")
+        self.client.force_login(self.admin)
+
+    def test_criar_ok(self):
+        r = self.client.post(
+            "/modelos/categorias/", {"nome": "Habeas corpus"}, HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(CategoriaModeloPeca.objects.filter(nome="Habeas corpus").exists())
+
+
+class TestModelosListaFiltroPorCategoria(ModelosAutorizacaoBase):
+    """Listagem de Modelos filtra por categoria, combinável com a busca textual."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_filtro_categoria"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("filtra_categoria")
+        papel = self._new_papel("Papel Filtro Categoria")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self.client.force_login(self.user)
+        self.categoria_a = self._categoria("Petição inicial")
+        self.categoria_b = self._categoria("Contestação")
+        self.modelo_a = self._modelo(
+            criado_por=self.user, titulo="Modelo A", categoria=self.categoria_a
+        )
+        self.modelo_b = self._modelo(
+            criado_por=self.user, titulo="Modelo B", categoria=self.categoria_b
+        )
+
+    def test_filtra_somente_categoria_selecionada(self):
+        r = self.client.get(
+            f"/modelos/?categoria={self.categoria_a.pk}", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 200)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_a, modelos)
+        self.assertNotIn(self.modelo_b, modelos)
+
+    def test_sem_filtro_lista_todas_categorias(self):
+        r = self.client.get("/modelos/", HTTP_HOST=self.http_host)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_a, modelos)
+        self.assertIn(self.modelo_b, modelos)

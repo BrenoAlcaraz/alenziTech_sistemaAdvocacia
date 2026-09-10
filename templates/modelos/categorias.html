@@ -1,0 +1,68 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Categorias de Modelos — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Categorias de modelos de peça</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Catálogo institucional usado para classificar os modelos do escritório.</p>
+  </div>
+  <a href="{% url 'modelos:lista' %}" class="btn-secondary text-sm flex-shrink-0">Voltar</a>
+</div>
+
+<div class="card p-6 max-w-lg mb-6">
+  <h2 class="font-semibold text-gray-900 mb-3">Nova categoria</h2>
+  <form method="post" class="flex items-start gap-3">
+    {% csrf_token %}
+    <div class="flex-1">
+      {{ form.nome }}
+      {% if form.nome.errors %}
+        <p class="text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+    <button type="submit" class="btn-primary flex-shrink-0">Adicionar</button>
+  </form>
+</div>
+
+<div class="card p-0 overflow-hidden max-w-lg">
+  {% if categorias %}
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+        <th class="text-left px-5 py-3 font-medium">Nome</th>
+        <th class="text-left px-5 py-3 font-medium">Ações</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for categoria in categorias %}
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="px-5 py-3 text-gray-900">{{ categoria.nome }}</td>
+        <td class="px-5 py-3">
+          <div class="flex items-center gap-3">
+            <a href="{% url 'modelos:categoria_editar' categoria.pk %}"
+               class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2">
+              Editar
+            </a>
+            <form method="post" action="{% url 'modelos:categoria_excluir' categoria.pk %}" class="inline">
+              {% csrf_token %}
+              <button type="submit"
+                      class="text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
+                      onclick="return confirm('Excluir a categoria \'{{ categoria.nome|escapejs }}\'? Só é possível se nenhum modelo a estiver usando.')">
+                Excluir
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="p-10 text-center">
+    <p class="text-sm font-medium text-gray-500">Nenhuma categoria cadastrada ainda.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
