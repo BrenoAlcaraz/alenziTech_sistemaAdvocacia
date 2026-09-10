@@ -67,6 +67,46 @@
 
 </div>
 
+{# Histórico de versões #}
+{% if versoes %}
+<div class="card p-6 max-w-3xl mt-6">
+  <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-4">Histórico</p>
+  <div class="flex flex-col gap-4">
+    {% for versao in versoes %}
+      <div class="border border-gray-100 rounded-lg p-4">
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <p class="text-sm text-gray-600">
+            <span class="font-medium text-gray-800">{{ versao.titulo }}</span>
+            &bull; {{ versao.categoria }} &bull; {{ versao.area_direito }}
+          </p>
+          {% if pode_editar %}
+            <form method="post" action="{% url 'modelos:reverter' modelo.pk versao.pk %}" class="inline flex-shrink-0">
+              {% csrf_token %}
+              <button type="submit"
+                      class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2"
+                      onclick="return confirm('Reverter o modelo para esta versão anterior?')">
+                Reverter para esta versão
+              </button>
+            </form>
+          {% endif %}
+        </div>
+        <p class="text-xs text-gray-400 mb-2">
+          Substituída por
+          {% if versao.editado_por %}
+            {% if versao.editado_por.get_full_name %}{{ versao.editado_por.get_full_name }}{% else %}{{ versao.editado_por.username }}{% endif %}
+          {% else %}
+            usuário removido
+          {% endif %}
+          em {{ versao.criado_em|date:"d/m/Y H:i" }}
+        </p>
+        <div class="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 font-mono"
+             style="white-space: pre-wrap; overflow-wrap: break-word;">{{ versao.conteudo }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {# Conteúdo oculto para cópia #}
 <textarea id="conteudo-modelo-copia" hidden>{{ modelo.conteudo }}</textarea>
 

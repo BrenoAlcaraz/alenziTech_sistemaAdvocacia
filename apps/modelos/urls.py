@@ -13,5 +13,6 @@ urlpatterns = [
     path("modelos/categorias/<int:pk>/excluir/", views.categoria_excluir, name="categoria_excluir"),
     path("modelos/<int:pk>/editar/", views.editar, name="editar"),
     path("modelos/<int:pk>/excluir/", views.excluir, name="excluir"),
+    path("modelos/<int:pk>/reverter/<int:versao_pk>/", views.reverter, name="reverter"),
     path("modelos/<int:pk>/", views.detalhe, name="detalhe"),
 ]

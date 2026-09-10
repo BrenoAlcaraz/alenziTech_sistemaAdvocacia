@@ -39,6 +39,26 @@ class ModeloPeca(models.Model):
         return self.conteudo[:120] + "..." if len(self.conteudo) > 120 else self.conteudo
 
 
+class VersaoModeloPeca(models.Model):
+    """Snapshot do estado de um ModeloPeca imediatamente antes de uma edição/reversão."""
+
+    modelo = models.ForeignKey(ModeloPeca, on_delete=models.CASCADE, related_name="versoes")
+    titulo = models.CharField(max_length=255)
+    categoria = models.ForeignKey(CategoriaModeloPeca, on_delete=models.PROTECT)
+    area_direito = models.CharField(max_length=50)
+    conteudo = models.TextField()
+    editado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Versão de Modelo de Peça"
+        verbose_name_plural = "Versões de Modelo de Peça"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.titulo} ({self.criado_em:%d/%m/%Y %H:%M})"
+
+
 class EstiloEscritorio(models.Model):
     """Tom de voz e instruções gerais do escritório para geração futura de IA."""
 

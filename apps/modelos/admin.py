@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CategoriaModeloPeca, ModeloPeca, EstiloEscritorio
+from .models import CategoriaModeloPeca, ModeloPeca, EstiloEscritorio, VersaoModeloPeca
 
 
 @admin.register(ModeloPeca)
@@ -12,6 +12,12 @@ class ModeloPecaAdmin(admin.ModelAdmin):
 class CategoriaModeloPecaAdmin(admin.ModelAdmin):
     list_display = ["nome"]
     search_fields = ["nome"]
+
+
+@admin.register(VersaoModeloPeca)
+class VersaoModeloPecaAdmin(admin.ModelAdmin):
+    list_display = ["modelo", "titulo", "editado_por", "criado_em"]
+    search_fields = ["titulo", "modelo__titulo"]
 
 
 @admin.register(EstiloEscritorio)

@@ -24,7 +24,12 @@ from apps.modelos.forms import (
     ImportarModeloPecaForm,
     ModeloPecaForm,
 )
-from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca
+from apps.modelos.models import (
+    CategoriaModeloPeca,
+    EstiloEscritorio,
+    ModeloPeca,
+    VersaoModeloPeca,
+)
 from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
 from apps.notificacoes.models import Notificacao
 
@@ -134,6 +139,20 @@ def _pode_excluir_alheio(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_EXCLUIR_ALHEIO)
 
 
+def _capturar_valores(modelo):
+    """Congela os valores atuais de `modelo` antes de sobrescrevê-lo."""
+    return {
+        "titulo": modelo.titulo,
+        "categoria_id": modelo.categoria_id,
+        "area_direito": modelo.area_direito,
+        "conteudo": modelo.conteudo,
+    }
+
+
+def _registrar_versao(modelo, valores, editado_por):
+    return VersaoModeloPeca.objects.create(modelo=modelo, editado_por=editado_por, **valores)
+
+
 @login_required
 def detalhe(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_MODELOS):
@@ -144,6 +163,7 @@ def detalhe(request, pk):
     return render(request, "modelos/detalhe.html", {
         "modelo": modelo,
         "item_ativo": "modelos",
+        "versoes": modelo.versoes.select_related("categoria", "editado_por"),
         "pode_editar": eh_dono or _pode_editar_alheio(request.user),
         "pode_excluir": eh_dono or _pode_excluir_alheio(request.user),
     })
@@ -160,8 +180,13 @@ def editar(request, pk):
         raise PermissionDenied
 
     if request.method == "POST":
+        # Captura o snapshot antes de vincular o form: `is_valid()` já
+        # sobrescreve os atributos de `modelo` em memória com os dados
+        # novos (via `construct_instance` em `_post_clean`), antes do save.
+        valores_anteriores = _capturar_valores(modelo)
         form = ModeloPecaForm(request.POST, instance=modelo)
         if form.is_valid():
+            _registrar_versao(modelo, valores_anteriores, editado_por=request.user)
             form.save()
             if not eh_dono and modelo.criado_por_id:
                 Notificacao.objects.create(
@@ -178,6 +203,34 @@ def editar(request, pk):
         "modelo": modelo,
         "item_ativo": "modelos",
     })
+
+
+@login_required
+def reverter(request, pk, versao_pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    modelo = get_object_or_404(ModeloPeca, pk=pk)
+    eh_dono = _eh_dono(request.user, modelo)
+    if not eh_dono and not _pode_editar_alheio(request.user):
+        raise PermissionDenied
+
+    versao = get_object_or_404(VersaoModeloPeca, pk=versao_pk, modelo=modelo)
+
+    if request.method == "POST":
+        _registrar_versao(modelo, _capturar_valores(modelo), editado_por=request.user)
+        modelo.titulo = versao.titulo
+        modelo.categoria_id = versao.categoria_id
+        modelo.area_direito = versao.area_direito
+        modelo.conteudo = versao.conteudo
+        modelo.save()
+        if not eh_dono and modelo.criado_por_id:
+            Notificacao.objects.create(
+                destinatario=modelo.criado_por,
+                mensagem=f'Seu modelo de peça foi editado: "{modelo.titulo}"',
+            )
+
+    return redirect("modelos:detalhe", pk=modelo.pk)
 
 
 @login_required
