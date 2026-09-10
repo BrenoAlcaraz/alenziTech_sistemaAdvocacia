@@ -688,3 +688,10 @@ class TestModelosListaFiltroPorCategoria(ModelosAutorizacaoBase):
         modelos = list(r.context["modelos"])
         self.assertIn(self.modelo_a, modelos)
         self.assertIn(self.modelo_b, modelos)
+
+    def test_categoria_nao_numerica_ignora_filtro_sem_erro(self):
+        r = self.client.get("/modelos/?categoria=abc", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_a, modelos)
+        self.assertIn(self.modelo_b, modelos)

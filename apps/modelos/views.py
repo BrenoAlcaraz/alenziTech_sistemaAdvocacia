@@ -3,11 +3,9 @@ from pathlib import Path
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-
-from django.db.models import ProtectedError
 
 from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
@@ -74,6 +72,8 @@ def lista(request):
     aba_ativa = request.GET.get("aba", "modelos")
     busca = request.GET.get("q", "").strip()
     categoria_id = request.GET.get("categoria", "").strip()
+    if not categoria_id.isdigit():
+        categoria_id = ""
 
     modelos = _listar_modelos(busca, categoria_id or None)
 
@@ -139,18 +139,21 @@ def _pode_excluir_alheio(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_EXCLUIR_ALHEIO)
 
 
-def _capturar_valores(modelo):
-    """Congela os valores atuais de `modelo` antes de sobrescrevê-lo."""
-    return {
-        "titulo": modelo.titulo,
-        "categoria_id": modelo.categoria_id,
-        "area_direito": modelo.area_direito,
-        "conteudo": modelo.conteudo,
-    }
+CAMPOS_VERSIONADOS = ["titulo", "categoria_id", "area_direito", "conteudo"]
+
+
+def _valores(origem):
+    """Extrai os campos versionados de um ModeloPeca ou VersaoModeloPeca."""
+    return {campo: getattr(origem, campo) for campo in CAMPOS_VERSIONADOS}
 
 
 def _registrar_versao(modelo, valores, editado_por):
     return VersaoModeloPeca.objects.create(modelo=modelo, editado_por=editado_por, **valores)
+
+
+def _aplicar_valores(modelo, valores):
+    for campo, valor in valores.items():
+        setattr(modelo, campo, valor)
 
 
 @login_required
@@ -183,7 +186,7 @@ def editar(request, pk):
         # Captura o snapshot antes de vincular o form: `is_valid()` já
         # sobrescreve os atributos de `modelo` em memória com os dados
         # novos (via `construct_instance` em `_post_clean`), antes do save.
-        valores_anteriores = _capturar_valores(modelo)
+        valores_anteriores = _valores(modelo)
         form = ModeloPecaForm(request.POST, instance=modelo)
         if form.is_valid():
             _registrar_versao(modelo, valores_anteriores, editado_por=request.user)
@@ -218,11 +221,8 @@ def reverter(request, pk, versao_pk):
     versao = get_object_or_404(VersaoModeloPeca, pk=versao_pk, modelo=modelo)
 
     if request.method == "POST":
-        _registrar_versao(modelo, _capturar_valores(modelo), editado_por=request.user)
-        modelo.titulo = versao.titulo
-        modelo.categoria_id = versao.categoria_id
-        modelo.area_direito = versao.area_direito
-        modelo.conteudo = versao.conteudo
+        _registrar_versao(modelo, _valores(modelo), editado_por=request.user)
+        _aplicar_valores(modelo, _valores(versao))
         modelo.save()
         if not eh_dono and modelo.criado_por_id:
             Notificacao.objects.create(
@@ -385,7 +385,8 @@ def categoria_excluir(request, pk):
         except ProtectedError:
             messages.error(
                 request,
-                f'Categoria "{categoria.nome}" está em uso por algum modelo de peça e não pode ser excluída.',
+                f'Categoria "{categoria.nome}" está em uso por algum modelo de peça '
+                "(atual ou no histórico de versões) e não pode ser excluída.",
             )
 
     return redirect("modelos:categorias")

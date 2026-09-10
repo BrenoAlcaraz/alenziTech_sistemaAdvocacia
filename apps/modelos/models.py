@@ -44,6 +44,9 @@ class VersaoModeloPeca(models.Model):
 
     modelo = models.ForeignKey(ModeloPeca, on_delete=models.CASCADE, related_name="versoes")
     titulo = models.CharField(max_length=255)
+    # PROTECT (não só no ModeloPeca atual): reverter para esta versão exige
+    # uma categoria ainda existente — categoria referenciada só pelo
+    # histórico continua bloqueando exclusão do catálogo, deliberadamente.
     categoria = models.ForeignKey(CategoriaModeloPeca, on_delete=models.PROTECT)
     area_direito = models.CharField(max_length=50)
     conteudo = models.TextField()
