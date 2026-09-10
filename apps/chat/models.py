@@ -25,9 +25,6 @@ class Conversa(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default="individual")
     criada_em = models.DateTimeField(auto_now_add=True)
 
-    # Futuramente: implementar WebSocket via Django Channels para mensagens em tempo real.
-    # Por ora apenas estrutura de dados.
-
     class Meta:
         verbose_name = "Conversa"
         verbose_name_plural = "Conversas"

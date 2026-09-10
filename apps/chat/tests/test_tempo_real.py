@@ -1,7 +1,7 @@
 """
-Testes de entrega em tempo real (WebSocket) no Chat — issue #15, spec em
-specs/chat-tempo-real-websocket.md. Depende da resolução de
-tenant/usuário da issue #14 (apps/saas_tenants/channels_middleware.py).
+Testes de entrega em tempo real (WebSocket) no Chat: mensagem nova,
+indicador de não lida, autorização e fallback HTTP. A resolução de
+tenant/usuário fica em apps/saas_tenants/channels_middleware.py.
 
 Segue o mesmo padrão de fixtures de apps/chat/tests/test_conversas.py.
 Notificação (`Notificacao`) e leitura (`LeituraConversa`) não são
@@ -184,7 +184,7 @@ class TestConversaIndividualTempoReal(ChatTempoRealBase):
 
 
 class TestOrigemDoHandshake(ChatTempoRealBase):
-    """Spec em specs/websocket-validar-origin-handshake.md — correção de
+    """Regressão da proteção do handshake contra
     Cross-Site WebSocket Hijacking (CSWH)."""
 
     @classmethod

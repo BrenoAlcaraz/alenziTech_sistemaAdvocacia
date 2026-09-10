@@ -156,8 +156,8 @@ class TestTenantWebsocketMiddleware(TenantTestCase):
         async_to_sync(cenario)()
 
     def test_conexao_sem_header_origin_e_rejeitada(self):
-        """Spec em specs/websocket-validar-origin-handshake.md — correção
-        de Cross-Site WebSocket Hijacking (CSWH)."""
+        """Regressão da proteção contra Cross-Site WebSocket Hijacking
+        (CSWH): sem origem verificável, a conexão deve ser rejeitada."""
         session_key = _criar_sessao_para(self.usuario_a)
 
         async def cenario():

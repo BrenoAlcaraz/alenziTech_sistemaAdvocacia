@@ -77,11 +77,11 @@ def _notificar_nova_mensagem(mensagem):
 
 
 def _transmitir_mensagem_tempo_real(request, conversa, mensagem):
-    """Publica a mensagem nova pelo channel layer — issue #15 — para quem
-    está com esta conversa aberta, mais um aviso de não lida para quem
-    está na lista (`chat:lista`). Indisponibilidade do channel layer
-    nunca interrompe o fluxo HTTP: só a atualização em tempo real fica
-    de fora, o envio por HTTP já terminou antes desta chamada."""
+    """Publica a mensagem nova pelo channel layer para quem está com esta
+    conversa aberta, mais um aviso de não lida para quem está na lista
+    (`chat:lista`). Indisponibilidade do channel layer nunca interrompe o
+    fluxo HTTP: só a atualização em tempo real fica de fora, o envio por
+    HTTP já terminou antes desta chamada."""
     channel_layer = get_channel_layer()
     if channel_layer is None:
         return
