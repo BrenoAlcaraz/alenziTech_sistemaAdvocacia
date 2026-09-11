@@ -1,4 +1,6 @@
-from datetime import timedelta
+from calendar import monthrange
+from collections import defaultdict
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -26,6 +28,29 @@ from .forms import AdicionarParticipanteForm, CompromissoForm
 
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
+VISOES_VALIDAS = {"lista", "calendario"}
+
+MESES = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
+DIAS_SEMANA = [
+    "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira",
+    "sexta-feira", "sábado", "domingo",
+]
+
+# Cor de cada tipo no calendário — mesmo mapeamento visual dos badges de
+# lista.html, em versão sólida (para o ponto indicador do dia).
+CORES_TIPO = {
+    "audiencia": "#dc2626",
+    "prazo": "#b45309",
+    "reuniao": "#15803d",
+    "protocolo": "#6b7280",
+    "pericia": "#a21caf",
+    "julgamento": "#292524",
+    "retorno": "#0d9488",
+    "outro": "#6b7280",
+}
 
 
 def _redirect_seguro(request):
@@ -43,6 +68,12 @@ def _normalizar_filtro(filtro):
     if filtro in FILTROS_VALIDOS:
         return filtro
     return "proximos_7"
+
+
+def _normalizar_visao(visao):
+    if visao in VISOES_VALIDAS:
+        return visao
+    return "lista"
 
 
 def _resolver_escopo(request):
@@ -177,12 +208,155 @@ def _notificar_cancelamento(compromisso):
         Notificacao.objects.create(destinatario_id=destinatario_id, mensagem=mensagem)
 
 
+def _anexar_minha_participacao(request, compromissos):
+    participacoes_usuario = {
+        p.compromisso_id: p
+        for p in ParticipanteCompromisso.objects.filter(
+            compromisso_id__in=[c.pk for c in compromissos], usuario=request.user
+        )
+    }
+    for compromisso in compromissos:
+        compromisso.minha_participacao = participacoes_usuario.get(compromisso.pk)
+
+
+def _parse_int(valor, minimo=None, maximo=None):
+    try:
+        numero = int(valor)
+    except (TypeError, ValueError):
+        return None
+    if minimo is not None and numero < minimo:
+        return None
+    if maximo is not None and numero > maximo:
+        return None
+    return numero
+
+
+def _resolver_mes_ano(request, hoje):
+    ano = _parse_int(request.GET.get("ano"), minimo=1, maximo=9999) or hoje.year
+    mes = _parse_int(request.GET.get("mes"), minimo=1, maximo=12) or hoje.month
+    return ano, mes
+
+
+def _mes_adjacente(ano, mes, delta):
+    indice = (ano * 12 + (mes - 1)) + delta
+    return indice // 12, indice % 12 + 1
+
+
+def _grade_do_mes(ano, mes):
+    """(offset a partir de domingo, dias no mês) — sem dias do mês
+    anterior/seguinte, mesmo comportamento do protótipo (célula vazia só
+    antes do dia 1)."""
+    _, dias_no_mes = monthrange(ano, mes)
+    primeiro_dia_semana = date(ano, mes, 1).weekday()  # segunda=0
+    offset_domingo = (primeiro_dia_semana + 1) % 7
+    return offset_domingo, dias_no_mes
+
+
+def _resolver_dia_selecionado(request, ano, mes, dias_no_mes, hoje):
+    dia = _parse_int(request.GET.get("dia"), minimo=1, maximo=dias_no_mes)
+    if dia:
+        return dia
+    if ano == hoje.year and mes == hoje.month:
+        return hoje.day
+    return 1
+
+
+def _tipos_por_dia(compromissos_mes):
+    """{dia: [{"tipo","cor"}, ...]} — ordem estável pela ordem de
+    TIPO_CHOICES, sem repetir tipo já visto no mesmo dia."""
+    tipos_presentes = defaultdict(set)
+    for compromisso in compromissos_mes:
+        dia = timezone.localtime(compromisso.data_hora_inicio).day
+        tipos_presentes[dia].add(compromisso.tipo)
+    return {
+        dia: [
+            {"tipo": tipo, "cor": CORES_TIPO[tipo]}
+            for tipo, _ in Compromisso.TIPO_CHOICES
+            if tipo in presentes
+        ]
+        for dia, presentes in tipos_presentes.items()
+    }
+
+
+def _contexto_calendario(request, escopo):
+    hoje = timezone.localdate()
+    ano, mes = _resolver_mes_ano(request, hoje)
+    offset_domingo, dias_no_mes = _grade_do_mes(ano, mes)
+    dia_selecionado = _resolver_dia_selecionado(request, ano, mes, dias_no_mes, hoje)
+
+    primeiro_dia = date(ano, mes, 1)
+    ultimo_dia = date(ano, mes, dias_no_mes)
+    compromissos_mes = _compromissos_no_escopo(request, escopo).filter(
+        data_hora_inicio__date__gte=primeiro_dia,
+        data_hora_inicio__date__lte=ultimo_dia,
+    )
+    tipos_por_dia = _tipos_por_dia(compromissos_mes)
+
+    dias = [
+        {
+            "numero": numero,
+            "hoje": ano == hoje.year and mes == hoje.month and numero == hoje.day,
+            "selecionado": numero == dia_selecionado,
+            "tipos": tipos_por_dia.get(numero, []),
+        }
+        for numero in range(1, dias_no_mes + 1)
+    ]
+
+    data_selecionada = date(ano, mes, dia_selecionado)
+    compromissos_dia = list(
+        _compromissos_no_escopo(request, escopo)
+        .filter(data_hora_inicio__date=data_selecionada)
+        .order_by("data_hora_inicio")
+    )
+    _anexar_minha_participacao(request, compromissos_dia)
+
+    ano_anterior, mes_anterior = _mes_adjacente(ano, mes, -1)
+    ano_seguinte, mes_seguinte = _mes_adjacente(ano, mes, 1)
+
+    return {
+        "cal_ano": ano,
+        "cal_mes": mes,
+        "cal_mes_nome": MESES[mes - 1],
+        "cal_offset_domingo": range(offset_domingo),
+        "cal_dias": dias,
+        "cal_ano_anterior": ano_anterior,
+        "cal_mes_anterior": mes_anterior,
+        "cal_ano_seguinte": ano_seguinte,
+        "cal_mes_seguinte": mes_seguinte,
+        "cal_hoje_ano": hoje.year,
+        "cal_hoje_mes": hoje.month,
+        "cal_data_selecionada_label": (
+            f"{dia_selecionado} de {MESES[mes - 1].lower()} — "
+            f"{DIAS_SEMANA[data_selecionada.weekday()]}"
+        ),
+        "compromissos_dia": compromissos_dia,
+        "legenda_tipos": [
+            {"tipo": tipo, "rotulo": rotulo, "cor": CORES_TIPO[tipo]}
+            for tipo, rotulo in Compromisso.TIPO_CHOICES
+        ],
+    }
+
+
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
         raise PermissionDenied
-    filtro = _normalizar_filtro(request.GET.get("filtro", "proximos_7"))
     escopo, escopo_maximo = _resolver_escopo(request)
+    visao = _normalizar_visao(request.GET.get("visao"))
+    contexto = {
+        "visao": visao,
+        "escopo_atual": escopo,
+        "escopo_maximo": escopo_maximo,
+        "is_admin": usuario_admin_escritorio(request.user),
+        "item_ativo": "agenda",
+        "next_url": request.get_full_path(),
+    }
+
+    if visao == "calendario":
+        contexto.update(_contexto_calendario(request, escopo))
+        return render(request, "agenda/calendario.html", contexto)
+
+    filtro = _normalizar_filtro(request.GET.get("filtro", "proximos_7"))
     hoje = timezone.localdate()
     agora = timezone.now()
 
@@ -203,24 +377,10 @@ def index(request):
     # "todos": sem filtro de data ou status
 
     compromissos = list(compromissos.order_by("data_hora_inicio"))
-    participacoes_usuario = {
-        p.compromisso_id: p
-        for p in ParticipanteCompromisso.objects.filter(
-            compromisso_id__in=[c.pk for c in compromissos], usuario=request.user
-        )
-    }
-    for compromisso in compromissos:
-        compromisso.minha_participacao = participacoes_usuario.get(compromisso.pk)
+    _anexar_minha_participacao(request, compromissos)
 
-    return render(request, "agenda/lista.html", {
-        "compromissos": compromissos,
-        "filtro": filtro,
-        "escopo_atual": escopo,
-        "escopo_maximo": escopo_maximo,
-        "is_admin": usuario_admin_escritorio(request.user),
-        "item_ativo": "agenda",
-        "next_url": request.get_full_path(),
-    })
+    contexto.update({"compromissos": compromissos, "filtro": filtro})
+    return render(request, "agenda/lista.html", contexto)
 
 
 @login_required

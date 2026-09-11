@@ -1,0 +1,95 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Agenda — Jurídico SaaS{% endblock %}
+
+{% block content %}
+{% include "agenda/_cabecalho.html" %}
+{% include "agenda/_visao_toggle.html" %}
+
+{% if escopo_maximo == "todos" %}
+<div class="flex items-center gap-2 mb-6">
+  <a href="?visao=calendario&ano={{ cal_ano }}&mes={{ cal_mes }}&escopo=todos"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Todos
+  </a>
+  <a href="?visao=calendario&ano={{ cal_ano }}&mes={{ cal_mes }}&escopo=somente_seus"
+     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+    Somente os seus
+  </a>
+</div>
+{% endif %}
+
+<div class="flex flex-col lg:flex-row gap-6 items-start">
+
+  {# Grade mensal #}
+  <div class="card p-6 w-full lg:flex-[1.4] min-w-0">
+    <div class="flex items-center justify-between mb-5">
+      <a href="?visao=calendario&ano={{ cal_ano_anterior }}&mes={{ cal_mes_anterior }}&escopo={{ escopo_atual }}"
+         class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+         aria-label="Mês anterior">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 18l-6-6 6-6"/></svg>
+      </a>
+      <div class="flex items-center gap-3">
+        <div class="text-lg font-bold text-gray-900">{{ cal_mes_nome }} de {{ cal_ano }}</div>
+        <a href="?visao=calendario&ano={{ cal_hoje_ano }}&mes={{ cal_hoje_mes }}&escopo={{ escopo_atual }}"
+           class="text-xs font-bold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+          Hoje
+        </a>
+      </div>
+      <a href="?visao=calendario&ano={{ cal_ano_seguinte }}&mes={{ cal_mes_seguinte }}&escopo={{ escopo_atual }}"
+         class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+         aria-label="Próximo mês">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </div>
+
+    <div class="grid grid-cols-7 gap-1 mb-2 text-center text-[11px] font-bold uppercase tracking-wide text-gray-400">
+      <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+    </div>
+
+    <div class="grid grid-cols-7 gap-1">
+      {% for _ in cal_offset_domingo %}
+        <div></div>
+      {% endfor %}
+      {% for d in cal_dias %}
+        <a href="?visao=calendario&ano={{ cal_ano }}&mes={{ cal_mes }}&dia={{ d.numero }}&escopo={{ escopo_atual }}"
+           class="aspect-square rounded-lg flex flex-col items-center justify-start gap-1 pt-1.5 text-sm font-semibold border-2 transition-colors
+                  {% if d.selecionado %}bg-juridico-bg border-juridico-ouro{% elif d.hoje %}border-juridico-ouro-claro{% else %}border-transparent hover:bg-gray-50{% endif %}">
+          <span>{{ d.numero }}</span>
+          {% if d.tipos %}
+            <span class="flex gap-0.5 flex-wrap justify-center max-w-[28px]">
+              {% for tipo in d.tipos %}
+                <span class="w-1.5 h-1.5 rounded-full" style="background-color:{{ tipo.cor }};"></span>
+              {% endfor %}
+            </span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="flex flex-wrap gap-4 mt-5 text-xs text-gray-500">
+      {% for item in legenda_tipos %}
+        <span class="inline-flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full" style="background-color:{{ item.cor }};"></span>
+          {{ item.rotulo }}
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Compromissos do dia selecionado #}
+  <div class="card p-6 w-full lg:flex-1 min-w-0">
+    <div class="text-base font-bold text-gray-900 mb-0.5">{{ cal_data_selecionada_label }}</div>
+    <div class="text-xs text-gray-400 mb-4">
+      {{ compromissos_dia|length }} compromisso{{ compromissos_dia|length|pluralize }}
+    </div>
+    <div class="flex flex-col gap-2">
+      {% for c in compromissos_dia %}
+        {% include "agenda/_compromisso_card.html" %}
+      {% empty %}
+        {% include "components/empty_state.html" with mensagem="Nenhum compromisso neste dia." %}
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

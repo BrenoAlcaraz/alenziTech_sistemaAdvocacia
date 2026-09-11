@@ -21,18 +21,9 @@
 
   <form method="post">
     {% csrf_token %}
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-5">
 
-      {# Título #}
-      <div>
-        <label class="label">Título</label>
-        {{ form.titulo }}
-        {% if form.titulo.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
-      {# Tipo | Responsável #}
+      {# Tipo | Responsável — classificação do compromisso vem primeiro #}
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="label">Tipo</label>
@@ -48,6 +39,15 @@
             <p class="text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
           {% endif %}
         </div>
+      </div>
+
+      {# Título #}
+      <div>
+        <label class="label">Título</label>
+        {{ form.titulo }}
+        {% if form.titulo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       {# Data/hora início | Data/hora fim #}
@@ -68,17 +68,8 @@
         </div>
       </div>
 
-      {# Local #}
-      <div>
-        <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
-        {{ form.local }}
-        {% if form.local.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
-      {# Dia inteiro #}
-      <div class="flex items-center gap-2">
+      {# Dia inteiro — junto dos campos de horário que ele substitui #}
+      <div class="flex items-center gap-2 -mt-2">
         {{ form.dia_inteiro }}
         <label for="{{ form.dia_inteiro.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
           Dia inteiro (sem horário específico)
@@ -104,6 +95,15 @@
             <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
+      </div>
+
+      {# Local — mesmo grupo de vínculo do compromisso (cliente/processo/local) #}
+      <div>
+        <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {{ form.local }}
+        {% if form.local.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       {% if modo != "editar" %}

@@ -1,0 +1,160 @@
+{# Card de um compromisso (`c`) — usado pela Lista e pelo painel de dia do Calendário. #}
+<div class="card px-5 py-4">
+
+  {# Linha superior: título + badges #}
+  <div class="flex items-start justify-between gap-4 mb-2">
+    <p class="font-semibold text-gray-900">{{ c.titulo }}</p>
+    <div class="flex items-center gap-2 flex-shrink-0">
+
+      {# Badge de tipo — cores inline para evitar purge Tailwind #}
+      {% if c.tipo == "audiencia" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fee2e2;color:#7f1d1d;">Audiência</span>
+      {% elif c.tipo == "prazo" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fef3c7;color:#78350f;">Prazo</span>
+      {% elif c.tipo == "reuniao" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#dcfce7;color:#14532d;">Reunião</span>
+      {% elif c.tipo == "protocolo" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">Protocolo</span>
+      {% elif c.tipo == "pericia" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fdf4ff;color:#701a75;">Perícia</span>
+      {% elif c.tipo == "julgamento" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f5f5f4;color:#1c1917;">Julgamento</span>
+      {% elif c.tipo == "retorno" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f0fdfa;color:#134e4a;">Retorno</span>
+      {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">{{ c.get_tipo_display }}</span>
+      {% endif %}
+
+      {# Badge de status — classes Tailwind completas são seguras contra purge #}
+      {% if c.status == "agendado" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600">Agendado</span>
+      {% elif c.status == "concluido" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Concluído</span>
+      {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Cancelado</span>
+      {% endif %}
+
+      {% if is_admin or c.responsavel == user %}
+      <a href="{% url 'agenda:editar' c.pk %}" class="text-gray-400 hover:text-gray-700 transition-colors" title="Editar compromisso" aria-label="Editar compromisso">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </a>
+
+      <form method="post" action="{% url 'agenda:excluir' c.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="text-gray-400 hover:text-red-400 transition-colors" title="Excluir compromisso" aria-label="Excluir compromisso" onclick="return confirm('Este compromisso será excluído permanentemente. Deseja continuar?')">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </button>
+      </form>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {# Descrição, se existir #}
+  {% if c.descricao %}
+    <p class="text-xs text-gray-500 mb-2">{{ c.descricao }}</p>
+  {% endif %}
+
+  {# Metadados: data, vínculos, local — rótulos em negrito #}
+  <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+
+    <span>
+      <span class="font-semibold text-gray-900">Início:</span>
+      {% if c.dia_inteiro %}
+        {{ c.data_hora_inicio|date:"d/m/Y" }}
+        <span class="ml-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Dia inteiro</span>
+      {% else %}
+        {{ c.data_hora_inicio|date:"d/m/Y H:i" }}
+      {% endif %}
+    </span>
+
+    {% if c.data_hora_fim and not c.dia_inteiro %}
+      <span>
+        <span class="font-semibold text-gray-900">Fim:</span>
+        {{ c.data_hora_fim|date:"d/m/Y H:i" }}
+      </span>
+    {% endif %}
+
+    {% if c.responsavel %}
+      <span>
+        <span class="font-semibold text-gray-900">Responsável:</span>
+        {{ c.responsavel }}
+      </span>
+    {% endif %}
+
+    {% if c.processo %}
+      <span>
+        <span class="font-semibold text-gray-900">Processo:</span>
+        {{ c.processo }}
+      </span>
+    {% elif c.cliente %}
+      <span>
+        <span class="font-semibold text-gray-900">Cliente:</span>
+        {{ c.cliente }}
+      </span>
+    {% endif %}
+
+    {% if c.local %}
+      <span>
+        <span class="font-semibold text-gray-900">Local:</span>
+        {{ c.local }}
+      </span>
+    {% endif %}
+
+    {# Minha participação — só quando não sou o responsável #}
+    {% if c.minha_participacao %}
+      <span>
+        <span class="font-semibold text-gray-900">Sua presença:</span>
+        {% if c.minha_participacao.status == "confirmado" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Confirmada</span>
+        {% elif c.minha_participacao.status == "recusado" %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Recusada</span>
+        {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600">Pendente de confirmação</span>
+        {% endif %}
+      </span>
+      {% if c.minha_participacao.status != "confirmado" %}
+        <form method="post" action="{% url 'agenda:confirmar_presenca' c.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <button type="submit" class="text-xs font-medium text-gray-500 hover:text-green-600 transition-colors">Confirmar presença</button>
+        </form>
+      {% endif %}
+      {% if c.minha_participacao.status != "recusado" %}
+        <form method="post" action="{% url 'agenda:recusar_presenca' c.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next_url }}">
+          <button type="submit" class="text-xs font-medium text-gray-500 hover:text-red-400 transition-colors">Recusar presença</button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    {# Ações rápidas de status #}
+    {% if is_admin or c.responsavel == user %}
+    {% if c.status == "agendado" %}
+      <form method="post" action="{% url 'agenda:concluir' c.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors">Concluir</button>
+      </form>
+      <form method="post" action="{% url 'agenda:cancelar' c.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="text-xs font-medium text-gray-500 hover:text-red-400 transition-colors">Cancelar</button>
+      </form>
+    {% else %}
+      <form method="post" action="{% url 'agenda:reabrir' c.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors">Reabrir</button>
+      </form>
+    {% endif %}
+    {% endif %}
+
+  </div>
+</div>
