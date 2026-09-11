@@ -175,12 +175,22 @@ Repositório de modelos de peças/documentos reutilizáveis.
 - Upload manual não depende de IA; integração com IA é futura (PDR-0008)
   e nunca salva definitivo sem confirmação humana.
 - Reutilizar um modelo não altera o original.
+- Categoria do modelo é um catálogo fechado por tenant
+  (`CategoriaModeloPeca`), não texto livre — gerenciar o catálogo
+  (criar/editar/excluir categoria) exige `modelos_gerir_categorias` ou
+  ser Administrador; excluir categoria em uso (por modelo atual ou por
+  histórico de versões) é bloqueado.
+- Toda edição de um modelo preserva a versão anterior no histórico
+  (autor da edição, data, conteúdo completo); reverter para uma versão
+  anterior é uma nova edição — gera nova entrada no histórico, nunca
+  apaga a atual. Excluir o modelo remove também seu histórico.
 - Estilo do escritório (tom de voz e instruções gerais para peças) é
   configuração única do tenant, sem autoria — leitura sempre liberada a
   quem tem o módulo, edição restrita a quem tem `modelos_editar_estilo`
   ou é Administrador.
 - Fora de escopo: dedup automática, geração em massa, edição
-  colaborativa em tempo real.
+  colaborativa em tempo real, categorias hierárquicas, diff visual
+  entre versões de peça.
 
 ### Configurações
 
