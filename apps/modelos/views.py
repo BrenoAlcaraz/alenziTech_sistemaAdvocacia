@@ -1,7 +1,9 @@
+from datetime import datetime
 from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import ProtectedError, Q
 from django.http import FileResponse, Http404
@@ -18,6 +20,7 @@ from apps.accounts.permissoes_constants import (
     MODULO_MODELOS,
 )
 from apps.modelos.forms import (
+    AREAS_DIREITO,
     CategoriaModeloPecaForm,
     EstiloDocumentoForm,
     EstiloEscritorioForm,
@@ -96,7 +99,7 @@ def _pode_gerir_categorias(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_GERIR_CATEGORIAS)
 
 
-def _listar_modelos(busca, categoria_id=None):
+def _listar_modelos(busca, categoria_id=None, area_direito=None, criado_por_id=None, data=None):
     modelos = ModeloPeca.objects.select_related("criado_por", "categoria").order_by(
         "-criado_em", "-pk"
     )
@@ -112,7 +115,23 @@ def _listar_modelos(busca, categoria_id=None):
     if categoria_id:
         modelos = modelos.filter(categoria_id=categoria_id)
 
+    if area_direito:
+        modelos = modelos.filter(area_direito=area_direito)
+
+    if criado_por_id:
+        modelos = modelos.filter(criado_por_id=criado_por_id)
+
+    if data:
+        modelos = modelos.filter(criado_em__date=data)
+
     return modelos
+
+
+def _autores_com_modelo():
+    ids = ModeloPeca.objects.exclude(criado_por__isnull=True).values_list(
+        "criado_por_id", flat=True
+    ).distinct()
+    return User.objects.filter(pk__in=ids).order_by("username")
 
 
 @login_required
@@ -125,8 +144,25 @@ def lista(request):
     categoria_id = request.GET.get("categoria", "").strip()
     if not categoria_id.isdigit():
         categoria_id = ""
+    area_direito = request.GET.get("area_direito", "").strip()
+    if area_direito not in dict(AREAS_DIREITO):
+        area_direito = ""
+    responsavel_id = request.GET.get("responsavel", "").strip()
+    if not responsavel_id.isdigit():
+        responsavel_id = ""
+    data_criacao = request.GET.get("data", "").strip()
+    try:
+        datetime.strptime(data_criacao, "%Y-%m-%d")
+    except ValueError:
+        data_criacao = ""
 
-    modelos = _listar_modelos(busca, categoria_id or None)
+    modelos = list(_listar_modelos(
+        busca, categoria_id or None, area_direito or None,
+        responsavel_id or None, data_criacao or None,
+    ))
+    area_labels = dict(AREAS_DIREITO)
+    for modelo in modelos:
+        modelo.area_direito_label = area_labels.get(modelo.area_direito, modelo.area_direito)
 
     pode_editar_estilo = False
     estilo = None
@@ -149,6 +185,11 @@ def lista(request):
         "busca": busca,
         "categorias": CategoriaModeloPeca.objects.all(),
         "categoria_selecionada": categoria_id,
+        "areas_direito": AREAS_DIREITO,
+        "area_direito_selecionada": area_direito,
+        "autores": _autores_com_modelo(),
+        "responsavel_selecionado": responsavel_id,
+        "data_selecionada": data_criacao,
         "item_ativo": "modelos",
         "estilo": estilo,
         "pode_editar_estilo": pode_editar_estilo,

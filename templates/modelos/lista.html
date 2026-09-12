@@ -38,16 +38,16 @@
 
 {% if aba_ativa == "modelos" %}
 
-  {# Pesquisa #}
+  {# Pesquisa e filtros #}
   <form method="get" action="{% url 'modelos:lista' %}" class="mb-5">
     <input type="hidden" name="aba" value="modelos">
-    <div class="flex gap-3 max-w-2xl">
+    <div class="flex flex-wrap gap-3">
       <input type="text"
              name="q"
              value="{{ busca }}"
-             class="input flex-1"
+             class="input flex-1 min-w-[220px]"
              placeholder="Pesquisar por título, categoria, área ou conteúdo...">
-      <select name="categoria" class="select">
+      <select name="categoria" class="select w-auto">
         <option value="">Todas as categorias</option>
         {% for categoria in categorias %}
           <option value="{{ categoria.pk }}" {% if categoria_selecionada == categoria.pk|stringformat:"s" %}selected{% endif %}>
@@ -55,12 +55,33 @@
           </option>
         {% endfor %}
       </select>
+      <select name="area_direito" class="select w-auto">
+        <option value="">Todas as áreas</option>
+        {% for valor, rotulo in areas_direito %}
+          {% if valor %}
+            <option value="{{ valor }}" {% if area_direito_selecionada == valor %}selected{% endif %}>{{ rotulo }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <select name="responsavel" class="select w-auto">
+        <option value="">Todos os responsáveis</option>
+        {% for autor in autores %}
+          <option value="{{ autor.pk }}" {% if responsavel_selecionado == autor.pk|stringformat:"s" %}selected{% endif %}>
+            {{ autor.get_full_name|default:autor.username }}
+          </option>
+        {% endfor %}
+      </select>
+      <input type="date" name="data" value="{{ data_selecionada }}" class="input w-auto">
       <button type="submit" class="btn-primary px-4">Pesquisar</button>
-      {% if busca or categoria_selecionada %}
-        <a href="?aba=modelos" class="btn-secondary px-4">Limpar</a>
+      {% if busca or categoria_selecionada or area_direito_selecionada or responsavel_selecionado or data_selecionada %}
+        <a href="?aba=modelos" class="btn-secondary px-4">Limpar filtros</a>
       {% endif %}
     </div>
   </form>
+
+  <p class="text-xs text-gray-400 mb-3">
+    {{ modelos|length }} {{ modelos|length|pluralize:"modelo encontrado,modelos encontrados" }}
+  </p>
 
   {# Lista de modelos #}
   <div class="flex flex-col gap-3">
@@ -73,8 +94,11 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ modelo.titulo }}</p>
-          <p class="text-xs text-juridico-ouro font-medium mt-0.5">{{ modelo.categoria }} &bull; {{ modelo.area_direito }}</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ modelo.titulo }}</p>
+            {% include "components/badge.html" with tipo="area" texto=modelo.categoria.nome %}
+            {% include "components/badge.html" with tipo="area" texto=modelo.area_direito_label %}
+          </div>
           <p class="text-xs text-gray-400 mt-1">
             {% if modelo.criado_por %}
               {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name }}{% else %}{{ modelo.criado_por.username }}{% endif %}
@@ -87,8 +111,8 @@
         </div>
       </a>
     {% empty %}
-      {% if busca %}
-        {% include "components/empty_state.html" with mensagem="Nenhum modelo encontrado para esta pesquisa." %}
+      {% if busca or categoria_selecionada or area_direito_selecionada or responsavel_selecionado or data_selecionada %}
+        {% include "components/empty_state.html" with mensagem="Nenhum modelo encontrado para esses filtros." %}
       {% else %}
         {% include "components/empty_state.html" with mensagem="Nenhum modelo cadastrado." %}
       {% endif %}

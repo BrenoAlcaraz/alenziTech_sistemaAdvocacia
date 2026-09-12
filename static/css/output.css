@@ -1315,6 +1315,10 @@ body {
   width: 2.25rem;
 }
 
+.w-auto {
+  width: auto;
+}
+
 .w-fit {
   width: -moz-fit-content;
   width: fit-content;
@@ -1334,6 +1338,10 @@ body {
 
 .min-w-48 {
   min-width: 12rem;
+}
+
+.min-w-\[220px\] {
+  min-width: 220px;
 }
 
 .max-w-2xl {

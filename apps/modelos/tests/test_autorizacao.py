@@ -695,3 +695,88 @@ class TestModelosListaFiltroPorCategoria(ModelosAutorizacaoBase):
         modelos = list(r.context["modelos"])
         self.assertIn(self.modelo_a, modelos)
         self.assertIn(self.modelo_b, modelos)
+
+
+class TestModelosListaFiltrosCombinados(ModelosAutorizacaoBase):
+    """Filtros de área do direito, responsável e data — combináveis entre si
+    e com busca/categoria já cobertos em TestModelosListaFiltroPorCategoria."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_modelos_filtros_combinados"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("filtra_combinado")
+        self.outro_autor = self._user("outro_autor_com_modelo")
+        papel = self._new_papel("Papel Filtros Combinados")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self.client.force_login(self.user)
+        self.modelo_civil = self._modelo(
+            criado_por=self.user, titulo="Modelo Cível", area_direito="civil",
+        )
+        self.modelo_trabalhista = self._modelo(
+            criado_por=self.outro_autor, titulo="Modelo Trabalhista", area_direito="trabalhista",
+        )
+
+    def test_filtra_por_area_direito(self):
+        r = self.client.get("/modelos/?area_direito=trabalhista", HTTP_HOST=self.http_host)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_trabalhista, modelos)
+        self.assertNotIn(self.modelo_civil, modelos)
+
+    def test_area_direito_invalida_ignora_filtro_sem_erro(self):
+        r = self.client.get("/modelos/?area_direito=inexistente", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_civil, modelos)
+        self.assertIn(self.modelo_trabalhista, modelos)
+
+    def test_filtra_por_responsavel(self):
+        r = self.client.get(
+            f"/modelos/?responsavel={self.outro_autor.pk}", HTTP_HOST=self.http_host
+        )
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_trabalhista, modelos)
+        self.assertNotIn(self.modelo_civil, modelos)
+
+    def test_filtra_por_data_criacao(self):
+        hoje = self.modelo_civil.criado_em.strftime("%Y-%m-%d")
+        r = self.client.get(f"/modelos/?data={hoje}", HTTP_HOST=self.http_host)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_civil, modelos)
+
+        r = self.client.get("/modelos/?data=2000-01-01", HTTP_HOST=self.http_host)
+        modelos = list(r.context["modelos"])
+        self.assertNotIn(self.modelo_civil, modelos)
+
+    def test_data_invalida_ignora_filtro_sem_erro(self):
+        r = self.client.get("/modelos/?data=not-a-date", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_civil, modelos)
+
+    def test_filtros_combinados_aplicam_todos_juntos(self):
+        r = self.client.get(
+            f"/modelos/?area_direito=civil&responsavel={self.user.pk}",
+            HTTP_HOST=self.http_host,
+        )
+        modelos = list(r.context["modelos"])
+        self.assertIn(self.modelo_civil, modelos)
+        self.assertNotIn(self.modelo_trabalhista, modelos)
+
+    def test_autores_do_filtro_soh_lista_quem_tem_modelo(self):
+        autor_sem_modelo = self._user("sem_nenhum_modelo")
+        r = self.client.get("/modelos/", HTTP_HOST=self.http_host)
+        autores = list(r.context["autores"])
+        self.assertIn(self.user, autores)
+        self.assertIn(self.outro_autor, autores)
+        self.assertNotIn(autor_sem_modelo, autores)
+
+    def test_card_mostra_rotulo_legivel_da_area_do_direito(self):
+        r = self.client.get("/modelos/", HTTP_HOST=self.http_host)
+        modelos = list(r.context["modelos"])
+        rotulos = {m.pk: m.area_direito_label for m in modelos}
+        self.assertEqual(rotulos[self.modelo_civil.pk], "Cível")
+        self.assertEqual(rotulos[self.modelo_trabalhista.pk], "Trabalhista")
