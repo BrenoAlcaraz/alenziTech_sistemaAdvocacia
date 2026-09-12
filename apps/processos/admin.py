@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    Documento,
     MovimentacaoProcessual,
     ParteProcesso,
     Processo,
@@ -37,3 +38,10 @@ class ParteAdmin(admin.ModelAdmin):
     list_display = ["nome", "papel", "processo"]
     list_filter = ["papel"]
     search_fields = ["nome", "cpf_cnpj"]
+
+
+@admin.register(Documento)
+class DocumentoAdmin(admin.ModelAdmin):
+    list_display = ["processo", "tipo", "autor", "enviado_em"]
+    list_filter = ["tipo"]
+    search_fields = ["processo__titulo", "processo__numero", "descricao"]

@@ -64,6 +64,25 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 - Fase processual, status processual e andamento processual são
   conceitos distintos (não usar como sinônimos).
 
+## Documentos
+
+- Arquivo anexado a um Processo (`Documento`), com storage protegido por
+  tenant — mesmo padrão de `Mensagem.anexo` (Chat) e
+  `SolicitacaoFinanceira.anexo` (Financeiro): sem URL pública, entrega
+  só por view que carrega o objeto pelo `QuerySet` autorizado.
+- Vínculo é direto com o Processo — não com um andamento específico.
+  Documento pertence a um único Processo, sem reuso entre processos.
+- Tipo (petição, decisão, procuração, prova, contrato, outro) é
+  catálogo fixo em código, não gerenciável por tenant — diferente do
+  catálogo de categorias de Modelos (`CategoriaModeloPeca`, PDR-0018).
+- Visualizar/baixar segue o mesmo escopo de leitura do detalhe do
+  processo (`somente_seus`/`todos`); anexar e excluir exigem estar no
+  escopo de mutação (Administrador ou responsável do processo) mais
+  habilitação granular própria — `processos_documento_adicionar` e
+  `processos_documento_excluir`, respectivamente.
+- Excluir um documento é definitivo nesta versão — sem histórico de
+  versão nem lixeira. Excluir o Processo remove também seus documentos.
+
 ## Fora de escopo imediato
 
 - Assistente/Laboratório (condicionado a PDR-0008);

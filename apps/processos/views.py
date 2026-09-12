@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from apps.accounts.escopo import equipe_padrao_para_usuario
@@ -14,16 +14,19 @@ from apps.accounts.permissoes_constants import (
     HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
     HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
     HAB_PROCESSOS_CRIAR,
+    HAB_PROCESSOS_DOCUMENTO_ADICIONAR,
+    HAB_PROCESSOS_DOCUMENTO_EXCLUIR,
     HAB_PROCESSOS_EDITAR,
     MODULO_GERIR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from .models import Processo
+from .models import Documento, Processo
 from .forms import (
     AdicionarApensoForm,
     AdicionarIntegranteForm,
+    DocumentoForm,
     MovimentacaoProcessualForm,
     ParteProcessoForm,
     ProcessoForm,
@@ -51,6 +54,14 @@ def _pode_atribuir_responsavel(user):
 
 def _pode_gerenciar_integrantes(user):
     return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_HABILITAR_USUARIO_PROCESSOS)
+
+
+def _pode_adicionar_documento(user):
+    return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_DOCUMENTO_ADICIONAR)
+
+
+def _pode_excluir_documento(user):
+    return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_DOCUMENTO_EXCLUIR)
 
 
 def _resolver_escopo(request):
@@ -115,6 +126,8 @@ def detalhe(request, pk):
         or processo.responsavel_id == request.user.pk
     )
     pode_gerenciar_integrantes = _pode_gerenciar_integrantes(request.user)
+    pode_adicionar_documento = pode_modificar and _pode_adicionar_documento(request.user)
+    pode_excluir_documento = pode_modificar and _pode_excluir_documento(request.user)
     partes = list(processo.partes.all())
     for parte in partes:
         if pode_modificar:
@@ -165,9 +178,15 @@ def detalhe(request, pk):
             pk__in=[integrante.pk for integrante in integrantes]
         )
     form_integrante = AdicionarIntegranteForm(usuarios_queryset=candidatos_integrante)
+    documentos = list(processo.documentos.select_related("autor"))
     return render(request, "processos/detalhe.html", {
         "processo": processo,
         "movimentacoes": processo.movimentacoes.order_by("-data"),
+        "documentos": documentos,
+        "documentos_total": len(documentos),
+        "form_documento": DocumentoForm(),
+        "pode_adicionar_documento": pode_adicionar_documento,
+        "pode_excluir_documento": pode_excluir_documento,
         "partes": partes,
         "partes_polo_ativo": [p for p in partes if p.grupo_visual == "polo_ativo"],
         "partes_polo_passivo": [p for p in partes if p.grupo_visual == "polo_passivo"],
@@ -411,3 +430,49 @@ def editar_parte(request, pk, parte_pk):
         if form.is_valid():
             form.save()
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
+
+
+@login_required
+@require_POST
+def adicionar_documento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    if not _pode_adicionar_documento(request.user):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    form = DocumentoForm(request.POST, request.FILES)
+    if form.is_valid():
+        documento = form.save(commit=False)
+        documento.processo = processo
+        documento.autor = request.user
+        documento.save()
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=documentos")
+
+
+@login_required
+@require_POST
+def excluir_documento(request, pk, documento_pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    if not _pode_excluir_documento(request.user):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    documento = get_object_or_404(processo.documentos, pk=documento_pk)
+    documento.delete()
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=documentos")
+
+
+@login_required
+def baixar_documento(request, documento_pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    escopo, _ = _resolver_escopo(request)
+    documento = get_object_or_404(
+        Documento.objects.filter(processo__in=_processos_no_escopo(request, escopo)),
+        pk=documento_pk,
+    )
+    if not documento.arquivo:
+        raise Http404
+    return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())

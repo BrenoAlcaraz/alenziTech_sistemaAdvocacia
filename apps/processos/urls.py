@@ -38,4 +38,19 @@ urlpatterns = [
         views.remover_integrante,
         name="remover_integrante",
     ),
+    path(
+        "processos/<int:pk>/documentos/nova/",
+        views.adicionar_documento,
+        name="adicionar_documento",
+    ),
+    path(
+        "processos/<int:pk>/documentos/<int:documento_pk>/excluir/",
+        views.excluir_documento,
+        name="excluir_documento",
+    ),
+    path(
+        "processos/documentos/<int:documento_pk>/baixar/",
+        views.baixar_documento,
+        name="baixar_documento",
+    ),
 ]

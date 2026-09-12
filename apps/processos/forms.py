@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import (
+    Documento,
     MovimentacaoProcessual,
     ParteProcesso,
     Processo,
@@ -210,6 +211,20 @@ class ParteProcessoForm(forms.ModelForm):
                     self._processo.responsavel
                 )
         return cleaned
+
+
+class DocumentoForm(forms.ModelForm):
+    class Meta:
+        model = Documento
+        fields = ["arquivo", "tipo", "descricao"]
+        widgets = {
+            "arquivo": forms.ClearableFileInput(attrs={"class": "input"}),
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "descricao": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Descrição (opcional)",
+            }),
+        }
 
 
 class MovimentacaoProcessualForm(forms.ModelForm):

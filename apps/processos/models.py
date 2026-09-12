@@ -3,6 +3,12 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from apps.clientes.models import Cliente
+from apps.saas_tenants.storage import (
+    PROTEGIDO,
+    CaminhoArquivoTenant,
+    StorageProtegido,
+    nome_do_arquivo,
+)
 
 
 class Processo(models.Model):
@@ -97,6 +103,42 @@ class Processo(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+class Documento(models.Model):
+    """Arquivo anexado a um Processo (procuração, petição, decisão,
+    prova, contrato etc.) — storage protegido por tenant, mesmo padrão
+    de Mensagem.anexo (Chat) e SolicitacaoFinanceira.anexo (Financeiro)."""
+
+    TIPO_CHOICES = [
+        ("peticao", "Petição"),
+        ("decisao", "Decisão"),
+        ("procuracao", "Procuração"),
+        ("prova", "Prova"),
+        ("contrato", "Contrato"),
+        ("outro", "Outro"),
+    ]
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="documentos")
+    arquivo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "processos/documentos"),
+        storage=StorageProtegido(),
+    )
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="outro")
+    descricao = models.CharField(max_length=255, blank=True)
+    autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Documento"
+        verbose_name_plural = "Documentos"
+        ordering = ["-enviado_em"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {nome_do_arquivo(self.arquivo)}"
+
+    def nome_do_documento(self):
+        return nome_do_arquivo(self.arquivo)
 
 
 class VinculoProcessoApenso(models.Model):

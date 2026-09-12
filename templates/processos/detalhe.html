@@ -83,7 +83,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
       </svg>
-      Documentos
+      Documentos <span class="text-gray-400">({{ documentos_total }})</span>
     </a>
     <a href="?aba=partes"
        class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'partes' %}tab-active{% else %}tab-inactive{% endif %}">
@@ -216,7 +216,53 @@
   {% endif %}
 
 {% elif aba_ativa == "documentos" %}
-  {% include "components/empty_state.html" with mensagem="Nenhum documento anexado." %}
+
+  {% if pode_adicionar_documento %}
+  <form method="post" action="{% url 'processos:adicionar_documento' processo.pk %}"
+        enctype="multipart/form-data" class="card px-5 py-4 mb-4">
+    {% csrf_token %}
+    <p class="text-sm font-semibold text-gray-900 mb-3">Adicionar documento</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+      <div>{{ form_documento.arquivo }}</div>
+      <div>{{ form_documento.tipo }}</div>
+      <div>{{ form_documento.descricao }}</div>
+    </div>
+    <button type="submit" class="btn-primary text-sm">+ Adicionar documento</button>
+  </form>
+  {% endif %}
+
+  {% if documentos %}
+  <div class="flex flex-col gap-3">
+    {% for documento in documentos %}
+      <div class="card px-5 py-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <span class="badge-area mb-1 inline-block">{{ documento.get_tipo_display }}</span>
+          <p class="text-sm font-medium text-gray-900 truncate">{{ documento.nome_do_documento }}</p>
+          {% if documento.descricao %}<p class="text-xs text-gray-500">{{ documento.descricao }}</p>{% endif %}
+          <p class="text-xs text-gray-400 mt-0.5">
+            {{ documento.autor|default:"—" }} · {{ documento.enviado_em|date:"d/m/Y H:i" }}
+          </p>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <a href="{% url 'processos:baixar_documento' documento.pk %}" class="text-xs text-juridico-verde hover:underline">
+            Baixar
+          </a>
+          {% if pode_excluir_documento %}
+          <form method="post" action="{% url 'processos:excluir_documento' processo.pk documento.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-600 hover:text-red-700"
+                    onclick="return confirm('Excluir este documento? Esta ação não pode ser desfeita.')">
+              Excluir
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with mensagem="Nenhum documento anexado." %}
+  {% endif %}
 
 {% elif aba_ativa == "prazos" %}
   {% include "components/empty_state.html" with mensagem="Nenhum prazo cadastrado." %}
