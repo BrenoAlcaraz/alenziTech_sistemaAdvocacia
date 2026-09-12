@@ -165,6 +165,13 @@
   });
 
   // ===== Formatação livre do corpo de exemplo (não é salva — só demonstração) =====
+  // mousedown no botão colapsa a seleção de texto do corpo antes do
+  // click/execCommand rodar — sem preventDefault aqui, negrito/itálico/
+  // sublinhado/alinhamento nunca aplicam nada (testado manualmente).
+  ["me-rb-bold", "me-rb-italic", "me-rb-underline", "me-rb-left", "me-rb-center", "me-rb-right", "me-rb-justify", "me-insert-img", "me-insert-textbox"].forEach(function (id) {
+    $(id).addEventListener("mousedown", function (e) { e.preventDefault(); });
+  });
+
   function toggleRibbonBtn(id) { $(id).classList.toggle("active"); }
   $("me-rb-bold").addEventListener("click", function () { document.execCommand("bold"); toggleRibbonBtn("me-rb-bold"); });
   $("me-rb-italic").addEventListener("click", function () { document.execCommand("italic"); toggleRibbonBtn("me-rb-italic"); });

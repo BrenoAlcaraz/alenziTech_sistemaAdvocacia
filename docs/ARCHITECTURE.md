@@ -212,6 +212,41 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   customizado do app). Colocar a mesma checagem só no `clean()` do
   form deixaria o Admin descoberto.
 
+## Editor de texto embutido (contenteditable) — padrão a reutilizar
+
+Usado nas folhas estilo Word de `apps/modelos` (`templates/modelos/
+_estilo_editor_js.html`, `_nova_peca_editor_js.html`) — vanilla JS,
+sem biblioteca de rich-text. Duas armadilhas reais, encontradas testando
+manualmente no navegador (não aparecem em teste automatizado, que não
+executa JS de verdade):
+
+- **Botão de formatação (negrito/itálico/alinhamento) que chama
+  `document.execCommand` não funciona sem `mousedown` →
+  `preventDefault()` no próprio botão.** O `mousedown` do clique
+  colapsa a seleção de texto da área `contenteditable` antes do `click`
+  rodar — `execCommand` então executa sobre seleção vazia/errada, sem
+  efeito visível e sem erro no console. Todo botão de ribbon que
+  depende da seleção atual do `contenteditable` (não os que inserem
+  numa posição já recalculada via `Range`/`Selection`, como os botões
+  de "+ Inserir jurisprudência/citação") precisa desse
+  `addEventListener("mousedown", e => e.preventDefault())`.
+- **Campo real do form escondido (`display:none`) sincronizado por JS
+  só no `submit` — se for `required`, a validação HTML5 bloqueia o
+  envio antes do listener de `submit` rodar, silenciosamente** (campo
+  invisível não mostra a mensagem de erro nativa; nenhum evento
+  `submit` chega a disparar). Duas saídas, usadas juntas: `novalidate`
+  no `<form>` (validação de obrigatoriedade continua acontecendo no
+  servidor via `form.is_valid()`) e sincronizar o campo a cada `input`
+  do `contenteditable`, não só no `submit` (mantém o valor sempre
+  válido, não só na hora de enviar).
+- Inserir HTML no fim do conteúdo via `execCommand("insertHTML")` com
+  `Range`/`Selection` recalculados na hora funciona; já colapsar a
+  seleção no fim do último elemento existente e confiar que o navegador
+  cria um irmão novo não é garantido — o Chrome pode mesclar o HTML
+  inserido dentro do último bloco em vez de criar um novo. Preferir
+  `document.createElement`/`appendChild` direto no DOM para inserir um
+  bloco novo no fim de um `contenteditable`.
+
 ## Tempo real (WebSocket / Channels) — padrão a reutilizar
 
 Único uso de WebSocket no projeto até aqui: entrega em tempo real de

@@ -1,0 +1,100 @@
+<script>
+(function () {
+  "use strict";
+
+  var configEl = document.getElementById("np-config-data");
+  if (!configEl) return; // não é a tela "novo modelo"
+
+  var config = JSON.parse(configEl.textContent);
+  var imagensEl = document.getElementById("np-imagens-data");
+  var imagens = imagensEl ? JSON.parse(imagensEl.textContent) : {};
+
+  function $(id) { return document.getElementById(id); }
+
+  var SLOT_TO_ELEMENT_ID = {
+    cabecalho: "np-slot-cabecalho",
+    rodape: "np-slot-rodape",
+    marca_dagua: "np-slot-marca_dagua",
+    assinatura: "np-slot-assinatura",
+  };
+
+  // ===== Aplica o padrão salvo em "Meu Estilo" como moldura só de leitura =====
+  var pagina = $("np-word-page");
+  var corpo = $("np-slot-corpo");
+  pagina.style.fontFamily = config.geral.fonte;
+  pagina.style.background = config.geral.cor_folha;
+  corpo.style.fontSize = config.geral.tamanho_fonte + "pt";
+  corpo.style.lineHeight = config.geral.espacamento;
+  corpo.style.textAlign = "justify";
+
+  Object.keys(SLOT_TO_ELEMENT_ID).forEach(function (slot) {
+    var el = $(SLOT_TO_ELEMENT_ID[slot]);
+    var slotState = config.slots[slot];
+    if (!slotState || !slotState.ativo) return;
+
+    if (slot === "assinatura") {
+      el.innerHTML = '<div class="me-page-sig-line"></div>';
+    }
+    if (slotState.modo === "imagem" && imagens[slot]) {
+      var img = document.createElement("img");
+      img.src = imagens[slot];
+      el.appendChild(img);
+    } else if (slot === "assinatura") {
+      el.appendChild(document.createTextNode(slotState.texto));
+    } else {
+      el.textContent = slotState.texto;
+    }
+    el.classList.add("show");
+  });
+
+  // ===== Conteúdo do corpo: reidrata de uma submissão inválida, senão placeholder =====
+  var conteudoInput = $("id_conteudo");
+  if (conteudoInput.value.trim()) {
+    corpo.innerHTML = conteudoInput.value;
+  } else {
+    corpo.innerHTML = "<p>Clique aqui e comece a redigir a peça...</p>";
+  }
+
+  // ===== Ribbon reduzida (sem fonte/tamanho/recuos/cor — isso é só de "Meu Estilo") =====
+  // mousedown no botão colapsa a seleção de texto do corpo antes do
+  // click/execCommand rodar — sem preventDefault aqui, negrito/itálico/
+  // sublinhado/alinhamento nunca aplicam nada (testado manualmente).
+  ["np-rb-bold", "np-rb-italic", "np-rb-underline", "np-rb-left", "np-rb-center", "np-rb-right", "np-rb-justify", "np-insert-img", "np-insert-textbox"].forEach(function (id) {
+    $(id).addEventListener("mousedown", function (e) { e.preventDefault(); });
+  });
+
+  function toggleBtn(id) { $(id).classList.toggle("active"); }
+  $("np-rb-bold").addEventListener("click", function () { document.execCommand("bold"); toggleBtn("np-rb-bold"); });
+  $("np-rb-italic").addEventListener("click", function () { document.execCommand("italic"); toggleBtn("np-rb-italic"); });
+  $("np-rb-underline").addEventListener("click", function () { document.execCommand("underline"); toggleBtn("np-rb-underline"); });
+
+  var alinhamentoBtns = { left: "justifyLeft", center: "justifyCenter", right: "justifyRight", justify: "justifyFull" };
+  Object.keys(alinhamentoBtns).forEach(function (key) {
+    $("np-rb-" + key).addEventListener("click", function () {
+      document.execCommand(alinhamentoBtns[key]);
+      ["left", "center", "right", "justify"].forEach(function (k) { $("np-rb-" + k).classList.remove("active"); });
+      this.classList.add("active");
+    });
+  });
+
+  $("np-insert-img").addEventListener("click", function () {
+    corpo.focus();
+    document.execCommand("insertHTML", false, '<span class="me-img-placeholder" contenteditable="false">Imagem inserida</span>&nbsp;');
+  });
+  $("np-insert-textbox").addEventListener("click", function () {
+    corpo.focus();
+    document.execCommand("insertHTML", false, '<div class="me-textbox-inserted" contenteditable="true">Digite aqui o texto da caixa...</div>');
+  });
+
+  // ===== Sincroniza o corpo editado com o campo real do form =====
+  // Também a cada "input", não só no submit: o textarea real fica
+  // escondido (display:none) e é obrigatório — se ficasse vazio até o
+  // submit, a validação HTML5 bloquearia o envio silenciosamente (campo
+  // invisível não mostra a mensagem de erro) antes do listener de
+  // submit conseguir preenchê-lo.
+  function sincronizarConteudo() { conteudoInput.value = corpo.innerHTML; }
+  corpo.addEventListener("input", sincronizarConteudo);
+  sincronizarConteudo();
+  $("modelo-form").addEventListener("submit", sincronizarConteudo);
+})();
+</script>

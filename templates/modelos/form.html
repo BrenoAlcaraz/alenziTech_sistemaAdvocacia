@@ -15,7 +15,7 @@
 </div>
 
 <div class="card p-6 max-w-3xl">
-  <form method="post">
+  <form method="post" id="modelo-form" novalidate>
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -53,7 +53,62 @@
 
       <div>
         <label class="label" for="{{ form.conteudo.id_for_label }}">{{ form.conteudo.label }}</label>
-        {{ form.conteudo }}
+
+        {% if modo == "novo" %}
+          {{ config_documento|json_script:"np-config-data" }}
+          {{ imagens_estilo_urls|json_script:"np-imagens-data" }}
+
+          <p class="text-xs text-gray-400 mb-2">
+            Cabeçalho, rodapé, marca d'água e assinatura seguem o padrão definido em "Meu Estilo" — edite só o conteúdo abaixo.
+          </p>
+
+          <div class="me-ribbon">
+            <div class="me-ribbon-group">
+              <div class="me-ribbon-btn" id="np-rb-bold" title="Negrito"><b>B</b></div>
+              <div class="me-ribbon-btn" id="np-rb-italic" title="Itálico"><i>I</i></div>
+              <div class="me-ribbon-btn" id="np-rb-underline" title="Sublinhado"><u>S</u></div>
+            </div>
+            <div class="me-ribbon-group me-ribbon-group-last">
+              <div class="me-ribbon-btn" id="np-rb-left" title="Alinhar à esquerda">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h15"/></svg>
+              </div>
+              <div class="me-ribbon-btn" id="np-rb-center" title="Centralizar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M4 18h16"/></svg>
+              </div>
+              <div class="me-ribbon-btn" id="np-rb-right" title="Alinhar à direita">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 12h12M6 18h15"/></svg>
+              </div>
+              <div class="me-ribbon-btn" id="np-rb-justify" title="Justificar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              </div>
+            </div>
+            <div class="me-ribbon-group me-ribbon-group-last">
+              <div class="me-ribbon-btn me-ribbon-btn-wide" id="np-insert-img" title="Inserir imagem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                Imagem
+              </div>
+              <div class="me-ribbon-btn me-ribbon-btn-wide" id="np-insert-textbox" title="Inserir caixa de texto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1" stroke-dasharray="3 2"/></svg>
+                Caixa de texto
+              </div>
+            </div>
+          </div>
+
+          <div class="me-editor-page-wrap" style="justify-content:flex-start;">
+            <div class="me-word-page" id="np-word-page">
+              <div class="me-page-watermark-slot" id="np-slot-marca_dagua"></div>
+              <div class="me-page-header-slot" id="np-slot-cabecalho"></div>
+              <div class="me-page-body" id="np-slot-corpo" contenteditable="true"></div>
+              <div class="me-page-signature-slot" id="np-slot-assinatura"></div>
+              <div class="me-page-footer-slot" id="np-slot-rodape"></div>
+            </div>
+          </div>
+
+          <div class="hidden">{{ form.conteudo }}</div>
+        {% else %}
+          {{ form.conteudo }}
+        {% endif %}
+
         {% if form.conteudo.errors %}
           <p class="text-xs text-red-600 mt-1">{{ form.conteudo.errors|join:", " }}</p>
         {% endif %}
@@ -70,4 +125,16 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_head %}
+  {% if modo == "novo" %}
+    {% include "modelos/_estilo_editor_css.html" %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  {% if modo == "novo" %}
+    {% include "modelos/_nova_peca_editor_js.html" %}
+  {% endif %}
 {% endblock %}

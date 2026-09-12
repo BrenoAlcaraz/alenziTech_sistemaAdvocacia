@@ -177,11 +177,14 @@ def novo(request):
     else:
         form = ModeloPecaForm()
 
+    estilo = _obter_estilo_escritorio()
     return render(request, "modelos/form.html", {
         "form": form,
         "modo": "novo",
         "modelo": None,
         "item_ativo": "modelos",
+        "config_documento": estilo.config_documento,
+        "imagens_estilo_urls": _imagens_estilo_urls(estilo),
     })
 
 

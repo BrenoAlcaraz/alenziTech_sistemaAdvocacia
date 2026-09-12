@@ -197,10 +197,14 @@ Repositório de modelos de peças/documentos reutilizáveis.
   processo/guia só aparecem na primeira página do documento gerado;
   assinatura só na última. Alternativa a construir do zero: anexar uma
   peça já formatada como referência visual apenas (sem extração
-  automática de estilo do arquivo). Aplicar esse padrão de fato na
-  geração de uma peça nova, e o reconhecimento automático de
-  jurisprudência/citação pela IA durante a geração, dependem do
-  pipeline de IA de peças (PDR-0008) — ainda não existe.
+  automática de estilo do arquivo).
+- Criar um modelo manualmente (não importado) mostra cabeçalho, rodapé,
+  marca d'água e assinatura do estilo vigente do escritório como
+  moldura de contexto ao redigir o conteúdo — não editável ali, sempre
+  a leitura do estilo atual no momento da criação; uma mudança
+  posterior em "Meu Estilo" não altera peça já criada. O reconhecimento
+  automático de jurisprudência/citação pela IA durante a redação
+  depende do pipeline de IA de peças (PDR-0008) — ainda não existe.
 - Fora de escopo: dedup automática, geração em massa, edição
   colaborativa em tempo real, categorias hierárquicas, diff visual
   entre versões de peça.
