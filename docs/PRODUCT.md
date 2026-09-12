@@ -184,10 +184,23 @@ Repositório de modelos de peças/documentos reutilizáveis.
   (autor da edição, data, conteúdo completo); reverter para uma versão
   anterior é uma nova edição — gera nova entrada no histórico, nunca
   apaga a atual. Excluir o modelo remove também seu histórico.
-- Estilo do escritório (tom de voz e instruções gerais para peças) é
-  configuração única do tenant, sem autoria — leitura sempre liberada a
-  quem tem o módulo, edição restrita a quem tem `modelos_editar_estilo`
-  ou é Administrador.
+- Estilo do escritório é configuração única do tenant, sem autoria —
+  leitura sempre liberada a quem tem o módulo, edição restrita a quem
+  tem `modelos_editar_estilo` ou é Administrador. Cobre tom de voz e
+  instruções gerais (reservados para uso futuro pela IA de geração de
+  peças) e um editor visual do padrão de documento: cabeçalho, rodapé,
+  marca d'água e assinatura (texto ou imagem, cada um ligável/
+  desligável), fonte/cor da folha, e a formatação própria de
+  endereçamento, número do processo, número da guia, nome das partes,
+  jurisprudência, transcrição de artigo e citação — cada peça nova
+  segue esse padrão automaticamente. Endereçamento/número do
+  processo/guia só aparecem na primeira página do documento gerado;
+  assinatura só na última. Alternativa a construir do zero: anexar uma
+  peça já formatada como referência visual apenas (sem extração
+  automática de estilo do arquivo). Aplicar esse padrão de fato na
+  geração de uma peça nova, e o reconhecimento automático de
+  jurisprudência/citação pela IA durante a geração, dependem do
+  pipeline de IA de peças (PDR-0008) — ainda não existe.
 - Fora de escopo: dedup automática, geração em massa, edição
   colaborativa em tempo real, categorias hierárquicas, diff visual
   entre versões de peça.

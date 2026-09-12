@@ -1,0 +1,31 @@
+{% comment %}
+Card do painel lateral para um slot ligável/desligável da folha
+(Cabeçalho, Rodapé, Marca d'água, Assinatura). Parâmetros: slot, titulo,
+campo_imagem (BoundField do FileField), mostrar_input_texto (opcional —
+só a Marca d'água tem um campo de texto dedicado, por ser difícil de
+editar direto no texto rotacionado da folha).
+{% endcomment %}
+<div class="me-opt-card">
+  <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-{{ slot }}">
+    <div class="me-opt-title">{{ titulo }}</div>
+    <div class="flex items-center gap-2.5">
+      <div class="me-switch" data-opt="{{ slot }}"><div class="me-switch-knob"></div></div>
+      <svg class="me-opt-chevron" data-collapse-icon="me-body-{{ slot }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </div>
+  <div class="me-opt-body" id="me-body-{{ slot }}">
+    <div class="me-mode-toggle">
+      <div class="me-opt-mode-btn" data-slot="{{ slot }}" data-mode="texto">Texto</div>
+      <div class="me-opt-mode-btn" data-slot="{{ slot }}" data-mode="imagem">Imagem</div>
+    </div>
+    {% if mostrar_input_texto %}
+      <input class="me-input mb-2" id="me-input-{{ slot }}-texto" placeholder="Texto da marca d'água">
+    {% endif %}
+    <div class="me-attach-box" data-attach-for="{{ slot }}">
+      <label class="block cursor-pointer">
+        Anexar imagem
+        {{ campo_imagem }}
+      </label>
+    </div>
+  </div>
+</div>

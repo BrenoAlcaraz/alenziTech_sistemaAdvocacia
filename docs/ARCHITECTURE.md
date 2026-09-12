@@ -51,6 +51,20 @@ reutilizar em qualquer model novo com `FileField`/`StorageProtegido`
 (referência: `apps/processos/signals.py`, `apps/chat/signals.py`,
 `apps/financeiro/signals.py`).
 
+**Substituir (não excluir) um `FileField` já preenchido — ex.: usuário
+envia uma imagem nova para um campo que já tinha uma**: capturar o
+`FieldFile` atual **antes** de vincular o `ModelForm` à instância —
+`form.is_valid()` já sobrescreve o atributo em memória com o arquivo
+novo (via `construct_instance` em `_post_clean`), então chamar
+`FieldFile.delete()` depois disso apaga o valor novo, não o antigo,
+porque `FieldFile.delete()` também faz
+`setattr(self.instance, campo, None)` no mesmo objeto de instância.
+Apagar o arquivo antigo do disco deve usar
+`arquivo_antigo.storage.delete(arquivo_antigo.name)` diretamente (só
+storage, sem tocar a instância) — nunca `FieldFile.delete()` nesse
+cenário. Referência: `apps/modelos/views.py`
+(`_arquivos_estilo_documento_atuais`/`_substituir_arquivos_estilo_documento`).
+
 ## Dependências entre módulos de negócio (direção permitida)
 
 ```

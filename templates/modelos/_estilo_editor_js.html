@@ -1,0 +1,427 @@
+<script>
+(function () {
+  "use strict";
+
+  var configEl = document.getElementById("me-config-data");
+  var imagensEl = document.getElementById("me-imagens-data");
+  if (!configEl) return; // aba/permissão não ativa nesta página
+
+  var state = JSON.parse(configEl.textContent);
+  var imagens = imagensEl ? JSON.parse(imagensEl.textContent) : {};
+
+  var SLOT_TO_ELEMENT_ID = {
+    cabecalho: "me-slot-cabecalho",
+    rodape: "me-slot-rodape",
+    marca_dagua: "me-slot-marca_dagua",
+    assinatura: "me-slot-assinatura",
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  // ===== Seleção de modo (construir / anexar) =====
+  function aplicarModo(modo) {
+    document.querySelectorAll(".me-mode-card").forEach(function (c) {
+      c.classList.toggle("selected", c.dataset.mode === modo);
+    });
+    $("me-view-anexar").style.display = modo === "anexar" ? "block" : "none";
+    $("me-view-construir").style.display = modo === "anexar" ? "none" : "block";
+    $("me-modo-estilo").value = modo;
+  }
+  document.querySelectorAll(".me-mode-card").forEach(function (card) {
+    card.addEventListener("click", function () { aplicarModo(card.dataset.mode); });
+  });
+
+  // ===== Slots ligáveis (cabeçalho/rodapé/marca d'água/assinatura) =====
+  function aplicarModoSlot(slot, modo) {
+    var elId = SLOT_TO_ELEMENT_ID[slot];
+    var el = $(elId);
+    var slotState = state.slots[slot];
+
+    document.querySelectorAll('.me-opt-mode-btn[data-slot="' + slot + '"]').forEach(function (b) {
+      b.classList.toggle("active", b.dataset.mode === modo);
+    });
+    var attachBox = document.querySelector('.me-attach-box[data-attach-for="' + slot + '"]');
+
+    if (modo === "imagem") {
+      if (attachBox) attachBox.style.display = "block";
+      if (slot === "assinatura") {
+        el.innerHTML = '<div class="me-page-sig-line"></div>';
+      }
+      var url = imagens[slot];
+      var conteudo = url
+        ? '<img src="' + url + '" alt="">'
+        : '<span class="me-img-placeholder">Imagem — ' + slot.replace("_", " ") + "</span>";
+      if (slot === "assinatura") {
+        el.insertAdjacentHTML("beforeend", conteudo);
+      } else {
+        el.innerHTML = conteudo;
+      }
+      el.setAttribute("contenteditable", "false");
+      if (slot === "marca_dagua") {
+        var inputTexto = $("me-input-marca_dagua-texto");
+        if (inputTexto) inputTexto.style.display = "none";
+      }
+    } else {
+      if (attachBox) attachBox.style.display = "none";
+      if (slot === "assinatura") {
+        el.innerHTML = '<div class="me-page-sig-line"></div><span id="me-slot-assinatura-texto" contenteditable="true"></span>';
+        $("me-slot-assinatura-texto").textContent = slotState.texto;
+      } else {
+        el.setAttribute("contenteditable", "true");
+        el.textContent = slotState.texto;
+      }
+      if (slot === "marca_dagua") {
+        var inputTexto2 = $("me-input-marca_dagua-texto");
+        if (inputTexto2) {
+          inputTexto2.style.display = "block";
+          inputTexto2.value = slotState.texto;
+        }
+      }
+    }
+    slotState.modo = modo;
+  }
+
+  document.querySelectorAll(".me-opt-mode-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () { aplicarModoSlot(btn.dataset.slot, btn.dataset.mode); });
+  });
+
+  document.querySelectorAll(".me-switch[data-opt]").forEach(function (sw) {
+    sw.addEventListener("click", function (e) {
+      e.stopPropagation();
+      sw.classList.toggle("on");
+      var slot = sw.dataset.opt;
+      var ligado = sw.classList.contains("on");
+      state.slots[slot].ativo = ligado;
+      $(SLOT_TO_ELEMENT_ID[slot]).classList.toggle("show", ligado);
+    });
+  });
+
+  ["cabecalho", "rodape"].forEach(function (slot) {
+    $(SLOT_TO_ELEMENT_ID[slot]).addEventListener("input", function () {
+      state.slots[slot].texto = this.textContent;
+    });
+  });
+  $("me-slot-assinatura-texto").addEventListener("input", function () {
+    state.slots.assinatura.texto = this.textContent;
+  });
+  $("me-slot-marca_dagua").addEventListener("input", function () {
+    if (this.getAttribute("contenteditable") === "true") {
+      state.slots.marca_dagua.texto = this.textContent;
+      var espelho = $("me-input-marca_dagua-texto");
+      if (espelho) espelho.value = this.textContent;
+    }
+  });
+  var inputMarcaDagua = $("me-input-marca_dagua-texto");
+  if (inputMarcaDagua) {
+    inputMarcaDagua.addEventListener("input", function () {
+      state.slots.marca_dagua.texto = this.value;
+      $("me-slot-marca_dagua").textContent = this.value;
+    });
+  }
+
+  // ===== Seções retráteis (cabeçalho/rodapé/... + endereçamento/número/partes/trechos) =====
+  document.querySelectorAll("[data-collapse-toggle]").forEach(function (head) {
+    head.addEventListener("click", function () {
+      var alvo = $(head.dataset.collapseToggle);
+      var icone = document.querySelector('[data-collapse-icon="' + head.dataset.collapseToggle + '"]');
+      alvo.classList.toggle("expanded");
+      if (icone) icone.classList.toggle("open");
+    });
+  });
+
+  // ===== Ribbon geral: fonte/tamanho/espaçamento/recuos/cor da folha =====
+  $("me-fonte").addEventListener("change", function () {
+    state.geral.fonte = this.value;
+    $("me-word-page").style.fontFamily = this.value;
+  });
+  $("me-tamanho").addEventListener("change", function () {
+    state.geral.tamanho_fonte = parseInt(this.value, 10);
+    $("me-slot-corpo").style.fontSize = this.value + "pt";
+  });
+  $("me-espacamento").addEventListener("change", function () {
+    state.geral.espacamento = this.value;
+    $("me-slot-corpo").style.lineHeight = this.value;
+  });
+  function atualizarRecuos() {
+    var recuoTexto = $("me-recuo-texto").value;
+    var recuoParagrafo = $("me-recuo-paragrafo").value;
+    state.geral.recuo_texto = recuoTexto;
+    state.geral.recuo_paragrafo = recuoParagrafo;
+    var corpo = $("me-slot-corpo");
+    corpo.style.paddingLeft = recuoTexto + "cm";
+    corpo.style.paddingRight = recuoTexto + "cm";
+    corpo.style.textIndent = recuoParagrafo + "cm";
+  }
+  $("me-recuo-texto").addEventListener("change", atualizarRecuos);
+  $("me-recuo-paragrafo").addEventListener("change", atualizarRecuos);
+
+  document.querySelectorAll(".me-ribbon-color").forEach(function (sw) {
+    sw.addEventListener("click", function () {
+      document.querySelectorAll(".me-ribbon-color").forEach(function (s) { s.classList.remove("selected"); });
+      sw.classList.add("selected");
+      state.geral.cor_folha = sw.dataset.cor;
+      $("me-word-page").style.background = sw.dataset.cor;
+    });
+  });
+
+  // ===== Formatação livre do corpo de exemplo (não é salva — só demonstração) =====
+  function toggleRibbonBtn(id) { $(id).classList.toggle("active"); }
+  $("me-rb-bold").addEventListener("click", function () { document.execCommand("bold"); toggleRibbonBtn("me-rb-bold"); });
+  $("me-rb-italic").addEventListener("click", function () { document.execCommand("italic"); toggleRibbonBtn("me-rb-italic"); });
+  $("me-rb-underline").addEventListener("click", function () { document.execCommand("underline"); toggleRibbonBtn("me-rb-underline"); });
+  var alinhamentoBtns = { left: "justifyLeft", center: "justifyCenter", right: "justifyRight", justify: "justifyFull" };
+  Object.keys(alinhamentoBtns).forEach(function (key) {
+    $("me-rb-" + key).addEventListener("click", function () {
+      document.execCommand(alinhamentoBtns[key]);
+      ["left", "center", "right", "justify"].forEach(function (k) { $("me-rb-" + k).classList.remove("active"); });
+      this.classList.add("active");
+    });
+  });
+  $("me-insert-img").addEventListener("click", function () {
+    document.execCommand("insertHTML", false, '<span class="me-img-placeholder" contenteditable="false">Imagem inserida</span>&nbsp;');
+  });
+  $("me-insert-textbox").addEventListener("click", function () {
+    document.execCommand("insertHTML", false, '<div class="me-textbox-inserted" contenteditable="true">Digite aqui o texto da caixa...</div>');
+  });
+
+  // ===== Endereçamento / Número do processo / Número da guia / Nome das partes =====
+  function setupCampoLivePreview(prefixo, elementId, campos) {
+    var el = $(elementId);
+    var secao = state.secoes[prefixo];
+
+    function atualizar() {
+      if (campos.indexOf("fonte") > -1) { secao.fonte = $("me-" + prefixo + "-fonte").value; el.style.fontFamily = secao.fonte; }
+      if (campos.indexOf("tamanho") > -1) { secao.tamanho = parseInt($("me-" + prefixo + "-tamanho").value, 10); el.style.fontSize = secao.tamanho + "pt"; }
+      if (campos.indexOf("caixa") > -1) {
+        secao.caixa = $("me-" + prefixo + "-caixa").value;
+        el.style.textTransform = secao.caixa === "maiusculas" ? "uppercase" : (secao.caixa === "capitalizado" ? "capitalize" : "none");
+      }
+      if (campos.indexOf("alinhamento") > -1) { secao.alinhamento = $("me-" + prefixo + "-alinhamento").value; el.style.textAlign = secao.alinhamento; }
+      if (campos.indexOf("negrito") > -1) {
+        var negritoBtn = document.querySelector('[data-toggle-style="me-' + prefixo + '-negrito"]');
+        secao.negrito = negritoBtn.classList.contains("active");
+        el.style.fontWeight = secao.negrito ? "700" : "400";
+      }
+      if (campos.indexOf("italico") > -1) {
+        var italicoBtn = document.querySelector('[data-toggle-style="me-' + prefixo + '-italico"]');
+        secao.italico = italicoBtn.classList.contains("active");
+        el.style.fontStyle = secao.italico ? "italic" : "normal";
+      }
+    }
+
+    campos.forEach(function (campo) {
+      if (campo === "negrito" || campo === "italico") {
+        document.querySelector('[data-toggle-style="me-' + prefixo + '-' + campo + '"]').addEventListener("click", function () {
+          this.classList.toggle("active");
+          atualizar();
+        });
+      } else {
+        $("me-" + prefixo + "-" + campo).addEventListener("change", atualizar);
+      }
+    });
+
+    return atualizar;
+  }
+
+  var atualizarEnderecamento = setupCampoLivePreview("enderecamento", "me-slot-endereco", ["fonte", "tamanho", "caixa", "alinhamento", "negrito", "italico"]);
+  var atualizarProcesso = setupCampoLivePreview("numero_processo", "me-slot-numproc", ["caixa", "alinhamento", "tamanho", "negrito", "italico"]);
+  var atualizarGuia = setupCampoLivePreview("numero_guia", "me-slot-numguia", ["caixa", "alinhamento", "tamanho", "negrito", "italico"]);
+  var atualizarPartes = setupCampoLivePreview("partes", "me-slot-partes", ["caixa", "negrito", "italico"]);
+
+  function reordenarNumeracao() {
+    var distProc = parseInt($("me-numero_processo-distancia").value, 10) || 0;
+    var distGuia = parseInt($("me-numero_guia-distancia").value, 10) || 0;
+    state.secoes.numero_processo.distancia_linhas = distProc;
+    state.secoes.numero_guia.distancia_linhas = distGuia;
+
+    var elProc = $("me-slot-numproc");
+    var elGuia = $("me-slot-numguia");
+    var bloco = $("me-slot-enderecamento-bloco");
+
+    var primeiro, segundo, distPrimeiro, distSegundo;
+    if (distGuia < distProc) {
+      primeiro = elGuia; segundo = elProc; distPrimeiro = distGuia; distSegundo = distProc;
+    } else {
+      primeiro = elProc; segundo = elGuia; distPrimeiro = distProc; distSegundo = distGuia;
+    }
+    bloco.appendChild(primeiro);
+    bloco.appendChild(segundo);
+    primeiro.style.marginTop = (distPrimeiro * 14) + "px";
+    segundo.style.marginTop = ((distSegundo - distPrimeiro) * 14) + "px";
+  }
+  $("me-numero_processo-distancia").addEventListener("input", reordenarNumeracao);
+  $("me-numero_guia-distancia").addEventListener("input", reordenarNumeracao);
+
+  // ===== Jurisprudência / Transcrição de artigo / Citação =====
+  function setupEstiloEspecial(prefixo) {
+    var preview = $("me-" + prefixo + "-preview");
+    var secao = state.secoes[prefixo];
+
+    function atualizar() {
+      secao.fonte = $("me-" + prefixo + "-fonte").value;
+      secao.tamanho = parseInt($("me-" + prefixo + "-tamanho").value, 10);
+      secao.recuo = $("me-" + prefixo + "-recuo").value;
+      secao.alinhamento = $("me-" + prefixo + "-alinhamento").value;
+      secao.cor = document.querySelector("#me-" + prefixo + "-cor .me-color-swatch.selected").dataset.cor;
+      secao.marca_texto = document.querySelector("#me-" + prefixo + "-marcatexto .me-color-swatch.selected").dataset.cor;
+      secao.negrito = document.querySelector('[data-toggle-style="me-' + prefixo + '-negrito"]').classList.contains("active");
+      secao.italico = document.querySelector('[data-toggle-style="me-' + prefixo + '-italico"]').classList.contains("active");
+      secao.sublinhado = document.querySelector('[data-toggle-style="me-' + prefixo + '-sublinhado"]').classList.contains("active");
+      secao.tachado = document.querySelector('[data-toggle-style="me-' + prefixo + '-tachado"]').classList.contains("active");
+
+      var decoracoes = [];
+      if (secao.sublinhado) decoracoes.push("underline");
+      if (secao.tachado) decoracoes.push("line-through");
+
+      preview.style.fontFamily = secao.fonte;
+      preview.style.fontSize = secao.tamanho + "pt";
+      preview.style.marginLeft = secao.recuo + "px";
+      preview.style.textAlign = secao.alinhamento;
+      preview.style.color = secao.cor;
+      preview.style.background = secao.marca_texto;
+      preview.style.fontWeight = secao.negrito ? "700" : "400";
+      preview.style.fontStyle = secao.italico ? "italic" : "normal";
+      preview.style.textDecoration = decoracoes.length ? decoracoes.join(" ") : "none";
+    }
+
+    ["fonte", "tamanho", "recuo", "alinhamento"].forEach(function (campo) {
+      $("me-" + prefixo + "-" + campo).addEventListener("change", atualizar);
+    });
+    ["cor", "marcatexto"].forEach(function (grupo) {
+      document.querySelectorAll("#me-" + prefixo + "-" + grupo + " .me-color-swatch").forEach(function (sw) {
+        sw.addEventListener("click", function () {
+          document.querySelectorAll("#me-" + prefixo + "-" + grupo + " .me-color-swatch").forEach(function (s) { s.classList.remove("selected"); });
+          sw.classList.add("selected");
+          atualizar();
+        });
+      });
+    });
+    ["negrito", "italico", "sublinhado", "tachado"].forEach(function (t) {
+      document.querySelector('[data-toggle-style="me-' + prefixo + "-" + t + '"]').addEventListener("click", function () {
+        this.classList.toggle("active");
+        atualizar();
+      });
+    });
+
+    $("me-" + prefixo + "-inserir").addEventListener("click", function () {
+      var style = "font-family:" + preview.style.fontFamily + ";font-size:" + preview.style.fontSize +
+        ";margin-left:" + preview.style.marginLeft + ";text-align:" + preview.style.textAlign +
+        ";color:" + preview.style.color + ";background:" + preview.style.background +
+        ";font-weight:" + preview.style.fontWeight + ";font-style:" + preview.style.fontStyle +
+        ";text-decoration:" + preview.style.textDecoration + ";margin-top:12px;margin-bottom:12px;padding:4px 6px;" +
+        "text-indent:0;line-height:1.4;";
+
+      // Anexa como filho novo do corpo (não via execCommand+Range): no
+      // Chrome, inserir um <p> com o cursor colapsado no fim do último
+      // <p> existente mescla o conteúdo nele em vez de criar um irmão
+      // novo — testado manualmente no navegador.
+      var corpo = $("me-slot-corpo");
+      var novoParagrafo = document.createElement("p");
+      novoParagrafo.setAttribute("style", style);
+      novoParagrafo.textContent = preview.textContent;
+      corpo.appendChild(novoParagrafo);
+      novoParagrafo.scrollIntoView({ block: "nearest" });
+    });
+
+    return atualizar;
+  }
+
+  var atualizarJurisprudencia = setupEstiloEspecial("jurisprudencia");
+  var atualizarArtigo = setupEstiloEspecial("artigo");
+  var atualizarCitacao = setupEstiloEspecial("citacao");
+
+  // ===== Hidrata todos os controles a partir do estado carregado do servidor =====
+  function hidratarToggle(seletorAttr, valor) {
+    var el = document.querySelector('[data-toggle-style="' + seletorAttr + '"]');
+    if (el) el.classList.toggle("active", !!valor);
+  }
+
+  function hidratar() {
+    // Geral / ribbon
+    $("me-fonte").value = state.geral.fonte;
+    $("me-word-page").style.fontFamily = state.geral.fonte;
+    $("me-tamanho").value = state.geral.tamanho_fonte;
+    $("me-slot-corpo").style.fontSize = state.geral.tamanho_fonte + "pt";
+    $("me-espacamento").value = state.geral.espacamento;
+    $("me-slot-corpo").style.lineHeight = state.geral.espacamento;
+    $("me-recuo-texto").value = state.geral.recuo_texto;
+    $("me-recuo-paragrafo").value = state.geral.recuo_paragrafo;
+    atualizarRecuos();
+    document.querySelectorAll(".me-ribbon-color").forEach(function (sw) {
+      sw.classList.toggle("selected", sw.dataset.cor === state.geral.cor_folha);
+    });
+    $("me-word-page").style.background = state.geral.cor_folha;
+
+    // Slots
+    Object.keys(SLOT_TO_ELEMENT_ID).forEach(function (slot) {
+      var slotState = state.slots[slot];
+      $(SLOT_TO_ELEMENT_ID[slot]).classList.toggle("show", !!slotState.ativo);
+      var switchEl = document.querySelector('.me-switch[data-opt="' + slot + '"]');
+      if (switchEl) switchEl.classList.toggle("on", !!slotState.ativo);
+      aplicarModoSlot(slot, slotState.modo || "texto");
+    });
+
+    // Endereçamento / número / partes
+    $("me-enderecamento-fonte").value = state.secoes.enderecamento.fonte;
+    $("me-enderecamento-tamanho").value = state.secoes.enderecamento.tamanho;
+    $("me-enderecamento-caixa").value = state.secoes.enderecamento.caixa;
+    $("me-enderecamento-alinhamento").value = state.secoes.enderecamento.alinhamento;
+    hidratarToggle("me-enderecamento-negrito", state.secoes.enderecamento.negrito);
+    hidratarToggle("me-enderecamento-italico", state.secoes.enderecamento.italico);
+    atualizarEnderecamento();
+
+    $("me-numero_processo-distancia").value = state.secoes.numero_processo.distancia_linhas;
+    $("me-numero_processo-caixa").value = state.secoes.numero_processo.caixa;
+    $("me-numero_processo-alinhamento").value = state.secoes.numero_processo.alinhamento;
+    $("me-numero_processo-tamanho").value = state.secoes.numero_processo.tamanho;
+    hidratarToggle("me-numero_processo-negrito", state.secoes.numero_processo.negrito);
+    hidratarToggle("me-numero_processo-italico", state.secoes.numero_processo.italico);
+    atualizarProcesso();
+
+    $("me-numero_guia-distancia").value = state.secoes.numero_guia.distancia_linhas;
+    $("me-numero_guia-caixa").value = state.secoes.numero_guia.caixa;
+    $("me-numero_guia-alinhamento").value = state.secoes.numero_guia.alinhamento;
+    $("me-numero_guia-tamanho").value = state.secoes.numero_guia.tamanho;
+    hidratarToggle("me-numero_guia-negrito", state.secoes.numero_guia.negrito);
+    hidratarToggle("me-numero_guia-italico", state.secoes.numero_guia.italico);
+    atualizarGuia();
+
+    reordenarNumeracao();
+
+    $("me-partes-caixa").value = state.secoes.partes.caixa;
+    hidratarToggle("me-partes-negrito", state.secoes.partes.negrito);
+    hidratarToggle("me-partes-italico", state.secoes.partes.italico);
+    atualizarPartes();
+
+    // Trechos especiais
+    [["jurisprudencia", atualizarJurisprudencia], ["artigo", atualizarArtigo], ["citacao", atualizarCitacao]].forEach(function (par) {
+      var prefixo = par[0], atualizar = par[1];
+      var secao = state.secoes[prefixo];
+      $("me-" + prefixo + "-fonte").value = secao.fonte;
+      $("me-" + prefixo + "-tamanho").value = secao.tamanho;
+      $("me-" + prefixo + "-recuo").value = secao.recuo;
+      $("me-" + prefixo + "-alinhamento").value = secao.alinhamento;
+      document.querySelectorAll("#me-" + prefixo + "-cor .me-color-swatch").forEach(function (sw) {
+        sw.classList.toggle("selected", sw.dataset.cor === secao.cor);
+      });
+      document.querySelectorAll("#me-" + prefixo + "-marcatexto .me-color-swatch").forEach(function (sw) {
+        sw.classList.toggle("selected", sw.dataset.cor === secao.marca_texto);
+      });
+      hidratarToggle("me-" + prefixo + "-negrito", secao.negrito);
+      hidratarToggle("me-" + prefixo + "-italico", secao.italico);
+      hidratarToggle("me-" + prefixo + "-sublinhado", secao.sublinhado);
+      hidratarToggle("me-" + prefixo + "-tachado", secao.tachado);
+      atualizar();
+    });
+
+    aplicarModo($("me-modo-estilo").value || "construir");
+  }
+
+  hidratar();
+
+  // ===== Serializa o estado no input oculto antes de enviar o formulário =====
+  $("me-form").addEventListener("submit", function () {
+    $("me-config-documento").value = JSON.stringify(state);
+  });
+})();
+</script>

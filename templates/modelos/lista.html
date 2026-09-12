@@ -97,7 +97,7 @@
 
 {% else %}
   {# Aba "Meu estilo" #}
-  <div class="card p-6 max-w-2xl">
+  <div class="card p-6 max-w-2xl mb-6">
     {% if pode_editar_estilo %}
       <form method="post" action="{% url 'modelos:editar_estilo' %}">
         {% csrf_token %}
@@ -128,5 +128,281 @@
       </p>
     {% endif %}
   </div>
+
+  {% if pode_editar_estilo %}
+    {{ config_documento|json_script:"me-config-data" }}
+    {{ imagens_estilo_urls|json_script:"me-imagens-data" }}
+
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold text-gray-900">Padrão visual dos documentos</h2>
+      <p class="text-sm text-gray-500 mt-0.5">
+        Cabeçalho, rodapé, marca d'água, assinatura e formatação replicados automaticamente em toda peça nova.
+      </p>
+    </div>
+
+    <form method="post" action="{% url 'modelos:editar_estilo_documento' %}" enctype="multipart/form-data" id="me-form" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="modo_estilo" id="me-modo-estilo" value="{{ estilo.modo_estilo }}">
+      <input type="hidden" name="config_documento" id="me-config-documento" value="">
+
+      {# Seleção de modo #}
+      <div class="flex flex-col sm:flex-row gap-3 mb-5" id="me-mode-pick">
+        <div class="me-mode-card flex-1" data-mode="construir">
+          <div class="me-mode-title">Construir do zero</div>
+          <div class="me-mode-desc">Edite a folha diretamente — cabeçalho, rodapé, marca d'água, assinatura e formatação.</div>
+        </div>
+        <div class="me-mode-card flex-1" data-mode="anexar">
+          <div class="me-mode-title">Anexar peça existente</div>
+          <div class="me-mode-desc">Envie uma peça já formatada e use como referência visual do seu estilo.</div>
+        </div>
+      </div>
+
+      {# Modo: anexar #}
+      <div id="me-view-anexar" class="card p-6">
+        {% if estilo.arquivo_referencia %}
+          <p class="text-sm text-gray-600 mb-3">
+            Peça de referência atual: <span class="font-medium">{{ estilo.nome_do_arquivo_referencia }}</span>
+          </p>
+        {% endif %}
+        <label class="me-attach-box block" for="{{ form_estilo_documento.arquivo_referencia.id_for_label }}">
+          Anexar peça (.docx ou .pdf)
+        </label>
+        {{ form_estilo_documento.arquivo_referencia }}
+        {% if form_estilo_documento.arquivo_referencia.errors %}
+          <p class="text-xs text-red-600 mt-2">{{ form_estilo_documento.arquivo_referencia.errors|join:", " }}</p>
+        {% endif %}
+        <div class="mt-4">
+          <button type="submit" class="btn-primary">Usar esta peça como meu estilo</button>
+        </div>
+      </div>
+
+      {# Modo: construir (editor estilo Word) #}
+      <div id="me-view-construir">
+
+        {# Ribbon #}
+        <div class="me-ribbon">
+          <div class="me-ribbon-group">
+            <select class="me-ribbon-select" id="me-fonte">
+              <option>Times New Roman</option>
+              <option>Arial</option>
+              <option>Calibri</option>
+              <option>Georgia</option>
+            </select>
+            <select class="me-ribbon-select" id="me-tamanho">
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+              <option value="14">14</option>
+              <option value="16">16</option>
+            </select>
+          </div>
+          <div class="me-ribbon-group">
+            <div class="me-ribbon-btn" id="me-rb-bold" title="Negrito"><b>B</b></div>
+            <div class="me-ribbon-btn" id="me-rb-italic" title="Itálico"><i>I</i></div>
+            <div class="me-ribbon-btn" id="me-rb-underline" title="Sublinhado"><u>S</u></div>
+          </div>
+          <div class="me-ribbon-group">
+            <div class="me-ribbon-btn" id="me-rb-left" title="Alinhar à esquerda">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h15"/></svg>
+            </div>
+            <div class="me-ribbon-btn" id="me-rb-center" title="Centralizar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M4 18h16"/></svg>
+            </div>
+            <div class="me-ribbon-btn" id="me-rb-right" title="Alinhar à direita">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 12h12M6 18h15"/></svg>
+            </div>
+            <div class="me-ribbon-btn" id="me-rb-justify" title="Justificar">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </div>
+          </div>
+          <div class="me-ribbon-group">
+            <select class="me-ribbon-select" id="me-espacamento" title="Espaçamento entre linhas">
+              <option value="1">Simples</option>
+              <option value="1.15">1,15</option>
+              <option value="1.5">1,5</option>
+              <option value="2">Duplo</option>
+            </select>
+          </div>
+          <div class="me-ribbon-group">
+            <select class="me-ribbon-select" id="me-recuo-texto" title="Recuo do texto (margem lateral do corpo)">
+              <option value="0">Recuo texto: nenhum</option>
+              <option value="1.25">Recuo texto: 1,25cm</option>
+              <option value="2">Recuo texto: 2cm</option>
+              <option value="3">Recuo texto: 3cm</option>
+            </select>
+            <select class="me-ribbon-select" id="me-recuo-paragrafo" title="Recuo de parágrafo (primeira linha)">
+              <option value="0">Recuo parágrafo: nenhum</option>
+              <option value="1.25">Recuo parágrafo: 1,25cm</option>
+              <option value="2">Recuo parágrafo: 2cm</option>
+              <option value="3">Recuo parágrafo: 3cm</option>
+            </select>
+          </div>
+          <div class="me-ribbon-group">
+            <div class="me-ribbon-btn me-ribbon-btn-wide" id="me-insert-img" title="Inserir imagem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              Imagem
+            </div>
+            <div class="me-ribbon-btn me-ribbon-btn-wide" id="me-insert-textbox" title="Inserir caixa de texto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1" stroke-dasharray="3 2"/></svg>
+              Caixa de texto
+            </div>
+          </div>
+          <div class="me-ribbon-group me-ribbon-group-last">
+            <span class="me-style-label" style="margin:0 4px 0 0;">FOLHA</span>
+            <div class="me-ribbon-color" data-cor="#ffffff" style="background:#ffffff;"></div>
+            <div class="me-ribbon-color" data-cor="#faf6ee" style="background:#faf6ee;"></div>
+            <div class="me-ribbon-color" data-cor="#f4f4f4" style="background:#f4f4f4;"></div>
+            <div class="me-ribbon-color" data-cor="#eef4ff" style="background:#eef4ff;"></div>
+          </div>
+        </div>
+
+        <div class="me-editor-layout">
+
+          {# Folha #}
+          <div class="me-editor-page-wrap">
+            <div class="me-word-page" id="me-word-page">
+              <div class="me-page-watermark-slot" id="me-slot-marca_dagua" contenteditable="true"></div>
+
+              <div class="me-page-header-slot" id="me-slot-cabecalho" contenteditable="true"></div>
+
+              <div class="me-page-enderecamento-block" id="me-slot-enderecamento-bloco">
+                <p id="me-slot-endereco" style="text-align:center;font-weight:700;">EXCELENTÍSSIMO SENHOR DOUTOR JUIZ DE DIREITO DA 2ª VARA CÍVEL</p>
+                <p id="me-slot-numproc" style="text-align:right;font-size:10pt;">Processo: 0000000-00.0000.0.00.0000</p>
+                <p id="me-slot-numguia" style="text-align:right;font-size:10pt;">Guia: 00000000000000000</p>
+              </div>
+
+              <div class="me-page-body" id="me-slot-corpo" contenteditable="true">
+                <p>&nbsp;</p>
+                <p><span id="me-slot-partes">NOME DO CLIENTE</span>, já qualificado nos autos do processo em epígrafe, vem respeitosamente à presença de Vossa Excelência expor e, ao final, requerer o que segue.</p>
+                <p>Nestes termos, pede deferimento.</p>
+              </div>
+
+              <div class="me-page-signature-slot" id="me-slot-assinatura">
+                <div class="me-page-sig-line"></div>
+                <span id="me-slot-assinatura-texto" contenteditable="true"></span>
+              </div>
+
+              <div class="me-page-footer-slot" id="me-slot-rodape" contenteditable="true"></div>
+            </div>
+          </div>
+
+          {# Painel lateral #}
+          <div class="me-side-settings">
+
+            {% include "modelos/_estilo_secao_slot.html" with slot="cabecalho" titulo="Cabeçalho" campo_imagem=form_estilo_documento.imagem_cabecalho %}
+            {% include "modelos/_estilo_secao_slot.html" with slot="rodape" titulo="Rodapé" campo_imagem=form_estilo_documento.imagem_rodape %}
+            {% include "modelos/_estilo_secao_slot.html" with slot="marca_dagua" titulo="Marca d'água" campo_imagem=form_estilo_documento.imagem_marca_dagua mostrar_input_texto=True %}
+            {% include "modelos/_estilo_secao_slot.html" with slot="assinatura" titulo="Assinatura" campo_imagem=form_estilo_documento.imagem_assinatura %}
+
+            <div class="me-opt-card">
+              <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-enderecamento">
+                <div class="me-opt-title">Endereçamento <span class="text-gray-400 font-normal text-xs">(ex: "Excelentíssimo Senhor Doutor Juiz...")</span></div>
+                <svg class="me-opt-chevron" data-collapse-icon="me-body-enderecamento" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="me-opt-body" id="me-body-enderecamento">
+                <div class="me-style-row">
+                  <div class="me-style-field">
+                    <div class="me-style-label">FONTE</div>
+                    <select class="me-select" id="me-enderecamento-fonte">
+                      <option>Times New Roman</option>
+                      <option>Arial</option>
+                      <option>Calibri</option>
+                      <option>Georgia</option>
+                    </select>
+                  </div>
+                  <div class="me-style-field">
+                    <div class="me-style-label">TAMANHO</div>
+                    <select class="me-select" id="me-enderecamento-tamanho">
+                      <option value="10">10</option>
+                      <option value="11">11</option>
+                      <option value="12">12</option>
+                      <option value="14">14</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="me-style-row" style="margin-top:10px;">
+                  <div class="me-style-field">
+                    <div class="me-style-label">CAIXA</div>
+                    <select class="me-select" id="me-enderecamento-caixa">
+                      <option value="maiusculas">MAIÚSCULAS</option>
+                      <option value="capitalizado">Capitalizado (Iniciais Maiúsculas)</option>
+                      <option value="normal">Normal (como digitado)</option>
+                    </select>
+                  </div>
+                  <div class="me-style-field">
+                    <div class="me-style-label">ALINHAMENTO</div>
+                    <select class="me-select" id="me-enderecamento-alinhamento">
+                      <option value="left">Esquerda</option>
+                      <option value="center">Centralizado</option>
+                      <option value="right">Direita</option>
+                      <option value="justify">Justificado</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="me-style-row" style="margin-top:10px;">
+                  <div class="me-toggle-btn" data-toggle-style="me-enderecamento-negrito"><b>B</b></div>
+                  <div class="me-toggle-btn" data-toggle-style="me-enderecamento-italico"><i>I</i></div>
+                </div>
+              </div>
+            </div>
+
+            {% include "modelos/_estilo_secao_numero.html" with prefixo="numero_processo" titulo="Número do processo" nota="Só aparece na primeira página. A distância é contada a partir do endereçamento — se ficar menor que a do número da guia, o processo passa a aparecer acima dela automaticamente." %}
+            {% include "modelos/_estilo_secao_numero.html" with prefixo="numero_guia" titulo="Número da guia" nota="Só aparece na primeira página. A distância é contada a partir do endereçamento — se ficar menor que a do número do processo, a guia passa a aparecer acima dele automaticamente." %}
+
+            <div class="me-opt-card">
+              <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-partes">
+                <div class="me-opt-title">Nome das partes</div>
+                <svg class="me-opt-chevron" data-collapse-icon="me-body-partes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="me-opt-body" id="me-body-partes">
+                <div class="me-style-row">
+                  <div class="me-style-field">
+                    <div class="me-style-label">CAIXA</div>
+                    <select class="me-select" id="me-partes-caixa">
+                      <option value="maiusculas">MAIÚSCULAS</option>
+                      <option value="capitalizado">Capitalizado (Iniciais Maiúsculas)</option>
+                      <option value="normal">Normal (como digitado)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="me-style-row" style="margin-top:10px;">
+                  <div class="me-toggle-btn" data-toggle-style="me-partes-negrito"><b>B</b></div>
+                  <div class="me-toggle-btn" data-toggle-style="me-partes-italico"><i>I</i></div>
+                </div>
+                <div class="me-section-note">Afeta só o nome da parte dentro do texto (ex: "NOME DO CLIENTE") — o resto da frase segue a formatação geral do documento.</div>
+              </div>
+            </div>
+
+            {% include "modelos/_estilo_secao_trecho.html" with prefixo="jurisprudencia" titulo="Estilo de Jurisprudência" texto_exemplo="STJ, REsp 1.234.567/RJ, Rel. Min. Fulano de Tal, julgado em 12/03/2024: \"O dano moral prescinde de prova, decorrendo dos próprios fatos.\"" %}
+            {% include "modelos/_estilo_secao_trecho.html" with prefixo="artigo" titulo="Transcrição de Artigo" texto_exemplo="Art. 927. Aquele que, por ato ilícito, causar dano a outrem, fica obrigado a repará-lo. (Código Civil, Lei nº 10.406/2002)" %}
+            {% include "modelos/_estilo_secao_trecho.html" with prefixo="citacao" titulo="Estilo de Citação" texto_exemplo="\"A boa-fé objetiva impõe às partes deveres de lealdade, informação e cooperação durante toda a relação contratual.\" (TARTUCE, Flávio. Direito Civil. 2023, p. 112)" %}
+
+            <div class="mt-2">
+              <button type="submit" class="btn-primary w-full justify-center">Salvar como meu estilo</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </form>
+  {% else %}
+    <div class="card p-6">
+      <p class="text-sm text-gray-500">
+        Padrão visual dos documentos definido pelo escritório — você não tem permissão para editar esta configuração.
+      </p>
+    </div>
+  {% endif %}
 {% endif %}
+{% endblock %}
+
+{% block extra_head %}
+  {% if aba_ativa == "estilo" and pode_editar_estilo %}
+    {% include "modelos/_estilo_editor_css.html" %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  {% if aba_ativa == "estilo" and pode_editar_estilo %}
+    {% include "modelos/_estilo_editor_js.html" %}
+  {% endif %}
 {% endblock %}

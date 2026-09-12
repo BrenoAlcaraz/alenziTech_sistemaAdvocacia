@@ -1,0 +1,50 @@
+{% comment %}
+Seção retrátil de formatação para Número do processo/guia no editor de
+"Meu Estilo". Parâmetros: prefixo, titulo, nota.
+{% endcomment %}
+<div class="me-opt-card">
+  <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-{{ prefixo }}">
+    <div class="me-opt-title">{{ titulo }}</div>
+    <svg class="me-opt-chevron" data-collapse-icon="me-body-{{ prefixo }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </div>
+  <div class="me-opt-body" id="me-body-{{ prefixo }}">
+    <div class="me-style-row">
+      <div class="me-style-field">
+        <div class="me-style-label">DISTÂNCIA DO ENDEREÇAMENTO (LINHAS)</div>
+        <input class="me-input" type="number" min="0" id="me-{{ prefixo }}-distancia">
+      </div>
+      <div class="me-style-field">
+        <div class="me-style-label">CAIXA</div>
+        <select class="me-select" id="me-{{ prefixo }}-caixa">
+          <option value="maiusculas">MAIÚSCULAS</option>
+          <option value="capitalizado">Capitalizado (Iniciais Maiúsculas)</option>
+          <option value="normal">Normal (como digitado)</option>
+        </select>
+      </div>
+    </div>
+    <div class="me-style-row" style="margin-top:10px;">
+      <div class="me-style-field">
+        <div class="me-style-label">ALINHAMENTO</div>
+        <select class="me-select" id="me-{{ prefixo }}-alinhamento">
+          <option value="left">Esquerda</option>
+          <option value="center">Centralizado</option>
+          <option value="right">Direita</option>
+          <option value="justify">Justificado</option>
+        </select>
+      </div>
+      <div class="me-style-field">
+        <div class="me-style-label">TAMANHO</div>
+        <select class="me-select" id="me-{{ prefixo }}-tamanho">
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+      </div>
+    </div>
+    <div class="me-style-row" style="margin-top:10px;">
+      <div class="me-toggle-btn" data-toggle-style="me-{{ prefixo }}-negrito"><b>B</b></div>
+      <div class="me-toggle-btn" data-toggle-style="me-{{ prefixo }}-italico"><i>I</i></div>
+    </div>
+    <div class="me-section-note">{{ nota }}</div>
+  </div>
+</div>

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import ProtectedError, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -18,6 +19,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.modelos.forms import (
     CategoriaModeloPecaForm,
+    EstiloDocumentoForm,
     EstiloEscritorioForm,
     ImportarModeloPecaForm,
     ModeloPecaForm,
@@ -39,6 +41,55 @@ def _obter_estilo_escritorio():
 
 def _pode_editar_estilo(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_EDITAR_ESTILO)
+
+
+CAMPOS_ARQUIVO_ESTILO_DOCUMENTO = [
+    "arquivo_referencia",
+    "imagem_cabecalho",
+    "imagem_rodape",
+    "imagem_marca_dagua",
+    "imagem_assinatura",
+]
+
+
+def _arquivos_estilo_documento_atuais(estilo):
+    """Captura os FieldFile atuais antes de vincular o form: `is_valid()`
+    já sobrescreve os atributos de arquivo de `estilo` em memória com os
+    dados novos (via `construct_instance` em `_post_clean`), antes do
+    save — sem este snapshot, `_substituir_arquivos_estilo_documento`
+    apagaria o arquivo recém-enviado em vez do anterior."""
+    return {campo: getattr(estilo, campo) for campo in CAMPOS_ARQUIVO_ESTILO_DOCUMENTO}
+
+
+def _substituir_arquivos_estilo_documento(arquivos_antigos, request):
+    """Remove do storage o arquivo anterior de cada campo para o qual um
+    novo arquivo foi enviado nesta requisição — evita acumular arquivo
+    órfão a cada substituição de imagem/anexo de referência.
+
+    Usa `storage.delete(name)` direto, não `FieldFile.delete()`: este
+    último também faz `setattr(self.instance, campo, None)` — como
+    `arquivo_antigo.instance` é o mesmo objeto `estilo` que o form já
+    mutou para o arquivo novo (via `construct_instance` em
+    `_post_clean`, antes de `is_valid()` retornar), chamar `.delete()`
+    nele apagaria o valor novo já atribuído à instância."""
+    for campo, arquivo_antigo in arquivos_antigos.items():
+        if campo in request.FILES and arquivo_antigo:
+            arquivo_antigo.storage.delete(arquivo_antigo.name)
+
+
+CAMPOS_IMAGEM_SLOT_ESTILO = {
+    "cabecalho": "imagem_cabecalho",
+    "rodape": "imagem_rodape",
+    "marca_dagua": "imagem_marca_dagua",
+    "assinatura": "imagem_assinatura",
+}
+
+
+def _imagens_estilo_urls(estilo):
+    return {
+        slot: reverse("modelos:imagem_estilo_documento", args=[slot]) if getattr(estilo, campo) else None
+        for slot, campo in CAMPOS_IMAGEM_SLOT_ESTILO.items()
+    }
 
 
 def _pode_gerir_categorias(user):
@@ -80,10 +131,17 @@ def lista(request):
     pode_editar_estilo = False
     estilo = None
     form_estilo = None
+    form_estilo_documento = None
+    config_documento = None
+    imagens_estilo_urls = None
     if aba_ativa != "modelos":
         pode_editar_estilo = _pode_editar_estilo(request.user)
         estilo = _obter_estilo_escritorio()
-        form_estilo = EstiloEscritorioForm(instance=estilo) if pode_editar_estilo else None
+        config_documento = estilo.config_documento
+        imagens_estilo_urls = _imagens_estilo_urls(estilo)
+        if pode_editar_estilo:
+            form_estilo = EstiloEscritorioForm(instance=estilo)
+            form_estilo_documento = EstiloDocumentoForm(instance=estilo)
 
     return render(request, "modelos/lista.html", {
         "modelos": modelos,
@@ -96,6 +154,9 @@ def lista(request):
         "pode_editar_estilo": pode_editar_estilo,
         "pode_gerir_categorias": _pode_gerir_categorias(request.user),
         "form_estilo": form_estilo,
+        "form_estilo_documento": form_estilo_documento,
+        "config_documento": config_documento,
+        "imagens_estilo_urls": imagens_estilo_urls,
     })
 
 
@@ -283,7 +344,62 @@ def editar_estilo(request):
         "estilo": estilo,
         "pode_editar_estilo": True,
         "form_estilo": form,
+        "form_estilo_documento": EstiloDocumentoForm(instance=estilo),
+        "config_documento": estilo.config_documento,
+        "imagens_estilo_urls": _imagens_estilo_urls(estilo),
     })
+
+
+@login_required
+def editar_estilo_documento(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_editar_estilo(request.user):
+        raise PermissionDenied
+
+    destino = f"{reverse('modelos:lista')}?aba=estilo"
+
+    if request.method != "POST":
+        return redirect(destino)
+
+    estilo = _obter_estilo_escritorio()
+    arquivos_antigos = _arquivos_estilo_documento_atuais(estilo)
+    form = EstiloDocumentoForm(request.POST, request.FILES, instance=estilo)
+    if form.is_valid():
+        _substituir_arquivos_estilo_documento(arquivos_antigos, request)
+        form.save()
+        return redirect(destino)
+
+    config_documento_atual = form.cleaned_data.get("config_documento", estilo.config_documento)
+    return render(request, "modelos/lista.html", {
+        "modelos": _listar_modelos(""),
+        "aba_ativa": "estilo",
+        "busca": "",
+        "item_ativo": "modelos",
+        "estilo": estilo,
+        "pode_editar_estilo": True,
+        "form_estilo": EstiloEscritorioForm(instance=estilo),
+        "form_estilo_documento": form,
+        "config_documento": config_documento_atual,
+        "imagens_estilo_urls": _imagens_estilo_urls(estilo),
+    })
+
+
+@login_required
+def imagem_estilo_documento(request, slot):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    campo = CAMPOS_IMAGEM_SLOT_ESTILO.get(slot)
+    if campo is None:
+        raise Http404
+
+    estilo = _obter_estilo_escritorio()
+    arquivo = getattr(estilo, campo)
+    if not arquivo:
+        raise Http404
+
+    return FileResponse(arquivo.open("rb"), as_attachment=False)
 
 
 @login_required
