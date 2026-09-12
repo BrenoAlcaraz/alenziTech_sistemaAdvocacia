@@ -42,6 +42,14 @@ storage sem URL pública e são entregues somente por views que carregam o
 objeto pelo `QuerySet` autorizado. Ativos públicos de identidade visual
 são resolvidos pelo domínio/tenant da requisição em rota própria. Não
 servir `MEDIA_ROOT` por `MEDIA_URL`, inclusive em desenvolvimento.
+Excluir o registro que referencia um `FileField` remove também o
+arquivo do storage via signal `post_delete` no próprio app dono do
+model (`apps/<app>/signals.py`, conectado em `AppConfig.ready()` —
+mesmo padrão já usado por `apps/accounts/signals.py`) — cobre exclusão
+direta, cascata e Django Admin, não só uma view específica. Padrão a
+reutilizar em qualquer model novo com `FileField`/`StorageProtegido`
+(referência: `apps/processos/signals.py`, `apps/chat/signals.py`,
+`apps/financeiro/signals.py`).
 
 ## Dependências entre módulos de negócio (direção permitida)
 

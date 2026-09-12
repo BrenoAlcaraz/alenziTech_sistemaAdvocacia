@@ -13,6 +13,7 @@ apps/processos/tests/test_autorizacao.py e o padrão de upload com
 MEDIA_ROOT temporário de apps/chat/tests/test_anexos.py.
 """
 
+import os
 import shutil
 import tempfile
 
@@ -269,6 +270,8 @@ class TestDocumentoFluxoAutorizadoCompleto(DocumentosBase):
 
     def test_excluir_remove_documento(self):
         documento = self._documento(self.processo, autor=self.user)
+        caminho_arquivo = documento.arquivo.path
+        self.assertTrue(os.path.exists(caminho_arquivo))
         r = self.client.post(
             f"/processos/{self.processo.pk}/documentos/{documento.pk}/excluir/",
             HTTP_HOST=self.http_host,
@@ -279,6 +282,7 @@ class TestDocumentoFluxoAutorizadoCompleto(DocumentosBase):
             fetch_redirect_response=False,
         )
         self.assertFalse(Documento.objects.filter(pk=documento.pk).exists())
+        self.assertFalse(os.path.exists(caminho_arquivo))
 
     def test_detalhe_lista_documentos_e_mostra_acoes(self):
         self._documento(self.processo, autor=self.user)
@@ -382,18 +386,23 @@ class TestDocumentoDownloadEscopoDeLeitura(DocumentosBase):
 
 class TestDocumentoExclusaoEmCascata(DocumentosBase):
     """Excluir o Processo remove também seus documentos (on_delete=CASCADE),
-    sem deixar registro órfão no banco."""
+    sem deixar registro órfão no banco nem arquivo órfão no storage —
+    o signal post_delete (apps/processos/signals.py) cobre a cascata,
+    não só a exclusão direta pela view."""
 
     @classmethod
     def get_test_schema_name(cls):
         return "documentos_cascata"
 
-    def test_excluir_processo_remove_documentos(self):
+    def test_excluir_processo_remove_documentos_e_arquivos(self):
         dono = self._user("dono_cascata")
         cliente = self._cliente(responsavel=dono)
         processo = self._processo(responsavel=dono, cliente=cliente)
         documento = self._documento(processo, autor=dono)
+        caminho_arquivo = documento.arquivo.path
+        self.assertTrue(os.path.exists(caminho_arquivo))
 
         processo.delete()
 
         self.assertFalse(Documento.objects.filter(pk=documento.pk).exists())
+        self.assertFalse(os.path.exists(caminho_arquivo))

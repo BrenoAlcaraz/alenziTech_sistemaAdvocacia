@@ -9,7 +9,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Área | Estado | Gap principal |
 |---|---|---|
 | Multitenancy | Feito, testado | — |
-| Storage de arquivo (`MEDIA_ROOT`) | Feito, testado (namespaces por tenant; arquivos protegidos sem URL pública; identidade visual pública resolvida pelo tenant) | — |
+| Storage de arquivo (`MEDIA_ROOT`) | Feito, testado (namespaces por tenant; arquivos protegidos sem URL pública; identidade visual pública resolvida pelo tenant; arquivo removido do storage via signal `post_delete` ao excluir o registro que o referencia — `Documento`, `Mensagem`, `SolicitacaoFinanceira`) | — |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (86 testes) | — |
 | Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas, Financeiro, Agenda, Chat, Modelos e Configurações (`novo_usuario`, `equipes` e sub-rotas, `permissoes`, `papeis` e sub-rotas, `usuario_overrides` — PDR-0019) consultam o kernel; Laboratório (shell sem lógica de negócio) exige módulo `processos` mais a habilitação `processos_usar_laboratorio`; Dashboard consulta o kernel na própria rota (`MODULO_PAINEL`) e em todos os blocos (clientes, processos, tarefas, agenda, financeiro) |
 | Escopo de dados | Parcial | Clientes, Processos, Tarefas, Agenda e Financeiro (`LancamentoFinanceiro`, nível `dados_proprios`/`dados_todos`) filtram `QuerySet` por responsável (padrão em [ARCHITECTURE.md](ARCHITECTURE.md#autorização--padrão-a-reutilizar)); Chat filtra conversa individual/grupo por participação (mesmo padrão de posse, sem nível de escopo no kernel — sala global segue aberta a todo o módulo); Modelos ainda não |
