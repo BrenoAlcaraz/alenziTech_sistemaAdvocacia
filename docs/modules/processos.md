@@ -12,9 +12,12 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
   `processos_editar` e `processos_andamento_adicionar` já são
   habilitações granulares aplicadas (PDR-0017), condicionando
   respectivamente `novo`, `editar` e `adicionar_movimentacao`.
-  `processos_usar_ia` e `processos_usar_laboratorio` continuam sem
-  nenhum ponto de aplicação (PDR-0010, PDR-0008); arquivar, reabrir,
-  apensos e partes seguem regidos apenas pela autorização de módulo.
+  `processos_usar_laboratorio` passou a ter ponto de aplicação — gate
+  do shell em `apps/laboratorio/views.py::index` (módulo `processos`
+  mais a habilitação, mesmo padrão de duas camadas). `processos_usar_ia`
+  continua sem nenhum ponto de aplicação (PDR-0010, PDR-0008); arquivar,
+  reabrir, apensos e partes seguem regidos apenas pela autorização de
+  módulo.
 - Escopo por `Processo.responsavel` (`somente_seus`/`todos`) e
   responsabilidade obrigatória são a direção vigente. Equipe não
   concede acesso nem filtra Processos.
