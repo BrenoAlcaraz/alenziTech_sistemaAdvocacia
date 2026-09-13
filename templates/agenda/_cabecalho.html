@@ -8,3 +8,10 @@
   </div>
   <a href="{% url 'agenda:novo' %}" class="btn-primary">+ Novo compromisso</a>
 </div>
+
+{% if usuario_filtro %}
+<div class="mb-4 px-4 py-2.5 rounded-lg bg-juridico-bege text-sm text-gray-700 flex items-center justify-between">
+  <span>Mostrando a agenda de <strong>{{ usuario_filtro.get_full_name|default:usuario_filtro.username }}</strong></span>
+  <a href="{% url 'agenda:index' %}" class="text-juridico-ouro font-medium hover:underline">Ver a minha →</a>
+</div>
+{% endif %}

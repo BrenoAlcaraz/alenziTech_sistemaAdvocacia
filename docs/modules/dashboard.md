@@ -1,11 +1,11 @@
 # Módulo — Dashboard
 
-Painel com duas abas: "Visão geral do escritório" (`dashboard:painel`) e
-"Análise de dados" (`dashboard:analise`), derivadas de dados reais e
-autorizados — nunca mock ou número fixo (ver [PRODUCT.md](../PRODUCT.md)).
-Arquivo próprio pelo volume de regras de agrupamento/escopo específicas
-do painel — ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos
-mais simples.
+Painel com três abas: "Visão geral do escritório" (`dashboard:painel`),
+"Análise de dados" (`dashboard:analise`) e "Painel do gestor"
+(`dashboard:gestor`), derivadas de dados reais e autorizados — nunca
+mock ou número fixo (ver [PRODUCT.md](../PRODUCT.md)). Arquivo próprio
+pelo volume de regras de agrupamento/escopo específicas do painel — ver
+[PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
 ## Visão geral — painéis derivados de Processos
 
@@ -68,17 +68,62 @@ continua disponível em análise de dados).
   conta `Processo.resultado_sentenca` só quando preenchido (sempre
   manual nesta versão, ver [processos.md](processos.md)).
 
+## Painel do gestor
+
+Visível para Administrador do escritório ou quem tem o módulo `gerir`
+habilitado (`tem_permissao_modulo(user, MODULO_GERIR)`). Apoiado por um
+log de atividade genérico novo, `apps.atividade.LogAtividade`
+(`usuario`, `tipo`, `descricao`, `processo` opcional, `criado_em`) — só
+leitura pela interface, nunca editável/removível. Gravado via
+`apps.atividade.services.registrar_atividade`, chamado explicitamente
+em cada ponto de escrita (nunca por signal genérico de
+`post_save`/`post_delete` — a descrição legível exige o contexto que só
+a view tem no momento da ação).
+
+- **Fase 1 do catálogo de ações** (login + Processos): `login` (via
+  `django.contrib.auth.signals.user_logged_in`); e, em
+  `apps/processos/views.py`, `novo`, `editar`, `arquivar`, `reabrir`,
+  `adicionar_movimentacao`, `adicionar_parte`, `editar_parte`,
+  `adicionar_apenso`, `remover_apenso`, `adicionar_integrante`,
+  `remover_integrante`, `adicionar_documento`, `excluir_documento`.
+  Outros módulos (Financeiro, Tarefas, Agenda, Chat, Modelos) entram
+  depois, sob demanda, reaproveitando o mesmo modelo/helper.
+- **Lista de usuários**: todos os usuários ativos do tenant, com
+  contagem de `LogAtividade` do dia (fuso local — zera à meia-noite).
+- **Detalhe de atividade do usuário**: timeline do dia, ordem
+  cronológica. Atalhos:
+  - "Ir para Habilitações"/"Ir para Permissões" → ambos apontam para
+    `configuracoes:usuario_overrides` (já cobre os dois).
+  - "Grupos" → `configuracoes:usuario_equipes` (novo): equipes ativas
+    do usuário, com toggle de adicionar/remover — mesmo modelo
+    `MembroEquipe` de `equipe_membros`, só que pela perspectiva do
+    usuário.
+  - "Habilitar em processos" → `configuracoes:usuario_processos_habilitados`
+    (novo): filtro por Cliente/Matéria/Data/Busca sobre a lista de
+    processos, toggle persistindo em `Processo.integrantes_habilitados`
+    — cada linha grava na hora (sem checklist com "Salvar" ao final),
+    então trocar o filtro nunca perde uma seleção ainda não salva.
+    Mesma habilitação de `adicionar_integrante`/`remover_integrante`
+    (`gerir_habilitar_usuario_processos`), e gera o mesmo
+    `LogAtividade` que esses dois pontos de entrada.
+  - "Ir para Tarefas"/"Ir para Agenda" → `tarefas:quadro?usuario=<id>`
+    e `agenda:index?usuario=<id>` (novo suporte a esse parâmetro): só
+    tem efeito para quem tem `gerir`/é Administrador — para qualquer
+    outro usuário o parâmetro é ignorado (nunca vira brecha de escopo).
+
 ## Fora de escopo
 
 - Painel "Intimações" — depende de e-mail de intimações, que não existe
   no sistema.
-- Aba "Painel do gestor" — depende de log de atividade/auditoria
-  genérico, que não existe em nenhum módulo hoje. Instrumentar login e
-  ações em todos os módulos é uma feature própria, maior que este
-  Dashboard; exige spec/PDR dedicada antes de iniciar (ver
-  [STATUS.md](../STATUS.md#dashboard)).
 - Ranking/avaliação automática de desempenho, predição por IA, analytics
   preditivo (fora de escopo do módulo, ver [PRODUCT.md](../PRODUCT.md)).
+- Retenção/expurgo automático do `LogAtividade` — nenhuma política de
+  limpeza nesta versão; revisitar junto com o ciclo de vida de tenant
+  (OPEN-002 em [STATUS.md](../STATUS.md)) e possíveis obrigações de
+  LGPD antes do volume crescer.
+- Auditoria de segurança formal (trilha imutável, hash-chain,
+  exportação para compliance) — o `LogAtividade` serve à gestão de
+  equipe, não a um requisito regulatório específico ainda.
 
 ## Referências
 

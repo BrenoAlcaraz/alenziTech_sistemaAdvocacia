@@ -33,6 +33,7 @@ TENANT_APPS = [
     "django.contrib.auth",
     # Apps de cada escritório
     "apps.accounts",
+    "apps.atividade",
     "apps.dashboard",
     "apps.clientes",
     "apps.processos",

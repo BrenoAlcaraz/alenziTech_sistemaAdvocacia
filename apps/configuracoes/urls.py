@@ -22,4 +22,10 @@ urlpatterns = [
     path("configuracoes/papeis/<int:pk>/usuarios/<int:usuario_papel_pk>/remover/", views.remover_usuario_papel, name="remover_usuario_papel"),
     path("configuracoes/permissoes/", views.permissoes, name="permissoes"),
     path("configuracoes/usuarios/<int:user_pk>/permissoes/", views.usuario_overrides, name="usuario_overrides"),
+    path("configuracoes/usuarios/<int:user_pk>/equipes/", views.usuario_equipes, name="usuario_equipes"),
+    path(
+        "configuracoes/usuarios/<int:user_pk>/processos/",
+        views.usuario_processos_habilitados,
+        name="usuario_processos_habilitados",
+    ),
 ]

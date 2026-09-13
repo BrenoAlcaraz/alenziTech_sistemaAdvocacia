@@ -1,5 +1,7 @@
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -37,11 +39,15 @@ from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_EQUIPE,
     HAB_GERIR_CRIAR_USUARIO,
     HAB_GERIR_HABILITAR_TERCEIROS,
+    HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
     ITENS_POR_MODULO,
     MODULO_GERIR,
     NOMES_ITENS,
     TIPOS_CONTA_CONFIGURAVEIS,
 )
+from apps.atividade.services import registrar_atividade
+from apps.clientes.models import Cliente
+from apps.processos.models import Processo
 from apps.processos.services import (
     transferir_processos_de_usuarios_sem_acesso,
     usuarios_com_acesso_processos,
@@ -65,6 +71,10 @@ def _pode_gerenciar_equipes(user):
 
 def _pode_gerenciar_permissoes(user):
     return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_HABILITAR_TERCEIROS)
+
+
+def _pode_habilitar_usuario_processos(user):
+    return tem_habilitacao(user, MODULO_GERIR, HAB_GERIR_HABILITAR_USUARIO_PROCESSOS)
 
 
 @login_required
@@ -745,6 +755,117 @@ def usuario_overrides(request, user_pk):
             "usuario_alvo": usuario_alvo,
             "is_admin_alvo": is_admin_alvo,
             "modulos_contexto": modulos_contexto,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@login_required
+def usuario_equipes(request, user_pk):
+    """Equipes de um usuário específico — atalho "Grupos" do Painel do
+    gestor (specs/dashboard-painel-do-gestor.md). Mesma autorização e
+    mesmo modelo (MembroEquipe) já usados em `equipe_membros`, só que
+    pela perspectiva do usuário em vez da equipe."""
+    if not _pode_gerenciar_equipes(request.user):
+        raise PermissionDenied
+
+    usuario_alvo = get_object_or_404(User, pk=user_pk)
+
+    if request.method == "POST":
+        equipe = get_object_or_404(Equipe, pk=request.POST.get("equipe_id"))
+        if request.POST.get("acao") == "remover":
+            MembroEquipe.objects.filter(usuario=usuario_alvo, equipe=equipe).delete()
+        else:
+            MembroEquipe.objects.update_or_create(
+                usuario=usuario_alvo, equipe=equipe, defaults={"ativo": True},
+            )
+        return redirect("configuracoes:usuario_equipes", user_pk=usuario_alvo.pk)
+
+    ids_membro = set(
+        MembroEquipe.objects.filter(usuario=usuario_alvo, ativo=True)
+        .values_list("equipe_id", flat=True)
+    )
+    equipes_contexto = [
+        {"equipe": equipe, "membro": equipe.pk in ids_membro}
+        for equipe in Equipe.objects.filter(ativo=True).order_by("nome")
+    ]
+
+    return render(
+        request,
+        "configuracoes/usuario_equipes.html",
+        {
+            "usuario_alvo": usuario_alvo,
+            "equipes_contexto": equipes_contexto,
+            "item_ativo": "configuracoes",
+        },
+    )
+
+
+@login_required
+def usuario_processos_habilitados(request, user_pk):
+    """Habilitar um usuário específico em processos — atalho "Habilitar
+    em processos" do Painel do gestor
+    (specs/dashboard-painel-do-gestor.md). Cada linha grava na hora
+    (toggle), sem checklist com "Salvar" ao final — assim trocar o
+    filtro nunca perde uma seleção ainda não salva."""
+    if not _pode_habilitar_usuario_processos(request.user):
+        raise PermissionDenied
+
+    usuario_alvo = get_object_or_404(User, pk=user_pk)
+
+    if request.method == "POST":
+        processo = get_object_or_404(Processo, pk=request.POST.get("processo_id"))
+        if request.POST.get("acao") == "remover":
+            processo.integrantes_habilitados.remove(usuario_alvo)
+            registrar_atividade(
+                request.user, "processo_integrante_removido",
+                f"Removeu a habilitação de {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo.titulo}",
+                processo=processo,
+            )
+        else:
+            processo.integrantes_habilitados.add(usuario_alvo)
+            registrar_atividade(
+                request.user, "processo_integrante_adicionado",
+                f"Habilitou {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo.titulo}",
+                processo=processo,
+            )
+        querystring = request.GET.urlencode()
+        url = reverse("configuracoes:usuario_processos_habilitados", args=[usuario_alvo.pk])
+        return redirect(f"{url}?{querystring}" if querystring else url)
+
+    cliente_id = request.GET.get("cliente") or ""
+    materia = request.GET.get("materia") or ""
+    data = request.GET.get("data") or ""
+    busca = request.GET.get("busca") or ""
+
+    processos = Processo.objects.exclude(status="arquivado").select_related("cliente")
+    if cliente_id:
+        processos = processos.filter(cliente_id=cliente_id)
+    if materia:
+        processos = processos.filter(area_direito=materia)
+    if data:
+        processos = processos.filter(data_distribuicao=data)
+    if busca:
+        processos = processos.filter(Q(titulo__icontains=busca) | Q(numero__icontains=busca))
+    processos = processos.order_by("titulo")
+
+    ids_habilitados = set(
+        usuario_alvo.processos_integrante_habilitado.values_list("pk", flat=True)
+    )
+
+    return render(
+        request,
+        "configuracoes/usuario_processos_habilitados.html",
+        {
+            "usuario_alvo": usuario_alvo,
+            "processos": processos,
+            "ids_habilitados": ids_habilitados,
+            "clientes_opcoes": Cliente.objects.filter(ativo=True).order_by("nome_razao_social"),
+            "materias_opcoes": Processo.AREAS_CHOICES,
+            "cliente_id": cliente_id,
+            "materia": materia,
+            "data": data,
+            "busca": busca,
             "item_ativo": "configuracoes",
         },
     )
