@@ -28,7 +28,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.clientes.models import Cliente
-from apps.processos.models import MovimentacaoProcessual, Processo
+from apps.processos.models import Intimacao, MovimentacaoProcessual, Processo
 from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
 from apps.tarefas.models import Tarefa
 from apps.agenda.models import Compromisso, ParticipanteCompromisso
@@ -260,11 +260,15 @@ def painel(request):
     movimentacao = None
     paralisados = None
     prazos = None
+    intimacoes = None
     if acesso_processos:
         processos_escopo = _processos_escopo_ativos(request.user, escopo_processos)
         movimentacao = _movimentacao_processual(processos_escopo)
         paralisados = _processos_paralisados(processos_escopo, hoje)
         prazos = _prazos_a_vencer(processos_escopo, hoje)
+        intimacoes = Intimacao.objects.filter(
+            status="pendente", processo__in=processos_escopo
+        ).select_related("processo").order_by("prazo_manifestacao")
 
     assinatura = getattr(request.tenant, "assinatura", None)
     plano_nome = assinatura.plano.nome if assinatura else None
@@ -278,6 +282,7 @@ def painel(request):
         "movimentacao": movimentacao,
         "paralisados": paralisados,
         "prazos": prazos,
+        "intimacoes": intimacoes,
         "acesso_clientes": acesso_clientes,
         "acesso_processos": acesso_processos,
         "acesso_tarefas": acesso_tarefas,

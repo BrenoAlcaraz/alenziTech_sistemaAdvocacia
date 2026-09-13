@@ -68,10 +68,34 @@ continua disponível em análise de dados).
   conta `Processo.resultado_sentenca` só quando preenchido (sempre
   manual nesta versão, ver [processos.md](processos.md)).
 
+## Intimações
+
+Painel na Visão geral, visível junto com os demais painéis derivados de
+Processos (mesma condição `acesso_processos`).
+
+- Modelo `Intimacao` (`apps.processos.models`): `processo` (FK,
+  obrigatório), `motivo`, `prazo_manifestacao`, `status`
+  (`pendente`/`manifestada`), `origem` (`manual`/`email` — todo
+  registro nesta versão nasce `manual`), `criado_por`, `criado_em`.
+- **Criação manual** (`processos:nova_intimacao`): processo limitado ao
+  escopo de mutação de quem cria (`_processos_mutaveis`, mesma regra
+  dos demais formulários de Processo) — não é possível vincular a um
+  processo fora desse escopo.
+- Painel mostra só `status="pendente"`, dentro do mesmo escopo
+  `somente_seus`/`todos` de Processos (baseado no processo vinculado),
+  ordenado por `prazo_manifestacao`. Marcar como manifestada
+  (`processos:manifestar_intimacao`) remove do painel imediatamente.
+- **Sem leitura automática de e-mail nesta versão** — decisão e ticket
+  de implementação (OAuth vs IMAP) ficam para quando essa integração
+  for priorizada. Por isso a tela de "cadastro de e-mail de
+  intimações" em Configurações também não foi construída.
+- **Pendência futura explícita**: quando o sistema tiver um pipeline de
+  IA/LLM em produção, revisitar para interpretar o e-mail e sugerir
+  processo/prazo/motivo automaticamente — sempre com revisão humana
+  antes de confirmar, nunca criando a Intimação direto sem confirmação.
+
 ## Fora de escopo
 
-- Painel "Intimações" — depende de e-mail de intimações, que não existe
-  no sistema.
 - Aba "Painel do gestor" — depende de log de atividade/auditoria
   genérico, que não existe em nenhum módulo hoje. Instrumentar login e
   ações em todos os módulos é uma feature própria, maior que este

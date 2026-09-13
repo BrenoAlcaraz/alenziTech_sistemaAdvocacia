@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import (
     Documento,
+    Intimacao,
     MovimentacaoProcessual,
     ParteProcesso,
     Processo,
@@ -254,3 +255,25 @@ class MovimentacaoProcessualForm(forms.ModelForm):
                 "placeholder": "Descreva o andamento, decisão ou prazo...",
             }),
         }
+
+
+class IntimacaoForm(forms.ModelForm):
+    class Meta:
+        model = Intimacao
+        fields = ["processo", "motivo", "prazo_manifestacao"]
+        widgets = {
+            "processo": forms.Select(attrs={"class": "select"}),
+            "motivo": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Réplica à contestação",
+            }),
+            "prazo_manifestacao": forms.DateInput(attrs={
+                "class": "input",
+                "type": "date",
+            }, format="%Y-%m-%d"),
+        }
+
+    def __init__(self, *args, processos_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["processo"].queryset = processos_queryset
+        self.fields["processo"].empty_label = "Selecionar processo..."

@@ -53,4 +53,10 @@ urlpatterns = [
         views.baixar_documento,
         name="baixar_documento",
     ),
+    path("processos/intimacoes/nova/", views.nova_intimacao, name="nova_intimacao"),
+    path(
+        "processos/intimacoes/<int:pk>/manifestar/",
+        views.manifestar_intimacao,
+        name="manifestar_intimacao",
+    ),
 ]
