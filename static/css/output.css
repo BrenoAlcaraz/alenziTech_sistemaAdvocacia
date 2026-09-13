@@ -1022,6 +1022,11 @@ body {
   grid-column: span 2 / span 2;
 }
 
+.-mx-2 {
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+}
+
 .mx-auto {
   margin-left: auto;
   margin-right: auto;

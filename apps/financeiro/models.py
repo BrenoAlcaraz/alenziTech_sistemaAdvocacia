@@ -147,8 +147,14 @@ class LancamentoFinanceiro(models.Model):
 
 
 class CustaJudicial(models.Model):
+    # "adiantamento" e "paga_pelo_cliente" são custas de fato (o processo
+    # exigiu o pagamento); "deposito_cliente" é crédito adiantado pelo
+    # cliente, não uma custa. Só "adiantamento" e "deposito_cliente"
+    # entram na fórmula do saldo (PDR-0005) — "paga_pelo_cliente" fica
+    # só no histórico, sem afetar o saldo.
     TIPO_CHOICES = [
         ("adiantamento", "Adiantado pelo escritório"),
+        ("paga_pelo_cliente", "Paga diretamente pelo cliente"),
         ("deposito_cliente", "Depósito do cliente"),
     ]
 

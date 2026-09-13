@@ -17,6 +17,7 @@
   <p class="text-sm text-gray-700">
     Quando o escritório <strong>adianta</strong> uma custa, ela vira valor <strong>a cobrar</strong> do cliente.
     Quando o cliente <strong>deposita</strong> antecipadamente, fica como <strong>crédito</strong>, abatido conforme o escritório paga as custas dele.
+    Uma custa <strong>paga diretamente pelo cliente</strong> só fica registrada no histórico — não altera o saldo.
   </p>
 </div>
 
@@ -25,12 +26,18 @@
   <h2 class="font-semibold text-gray-900 mb-4">Saldo por cliente</h2>
   <div class="flex flex-col divide-y divide-gray-100">
     {% for s in saldo_clientes %}
-      <div class="flex items-center justify-between py-3">
+      <a href="{% url 'financeiro:extrato_custas_cliente' s.cliente_id %}"
+         class="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded-lg">
         <span class="text-sm font-medium text-gray-800">{{ s.cliente }}</span>
-        <span class="text-sm font-semibold {% if s.credito %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
-          {{ s.saldo }}
+        <span class="flex items-center gap-2">
+          <span class="text-sm font-semibold {% if s.credito %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
+            {{ s.saldo }}
+          </span>
+          <svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </span>
-      </div>
+      </a>
     {% empty %}
       <p class="text-sm text-gray-400 py-3">Nenhum saldo registrado.</p>
     {% endfor %}
@@ -47,14 +54,19 @@
   {% for c in custas %}
     <div class="card px-5 py-4 flex items-center gap-4">
       <div class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-        <svg class="w-4 h-4 {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          {% if c.tipo == "adiantamento" %}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
-          {% else %}
+        {% if c.tipo == "deposito_cliente" %}
+          <svg class="w-4 h-4 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-          {% endif %}
-        </svg>
+          </svg>
+        {% elif c.tipo == "adiantamento" %}
+          <svg class="w-4 h-4 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+          </svg>
+        {% else %}
+          <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        {% endif %}
       </div>
       <div class="flex-1 min-w-0">
         <p class="font-medium text-gray-900">{{ c.descricao }}</p>
@@ -68,7 +80,10 @@
         {% endif %}
       </div>
       <div class="flex items-center gap-3">
-        <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}">
+        <p class="font-semibold
+                  {% if c.tipo == 'deposito_cliente' %}text-juridico-verde
+                  {% elif c.tipo == 'adiantamento' %}text-juridico-vermelho
+                  {% else %}text-gray-500{% endif %}">
           {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|floatformat:2 }}
         </p>
       </div>

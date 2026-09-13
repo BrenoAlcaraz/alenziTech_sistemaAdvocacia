@@ -23,6 +23,11 @@ urlpatterns = [
     path("financeiro/lancamentos/<int:pk>/anexar/", views.anexar_lancamento, name="anexar_lancamento"),
     path("financeiro/custas/nova/", views.form_custa, name="form_custa"),
     path("financeiro/custas/<int:pk>/anexo/", views.anexo_custa, name="anexo_custa"),
+    path(
+        "financeiro/custas/cliente/<int:cliente_id>/",
+        views.extrato_custas_cliente,
+        name="extrato_custas_cliente",
+    ),
     path("financeiro/honorarios/", views.honorarios_lista, name="honorarios_lista"),
     path("financeiro/honorarios/novo/", views.form_honorario, name="form_honorario"),
     path("financeiro/honorarios/<int:pk>/editar/", views.editar_honorario, name="editar_honorario"),

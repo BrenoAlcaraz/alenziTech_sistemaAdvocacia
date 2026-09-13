@@ -20,6 +20,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
+from apps.clientes.models import Cliente
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente
 from apps.saas_tenants.storage import nome_do_arquivo
@@ -290,6 +291,16 @@ def grafico(request):
     })
 
 
+# Efeito de cada tipo de CustaJudicial sobre o saldo do cliente
+# (PDR-0005): "paga_pelo_cliente" fica de fora — aparece no histórico,
+# não entra na fórmula (não é crédito nem custa paga pelo escritório).
+_EFEITO_SALDO_POR_TIPO = {"deposito_cliente": 1, "adiantamento": -1}
+
+
+def _saldo_liquido_custas(custas):
+    return sum((_EFEITO_SALDO_POR_TIPO.get(c.tipo, 0) * c.valor for c in custas), Decimal("0"))
+
+
 @login_required
 def custas(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
@@ -299,33 +310,57 @@ def custas(request):
         CustaJudicial.objects.select_related("cliente", "processo").order_by("-data", "-criado_em")
     )
 
-    saldos = defaultdict(lambda: Decimal("0"))
+    por_cliente = defaultdict(list)
     nomes_clientes = {}
     for c in custas_qs:
-        if c.cliente_id:
-            if c.tipo == "deposito_cliente":
-                saldos[c.cliente_id] += c.valor
-            else:
-                saldos[c.cliente_id] -= c.valor
-            nomes_clientes[c.cliente_id] = str(c.cliente)
+        if not c.cliente_id:
+            continue
+        nomes_clientes[c.cliente_id] = str(c.cliente)
+        por_cliente[c.cliente_id].append(c)
 
     saldo_clientes = []
     for cid in sorted(nomes_clientes, key=lambda k: nomes_clientes[k]):
-        saldo = saldos[cid]
+        saldo = _saldo_liquido_custas(por_cliente[cid])
+        credito = saldo >= 0
         if saldo == 0:
-            continue
-        credito = saldo > 0
-        abs_saldo = abs(saldo)
-        prefixo = "Crédito: " if credito else "A cobrar: "
+            rotulo_saldo = "Sem saldo pendente"
+        else:
+            prefixo = "Crédito: " if credito else "A cobrar: "
+            rotulo_saldo = prefixo + _formatar_moeda(abs(saldo))
         saldo_clientes.append({
+            "cliente_id": cid,
             "cliente": nomes_clientes[cid],
-            "saldo": prefixo + _formatar_moeda(abs_saldo),
+            "saldo": rotulo_saldo,
             "credito": credito,
         })
 
     return render(request, "financeiro/custas.html", {
         "custas": custas_qs,
         "saldo_clientes": saldo_clientes,
+        "aba_ativa": "custas",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
+def extrato_custas_cliente(request, cliente_id):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    custas_cliente = list(
+        CustaJudicial.objects.filter(cliente=cliente).select_related("processo").order_by("-data", "-criado_em")
+    )
+    lancamentos = [c for c in custas_cliente if c.tipo in ("adiantamento", "paga_pelo_cliente")]
+    creditos = [c for c in custas_cliente if c.tipo == "deposito_cliente"]
+    saldo = _saldo_liquido_custas(custas_cliente)
+
+    return render(request, "financeiro/extrato_custas_cliente.html", {
+        "cliente": cliente,
+        "lancamentos": lancamentos,
+        "creditos": creditos,
+        "saldo": _formatar_saldo(saldo),
+        "saldo_positivo": saldo >= 0,
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
@@ -512,10 +547,15 @@ def form_custa(request):
     if request.method == "POST":
         form = CustaJudicialForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            custa = form.save()
+            if custa.cliente_id:
+                return redirect("financeiro:extrato_custas_cliente", cliente_id=custa.cliente_id)
             return redirect("financeiro:custas")
     else:
-        form = CustaJudicialForm(initial={"data": timezone.localdate()})
+        initial = {"data": timezone.localdate()}
+        if request.GET.get("cliente"):
+            initial["cliente"] = request.GET["cliente"]
+        form = CustaJudicialForm(initial=initial)
 
     return render(request, "financeiro/form_custa.html", {
         "form": form,
