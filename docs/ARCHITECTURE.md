@@ -212,6 +212,29 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   customizado do app). Colocar a mesma checagem só no `clean()` do
   form deixaria o Admin descoberto.
 
+## Campos condicionados a um `<select>` — padrão a reutilizar
+
+Quando um bloco do formulário só faz sentido para certos valores de um
+`<select>` (hoje: classificação Única/Parcelado/Recorrente e duração
+Quantidade/Data final/Indeterminado em `LancamentoFinanceiroForm`,
+`apps/financeiro/forms.py`; template `form_lancamento.html`):
+
+- O `<select>` leva `data-toggle-select="<grupo>"` no widget
+  (`forms.Select(attrs={"data-toggle-select": "..."})`); cada bloco
+  condicional leva `data-toggle-panel="<grupo>"
+  data-toggle-values="valor1,valor2"` e a classe `hidden` por padrão.
+- O JS genérico em `static/js/main.js` (seção "Campos condicionados a
+  um `<select>`") mostra/esconde cada painel do grupo conforme o valor
+  atual do select, tanto no carregamento quanto em `change` — nenhuma
+  lógica nova por formulário, só os atributos `data-*` no template.
+- Pode aninhar grupos independentes na mesma tela (ex.: duração dentro
+  de recorrente) — cada `<select>` só enxerga os painéis do seu próprio
+  `data-toggle-select`.
+- **Validação no backend é sempre obrigatória**, independente do JS —
+  mora no `clean()` do form (`LancamentoFinanceiroForm.clean()`),
+  reaplicada mesmo se o campo escondido chegar preenchido via POST
+  manual.
+
 ## Editor de texto embutido (contenteditable) — padrão a reutilizar
 
 Usado nas folhas estilo Word de `apps/modelos` (`templates/modelos/
