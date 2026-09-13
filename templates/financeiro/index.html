@@ -245,6 +245,11 @@
           {# Linha 2: metadados #}
           <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
             <span>{{ l.get_categoria_display }}</span>
+            {% if l.classificacao == "parcelado" %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">PARCELADO</span>
+            {% elif l.classificacao == "recorrente" %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">RECORRENTE · {{ l.get_periodicidade_display|upper }}</span>
+            {% endif %}
             <span>Venc. {{ l.data_vencimento|date:"d/m/Y" }}</span>
             {% if l.data_pagamento %}
               <span>Pago em {{ l.data_pagamento|date:"d/m/Y" }}</span>
@@ -281,6 +286,16 @@
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next_url }}">
                 <button type="submit" class="text-xs text-amber-600 hover:text-amber-800 hover:underline">Reabrir</button>
+              </form>
+            {% endif %}
+            {% if l.classificacao != "unica" %}
+              <span class="text-gray-200 text-xs">|</span>
+              <form method="post" action="{% url 'financeiro:cancelar_recorrencia' l.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+                <button type="submit"
+                        onclick="return confirm('As ocorrências futuras ainda pendentes desta recorrência/parcelamento serão canceladas. Ocorrências já pagas, vencidas ou canceladas não são afetadas. Continuar?')"
+                        class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar recorrência</button>
               </form>
             {% endif %}
           </div>

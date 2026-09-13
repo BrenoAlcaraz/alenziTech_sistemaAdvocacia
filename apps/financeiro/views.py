@@ -32,6 +32,7 @@ from .forms import (
     SolicitacaoFinanceiraForm,
 )
 from .models import CustaJudicial, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
+from .services import cancelar_ocorrencias_futuras, gerar_ocorrencias
 
 
 def _redirect_seguro(request):
@@ -290,6 +291,7 @@ def form_lancamento(request):
             if lancamento.processo and not lancamento.cliente:
                 lancamento.cliente = lancamento.processo.cliente
             lancamento.save()
+            gerar_ocorrencias(lancamento)
             return redirect("financeiro:index")
     else:
         form = LancamentoFinanceiroForm(initial={"responsavel": request.user})
@@ -318,6 +320,7 @@ def editar_lancamento(request, pk):
             if lancamento.processo and not lancamento.cliente:
                 lancamento.cliente = lancamento.processo.cliente
             lancamento.save()
+            gerar_ocorrencias(lancamento)
             return redirect("financeiro:index")
     else:
         form = LancamentoFinanceiroForm(instance=lancamento)
@@ -353,6 +356,20 @@ def cancelar_lancamento(request, pk):
     if request.method == "POST":
         lancamento.status = "cancelado"
         lancamento.save(update_fields=["status"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def cancelar_recorrencia(request, pk):
+    """Cancela as ocorrências futuras (pendentes, não vencidas) do
+    parcelamento/recorrência de `lancamento` — sem afetar ocorrências já
+    pagas, canceladas ou vencidas (PDR-0021)."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if request.method == "POST":
+        cancelar_ocorrencias_futuras(lancamento)
     return _redirect_seguro(request)
 
 

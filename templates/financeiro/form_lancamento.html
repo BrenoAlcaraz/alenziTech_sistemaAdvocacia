@@ -128,6 +128,57 @@
 
       </div>
 
+      {# Classificação: Única / Parcelado / Recorrente (PDR-0021) #}
+      <div>
+        <label class="label">{{ form.classificacao.label }}</label>
+        {{ form.classificacao }}
+        {% if form.classificacao.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.classificacao.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">
+        <label class="label">{{ form.numero_parcelas.label }}</label>
+        {{ form.numero_parcelas }}
+        {% if form.numero_parcelas.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
+        {% endif %}
+        <p class="text-xs text-gray-400 mt-1">Parcelas mensais a partir da data de vencimento acima.</p>
+      </div>
+
+      <div data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label">{{ form.periodicidade.label }}</label>
+            {{ form.periodicidade }}
+            {% if form.periodicidade.errors %}
+              <p class="text-xs text-red-500 mt-1">{{ form.periodicidade.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="label">{{ form.duracao_tipo.label }}</label>
+            {{ form.duracao_tipo }}
+            {% if form.duracao_tipo.errors %}
+              <p class="text-xs text-red-500 mt-1">{{ form.duracao_tipo.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <div data-toggle-panel="duracao_tipo" data-toggle-values="quantidade" class="hidden">
+          <label class="label">{{ form.duracao_quantidade.label }}</label>
+          {{ form.duracao_quantidade }}
+          {% if form.duracao_quantidade.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.duracao_quantidade.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div data-toggle-panel="duracao_tipo" data-toggle-values="data_final" class="hidden">
+          <label class="label">{{ form.duracao_data_final.label }}</label>
+          {{ form.duracao_data_final }}
+          {% if form.duracao_data_final.errors %}
+            <p class="text-xs text-red-500 mt-1">{{ form.duracao_data_final.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
       {# Observações #}
       <div>
         <label class="label">Observações <span class="text-gray-400 font-normal">(opcional)</span></label>

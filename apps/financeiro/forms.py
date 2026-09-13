@@ -41,6 +41,12 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "processo",
             "responsavel",
             "observacoes",
+            "classificacao",
+            "periodicidade",
+            "numero_parcelas",
+            "duracao_tipo",
+            "duracao_quantidade",
+            "duracao_data_final",
         ]
         widgets = {
             "tipo":            forms.Select(attrs={"class": "select"}),
@@ -55,6 +61,19 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "processo":        forms.Select(attrs={"class": "select"}),
             "responsavel":     forms.Select(attrs={"class": "select"}),
             "observacoes":     forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
+            "classificacao":   forms.Select(attrs={"class": "select", "data-toggle-select": "classificacao"}),
+            "periodicidade":   forms.Select(attrs={"class": "select"}),
+            "numero_parcelas": forms.NumberInput(attrs={"class": "input", "min": "2"}),
+            "duracao_tipo":    forms.Select(attrs={"class": "select", "data-toggle-select": "duracao_tipo"}),
+            "duracao_quantidade": forms.NumberInput(attrs={"class": "input", "min": "1"}),
+            "duracao_data_final": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+        }
+        labels = {
+            "classificacao": "Classificação",
+            "numero_parcelas": "Quantidade de parcelas",
+            "duracao_tipo": "Duração da recorrência",
+            "duracao_quantidade": "Quantidade de ocorrências",
+            "duracao_data_final": "Data final",
         }
 
     def __init__(self, *args, **kwargs):
@@ -79,6 +98,14 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["forma_pagamento"].required = False
         self.fields["observacoes"].required = False
 
+        self.fields["classificacao"].required = False
+        self.fields["periodicidade"].required = False
+        self.fields["numero_parcelas"].required = False
+        self.fields["duracao_tipo"].required = False
+        self.fields["duracao_quantidade"].required = False
+        self.fields["duracao_data_final"].required = False
+        self.fields["duracao_data_final"].input_formats = ["%Y-%m-%d"]
+
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data.get("status")
@@ -86,6 +113,36 @@ class LancamentoFinanceiroForm(forms.ModelForm):
 
         if status == "pago" and not data_pagamento:
             self.add_error("data_pagamento", "Informe a data de pagamento para lançamentos pagos.")
+
+        classificacao = cleaned_data.get("classificacao") or "unica"
+        cleaned_data["classificacao"] = classificacao
+        eh_ocorrencia_gerada = bool(self.instance.lancamento_origem_id)
+        if eh_ocorrencia_gerada:
+            # Ocorrência já gerada por uma recorrência/parcelamento:
+            # classificacao/periodicidade são só informativas aqui, não
+            # exigem parcelas/duração de novo (isso vive na origem).
+            return cleaned_data
+
+        if classificacao == "parcelado":
+            numero_parcelas = cleaned_data.get("numero_parcelas")
+            if not numero_parcelas or numero_parcelas < 2:
+                self.add_error("numero_parcelas", "Informe ao menos 2 parcelas.")
+        elif classificacao == "recorrente":
+            periodicidade = cleaned_data.get("periodicidade")
+            if periodicidade not in dict(self.instance.PERIODICIDADE_CHOICES):
+                self.add_error("periodicidade", "Selecione mensal ou anual.")
+            duracao_tipo = cleaned_data.get("duracao_tipo")
+            if duracao_tipo == "quantidade" and not cleaned_data.get("duracao_quantidade"):
+                self.add_error("duracao_quantidade", "Informe a quantidade de ocorrências.")
+            elif duracao_tipo == "data_final":
+                data_final = cleaned_data.get("duracao_data_final")
+                data_venc = cleaned_data.get("data_vencimento")
+                if not data_final:
+                    self.add_error("duracao_data_final", "Informe a data final.")
+                elif data_venc and data_final <= data_venc:
+                    self.add_error("duracao_data_final", "A data final deve ser depois do primeiro vencimento.")
+            elif duracao_tipo not in dict(self.instance.DURACAO_TIPO_CHOICES):
+                self.add_error("duracao_tipo", "Selecione a duração da recorrência.")
 
         return cleaned_data
 

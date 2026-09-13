@@ -63,6 +63,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Campos condicionados a um <select> (ex: classificação Única/Recorrente) ──
+  // <select data-toggle-select="grupo"> mostra/esconde <... data-toggle-panel="grupo"
+  // data-toggle-values="valor1,valor2"> conforme o valor atual do select.
+  document.querySelectorAll("[data-toggle-select]").forEach((select) => {
+    const grupo = select.dataset.toggleSelect;
+    const atualizar = () => {
+      document.querySelectorAll(`[data-toggle-panel="${grupo}"]`).forEach((panel) => {
+        const valores = (panel.dataset.toggleValues || "").split(",");
+        panel.classList.toggle("hidden", !valores.includes(select.value));
+      });
+    };
+    select.addEventListener("change", atualizar);
+    atualizar();
+  });
+
   // ── Filtro de Processo por Cliente ──────────────────────────────────────────
   // O campo Processo (marcado com data-processos-url) acompanha o Cliente
   // (marcado com data-cliente-filtro) do mesmo <form>, sem recarregar a página.

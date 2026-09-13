@@ -24,6 +24,26 @@ class LancamentoFinanceiro(models.Model):
         ("cancelado", "Cancelado"),
     ]
 
+    # Classificação e periodicidade da recorrência (PDR-0021) — conjunto
+    # fechado: parcelado é sempre mensal entre parcelas; recorrente aceita
+    # só mensal ou anual.
+    CLASSIFICACAO_CHOICES = [
+        ("unica", "Única"),
+        ("parcelado", "Parcelado"),
+        ("recorrente", "Recorrente"),
+    ]
+
+    PERIODICIDADE_CHOICES = [
+        ("mensal", "Mensal"),
+        ("anual", "Anual"),
+    ]
+
+    DURACAO_TIPO_CHOICES = [
+        ("quantidade", "Quantidade de ocorrências"),
+        ("data_final", "Data final"),
+        ("indeterminado", "Indeterminado"),
+    ]
+
     CATEGORIA_CHOICES = [
         ("honorario", "Honorário"),
         ("exito", "Honorário de Êxito"),
@@ -64,6 +84,16 @@ class LancamentoFinanceiro(models.Model):
     responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    classificacao = models.CharField(max_length=12, choices=CLASSIFICACAO_CHOICES, default="unica")
+    periodicidade = models.CharField(max_length=10, choices=PERIODICIDADE_CHOICES, blank=True)
+    numero_parcelas = models.PositiveSmallIntegerField(null=True, blank=True)
+    duracao_tipo = models.CharField(max_length=15, choices=DURACAO_TIPO_CHOICES, blank=True)
+    duracao_quantidade = models.PositiveSmallIntegerField(null=True, blank=True)
+    duracao_data_final = models.DateField(null=True, blank=True)
+    lancamento_origem = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="ocorrencias",
+    )
+
     class Meta:
         verbose_name = "Lançamento Financeiro"
         verbose_name_plural = "Lançamentos Financeiros"
@@ -75,6 +105,31 @@ class LancamentoFinanceiro(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
+        if self.lancamento_origem_id:
+            # Ocorrência já gerada: classificacao/periodicidade são só
+            # informativas (herdadas da origem), não redisparam a
+            # exigência de parcelas/duração — essas vivem só na origem.
+            return
+
+        erros = {}
+        if self.classificacao == "parcelado":
+            if not self.numero_parcelas or self.numero_parcelas < 2:
+                erros["numero_parcelas"] = "Informe ao menos 2 parcelas."
+        elif self.classificacao == "recorrente":
+            if self.periodicidade not in dict(self.PERIODICIDADE_CHOICES):
+                erros["periodicidade"] = "Selecione mensal ou anual."
+            if self.duracao_tipo == "quantidade" and not self.duracao_quantidade:
+                erros["duracao_quantidade"] = "Informe a quantidade de ocorrências."
+            elif self.duracao_tipo == "data_final":
+                if not self.duracao_data_final:
+                    erros["duracao_data_final"] = "Informe a data final."
+                elif self.data_vencimento and self.duracao_data_final <= self.data_vencimento:
+                    erros["duracao_data_final"] = "A data final deve ser depois do primeiro vencimento."
+            elif self.duracao_tipo not in dict(self.DURACAO_TIPO_CHOICES):
+                erros["duracao_tipo"] = "Selecione a duração da recorrência."
+        if erros:
+            raise ValidationError(erros)
 
     @property
     def atrasado(self):
