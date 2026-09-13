@@ -47,6 +47,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_tipo",
             "duracao_quantidade",
             "duracao_data_final",
+            "anexo",
         ]
         widgets = {
             "tipo":            forms.Select(attrs={"class": "select"}),
@@ -67,6 +68,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_tipo":    forms.Select(attrs={"class": "select", "data-toggle-select": "duracao_tipo"}),
             "duracao_quantidade": forms.NumberInput(attrs={"class": "input", "min": "1"}),
             "duracao_data_final": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
             "classificacao": "Classificação",
@@ -74,6 +76,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_tipo": "Duração da recorrência",
             "duracao_quantidade": "Quantidade de ocorrências",
             "duracao_data_final": "Data final",
+            "anexo": "Anexo (boleto e/ou comprovante)",
         }
 
     def __init__(self, *args, **kwargs):
@@ -105,6 +108,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["duracao_quantidade"].required = False
         self.fields["duracao_data_final"].required = False
         self.fields["duracao_data_final"].input_formats = ["%Y-%m-%d"]
+        self.fields["anexo"].required = False
 
     def clean(self):
         cleaned_data = super().clean()
@@ -150,7 +154,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
 class CustaJudicialForm(forms.ModelForm):
     class Meta:
         model = CustaJudicial
-        fields = ["tipo", "descricao", "valor", "data", "cliente", "processo"]
+        fields = ["tipo", "descricao", "valor", "data", "cliente", "processo", "anexo"]
         widgets = {
             "tipo": forms.Select(attrs={"class": "select"}),
             "descricao": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Custas de citação – Processo 001/2026"}),
@@ -158,6 +162,7 @@ class CustaJudicialForm(forms.ModelForm):
             "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "cliente": forms.Select(attrs={"class": "select"}),
             "processo": forms.Select(attrs={"class": "select"}),
+            "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
             "tipo": "Tipo de custa",
@@ -166,6 +171,7 @@ class CustaJudicialForm(forms.ModelForm):
             "data": "Data",
             "cliente": "Cliente",
             "processo": "Processo",
+            "anexo": "Anexo (boleto e/ou comprovante)",
         }
 
     def __init__(self, *args, **kwargs):
@@ -177,6 +183,7 @@ class CustaJudicialForm(forms.ModelForm):
         self.fields["processo"].empty_label = "Nenhum"
         _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
         self.fields["data"].input_formats = ["%Y-%m-%d"]
+        self.fields["anexo"].required = False
 
     def clean_valor(self):
         valor = self.cleaned_data.get("valor")

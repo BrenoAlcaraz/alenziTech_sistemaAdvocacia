@@ -12,7 +12,7 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -185,6 +185,20 @@
         {{ form.observacoes }}
         {% if form.observacoes.errors %}
           <p class="text-xs text-red-500 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Anexo #}
+      <div>
+        <label class="label">{{ form.anexo.label }}</label>
+        {% if lancamento.anexo %}
+          <p class="text-xs text-gray-500 mb-1">
+            Atual: <a href="{% url 'financeiro:anexo_lancamento' lancamento.pk %}" target="_blank" rel="noopener" class="text-juridico-verde hover:underline">{{ lancamento.anexo.name }}</a>
+          </p>
+        {% endif %}
+        {{ form.anexo }}
+        {% if form.anexo.errors %}
+          <p class="text-xs text-red-500 mt-1">{{ form.anexo.errors|join:", " }}</p>
         {% endif %}
       </div>
 

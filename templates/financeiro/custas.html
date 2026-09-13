@@ -93,6 +93,11 @@
         <p class="text-xs text-gray-400">
           {{ c.get_tipo_display }}{% if c.cliente %} &bull; {{ c.cliente }}{% endif %}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
         </p>
+        {% if c.anexo %}
+          <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="text-xs text-juridico-verde hover:underline">
+            {{ c.anexo.name }}
+          </a>
+        {% endif %}
       </div>
       <div class="flex items-center gap-3">
         <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-juridico-verde{% endif %}">

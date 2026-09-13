@@ -12,7 +12,7 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -68,6 +68,14 @@
             <p class="text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
+      </div>
+
+      <div>
+        <label class="label" for="{{ form.anexo.id_for_label }}">{{ form.anexo.label }}</label>
+        {{ form.anexo }}
+        {% if form.anexo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.anexo.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
     </div>

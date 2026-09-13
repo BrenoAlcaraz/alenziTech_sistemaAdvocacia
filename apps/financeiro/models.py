@@ -82,6 +82,11 @@ class LancamentoFinanceiro(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True)
     responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    anexo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/lancamentos"),
+        storage=StorageProtegido(),
+        null=True, blank=True,
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     classificacao = models.CharField(max_length=12, choices=CLASSIFICACAO_CHOICES, default="unica")
@@ -153,6 +158,11 @@ class CustaJudicial(models.Model):
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True)
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True)
+    anexo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/custas"),
+        storage=StorageProtegido(),
+        null=True, blank=True,
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

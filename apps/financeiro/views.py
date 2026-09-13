@@ -283,7 +283,7 @@ def form_lancamento(request):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     if request.method == "POST":
-        form = LancamentoFinanceiroForm(request.POST)
+        form = LancamentoFinanceiroForm(request.POST, request.FILES)
         if form.is_valid():
             lancamento = form.save(commit=False)
             if not lancamento.responsavel:
@@ -312,7 +312,7 @@ def editar_lancamento(request, pk):
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
 
     if request.method == "POST":
-        form = LancamentoFinanceiroForm(request.POST, instance=lancamento)
+        form = LancamentoFinanceiroForm(request.POST, request.FILES, instance=lancamento)
         if form.is_valid():
             lancamento = form.save(commit=False)
             if not lancamento.responsavel:
@@ -414,12 +414,37 @@ def excluir_lancamento(request, pk):
 
 
 @login_required
+def anexo_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if not lancamento.anexo:
+        raise Http404
+    return FileResponse(lancamento.anexo.open("rb"), filename=nome_do_arquivo(lancamento.anexo))
+
+
+@login_required
+def anexar_lancamento(request, pk):
+    """Ação inline da lista de lançamentos: anexa boleto/comprovante sem
+    navegar para a tela de edição completa."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if request.method == "POST" and request.FILES.get("anexo"):
+        lancamento.anexo = request.FILES["anexo"]
+        lancamento.save(update_fields=["anexo"])
+    return _redirect_seguro(request)
+
+
+@login_required
 def form_custa(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     if request.method == "POST":
-        form = CustaJudicialForm(request.POST)
+        form = CustaJudicialForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             return redirect("financeiro:custas")
@@ -431,6 +456,17 @@ def form_custa(request):
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
+
+
+@login_required
+def anexo_custa(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    custa = get_object_or_404(CustaJudicial, pk=pk)
+    if not custa.anexo:
+        raise Http404
+    return FileResponse(custa.anexo.open("rb"), filename=nome_do_arquivo(custa.anexo))
 
 
 def _honorarios_no_escopo():
