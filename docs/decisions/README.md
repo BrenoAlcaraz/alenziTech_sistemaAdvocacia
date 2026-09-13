@@ -48,3 +48,5 @@ serem efetivamente decididas.
 | PDR-0018 | Banco compartilhado de Modelos de Peça — CRUD por autoria e habilitações de edição/exclusão alheia | accepted | [PDR-0018-modelos-banco-compartilhado-autoria.md](PDR-0018-modelos-banco-compartilhado-autoria.md) |
 | PDR-0019 | Autorização do módulo Gerir aplicada às views administrativas de Configurações | accepted | [PDR-0019-autorizacao-gerir-configuracoes.md](PDR-0019-autorizacao-gerir-configuracoes.md) |
 | PDR-0020 | Participantes e confirmação de presença em Compromisso (Agenda) | accepted | [PDR-0020-participantes-confirmacao-agenda.md](PDR-0020-participantes-confirmacao-agenda.md) |
+| PDR-0021 | Periodicidades da recorrência financeira | accepted | [PDR-0021-periodicidades-financeiras.md](PDR-0021-periodicidades-financeiras.md) |
+| PDR-0022 | Honorários — recebimento parcial e correção monetária/juros | accepted | [PDR-0022-honorarios-recebimento-parcial-correcao.md](PDR-0022-honorarios-recebimento-parcial-correcao.md) |

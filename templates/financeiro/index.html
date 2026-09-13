@@ -41,7 +41,29 @@
   </nav>
 </div>
 
-{# Cards de resumo financeiro — dados reais #}
+{# Navegador de mês #}
+<div class="flex items-center gap-2 mb-6 p-1 bg-gray-100 rounded-xl w-fit">
+  <a href="?ano={{ mes_ano_anterior }}&mes={{ mes_mes_anterior }}&filtro={{ filtro }}"
+     title="Mês anterior" aria-label="Mês anterior"
+     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-white hover:text-gray-900">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <span class="px-2 text-sm font-semibold text-gray-900 min-w-[9rem] text-center">{{ mes_nome }} de {{ mes_ano }}</span>
+  <a href="?ano={{ mes_ano_seguinte }}&mes={{ mes_mes_seguinte }}&filtro={{ filtro }}"
+     title="Próximo mês" aria-label="Próximo mês"
+     class="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-white hover:text-gray-900">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% if mes_atual %}
+    <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-juridico-verde shadow-sm">Mês atual</span>
+  {% endif %}
+</div>
+
+{# Cards de resumo financeiro — dados reais, referentes ao mês navegado acima #}
 <div class="grid grid-cols-2 gap-3 mb-6">
 
   <div class="card p-5 flex items-center gap-4">
@@ -65,6 +87,18 @@
     <div>
       <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
       <p class="text-xs text-gray-500">A pagar</p>
+    </div>
+  </div>
+
+  <div class="card p-5 flex items-center gap-4 col-span-2 ring-2 ring-juridico-verde/40 bg-green-50/40">
+    <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
+      <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v8m4-5H9.5a2.5 2.5 0 000 5H14"/>
+      </svg>
+    </div>
+    <div>
+      <p class="text-2xl font-bold {% if resumo.saldo_atual_mes_positivo %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">{{ resumo.saldo_atual_mes }}</p>
+      <p class="text-xs text-gray-500">Saldo atual do mês</p>
     </div>
   </div>
 
@@ -109,33 +143,29 @@
 {# Filtros reais + botão novo lançamento #}
 <div class="flex items-start justify-between gap-4 mb-4">
   <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
-    <a href="{% url 'financeiro:index' %}?filtro=todos"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=todos"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Todos
     </a>
-    <a href="{% url 'financeiro:index' %}?filtro=pendentes"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pendentes"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pendentes' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Pendentes
     </a>
-    <a href="{% url 'financeiro:index' %}?filtro=pagos"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pagos"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pagos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Pagos
     </a>
-    <a href="{% url 'financeiro:index' %}?filtro=atrasados"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=atrasados"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Atrasados
     </a>
-    <a href="{% url 'financeiro:index' %}?filtro=receitas"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=receitas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'receitas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Receitas
     </a>
-    <a href="{% url 'financeiro:index' %}?filtro=despesas"
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=despesas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'despesas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Despesas
-    </a>
-    <a href="{% url 'financeiro:index' %}?filtro=mes_atual"
-       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'mes_atual' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-      Mês atual
     </a>
   </div>
   <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary flex-shrink-0">+ Novo lançamento</a>

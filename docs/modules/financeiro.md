@@ -17,8 +17,13 @@ especificação não determina quantas tabelas existirão; modelagem física
   realizadas; confirmar/cancelar uma ocorrência não reescreve as demais.
 - Custas processuais não são categoria do financeiro geral — têm área
   própria.
-- Periodicidades disponíveis na primeira versão: **em aberto**, ver
-  [OPEN-001](../STATUS.md#decisões-em-aberto).
+- Periodicidades disponíveis na primeira versão (PDR-0021): mensal ou
+  anual para recorrente; parcelado sempre com periodicidade mensal
+  entre parcelas. Semanal/quinzenal/trimestral/semestral/personalizada
+  ficam fora desta versão.
+- Navegação por mês: a lista de lançamentos e os cards de resumo são
+  sempre referentes a um mês por vez (navegador ◀▶ + indicação de "mês
+  atual"), nunca a visão consolidada de todos os períodos.
 
 ## Previsto e realizado (PDR-0004)
 
@@ -58,7 +63,7 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
 - Reabrir lançamento pago exige habilitação própria; ao reabrir, o
   advogado responsável pela solicitação original é notificado.
 
-## Honorários (PDR-0007)
+## Honorários (PDR-0007, recebimento parcial e correção em PDR-0022)
 
 - Cadastro manual, anterior a qualquer IA. Campos: tipo, valor
   estimado, valor efetivo, processo, cliente (quando aplicável), data
@@ -67,7 +72,16 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   sugestão nunca vira registro sem confirmação humana.
 - Confirmar recebimento é exclusivo do Administrador do escritório; ao
   confirmar, o advogado responsável pelo processo é notificado (não
-  confirma ele mesmo).
+  confirma ele mesmo). Regra vale igualmente para confirmação parcial.
+- Recebimento pode ser parcial: cada confirmação soma em
+  `valor_recebido`, gera seu próprio lançamento de receita realizada, e
+  o honorário só passa a `recebido` quando `valor_recebido` atingir
+  `valor_efetivo`.
+- Correção monetária/juros é opcional por honorário, com taxa mensal e
+  data-termo informadas manualmente no cadastro (sem integração com
+  índice externo nesta versão) — editar essa configuração é exclusivo
+  do Administrador do escritório, mesma restrição da confirmação de
+  recebimento.
 
 ## Relação com billing SaaS
 
@@ -75,13 +89,23 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
 distintos (PDR-0003) — sem espelhamento automático da assinatura como
 despesa. Integração futura mais ampla exigiria novo PDR.
 
+## Visão gráfica
+
+- Aba própria com gráfico de barras receita × despesa por mês, com
+  toggle de período (últimos 6 meses, últimos 12 meses, exercício
+  corrente) — mesma fonte de dados dos cards de resumo, agregada por
+  mês em vez de por lançamento individual.
+
 ## Fora de escopo imediato
 
 - identificação automática de honorário por IA antes dos pré-requisitos
   de PDR-0008;
 - integração automática billing↔financeiro do tenant;
-- gráficos/relatórios além do painel mínimo e exportação Excel opcional;
-- integração bancária, boleto por API, conciliação automatizada.
+- exportação Excel opcional;
+- relatórios além do painel mínimo e do gráfico receita×despesa;
+- integração bancária, boleto por API, conciliação automatizada;
+- integração com índice externo (INPC/Selic) para correção monetária de
+  honorários (PDR-0022).
 
 ## Referências
 
@@ -91,4 +115,6 @@ despesa. Integração futura mais ampla exigiria novo PDR.
 - [PDR-0006](../decisions/PDR-0006-solicitacoes-financeiras.md) — solicitações
 - [PDR-0007](../decisions/PDR-0007-honorarios-manuais-antes-ia.md) — honorários
 - [PDR-0015](../decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md) — fluxo de aprovação
+- [PDR-0021](../decisions/PDR-0021-periodicidades-financeiras.md) — periodicidades da recorrência
+- [PDR-0022](../decisions/PDR-0022-honorarios-recebimento-parcial-correcao.md) — honorários: parcial e correção
 - [STATUS.md](../STATUS.md#financeiro) para o estado real de implementação

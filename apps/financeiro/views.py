@@ -1,4 +1,6 @@
+from calendar import monthrange
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -50,8 +52,12 @@ FILTROS_LANCAMENTOS_VALIDOS = {
     "atrasados",
     "receitas",
     "despesas",
-    "mes_atual",
 }
+
+MESES = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+]
 
 
 def _normalizar_filtro_lancamentos(filtro):
@@ -60,9 +66,38 @@ def _normalizar_filtro_lancamentos(filtro):
     return "todos"
 
 
+def _parse_int(valor, minimo=None, maximo=None):
+    try:
+        numero = int(valor)
+    except (TypeError, ValueError):
+        return None
+    if minimo is not None and numero < minimo:
+        return None
+    if maximo is not None and numero > maximo:
+        return None
+    return numero
+
+
+def _resolver_mes_ano(request, hoje):
+    ano = _parse_int(request.GET.get("ano"), minimo=1, maximo=9999) or hoje.year
+    mes = _parse_int(request.GET.get("mes"), minimo=1, maximo=12) or hoje.month
+    return ano, mes
+
+
+def _mes_adjacente(ano, mes, delta):
+    indice = (ano * 12 + (mes - 1)) + delta
+    return indice // 12, indice % 12 + 1
+
+
 def _formatar_moeda(valor):
     valor = valor or Decimal("0")
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _formatar_saldo(valor):
+    valor = valor or Decimal("0")
+    sinal = "+ " if valor >= 0 else "− "
+    return sinal + _formatar_moeda(abs(valor))
 
 
 _NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
@@ -102,9 +137,15 @@ def index(request):
         return redirect("financeiro:solicitacoes_lista")
     hoje = timezone.localdate()
     filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
+    ano, mes = _resolver_mes_ano(request, hoje)
+    _, dias_no_mes = monthrange(ano, mes)
+    primeiro_dia = date(ano, mes, 1)
+    ultimo_dia = date(ano, mes, dias_no_mes)
 
-    lancamentos = _lancamentos_no_escopo(request.user)
+    escopo = _lancamentos_no_escopo(request.user)
+    escopo_mes = escopo.filter(data_vencimento__gte=primeiro_dia, data_vencimento__lte=ultimo_dia)
 
+    lancamentos = escopo_mes
     if filtro == "pendentes":
         lancamentos = lancamentos.filter(status="pendente")
     elif filtro == "pagos":
@@ -118,21 +159,14 @@ def index(request):
         lancamentos = lancamentos.filter(tipo="receita")
     elif filtro == "despesas":
         lancamentos = lancamentos.filter(tipo="despesa")
-    elif filtro == "mes_atual":
-        lancamentos = lancamentos.filter(
-            data_vencimento__year=hoje.year,
-            data_vencimento__month=hoje.month,
-        )
-
-    escopo = _lancamentos_no_escopo(request.user)
 
     a_receber = (
-        escopo.filter(tipo="receita", status="pendente")
+        escopo_mes.filter(tipo="receita", status="pendente")
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
     )
     a_pagar = (
-        escopo.filter(tipo="despesa", status="pendente")
+        escopo_mes.filter(tipo="despesa", status="pendente")
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
     )
@@ -140,8 +174,8 @@ def index(request):
         escopo.filter(
             tipo="receita",
             status="pago",
-            data_pagamento__year=hoje.year,
-            data_pagamento__month=hoje.month,
+            data_pagamento__year=ano,
+            data_pagamento__month=mes,
         )
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
@@ -150,12 +184,13 @@ def index(request):
         escopo.filter(
             tipo="despesa",
             status="pago",
-            data_pagamento__year=hoje.year,
-            data_pagamento__month=hoje.month,
+            data_pagamento__year=ano,
+            data_pagamento__month=mes,
         )
         .aggregate(total=Sum("valor"))["total"]
         or Decimal("0")
     )
+    saldo_atual_mes = recebido_mes - pago_mes
 
     resumo = {
         "a_receber": _formatar_moeda(a_receber),
@@ -163,7 +198,12 @@ def index(request):
         "recebido_mes": _formatar_moeda(recebido_mes),
         "pago_mes": _formatar_moeda(pago_mes),
         "saldo_previsto": _formatar_moeda(a_receber - a_pagar),
+        "saldo_atual_mes": _formatar_saldo(saldo_atual_mes),
+        "saldo_atual_mes_positivo": saldo_atual_mes >= 0,
     }
+
+    ano_anterior, mes_anterior = _mes_adjacente(ano, mes, -1)
+    ano_seguinte, mes_seguinte = _mes_adjacente(ano, mes, 1)
 
     return render(request, "financeiro/index.html", {
         "resumo": resumo,
@@ -172,6 +212,14 @@ def index(request):
         "next_url": request.get_full_path(),
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
+        "mes_ano": ano,
+        "mes_mes": mes,
+        "mes_nome": MESES[mes - 1],
+        "mes_atual": ano == hoje.year and mes == hoje.month,
+        "mes_ano_anterior": ano_anterior,
+        "mes_mes_anterior": mes_anterior,
+        "mes_ano_seguinte": ano_seguinte,
+        "mes_mes_seguinte": mes_seguinte,
     })
 
 
