@@ -8,39 +8,8 @@
 </div>
 
 {% if tem_acesso_dados %}
-{# Abas — só quem tem acesso ao caixa geral navega entre as três áreas #}
-<div class="border-b border-gray-200 mb-6">
-  <nav class="-mb-px flex gap-6">
-    <a href="{% url 'financeiro:index' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-      </svg>
-      Lançamentos
-    </a>
-    <a href="{% url 'financeiro:custas' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
-      </svg>
-      Custas Judiciais
-    </a>
-    <a href="{% url 'financeiro:honorarios_lista' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm tab-inactive">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6V6m0 1.5v9M12 15v1.5m9-4.5a9 9 0 11-18 0 9 9 0 0118 0z"/>
-      </svg>
-      Honorários
-    </a>
-    <a href="{% url 'financeiro:solicitacoes_lista' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm tab-active">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      Solicitações
-    </a>
-  </nav>
-</div>
+{# Abas — só quem tem acesso ao caixa geral navega entre as áreas #}
+{% include "financeiro/_abas.html" %}
 {% else %}
 <div class="border-b border-gray-200 mb-6 pb-3">
   <h2 class="text-sm font-semibold text-gray-700">Minhas solicitações</h2>

@@ -1,0 +1,52 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Gráfico — Financeiro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Financeiro</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
+</div>
+
+{% include "financeiro/_abas.html" %}
+
+<div class="card p-6">
+
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="font-semibold text-gray-900">Receita &times; despesa por mês</h2>
+    <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+      <a href="?periodo=6meses"
+         class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == '6meses' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+        Últimos 6 meses
+      </a>
+      <a href="?periodo=12meses"
+         class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == '12meses' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+        Últimos 12 meses
+      </a>
+      <a href="?periodo=exercicio"
+         class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == 'exercicio' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+        Exercício {{ ano_exercicio }}
+      </a>
+    </div>
+  </div>
+
+  <div class="flex items-end gap-4 h-56 overflow-x-auto pb-1">
+    {% for b in barras %}
+      <div class="flex flex-col items-center gap-2 flex-1 min-w-[2.5rem] h-full">
+        <div class="flex items-end gap-1 flex-1 w-full justify-center">
+          <div class="w-3 bg-juridico-verde rounded-t" style="height: {{ b.receita_pct }}%;" title="Receita: {{ b.receita }}"></div>
+          <div class="w-3 bg-juridico-vermelho rounded-t" style="height: {{ b.despesa_pct }}%;" title="Despesa: {{ b.despesa }}"></div>
+        </div>
+        <span class="text-[10px] font-medium text-gray-500">{{ b.mes_label }}</span>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum lançamento pago no período." %}
+    {% endfor %}
+  </div>
+
+  <div class="flex items-center gap-5 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-600">
+    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-juridico-verde"></span>Receitas</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-juridico-vermelho"></span>Despesas</span>
+  </div>
+
+</div>
+{% endblock %}

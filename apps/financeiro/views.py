@@ -224,6 +224,72 @@ def index(request):
     })
 
 
+PERIODOS_GRAFICO_VALIDOS = {"6meses", "12meses", "exercicio"}
+
+
+def _normalizar_periodo_grafico(periodo):
+    if periodo in PERIODOS_GRAFICO_VALIDOS:
+        return periodo
+    return "6meses"
+
+
+@login_required
+def grafico(request):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    if not _tem_acesso_dados(request.user):
+        return redirect("financeiro:solicitacoes_lista")
+
+    hoje = timezone.localdate()
+    periodo = _normalizar_periodo_grafico(request.GET.get("periodo", "6meses"))
+
+    if periodo == "exercicio":
+        data_inicio = date(hoje.year, 1, 1)
+    else:
+        meses = 6 if periodo == "6meses" else 12
+        ano_inicio, mes_inicio = _mes_adjacente(hoje.year, hoje.month, -(meses - 1))
+        data_inicio = date(ano_inicio, mes_inicio, 1)
+
+    escopo = _lancamentos_no_escopo(request.user).filter(status="pago", data_pagamento__gte=data_inicio)
+    agregados = (
+        escopo.values("data_pagamento__year", "data_pagamento__month", "tipo")
+        .annotate(total=Sum("valor"))
+    )
+    por_mes = defaultdict(lambda: {"receita": Decimal("0"), "despesa": Decimal("0")})
+    for linha in agregados:
+        chave = (linha["data_pagamento__year"], linha["data_pagamento__month"])
+        por_mes[chave][linha["tipo"]] = linha["total"]
+
+    meses_intervalo = []
+    ano_cursor, mes_cursor = data_inicio.year, data_inicio.month
+    while (ano_cursor, mes_cursor) <= (hoje.year, hoje.month):
+        meses_intervalo.append((ano_cursor, mes_cursor))
+        ano_cursor, mes_cursor = _mes_adjacente(ano_cursor, mes_cursor, 1)
+
+    maior_valor = max(
+        (v for dados in por_mes.values() for v in dados.values()), default=Decimal("0")
+    ) or Decimal("1")
+
+    barras = []
+    for ano_mes, mes_mes in meses_intervalo:
+        dados = por_mes.get((ano_mes, mes_mes), {"receita": Decimal("0"), "despesa": Decimal("0")})
+        barras.append({
+            "mes_label": MESES[mes_mes - 1][:3].upper(),
+            "receita": _formatar_moeda(dados["receita"]),
+            "despesa": _formatar_moeda(dados["despesa"]),
+            "receita_pct": int((dados["receita"] / maior_valor) * 100),
+            "despesa_pct": int((dados["despesa"] / maior_valor) * 100),
+        })
+
+    return render(request, "financeiro/grafico.html", {
+        "barras": barras,
+        "periodo": periodo,
+        "ano_exercicio": hoje.year,
+        "aba_ativa": "grafico",
+        "item_ativo": "financeiro",
+    })
+
+
 @login_required
 def custas(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
