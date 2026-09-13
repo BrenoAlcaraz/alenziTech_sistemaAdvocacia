@@ -1,0 +1,243 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Análise de dados — Painel{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Painel</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Visão geral do escritório</p>
+  </div>
+</div>
+
+{% include "dashboard/_abas.html" %}
+
+{# ── Filtros ───────────────────────────────────────────────────────────────── #}
+<form method="get" class="card p-5 mb-6 flex flex-wrap items-end gap-4">
+  {% if mostrar_seletor_escopo %}
+  <div>
+    <label class="label">Escopo</label>
+    <select name="escopo" class="select">
+      <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos do escritório</option>
+      <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os meus</option>
+    </select>
+  </div>
+  {% endif %}
+  <div>
+    <label class="label">Cliente</label>
+    <select name="cliente" class="select">
+      <option value="">Todos</option>
+      {% for c in clientes_opcoes %}
+        <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label">Equipe</label>
+    <select name="equipe" class="select">
+      <option value="">Todas</option>
+      {% for e in equipes_opcoes %}
+        <option value="{{ e.pk }}" {% if equipe_id == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if mostrar_filtro_usuario %}
+  <div>
+    <label class="label">Usuário</label>
+    <select name="usuario" class="select">
+      <option value="">Todos</option>
+      {% for u in usuarios_opcoes %}
+        <option value="{{ u.pk }}" {% if usuario_id == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <button type="submit" class="btn-primary">Aplicar filtros</button>
+  {% if cliente_id or equipe_id or usuario_id or escopo_atual == "somente_seus" %}
+    <a href="{% url 'dashboard:analise' %}" class="text-sm font-medium text-juridico-ouro">Limpar filtros</a>
+  {% endif %}
+</form>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+  {# ── Processos por natureza ─────────────────────────────────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por natureza</h2>
+    <div class="flex flex-col gap-3">
+      {% for barra in natureza_barras %}
+        <details>
+          <summary class="cursor-pointer list-none flex items-center gap-3">
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+            </span>
+            <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+          </summary>
+          <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+            {% for processo in barra.processos %}
+              <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% empty %}
+        <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Processos por localidade (Estado → Cidade → Vara) ──────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por localidade</h2>
+
+    {% if loc_breadcrumb %}
+    <div class="text-xs text-gray-500 mb-3 flex items-center gap-1.5">
+      {% with crumb0=loc_breadcrumb.0 crumb1=loc_breadcrumb.1 %}
+        {% if crumb0.clicavel %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb0.label }}</a>
+        {% else %}
+          <span>{{ crumb0.label }}</span>
+        {% endif %}
+        {% if crumb1 %}
+          <span class="text-gray-300">/</span>
+          {% if crumb1.clicavel %}
+            <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb1.label }}</a>
+          {% else %}
+            <span>{{ crumb1.label }}</span>
+          {% endif %}
+        {% endif %}
+      {% endwith %}
+    </div>
+    {% endif %}
+
+    {% if loc_mostrando_estados %}
+      <div class="flex flex-col gap-2">
+        {% for opcao in loc_estado_opcoes %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ opcao.valor }}"
+             class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
+            <span class="text-xs text-gray-700">{{ opcao.label }}</span>
+            <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% elif loc_mostrando_cidades %}
+      <div class="flex flex-col gap-2">
+        {% for opcao in loc_cidade_opcoes %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}&loc_cidade={{ opcao.valor }}"
+             class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
+            <span class="text-xs text-gray-700">{{ opcao.label }}</span>
+            <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% elif loc_mostrando_varas %}
+      <div class="flex flex-col gap-3">
+        {% for barra in loc_vara_barras %}
+          <details>
+            <summary class="cursor-pointer list-none flex items-center gap-3">
+              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+              <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+              </span>
+              <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+            </summary>
+            <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+              {% for processo in barra.processos %}
+                <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                  <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                  <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+                </a>
+              {% endfor %}
+            </div>
+          </details>
+        {% empty %}
+          <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+  {# ── Processos por status ───────────────────────────────────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por status</h2>
+    <div class="grid grid-cols-3 gap-3 mb-2">
+      {% for barra in status_barras %}
+        <div class="rounded-xl bg-gray-50 p-3 text-center">
+          <p class="text-lg font-bold text-gray-900">{{ barra.total }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">{{ barra.label }}</p>
+        </div>
+      {% endfor %}
+    </div>
+    {% for barra in status_barras %}
+      <details class="mt-1">
+        <summary class="cursor-pointer text-xs text-juridico-ouro font-medium">Ver processos — {{ barra.label }} ({{ barra.total }})</summary>
+        <div class="mt-2 flex flex-col divide-y divide-gray-100">
+          {% for processo in barra.processos %}
+            <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+              <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+              <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+            </a>
+          {% endfor %}
+        </div>
+      </details>
+    {% endfor %}
+  </div>
+
+  {# ── Processos por patrocínio ───────────────────────────────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por patrocínio</h2>
+    <div class="flex flex-col gap-3">
+      {% for barra in patrocinio_barras %}
+        <details>
+          <summary class="cursor-pointer list-none flex items-center gap-3">
+            <span class="text-xs text-gray-700 w-44 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+            </span>
+            <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+          </summary>
+          <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+            {% for processo in barra.processos %}
+              <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% empty %}
+        <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{# ── Tempo e resultados ───────────────────────────────────────────────────── #}
+<div class="card p-5">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Tempo e resultados</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="rounded-xl bg-gray-50 p-4 text-center">
+      <p class="text-lg font-bold text-gray-900">{{ tempo_vida_medio|default:"Sem dados" }}</p>
+      <p class="text-xs text-gray-500 mt-1">Tempo de vida médio dos processos ativos</p>
+    </div>
+    <div class="rounded-xl bg-gray-50 p-4 text-center">
+      <p class="text-lg font-bold text-gray-900">{{ tempo_entre_andamentos|default:"Sem dados" }}</p>
+      <p class="text-xs text-gray-500 mt-1">Tempo médio entre andamentos processuais</p>
+    </div>
+    <div class="rounded-xl bg-gray-50 p-4 text-center">
+      <p class="text-lg font-bold text-gray-900">{{ julgados_procedente }} / {{ julgados_parcial }} / {{ julgados_improcedente }}</p>
+      <p class="text-xs text-gray-500 mt-1">Julgados procedentes / parcialmente procedentes / improcedentes</p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

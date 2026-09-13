@@ -1,0 +1,26 @@
+{% comment %}
+Abas do Dashboard, reaproveitada por painel/analise.
+Espera aba_ativa no contexto: geral ou analise.
+Só mostra a aba Análise de dados quando acesso_processos é verdadeiro
+(ela é toda derivada de Processos).
+{% endcomment %}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <a href="{% url 'dashboard:painel' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'geral' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 15h6v6H4v-6zm10 0h6v6h-6v-6z"/>
+      </svg>
+      Visão geral do escritório
+    </a>
+    {% if acesso_processos %}
+    <a href="{% url 'dashboard:analise' %}"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'analise' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3v18h18M7 15l4-5 3 3 5-7"/>
+      </svg>
+      Análise de dados
+    </a>
+    {% endif %}
+  </nav>
+</div>

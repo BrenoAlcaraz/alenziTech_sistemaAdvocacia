@@ -17,6 +17,8 @@
   </span>
 </div>
 
+{% include "dashboard/_abas.html" %}
+
 {# ── Cards de resumo — dados reais ────────────────────────────────────────── #}
 <div class="grid grid-cols-2 gap-3 mb-8">
 
@@ -81,29 +83,57 @@
   {% endif %}
 
   {% if acesso_financeiro %}
-  {# A receber #}
-  <a href="{% url 'financeiro:index' %}?filtro=receitas" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
-    <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-      </svg>
+  {# A receber / A pagar / Diferença (saldo) — card combinado #}
+  <a href="{% url 'financeiro:index' %}" class="card p-5 col-span-2 flex flex-wrap items-center gap-x-8 gap-y-3 hover:shadow-md transition-shadow duration-150">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-2xl font-bold text-gray-900">{{ resumo.a_receber }}</p>
+        <p class="text-sm text-gray-500">A receber</p>
+      </div>
     </div>
-    <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.a_receber }}</p>
-      <p class="text-sm text-gray-500">A receber</p>
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
+        <p class="text-sm text-gray-500">A pagar</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 pl-8 border-l border-gray-100">
+      <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 6h18v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-2xl font-bold {% if resumo.saldo_negativo %}text-juridico-vermelho{% else %}text-gray-900{% endif %}">
+          {% if resumo.saldo_negativo %}&minus; {% endif %}{{ resumo.saldo }}
+        </p>
+        <p class="text-sm text-gray-500">Diferença (saldo)</p>
+      </div>
     </div>
   </a>
+  {% endif %}
 
-  {# A pagar #}
-  <a href="{% url 'financeiro:index' %}?filtro=despesas" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
-    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
+  {% if acesso_usuarios_ativos %}
+  {# Usuários ativos #}
+  <a href="{% url 'configuracoes:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
+    <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+      <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
       </svg>
     </div>
     <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
-      <p class="text-sm text-gray-500">A pagar</p>
+      <p class="text-2xl font-bold text-gray-900">{{ resumo.usuarios_ativos }}</p>
+      <p class="text-sm text-gray-500">Usuários ativos</p>
     </div>
   </a>
   {% endif %}
@@ -255,5 +285,187 @@
   {% endif %}
 
 </div>
+
+{% if acesso_processos %}
+{# ── Movimentação processual ──────────────────────────────────────────────── #}
+<div class="card p-5 mt-6">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Movimentação processual</h2>
+  <div class="grid grid-cols-2 gap-3">
+    <details class="rounded-xl bg-gray-50 p-4" {% if movimentacao.24h.total %}open{% endif %}>
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.24h.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Movimentados nas últimas 24h</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in movimentacao.24h.processos %}
+          <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
+            </div>
+            <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum processo movimentado.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-gray-50 p-4" {% if not movimentacao.24h.total and movimentacao.7dias.total %}open{% endif %}>
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.7dias.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Movimentados nos últimos 7 dias</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in movimentacao.7dias.processos %}
+          <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
+            </div>
+            <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum processo movimentado.</p>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
+</div>
+
+{# ── Processos paralisados ────────────────────────────────────────────────── #}
+<div class="card p-5 mt-4">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos paralisados</h2>
+  <div class="grid grid-cols-3 gap-3">
+    <details class="rounded-xl bg-amber-50 p-4" {% if paralisados.1mes.total %}open{% endif %}>
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-amber-600">{{ paralisados.1mes.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 1 mês</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in paralisados.1mes.processos %}
+          <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
+            </div>
+            <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum processo parado.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-red-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-juridico-vermelho">{{ paralisados.3meses.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 3 meses</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in paralisados.3meses.processos %}
+          <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
+            </div>
+            <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum processo parado.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-red-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-juridico-vermelho">{{ paralisados.6meses.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 6 meses</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in paralisados.6meses.processos %}
+          <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
+            </div>
+            <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum processo parado.</p>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
+</div>
+
+{# ── Prazos a vencer ──────────────────────────────────────────────────────── #}
+<div class="card p-5 mt-4">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Prazos a vencer</h2>
+  <div class="grid grid-cols-4 gap-3">
+    <details class="rounded-xl bg-red-50 p-4" {% if prazos.hoje.total %}open{% endif %}>
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-juridico-vermelho">{{ prazos.hoje.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem hoje</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for processo in prazos.hoje.processos %}
+          <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo hoje.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-amber-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-amber-600">{{ prazos.amanha.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem amanhã</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for processo in prazos.amanha.processos %}
+          <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo amanhã.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-gray-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-gray-700">{{ prazos.3dias.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem em até 3 dias</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for processo in prazos.3dias.processos %}
+          <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo em até 3 dias.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="rounded-xl bg-gray-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-gray-700">{{ prazos.5dias.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem em até 5 dias</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for processo in prazos.5dias.processos %}
+          <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo em até 5 dias.</p>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}

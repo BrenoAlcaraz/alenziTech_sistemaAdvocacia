@@ -132,7 +132,11 @@ Organização interna para distribuição de responsabilidade e escopo.
 ### Dashboard
 
 Indicadores operacionais/jurídicos/financeiros/gerenciais sobre dados
-reais e autorizados — nunca mock ou número fixo.
+reais e autorizados — nunca mock ou número fixo. Duas abas — Visão
+geral do escritório e Análise de dados — ver
+[docs/modules/dashboard.md](modules/dashboard.md) para os painéis,
+regras de agrupamento e o que fica fora de escopo (Painel do gestor,
+Intimações).
 
 - Cada indicador respeita autorização e escopo do usuário que consulta;
   ocultar um card na interface não substitui a filtragem no backend.

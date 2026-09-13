@@ -39,8 +39,9 @@ class ProcessoForm(forms.ModelForm):
         model = Processo
         fields = [
             "titulo", "numero", "cliente", "area_direito", "fase",
-            "instancia", "vara_juizo", "valor_causa",
+            "instancia", "vara_juizo", "estado", "cidade", "valor_causa",
             "data_distribuicao", "gratuidade_justica_status", "prazo_proximo",
+            "resultado_sentenca",
         ]
         widgets = {
             "titulo": forms.TextInput(attrs={
@@ -57,6 +58,12 @@ class ProcessoForm(forms.ModelForm):
                 "class": "input",
                 "placeholder": "Ex: 11ª Vara Cível",
             }),
+            "estado": forms.Select(attrs={"class": "select"}),
+            "cidade": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Belo Horizonte",
+            }),
+            "resultado_sentenca": forms.Select(attrs={"class": "select"}),
             "valor_causa": forms.NumberInput(attrs={
                 "class": "input",
                 "step": "0.01",

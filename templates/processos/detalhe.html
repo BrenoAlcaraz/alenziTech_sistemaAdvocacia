@@ -35,6 +35,12 @@
       <p class="text-sm font-medium text-gray-900">{{ processo.vara_juizo }}</p>
     </div>
     <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Localidade</p>
+      <p class="text-sm font-medium text-gray-900">
+        {% if processo.cidade or processo.estado %}{{ processo.cidade }}{% if processo.cidade and processo.estado %}/{% endif %}{{ processo.estado }}{% else %}—{% endif %}
+      </p>
+    </div>
+    <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Valor da Causa</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.valor_causa }}</p>
     </div>
@@ -46,6 +52,12 @@
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Responsável</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.responsavel }}</p>
     </div>
+    {% if processo.resultado_sentenca %}
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Resultado da sentença</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.get_resultado_sentenca_display }}</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 
