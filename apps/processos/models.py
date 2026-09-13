@@ -48,15 +48,38 @@ class Processo(models.Model):
         ("revogada", "Revogada"),
     ]
 
+    UF_CHOICES = [
+        ("AC", "Acre"), ("AL", "Alagoas"), ("AP", "Amapá"), ("AM", "Amazonas"),
+        ("BA", "Bahia"), ("CE", "Ceará"), ("DF", "Distrito Federal"),
+        ("ES", "Espírito Santo"), ("GO", "Goiás"), ("MA", "Maranhão"),
+        ("MT", "Mato Grosso"), ("MS", "Mato Grosso do Sul"), ("MG", "Minas Gerais"),
+        ("PA", "Pará"), ("PB", "Paraíba"), ("PR", "Paraná"), ("PE", "Pernambuco"),
+        ("PI", "Piauí"), ("RJ", "Rio de Janeiro"), ("RN", "Rio Grande do Norte"),
+        ("RS", "Rio Grande do Sul"), ("RO", "Rondônia"), ("RR", "Roraima"),
+        ("SC", "Santa Catarina"), ("SP", "São Paulo"), ("SE", "Sergipe"),
+        ("TO", "Tocantins"),
+    ]
+
+    RESULTADO_SENTENCA_CHOICES = [
+        ("procedente", "Procedente"),
+        ("parcialmente_procedente", "Parcialmente procedente"),
+        ("improcedente", "Improcedente"),
+    ]
+
     titulo = models.CharField(max_length=255)
     numero = models.CharField(max_length=50, blank=True)
     area_direito = models.CharField(max_length=30, choices=AREAS_CHOICES, default="CÍVEL")
     instancia = models.CharField(max_length=50, blank=True, default="1ª Instância")
     vara_juizo = models.CharField(max_length=255, blank=True)
+    estado = models.CharField(max_length=2, choices=UF_CHOICES, blank=True)
+    cidade = models.CharField(max_length=100, blank=True)
     valor_causa = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ativo")
     fase = models.CharField(max_length=30, choices=FASE_CHOICES, default="conhecimento")
     gratuidade_justica_status = models.CharField(max_length=20, choices=GRATUIDADE_CHOICES, default="nao_requerida")
+    resultado_sentenca = models.CharField(
+        max_length=30, choices=RESULTADO_SENTENCA_CHOICES, blank=True
+    )
     data_distribuicao = models.DateField(null=True, blank=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
     responsavel = models.ForeignKey(User, on_delete=models.PROTECT, related_name="processos")

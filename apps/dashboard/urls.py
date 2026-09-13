@@ -5,4 +5,5 @@ app_name = "dashboard"
 
 urlpatterns = [
     path("", views.painel, name="painel"),
+    path("analise/", views.analise, name="analise"),
 ]

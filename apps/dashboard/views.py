@@ -1,17 +1,23 @@
+from collections import Counter, defaultdict
 from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 
+from django.contrib.auth import get_user_model
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, Sum
+from django.db.models import Max, Q, Sum
 from django.utils import timezone
 
-from apps.accounts.permissoes import tem_permissao_modulo, nivel_acesso_modulo
+from apps.accounts.models import Equipe
+from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
+    HAB_GERIR_CRIAR_USUARIO,
     MODULO_AGENDA,
     MODULO_CLIENTES,
     MODULO_FINANCEIRO,
+    MODULO_GERIR,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
@@ -22,15 +28,19 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.clientes.models import Cliente
-from apps.processos.models import Processo
+from apps.processos.models import MovimentacaoProcessual, Processo
+from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
 from apps.tarefas.models import Tarefa
 from apps.agenda.models import Compromisso, ParticipanteCompromisso
 from apps.financeiro.models import LancamentoFinanceiro
 
 
+User = get_user_model()
+
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 _NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
 _NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, *_NIVEIS_FINANCEIRO_DADOS}
+_NAO_INFORMADO = "__na__"
 
 
 def _nivel_escopo(user, modulo):
@@ -76,6 +86,79 @@ def _compromissos_confirmados(user, hoje):
     ).distinct()
 
 
+# ── Painéis derivados de Processos (Visão geral) ────────────────────────────
+
+def _processos_escopo_ativos(user, escopo):
+    """Processos não arquivados no escopo somente_seus/todos do usuário."""
+    qs = Processo.objects.exclude(status="arquivado").select_related("cliente")
+    if escopo == NIVEL_SOMENTE_SEUS:
+        qs = qs.filter(responsavel=user)
+    return qs
+
+
+def _movimentacao_processual(processos_qs):
+    """Processos com alguma MovimentacaoProcessual nas últimas 24h/7 dias."""
+    agora = timezone.now()
+
+    def _lista(desde):
+        movimentacoes = (
+            MovimentacaoProcessual.objects.filter(processo__in=processos_qs, data__gte=desde)
+            .select_related("processo")
+            .order_by("-data")
+        )
+        vistos = {}
+        for mov in movimentacoes:
+            vistos.setdefault(mov.processo_id, {"processo": mov.processo, "movimentacao": mov})
+        return list(vistos.values())
+
+    lista_24h = _lista(agora - timedelta(hours=24))
+    lista_7dias = _lista(agora - timedelta(days=7))
+    return {
+        "24h": {"total": len(lista_24h), "processos": lista_24h},
+        "7dias": {"total": len(lista_7dias), "processos": lista_7dias},
+    }
+
+
+def _processos_paralisados(processos_qs, hoje):
+    """Processos sem movimento há +1/+3/+6 meses (cumulativo), usando o
+    último andamento ou, na ausência, a data de distribuição."""
+    anotados = processos_qs.annotate(ultima_movimentacao=Max("movimentacoes__data"))
+    grupos = {"1mes": [], "3meses": [], "6meses": []}
+    for processo in anotados:
+        if processo.ultima_movimentacao:
+            referencia = timezone.localtime(processo.ultima_movimentacao).date()
+        else:
+            referencia = processo.data_distribuicao
+        if not referencia:
+            continue
+        dias_parado = (hoje - referencia).days
+        item = {"processo": processo, "referencia": referencia, "dias_parado": dias_parado}
+        if dias_parado > 30:
+            grupos["1mes"].append(item)
+        if dias_parado > 90:
+            grupos["3meses"].append(item)
+        if dias_parado > 180:
+            grupos["6meses"].append(item)
+    return {chave: {"total": len(itens), "processos": itens} for chave, itens in grupos.items()}
+
+
+def _prazos_a_vencer(processos_qs, hoje):
+    """Processos com prazo_proximo a vencer hoje/amanhã/em até 3/5 dias (cumulativo)."""
+    grupos = {"hoje": [], "amanha": [], "3dias": [], "5dias": []}
+    qs = processos_qs.filter(prazo_proximo__isnull=False, prazo_proximo__gte=hoje).order_by("prazo_proximo")
+    for processo in qs:
+        dias = (processo.prazo_proximo - hoje).days
+        if dias == 0:
+            grupos["hoje"].append(processo)
+        if dias == 1:
+            grupos["amanha"].append(processo)
+        if dias <= 3:
+            grupos["3dias"].append(processo)
+        if dias <= 5:
+            grupos["5dias"].append(processo)
+    return {chave: {"total": len(itens), "processos": itens} for chave, itens in grupos.items()}
+
+
 @login_required
 def painel(request):
     if not tem_permissao_modulo(request.user, MODULO_PAINEL):
@@ -91,6 +174,7 @@ def painel(request):
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and _tem_acesso_dados_financeiro(request.user)
     )
+    acesso_usuarios_ativos = tem_habilitacao(request.user, MODULO_GERIR, HAB_GERIR_CRIAR_USUARIO)
 
     resumo = {}
 
@@ -100,9 +184,10 @@ def painel(request):
             qs_clientes = qs_clientes.filter(responsavel=request.user)
         resumo["clientes_ativos"] = qs_clientes.count()
 
+    escopo_processos = _nivel_escopo(request.user, MODULO_PROCESSOS) if acesso_processos else None
     if acesso_processos:
         qs_processos = Processo.objects.filter(status="ativo")
-        if _nivel_escopo(request.user, MODULO_PROCESSOS) == NIVEL_SOMENTE_SEUS:
+        if escopo_processos == NIVEL_SOMENTE_SEUS:
             qs_processos = qs_processos.filter(responsavel=request.user)
         resumo["processos_ativos"] = qs_processos.count()
 
@@ -130,8 +215,14 @@ def painel(request):
             .aggregate(total=Sum("valor"))["total"]
             or Decimal("0")
         )
+        saldo = a_receber - a_pagar
         resumo["a_receber"] = _formatar_moeda(a_receber)
         resumo["a_pagar"] = _formatar_moeda(a_pagar)
+        resumo["saldo"] = _formatar_moeda(abs(saldo))
+        resumo["saldo_negativo"] = saldo < 0
+
+    if acesso_usuarios_ativos:
+        resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
 
     tarefas_dashboard = Tarefa.objects.none()
     if acesso_tarefas:
@@ -166,6 +257,15 @@ def painel(request):
             financeiro_dashboard = financeiro_dashboard.filter(responsavel=request.user)
         financeiro_dashboard = financeiro_dashboard.order_by("data_vencimento")[:5]
 
+    movimentacao = None
+    paralisados = None
+    prazos = None
+    if acesso_processos:
+        processos_escopo = _processos_escopo_ativos(request.user, escopo_processos)
+        movimentacao = _movimentacao_processual(processos_escopo)
+        paralisados = _processos_paralisados(processos_escopo, hoje)
+        prazos = _prazos_a_vencer(processos_escopo, hoje)
+
     assinatura = getattr(request.tenant, "assinatura", None)
     plano_nome = assinatura.plano.nome if assinatura else None
 
@@ -175,11 +275,247 @@ def painel(request):
         "compromissos_dashboard": compromissos_dashboard,
         "compromissos_pendentes_dashboard": compromissos_pendentes_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
+        "movimentacao": movimentacao,
+        "paralisados": paralisados,
+        "prazos": prazos,
         "acesso_clientes": acesso_clientes,
         "acesso_processos": acesso_processos,
         "acesso_tarefas": acesso_tarefas,
         "acesso_agenda": acesso_agenda,
         "acesso_financeiro": acesso_financeiro,
+        "acesso_usuarios_ativos": acesso_usuarios_ativos,
         "plano_nome": plano_nome,
         "item_ativo": "painel",
+        "aba_ativa": "geral",
     })
+
+
+# ── Análise de dados ─────────────────────────────────────────────────────────
+
+def _rotulo_estado(valor):
+    if valor == _NAO_INFORMADO:
+        return "Não informado"
+    return dict(Processo.UF_CHOICES).get(valor, valor)
+
+
+def _rotulo_simples(valor):
+    return "Não informado" if valor == _NAO_INFORMADO else valor
+
+
+def _agrupar_por_campo(processos, campo):
+    grupos = defaultdict(list)
+    for processo in processos:
+        valor = getattr(processo, campo) or _NAO_INFORMADO
+        grupos[valor].append(processo)
+    return grupos
+
+
+def _barras(grupos, rotulador, total_geral):
+    total_geral = total_geral or 1
+    barras = [
+        {
+            "valor": valor,
+            "label": rotulador(valor),
+            "total": len(itens),
+            "pct": round(len(itens) / total_geral * 100),
+            "processos": itens,
+        }
+        for valor, itens in grupos.items()
+    ]
+    barras.sort(key=lambda b: -b["total"])
+    return barras
+
+
+_GRUPO_PATROCINIO_LABELS = {
+    "polo_ativo": "Polo ativo (cliente autor/recorrente)",
+    "polo_passivo": "Polo passivo (cliente réu/recorrido)",
+    "outros": "Outros (terceiro/MP/etc.)",
+    _NAO_INFORMADO: "Não identificado",
+}
+
+
+def _formatar_periodo(dias):
+    if dias is None:
+        return None
+    dias = round(dias)
+    meses, resto = divmod(dias, 30)
+    if meses and resto:
+        return f"{meses} {'mês' if meses == 1 else 'meses'} e {resto} dia{'s' if resto != 1 else ''}"
+    if meses:
+        return f"{meses} {'mês' if meses == 1 else 'meses'}"
+    return f"{resto} dia{'s' if resto != 1 else ''}"
+
+
+@login_required
+def analise(request):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+
+    hoje = timezone.localdate()
+    nivel_maximo = nivel_acesso_modulo(request.user, MODULO_PROCESSOS)
+    if nivel_maximo not in _ESCOPOS_VALIDOS:
+        nivel_maximo = NIVEL_SOMENTE_SEUS
+
+    mostrar_seletor_escopo = nivel_maximo == NIVEL_TODOS
+    escopo_solicitado = request.GET.get("escopo")
+    if mostrar_seletor_escopo and escopo_solicitado in _ESCOPOS_VALIDOS:
+        escopo = escopo_solicitado
+    else:
+        escopo = nivel_maximo
+
+    processos_qs = Processo.objects.select_related("cliente", "equipe", "responsavel").prefetch_related(
+        "partes", "movimentacoes"
+    )
+    if escopo == NIVEL_SOMENTE_SEUS:
+        processos_qs = processos_qs.filter(responsavel=request.user)
+
+    cliente_id = request.GET.get("cliente") or ""
+    equipe_id = request.GET.get("equipe") or ""
+    usuario_id = request.GET.get("usuario") or ""
+    mostrar_filtro_usuario = escopo == NIVEL_TODOS
+
+    if cliente_id:
+        processos_qs = processos_qs.filter(cliente_id=cliente_id)
+    if equipe_id:
+        processos_qs = processos_qs.filter(equipe_id=equipe_id)
+    if mostrar_filtro_usuario and usuario_id:
+        processos_qs = processos_qs.filter(responsavel_id=usuario_id)
+
+    processos = list(processos_qs)
+    total = len(processos)
+
+    # Natureza
+    grupos_natureza = _agrupar_por_campo(processos, "area_direito")
+    natureza_barras = _barras(
+        grupos_natureza,
+        lambda v: dict(Processo.AREAS_CHOICES).get(v, v),
+        total,
+    )
+
+    # Status
+    grupos_status = _agrupar_por_campo(processos, "status")
+    status_barras = _barras(
+        grupos_status,
+        lambda v: dict(Processo.STATUS_CHOICES).get(v, v),
+        total,
+    )
+
+    # Patrocínio (best-effort por CPF/CNPJ)
+    grupos_patrocinio = defaultdict(list)
+    for processo in processos:
+        grupo = patrocinio_do_processo(processo, partes=processo.partes.all())
+        grupos_patrocinio[grupo or _NAO_INFORMADO].append(processo)
+    patrocinio_barras = _barras(
+        grupos_patrocinio,
+        lambda v: _GRUPO_PATROCINIO_LABELS.get(v, v),
+        total,
+    )
+
+    # Localidade hierárquica: Estado → Cidade → Vara, com auto-skip
+    loc_estado_qs = request.GET.get("loc_estado")
+    loc_cidade_qs = request.GET.get("loc_cidade")
+
+    grupos_estado = _agrupar_por_campo(processos, "estado")
+    estado_opcoes = None
+    if len(grupos_estado) <= 1:
+        estado_ativo = next(iter(grupos_estado), None)
+    elif loc_estado_qs in grupos_estado:
+        estado_ativo = loc_estado_qs
+    else:
+        estado_ativo = None
+        estado_opcoes = _barras(grupos_estado, _rotulo_estado, total)
+
+    cidade_opcoes = None
+    cidade_ativa = None
+    grupos_cidade = {}
+    if estado_ativo is not None:
+        grupos_cidade = _agrupar_por_campo(grupos_estado[estado_ativo], "cidade")
+        if len(grupos_cidade) <= 1:
+            cidade_ativa = next(iter(grupos_cidade), None)
+        elif loc_cidade_qs in grupos_cidade:
+            cidade_ativa = loc_cidade_qs
+        else:
+            cidade_opcoes = _barras(grupos_cidade, _rotulo_simples, len(grupos_estado[estado_ativo]))
+
+    vara_barras = []
+    if cidade_ativa is not None:
+        grupos_vara = _agrupar_por_campo(grupos_cidade[cidade_ativa], "vara_juizo")
+        vara_barras = _barras(grupos_vara, _rotulo_simples, len(grupos_cidade[cidade_ativa]))
+
+    breadcrumb = []
+    if estado_ativo is not None:
+        breadcrumb.append({
+            "label": _rotulo_estado(estado_ativo),
+            "clicavel": len(grupos_estado) > 1,
+        })
+    if cidade_ativa is not None:
+        breadcrumb.append({
+            "label": _rotulo_simples(cidade_ativa),
+            "clicavel": len(grupos_cidade) > 1,
+        })
+
+    # Tempo e resultados
+    processos_ativos_tempo_vida = [
+        p for p in processos if p.status == "ativo" and p.data_distribuicao
+    ]
+    if processos_ativos_tempo_vida:
+        media_dias_vida = sum(
+            (hoje - p.data_distribuicao).days for p in processos_ativos_tempo_vida
+        ) / len(processos_ativos_tempo_vida)
+    else:
+        media_dias_vida = None
+
+    medias_entre_andamentos = []
+    for processo in processos:
+        datas = sorted(m.data for m in processo.movimentacoes.all())
+        if len(datas) < 2:
+            continue
+        intervalos = [(datas[i + 1] - datas[i]).days for i in range(len(datas) - 1)]
+        medias_entre_andamentos.append(sum(intervalos) / len(intervalos))
+    media_geral_entre_andamentos = (
+        sum(medias_entre_andamentos) / len(medias_entre_andamentos)
+        if medias_entre_andamentos else None
+    )
+
+    julgados = Counter(p.resultado_sentenca for p in processos if p.resultado_sentenca)
+
+    filtros_querystring = urlencode({
+        "escopo": escopo,
+        "cliente": cliente_id,
+        "equipe": equipe_id,
+        "usuario": usuario_id,
+    })
+
+    contexto = {
+        "item_ativo": "painel",
+        "aba_ativa": "analise",
+        "acesso_processos": True,
+        "mostrar_seletor_escopo": mostrar_seletor_escopo,
+        "escopo_atual": escopo,
+        "mostrar_filtro_usuario": mostrar_filtro_usuario,
+        "cliente_id": cliente_id,
+        "equipe_id": equipe_id,
+        "usuario_id": usuario_id,
+        "clientes_opcoes": Cliente.objects.filter(ativo=True).order_by("nome_razao_social"),
+        "equipes_opcoes": Equipe.objects.filter(ativo=True).order_by("nome"),
+        "usuarios_opcoes": responsaveis_elegiveis() if mostrar_filtro_usuario else User.objects.none(),
+        "total_processos": total,
+        "natureza_barras": natureza_barras,
+        "status_barras": status_barras,
+        "patrocinio_barras": patrocinio_barras,
+        "loc_breadcrumb": breadcrumb,
+        "loc_estado_ativo": estado_ativo,
+        "loc_estado_opcoes": estado_opcoes,
+        "loc_cidade_opcoes": cidade_opcoes,
+        "loc_vara_barras": vara_barras,
+        "loc_mostrando_estados": estado_opcoes is not None,
+        "loc_mostrando_cidades": estado_ativo is not None and cidade_opcoes is not None,
+        "loc_mostrando_varas": cidade_ativa is not None,
+        "filtros_querystring": filtros_querystring,
+        "tempo_vida_medio": _formatar_periodo(media_dias_vida),
+        "tempo_entre_andamentos": _formatar_periodo(media_geral_entre_andamentos),
+        "julgados_procedente": julgados.get("procedente", 0),
+        "julgados_parcial": julgados.get("parcialmente_procedente", 0),
+        "julgados_improcedente": julgados.get("improcedente", 0),
+    }
+    return render(request, "dashboard/analise.html", contexto)

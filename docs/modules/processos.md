@@ -86,6 +86,18 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 - Excluir um documento é definitivo nesta versão — sem histórico de
   versão nem lixeira. Excluir o Processo remove também seus documentos.
 
+## Localidade e resultado de sentença
+
+- `estado` (UF) e `cidade` são campos opcionais, em branco por padrão;
+  alimentam o agrupamento hierárquico por localidade do Dashboard
+  (Estado → Cidade → `vara_juizo`) — ver
+  [dashboard.md](dashboard.md).
+- `resultado_sentenca` (procedente/parcialmente procedente/
+  improcedente) é opcional e sempre preenchido manualmente nesta
+  versão — sem detecção automática por IA a partir do andamento de
+  sentença. Alimenta o indicador "Julgados" da aba Análise de dados do
+  Dashboard.
+
 ## Fora de escopo imediato
 
 - Assistente/Laboratório (condicionado a PDR-0008);

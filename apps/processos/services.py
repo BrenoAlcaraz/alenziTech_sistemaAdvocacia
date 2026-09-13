@@ -34,6 +34,27 @@ def cliente_do_processo_corresponde_documento(processo, documento):
     return processo.cliente
 
 
+def patrocinio_do_processo(processo, partes=None):
+    """
+    Grupo processual (polo_ativo/polo_passivo/outros) do lado que o
+    escritório patrocina, identificado por casamento best-effort entre
+    `Processo.cliente` e uma `ParteProcesso` do mesmo processo, por
+    CPF/CNPJ normalizado. Sem correspondência possível (cliente não
+    cadastrado como parte, ou processo sem cliente), retorna None —
+    quem chama decide como rotular ("Não identificado").
+    """
+    if not processo.cliente_id or not processo.cliente.cpf_cnpj:
+        return None
+    documento_cliente = normalizar_documento(processo.cliente.cpf_cnpj)
+    if not documento_cliente:
+        return None
+    partes = processo.partes.all() if partes is None else partes
+    for parte in partes:
+        if normalizar_documento(parte.cpf_cnpj) == documento_cliente:
+            return parte.grupo_visual
+    return None
+
+
 def nome_exibicao_usuario(usuario):
     """Nome de exibição de um usuário interno, com fallback para o username."""
     return usuario.get_full_name() or usuario.username
