@@ -1,0 +1,54 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Equipes — {{ usuario_alvo.username }} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-xs text-gray-400 mb-0.5">Usuário</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Equipes de que faz parte</p>
+  </div>
+</div>
+
+<div class="card p-0 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+          <th class="text-left px-5 py-3 font-medium">Equipe</th>
+          <th class="text-left px-5 py-3 font-medium">Ação</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for item in equipes_contexto %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-4">
+            <p class="font-medium text-gray-900">{{ item.equipe.nome }}</p>
+          </td>
+          <td class="px-5 py-4">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="equipe_id" value="{{ item.equipe.pk }}">
+              {% if item.membro %}
+                <input type="hidden" name="acao" value="remover">
+                <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
+                  Remover da equipe
+                </button>
+              {% else %}
+                <button type="submit" class="text-sm text-juridico-ouro hover:underline underline-offset-2">
+                  Adicionar à equipe
+                </button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" class="px-5 py-10 text-center text-sm text-gray-400">Nenhuma equipe cadastrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

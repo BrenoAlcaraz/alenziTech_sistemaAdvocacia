@@ -15,6 +15,7 @@ from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_AGENDA,
+    MODULO_GERIR,
     HAB_AGENDA_CRIAR_PARA_OUTROS,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
@@ -105,7 +106,14 @@ def _aplicar_escopo(qs, request, escopo):
     Em `somente_seus`, restringe a compromisso onde o usuário é
     responsável OU participante (qualquer status de confirmação) —
     participante nunca é responsável, só ganha visibilidade.
+
+    Atalho do Painel do gestor: com `?usuario=` e permissão de
+    `gerir`/Admin, ignora o escopo do usuário logado e mostra a agenda
+    do usuário filtrado (specs/dashboard-painel-do-gestor.md).
     """
+    usuario_filtro_id = request.GET.get("usuario")
+    if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
+        return qs.filter(responsavel_id=usuario_filtro_id)
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(
             Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
@@ -124,6 +132,13 @@ def _compromissos_no_escopo(request, escopo):
         "responsavel", "processo", "cliente"
     ).exclude(status="cancelado")
     return _aplicar_escopo(qs, request, escopo)
+
+
+def _pode_ver_outro_usuario(user):
+    """Painel do gestor: só quem tem `gerir`/Admin pode olhar a agenda de
+    um usuário específico via ?usuario= — para qualquer outra pessoa o
+    parâmetro é ignorado (specs/dashboard-painel-do-gestor.md)."""
+    return usuario_admin_escritorio(user) or tem_permissao_modulo(user, MODULO_GERIR)
 
 
 def _compromissos_mutaveis(request):
@@ -343,10 +358,17 @@ def index(request):
         raise PermissionDenied
     escopo, escopo_maximo = _resolver_escopo(request)
     visao = _normalizar_visao(request.GET.get("visao"))
+
+    usuario_filtro = None
+    usuario_filtro_id = request.GET.get("usuario")
+    if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
+        usuario_filtro = get_object_or_404(User, pk=usuario_filtro_id)
+
     contexto = {
         "visao": visao,
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "usuario_filtro": usuario_filtro,
         "is_admin": usuario_admin_escritorio(request.user),
         "item_ativo": "agenda",
         "next_url": request.get_full_path(),

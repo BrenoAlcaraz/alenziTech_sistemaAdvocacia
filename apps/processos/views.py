@@ -22,6 +22,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.atividade.services import registrar_atividade
 from .models import Documento, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -34,6 +35,7 @@ from .forms import (
 )
 from .services import (
     ids_processos_apensos_do,
+    nome_exibicao_usuario,
     responsaveis_elegiveis,
     vincular_processos_apensos,
     vinculos_apensos_do,
@@ -230,6 +232,11 @@ def adicionar_apenso(request, pk):
             pk=formulario.cleaned_data["processo_apenso"].pk,
         )
         vincular_processos_apensos(processo, processo_apenso)
+    registrar_atividade(
+        request.user, "processo_apenso_adicionado",
+        f"Vinculou o processo {processo_apenso.titulo} como apenso de {processo.titulo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=apensos")
 
 
@@ -249,6 +256,11 @@ def remover_apenso(request, pk, vinculo_pk):
         processo_apenso = vinculo.outro_processo(processo)
         get_object_or_404(mutaveis, pk=processo_apenso.pk)
         vinculo.delete()
+    registrar_atividade(
+        request.user, "processo_apenso_removido",
+        f"Removeu o vínculo de apenso entre {processo.titulo} e {processo_apenso.titulo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=apensos")
 
 
@@ -266,7 +278,13 @@ def adicionar_integrante(request, pk):
     )
     if not formulario.is_valid():
         raise Http404
-    processo.integrantes_habilitados.add(formulario.cleaned_data["usuario"])
+    usuario_integrante = formulario.cleaned_data["usuario"]
+    processo.integrantes_habilitados.add(usuario_integrante)
+    registrar_atividade(
+        request.user, "processo_integrante_adicionado",
+        f"Habilitou {nome_exibicao_usuario(usuario_integrante)} no processo {processo.titulo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
 
 
@@ -278,6 +296,11 @@ def remover_integrante(request, pk, usuario_pk):
     processo = get_object_or_404(Processo, pk=pk)
     usuario = get_object_or_404(processo.integrantes_habilitados, pk=usuario_pk)
     processo.integrantes_habilitados.remove(usuario)
+    registrar_atividade(
+        request.user, "processo_integrante_removido",
+        f"Removeu a habilitação de {nome_exibicao_usuario(usuario)} no processo {processo.titulo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
 
 
@@ -303,6 +326,11 @@ def novo(request):
             if not processo.equipe:
                 processo.equipe = equipe_padrao_para_usuario(request.user)
             processo.save()
+            registrar_atividade(
+                request.user, "processo_criado",
+                f"Criou o processo {processo.titulo}",
+                processo=processo,
+            )
             return redirect("processos:detalhe", pk=processo.pk)
     else:
         initial = {"responsavel": request.user.pk} if pode_atribuir_responsavel else {}
@@ -334,6 +362,11 @@ def editar(request, pk):
         form = FormClass(request.POST, instance=processo, **form_kwargs)
         if form.is_valid():
             form.save()
+            registrar_atividade(
+                request.user, "processo_editado",
+                f"Editou o processo {processo.titulo}",
+                processo=processo,
+            )
             return redirect("processos:detalhe", pk=processo.pk)
     else:
         form = FormClass(instance=processo, **form_kwargs)
@@ -370,6 +403,11 @@ def arquivar(request, pk):
     if request.method == "POST":
         processo.status = "arquivado"
         processo.save()
+        registrar_atividade(
+            request.user, "processo_arquivado",
+            f"Arquivou o processo {processo.titulo}",
+            processo=processo,
+        )
     return redirect("processos:detalhe", pk=pk)
 
 
@@ -382,6 +420,11 @@ def reabrir(request, pk):
     if request.method == "POST":
         processo.status = "ativo"
         processo.save()
+        registrar_atividade(
+            request.user, "processo_reaberto",
+            f"Reabriu o processo {processo.titulo}",
+            processo=processo,
+        )
     return redirect("processos:detalhe", pk=pk)
 
 
@@ -400,6 +443,11 @@ def adicionar_movimentacao(request, pk):
             movimentacao.processo = processo
             movimentacao.autor = request.user
             movimentacao.save()
+            registrar_atividade(
+                request.user, "processo_andamento_adicionado",
+                f"Adicionou andamento ({movimentacao.get_tipo_display()}) no processo {processo.titulo}",
+                processo=processo,
+            )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos")
 
 
@@ -415,6 +463,11 @@ def adicionar_parte(request, pk):
             parte = form.save(commit=False)
             parte.processo = processo
             parte.save()
+            registrar_atividade(
+                request.user, "processo_parte_adicionada",
+                f"Adicionou parte ({parte.get_papel_display()}) no processo {processo.titulo}",
+                processo=processo,
+            )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
 
 
@@ -429,6 +482,11 @@ def editar_parte(request, pk, parte_pk):
         form = ParteProcessoForm(request.POST, instance=parte, processo=processo)
         if form.is_valid():
             form.save()
+            registrar_atividade(
+                request.user, "processo_parte_editada",
+                f"Editou parte ({parte.get_papel_display()}) no processo {processo.titulo}",
+                processo=processo,
+            )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
 
 
@@ -447,6 +505,11 @@ def adicionar_documento(request, pk):
         documento.processo = processo
         documento.autor = request.user
         documento.save()
+        registrar_atividade(
+            request.user, "processo_documento_adicionado",
+            f"Adicionou documento ({documento.get_tipo_display()}) no processo {processo.titulo}",
+            processo=processo,
+        )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=documentos")
 
 
@@ -460,7 +523,13 @@ def excluir_documento(request, pk, documento_pk):
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
     documento = get_object_or_404(processo.documentos, pk=documento_pk)
+    descricao_tipo = documento.get_tipo_display()
     documento.delete()
+    registrar_atividade(
+        request.user, "processo_documento_excluido",
+        f"Excluiu documento ({descricao_tipo}) do processo {processo.titulo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=documentos")
 
 

@@ -4,13 +4,19 @@ from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.contrib.auth import get_user_model
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Max, Q, Sum
 from django.utils import timezone
 
+from apps.accounts.decorators import (
+    nome_legivel_grupo,
+    obter_papel_principal_usuario,
+    usuario_admin_escritorio,
+)
 from apps.accounts.models import Equipe
+from apps.atividade.models import LogAtividade
 from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_USUARIO,
@@ -60,6 +66,12 @@ def _nivel_financeiro(user):
 
 def _tem_acesso_dados_financeiro(user):
     return _nivel_financeiro(user) in _NIVEIS_FINANCEIRO_DADOS
+
+
+def _pode_ver_painel_gestor(user):
+    """Administrador do escritório ou quem tem o módulo `gerir`
+    habilitado — specs/dashboard-painel-do-gestor.md."""
+    return usuario_admin_escritorio(user) or tem_permissao_modulo(user, MODULO_GERIR)
 
 
 def _formatar_moeda(valor):
@@ -284,6 +296,7 @@ def painel(request):
         "acesso_agenda": acesso_agenda,
         "acesso_financeiro": acesso_financeiro,
         "acesso_usuarios_ativos": acesso_usuarios_ativos,
+        "acesso_gestor": _pode_ver_painel_gestor(request.user),
         "plano_nome": plano_nome,
         "item_ativo": "painel",
         "aba_ativa": "geral",
@@ -490,6 +503,7 @@ def analise(request):
         "item_ativo": "painel",
         "aba_ativa": "analise",
         "acesso_processos": True,
+        "acesso_gestor": _pode_ver_painel_gestor(request.user),
         "mostrar_seletor_escopo": mostrar_seletor_escopo,
         "escopo_atual": escopo,
         "mostrar_filtro_usuario": mostrar_filtro_usuario,
@@ -519,3 +533,53 @@ def analise(request):
         "julgados_improcedente": julgados.get("improcedente", 0),
     }
     return render(request, "dashboard/analise.html", contexto)
+
+
+# ── Painel do gestor ─────────────────────────────────────────────────────────
+
+@login_required
+def gestor(request):
+    if not _pode_ver_painel_gestor(request.user):
+        raise PermissionDenied
+
+    hoje = timezone.localdate()
+    usuarios = User.objects.filter(is_active=True).select_related("perfil").order_by(
+        "first_name", "last_name", "username"
+    )
+    usuarios_contexto = []
+    for usuario in usuarios:
+        papel = obter_papel_principal_usuario(usuario)
+        usuarios_contexto.append({
+            "usuario": usuario,
+            "papel_nome": nome_legivel_grupo(papel.name) if papel else "Sem papel definido",
+            "acoes_hoje": LogAtividade.objects.filter(usuario=usuario, criado_em__date=hoje).count(),
+        })
+
+    return render(request, "dashboard/gestor.html", {
+        "usuarios_contexto": usuarios_contexto,
+        "acesso_processos": tem_permissao_modulo(request.user, MODULO_PROCESSOS),
+        "acesso_gestor": True,
+        "item_ativo": "painel",
+        "aba_ativa": "gestor",
+    })
+
+
+@login_required
+def gestor_usuario(request, user_pk):
+    if not _pode_ver_painel_gestor(request.user):
+        raise PermissionDenied
+
+    usuario_alvo = get_object_or_404(User, pk=user_pk, is_active=True)
+    hoje = timezone.localdate()
+    atividades = LogAtividade.objects.filter(
+        usuario=usuario_alvo, criado_em__date=hoje
+    ).order_by("criado_em")
+
+    return render(request, "dashboard/gestor_usuario.html", {
+        "usuario_alvo": usuario_alvo,
+        "atividades": atividades,
+        "acesso_processos": tem_permissao_modulo(request.user, MODULO_PROCESSOS),
+        "acesso_gestor": True,
+        "item_ativo": "painel",
+        "aba_ativa": "gestor",
+    })

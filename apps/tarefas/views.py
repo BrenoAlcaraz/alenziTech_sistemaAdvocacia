@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -8,6 +9,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
+    MODULO_GERIR,
     MODULO_TAREFAS,
     HAB_TAREFAS_ATRIBUIR_OUTROS,
     NIVEL_SOMENTE_SEUS,
@@ -96,6 +98,13 @@ def _tarefas_mutaveis(request):
     return qs
 
 
+def _pode_ver_outro_usuario(user):
+    """Painel do gestor: só quem tem `gerir`/Admin pode olhar as tarefas
+    de um usuário específico via ?usuario= — para qualquer outra pessoa
+    o parâmetro é ignorado (specs/dashboard-painel-do-gestor.md)."""
+    return usuario_admin_escritorio(user) or tem_permissao_modulo(user, MODULO_GERIR)
+
+
 def _pode_atribuir_a_outros(request):
     return usuario_admin_escritorio(request.user) or tem_habilitacao(
         request.user, MODULO_TAREFAS, HAB_TAREFAS_ATRIBUIR_OUTROS
@@ -138,8 +147,23 @@ def quadro(request):
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
     ordem = _normalizar_ordem(request.GET.get("ordem", "prazo_proximo"))
-    escopo, escopo_maximo = _resolver_escopo(request)
-    tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
+
+    usuario_filtro = None
+    usuario_filtro_id = request.GET.get("usuario")
+    if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
+        usuario_filtro = get_object_or_404(User, pk=usuario_filtro_id)
+
+    if usuario_filtro:
+        # Atalho do Painel do gestor: ignora o escopo somente_seus/todos
+        # do próprio usuário logado — vê as tarefas do usuário filtrado.
+        escopo = escopo_maximo = NIVEL_TODOS
+        tarefas = Tarefa.objects.select_related(
+            "responsavel", "processo", "cliente"
+        ).filter(responsavel=usuario_filtro).order_by(*_get_order_args(ordem))
+    else:
+        escopo, escopo_maximo = _resolver_escopo(request)
+        tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
+
     tarefas_por_status = {
         "a_fazer": [t for t in tarefas if t.status == "a_fazer"],
         "em_andamento": [t for t in tarefas if t.status == "em_andamento"],
@@ -151,6 +175,7 @@ def quadro(request):
         "ordem": ordem,
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "usuario_filtro": usuario_filtro,
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
