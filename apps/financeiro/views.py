@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -33,7 +34,7 @@ from .forms import (
     SolicitacaoFinanceiraForm,
 )
 from .models import CustaJudicial, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
-from .services import cancelar_ocorrencias_futuras, gerar_ocorrencias
+from .services import calcular_correcao_honorario, cancelar_ocorrencias_futuras, gerar_ocorrencias
 
 
 def _redirect_seguro(request):
@@ -645,27 +646,98 @@ def confirmar_recebimento_honorario(request, pk):
     if not usuario_admin_escritorio(request.user):
         raise PermissionDenied
     honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+    # Capturados antes de validar o form: ModelForm._post_clean() já
+    # escreve os valores novos em `honorario` (mesma instância) durante
+    # form.is_valid(), então ler `honorario.<campo>` depois disso
+    # devolveria o valor recém-submetido, não o valor anterior.
+    valor_efetivo_antes = honorario.valor_efetivo or honorario.valor_estimado
+    valor_recebido_antes = honorario.valor_recebido
+    taxa_mensal_antes = honorario.taxa_mensal
+    data_termo_antes = honorario.data_termo
+    data_recebida_antes = honorario.data_recebida
 
     if request.method == "POST":
-        form = ConfirmarRecebimentoHonorarioForm(request.POST, instance=honorario)
+        form = ConfirmarRecebimentoHonorarioForm(request.POST, request.FILES, instance=honorario)
         if form.is_valid():
-            form.save()
-            responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
-            if responsavel_id and responsavel_id != request.user.id:
-                Notificacao.objects.create(
-                    destinatario=honorario.processo.responsavel,
-                    mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
+            # Correção calculada com a taxa/data-termo/valor vigentes
+            # antes desta submissão — cobre o tempo entre a confirmação
+            # anterior (ou a data-termo) e esta confirmação.
+            pendente_anterior = valor_efetivo_antes - valor_recebido_antes
+            data_recebida_nova = form.cleaned_data["data_recebida"]
+            correcao = calcular_correcao_honorario(
+                valor_pendente=pendente_anterior,
+                taxa_mensal=taxa_mensal_antes,
+                data_termo=data_termo_antes,
+                referencia_anterior=data_recebida_antes,
+                ate_data=data_recebida_nova,
+            )
+
+            honorario_atualizado = form.save(commit=False)
+            honorario_atualizado.valor_efetivo = form.cleaned_data["valor_efetivo"] + correcao
+
+            valor_recebido_agora = form.cleaned_data.get("valor_recebido_agora")
+            if not valor_recebido_agora:
+                # Sem valor parcial informado, confirma o pendente
+                # inteiro — mesmo comportamento de antes do PDR-0022.
+                valor_recebido_agora = honorario_atualizado.valor_efetivo - valor_recebido_antes
+
+            novo_valor_recebido = valor_recebido_antes + valor_recebido_agora
+            if novo_valor_recebido > honorario_atualizado.valor_efetivo:
+                form.add_error(
+                    "valor_recebido_agora",
+                    "O valor recebido não pode ultrapassar o valor efetivo pendente.",
                 )
-            return redirect("financeiro:honorarios_lista")
+            else:
+                with transaction.atomic():
+                    honorario_atualizado.valor_recebido = novo_valor_recebido
+                    honorario_atualizado.status = (
+                        "recebido" if novo_valor_recebido >= honorario_atualizado.valor_efetivo else "previsto"
+                    )
+                    honorario_atualizado.save()
+
+                    LancamentoFinanceiro.objects.create(
+                        tipo="receita",
+                        descricao=f"Honorário — {honorario.get_tipo_display()}",
+                        valor=valor_recebido_agora,
+                        data_vencimento=data_recebida_nova,
+                        data_pagamento=data_recebida_nova,
+                        status="pago",
+                        categoria="exito" if honorario.tipo == "exito" else "honorario",
+                        cliente=honorario.cliente,
+                        processo=honorario.processo,
+                        responsavel=request.user,
+                        anexo=form.cleaned_data.get("anexo"),
+                    )
+
+                    responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
+                    if responsavel_id and responsavel_id != request.user.id:
+                        Notificacao.objects.create(
+                            destinatario=honorario.processo.responsavel,
+                            mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
+                        )
+                return redirect("financeiro:honorarios_lista")
     else:
         form = ConfirmarRecebimentoHonorarioForm(
             instance=honorario,
-            initial={"valor_efetivo": honorario.valor_estimado, "data_recebida": timezone.localdate()},
+            initial={
+                "valor_efetivo": honorario.valor_efetivo or honorario.valor_estimado,
+                "data_recebida": timezone.localdate(),
+            },
         )
+
+    pendente_atual = valor_efetivo_antes - valor_recebido_antes
+    pendente_corrigido = pendente_atual + calcular_correcao_honorario(
+        valor_pendente=pendente_atual,
+        taxa_mensal=taxa_mensal_antes,
+        data_termo=data_termo_antes,
+        referencia_anterior=data_recebida_antes,
+        ate_data=timezone.localdate(),
+    )
 
     return render(request, "financeiro/confirmar_recebimento_honorario.html", {
         "form": form,
         "honorario": honorario,
+        "pendente_corrigido": pendente_corrigido,
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",
     })

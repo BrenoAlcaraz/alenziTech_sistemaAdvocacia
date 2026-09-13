@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.contrib.auth.models import User
@@ -211,6 +213,15 @@ class Honorario(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="previsto")
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+
+    # Recebimento parcial e correção monetária/juros (PDR-0022).
+    # valor_recebido acumula as confirmações já feitas; valor_pendente
+    # nunca é armazenado, é sempre valor_efetivo - valor_recebido.
+    # taxa_mensal/data_termo ausentes = sem correção (comportamento
+    # idêntico ao anterior ao PDR-0022).
+    valor_recebido = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    taxa_mensal = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    data_termo = models.DateField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Honorário"

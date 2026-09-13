@@ -12,11 +12,26 @@
 </div>
 
 <div class="card p-6 max-w-lg">
-  <p class="text-sm text-gray-600 mb-5">
+  <p class="text-sm text-gray-600 mb-2">
     {{ honorario.get_tipo_display }} — valor estimado R$ {{ honorario.valor_estimado|floatformat:2 }}{% if honorario.processo %} — {{ honorario.processo }}{% endif %}
   </p>
 
-  <form method="post">
+  {% if honorario.valor_recebido > 0 %}
+    <div class="flex gap-6 mb-5 p-3 bg-juridico-bege rounded-lg text-sm">
+      <div>
+        <p class="text-gray-500 text-xs">Já recebido</p>
+        <p class="font-semibold text-juridico-verde">R$ {{ honorario.valor_recebido|floatformat:2 }}</p>
+      </div>
+      <div>
+        <p class="text-gray-500 text-xs">Pendente {% if honorario.taxa_mensal %}(corrigido){% endif %}</p>
+        <p class="font-semibold text-gray-900">R$ {{ pendente_corrigido|floatformat:2 }}</p>
+      </div>
+    </div>
+  {% elif honorario.taxa_mensal %}
+    <p class="text-sm text-gray-500 mb-5">Valor pendente corrigido: <span class="font-semibold text-gray-900">R$ {{ pendente_corrigido|floatformat:2 }}</span></p>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -34,11 +49,43 @@
         {% endif %}
       </div>
       <div>
+        <label class="label" for="{{ form.valor_recebido_agora.id_for_label }}">{{ form.valor_recebido_agora.label }}</label>
+        {{ form.valor_recebido_agora }}
+        <p class="text-xs text-gray-400 mt-1">{{ form.valor_recebido_agora.help_text }}</p>
+        {% if form.valor_recebido_agora.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.valor_recebido_agora.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+      <div>
         <label class="label" for="{{ form.data_recebida.id_for_label }}">{{ form.data_recebida.label }}</label>
         {{ form.data_recebida }}
         {% if form.data_recebida.errors %}
           <p class="text-xs text-red-600 mt-1">{{ form.data_recebida.errors|join:", " }}</p>
         {% endif %}
+      </div>
+      <div>
+        <label class="label" for="{{ form.anexo.id_for_label }}">{{ form.anexo.label }}</label>
+        {{ form.anexo }}
+        {% if form.anexo.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ form.anexo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+        <div>
+          <label class="label" for="{{ form.taxa_mensal.id_for_label }}">{{ form.taxa_mensal.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.taxa_mensal }}
+          {% if form.taxa_mensal.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.taxa_mensal.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.data_termo.id_for_label }}">{{ form.data_termo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.data_termo }}
+          {% if form.data_termo.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.data_termo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
       </div>
     </div>
 

@@ -229,16 +229,36 @@ class HonorarioForm(forms.ModelForm):
 
 
 class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
+    """Confirmação de recebimento (PDR-0007), parcial ou total
+    (PDR-0022). `valor_recebido_agora` em branco confirma o valor
+    pendente inteiro — mesmo comportamento de antes do PDR-0022, quando
+    só existia confirmação total. `taxa_mensal`/`data_termo` em branco
+    não aplica nenhuma correção."""
+
+    valor_recebido_agora = forms.DecimalField(
+        label="Valor recebido agora (R$)", max_digits=12, decimal_places=2, required=False,
+        widget=forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
+        help_text="Em branco, confirma o valor pendente inteiro.",
+    )
+    anexo = forms.FileField(
+        label="Anexar comprovante", required=False,
+        widget=forms.ClearableFileInput(attrs={"class": "input"}),
+    )
+
     class Meta:
         model = Honorario
-        fields = ["valor_efetivo", "data_recebida"]
+        fields = ["valor_efetivo", "data_recebida", "taxa_mensal", "data_termo"]
         widgets = {
             "valor_efetivo": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "data_recebida": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "taxa_mensal": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "data_termo": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
         }
         labels = {
-            "valor_efetivo": "Valor efetivo recebido (R$)",
-            "data_recebida": "Data recebida",
+            "valor_efetivo": "Valor efetivo (total a receber, R$)",
+            "data_recebida": "Data desta confirmação",
+            "taxa_mensal": "Taxa de correção mensal (%)",
+            "data_termo": "Data-termo da correção",
         }
 
     def __init__(self, *args, **kwargs):
@@ -246,6 +266,9 @@ class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
         self.fields["valor_efetivo"].required = True
         self.fields["data_recebida"].required = True
         self.fields["data_recebida"].input_formats = ["%Y-%m-%d"]
+        self.fields["taxa_mensal"].required = False
+        self.fields["data_termo"].required = False
+        self.fields["data_termo"].input_formats = ["%Y-%m-%d"]
 
     def clean_valor_efetivo(self):
         valor = self.cleaned_data.get("valor_efetivo")
@@ -253,12 +276,11 @@ class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return valor
 
-    def save(self, commit=True):
-        honorario = super().save(commit=False)
-        honorario.status = "recebido"
-        if commit:
-            honorario.save()
-        return honorario
+    def clean_valor_recebido_agora(self):
+        valor = self.cleaned_data.get("valor_recebido_agora")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor
 
 
 class SolicitacaoFinanceiraForm(forms.ModelForm):

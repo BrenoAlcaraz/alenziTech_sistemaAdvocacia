@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import date
+from decimal import Decimal
 
 from django.db.models import Q
 from django.utils import timezone
@@ -107,3 +108,33 @@ def cancelar_ocorrencias_futuras(lancamento):
         status="pendente",
         data_vencimento__gte=hoje,
     ).update(status="cancelado")
+
+
+def _meses_entre(inicio, fim):
+    """Meses completos decorridos entre duas datas (não conta o mês
+    corrente se o dia de `fim` ainda não alcançou o dia de `inicio`)."""
+    meses = (fim.year - inicio.year) * 12 + (fim.month - inicio.month)
+    if fim.day < inicio.day:
+        meses -= 1
+    return meses
+
+
+def calcular_correcao_honorario(*, valor_pendente, taxa_mensal, data_termo, referencia_anterior, ate_data):
+    """Correção monetária/juros de um honorário (PDR-0022) — taxa mensal
+    configurada manualmente, sem integração com índice externo. Sem
+    taxa_mensal/data_termo, não há correção (comportamento idêntico ao
+    honorário anterior a este PDR).
+
+    Aplica a taxa sobre `valor_pendente`, pelo tempo decorrido desde
+    `data_termo` ou `referencia_anterior` (a confirmação anterior), o
+    que for mais recente.
+    """
+    if not taxa_mensal or not data_termo:
+        return Decimal("0")
+    referencia = referencia_anterior or data_termo
+    if referencia < data_termo:
+        referencia = data_termo
+    meses = _meses_entre(referencia, ate_data)
+    if meses <= 0:
+        return Decimal("0")
+    return valor_pendente * (taxa_mensal / Decimal("100")) * meses
