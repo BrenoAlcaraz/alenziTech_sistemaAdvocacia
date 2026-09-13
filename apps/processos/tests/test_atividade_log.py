@@ -6,7 +6,8 @@ specs/dashboard-painel-do-gestor.md (fase 1 do log: login + Processos).
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PerfilUsuario
+from apps.accounts.models import PapelAcesso, PerfilUsuario, PermissaoPapel, UsuarioPapel
+from apps.accounts.permissoes_constants import MODULO_PROCESSOS, NIVEL_TODOS
 from apps.atividade.models import LogAtividade
 from apps.clientes.models import Cliente
 from apps.processos.models import MovimentacaoProcessual, Processo
@@ -42,7 +43,14 @@ class AtividadeLogProcessosBase(TenantTestCase):
         )
 
     def _payload(self, titulo="Processo Log", **extra):
-        payload = {"titulo": titulo, "cliente": self.cliente.pk, **FORM_BASE}
+        # self.admin sempre usa ProcessoResponsavelForm (bypass de Admin em
+        # _pode_atribuir_responsavel) — "responsavel" é obrigatório nesse
+        # formulário, igual o campo pré-selecionado (initial) que o GET real
+        # já mostra na tela.
+        payload = {
+            "titulo": titulo, "cliente": self.cliente.pk, "responsavel": self.admin.pk,
+            **FORM_BASE,
+        }
         payload.update(extra)
         return payload
 
@@ -134,6 +142,11 @@ class TestLogMovimentacaoParteDocumento(AtividadeLogProcessosBase):
 class TestLogIntegranteEApenso(AtividadeLogProcessosBase):
     def test_adicionar_e_remover_integrante_geram_log(self):
         outro = User.objects.create_user("integrante", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Integrante Elegivel")
+        UsuarioPapel.objects.create(usuario=outro, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+        )
         resposta = self.client.post(
             f"/processos/{self.processo.pk}/integrantes/adicionar/",
             {"usuario": outro.pk},

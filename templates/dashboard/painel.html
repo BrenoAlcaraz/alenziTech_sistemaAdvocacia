@@ -466,6 +466,33 @@
     </details>
   </div>
 </div>
+
+{# ── Intimações ────────────────────────────────────────────────────────────── #}
+<div class="card p-5 mt-4">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-gray-700">Intimações</h2>
+    <a href="{% url 'processos:nova_intimacao' %}" class="text-sm font-medium text-juridico-ouro hover:underline">+ Nova intimação</a>
+  </div>
+  <div class="flex flex-col divide-y divide-gray-100">
+    {% for intimacao in intimacoes %}
+      <div class="py-3 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}</p>
+          <p class="text-xs text-gray-400">Prazo para manifestação: {{ intimacao.prazo_manifestacao|date:"d/m/Y" }}</p>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <a href="{% url 'processos:detalhe' intimacao.processo.pk %}" class="text-xs text-juridico-ouro hover:underline">Ver processo →</a>
+          <form method="post" action="{% url 'processos:manifestar_intimacao' intimacao.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-gray-500 hover:text-gray-900 underline underline-offset-2">Marcar como manifestada</button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-sm text-gray-400 py-3">Nenhuma intimação pendente.</p>
+    {% endfor %}
+  </div>
+</div>
 {% endif %}
 
 {% endblock %}

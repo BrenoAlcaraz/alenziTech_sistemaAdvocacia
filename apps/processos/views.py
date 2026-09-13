@@ -23,11 +23,12 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.atividade.services import registrar_atividade
-from .models import Documento, Processo
+from .models import Documento, Intimacao, Processo
 from .forms import (
     AdicionarApensoForm,
     AdicionarIntegranteForm,
     DocumentoForm,
+    IntimacaoForm,
     MovimentacaoProcessualForm,
     ParteProcessoForm,
     ProcessoForm,
@@ -545,3 +546,42 @@ def baixar_documento(request, documento_pk):
     if not documento.arquivo:
         raise Http404
     return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())
+
+
+# ── Intimações (specs/dashboard-intimacoes.md) ──────────────────────────────
+
+@login_required
+def nova_intimacao(request):
+    """Criação manual — sem e-mail nesta versão. Processo limitado ao
+    escopo de mutação de quem cria, mesma regra dos demais formulários
+    de Processo."""
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    processos_queryset = _processos_mutaveis(request).exclude(status="arquivado")
+    if request.method == "POST":
+        form = IntimacaoForm(request.POST, processos_queryset=processos_queryset)
+        if form.is_valid():
+            intimacao = form.save(commit=False)
+            intimacao.criado_por = request.user
+            intimacao.origem = "manual"
+            intimacao.save()
+            return redirect("dashboard:painel")
+    else:
+        form = IntimacaoForm(processos_queryset=processos_queryset)
+    return render(request, "processos/form_intimacao.html", {
+        "form": form,
+        "item_ativo": "painel",
+    })
+
+
+@login_required
+@require_POST
+def manifestar_intimacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    intimacao = get_object_or_404(
+        Intimacao.objects.filter(processo__in=_processos_mutaveis(request)), pk=pk
+    )
+    intimacao.status = "manifestada"
+    intimacao.save()
+    return redirect("dashboard:painel")

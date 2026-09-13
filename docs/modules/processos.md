@@ -98,6 +98,15 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
   sentença. Alimenta o indicador "Julgados" da aba Análise de dados do
   Dashboard.
 
+## Intimações
+
+- `Intimacao` (processo, motivo, prazo_manifestacao, status
+  pendente/manifestada, origem manual/email) sempre vinculada a um
+  Processo existente, dentro do escopo de mutação de quem cria. Criação
+  e vínculo são manuais nesta versão — sem leitura automática de
+  e-mail. Alimenta o painel "Intimações" da Visão geral do Dashboard —
+  ver [dashboard.md](dashboard.md).
+
 ## Fora de escopo imediato
 
 - Assistente/Laboratório (condicionado a PDR-0008);

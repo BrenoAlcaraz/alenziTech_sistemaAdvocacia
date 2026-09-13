@@ -1,0 +1,56 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Nova intimação — Jurídico SaaS{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'dashboard:painel' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Nova intimação</h1>
+</div>
+
+<div class="card p-6 max-w-lg">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="flex flex-col gap-4 mb-4">
+      <div>
+        <label class="label">Processo</label>
+        {{ form.processo }}
+        {% if form.processo.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.processo.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="label">Motivo</label>
+        {{ form.motivo }}
+        {% if form.motivo.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.motivo.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="label">Prazo para manifestação</label>
+        {{ form.prazo_manifestacao }}
+        {% if form.prazo_manifestacao.errors %}
+          <p class="mt-1 text-xs text-red-600">{{ form.prazo_manifestacao.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if not form.fields.processo.queryset.exists %}
+    <p class="text-sm text-gray-400 italic mb-4">
+      Nenhum processo disponível para vincular uma intimação.
+    </p>
+    {% endif %}
+
+    <div class="flex gap-3">
+      <button type="submit" class="btn-primary">Salvar</button>
+      <a href="{% url 'dashboard:painel' %}" class="btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -314,3 +314,38 @@ class ParteProcesso(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class Intimacao(models.Model):
+    """
+    Intimação vinculada a um Processo — painel "Intimações" do Dashboard
+    (specs/dashboard-intimacoes.md). Criação/vínculo manual nesta
+    versão; `origem` fica reservada para quando a leitura automática de
+    e-mail existir (pendência futura, não implementada).
+    """
+
+    STATUS_CHOICES = [
+        ("pendente", "Pendente"),
+        ("manifestada", "Manifestada"),
+    ]
+
+    ORIGEM_CHOICES = [
+        ("manual", "Manual"),
+        ("email", "E-mail"),
+    ]
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="intimacoes")
+    motivo = models.CharField(max_length=255)
+    prazo_manifestacao = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pendente")
+    origem = models.CharField(max_length=10, choices=ORIGEM_CHOICES, default="manual")
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Intimação"
+        verbose_name_plural = "Intimações"
+        ordering = ["prazo_manifestacao"]
+
+    def __str__(self):
+        return f"{self.processo.titulo} — {self.motivo}"
