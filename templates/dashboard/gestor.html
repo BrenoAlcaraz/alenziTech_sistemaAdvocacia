@@ -1,0 +1,47 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Painel do gestor — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Painel</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Visão geral do escritório</p>
+  </div>
+</div>
+
+{% include "dashboard/_abas.html" %}
+
+<div class="card p-0 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+          <th class="text-left px-5 py-3 font-medium">Usuário</th>
+          <th class="text-left px-5 py-3 font-medium">Papel</th>
+          <th class="text-right px-5 py-3 font-medium">Ações hoje</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for item in usuarios_contexto %}
+        <tr class="hover:bg-gray-50 transition-colors cursor-pointer"
+            onclick="window.location='{% url 'dashboard:gestor_usuario' item.usuario.pk %}'">
+          <td class="px-5 py-4">
+            <p class="font-medium text-gray-900">{{ item.usuario.get_full_name|default:item.usuario.username }}</p>
+            <p class="text-xs text-gray-400">@{{ item.usuario.username }}</p>
+          </td>
+          <td class="px-5 py-4 text-gray-600">{{ item.papel_nome }}</td>
+          <td class="px-5 py-4 text-right">
+            <span class="font-semibold text-gray-900">{{ item.acoes_hoje }}</span>
+            <span class="text-gray-400"> ações hoje</span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum usuário ativo.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

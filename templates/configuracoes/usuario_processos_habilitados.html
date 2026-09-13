@@ -1,0 +1,90 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Habilitar em processos — {{ usuario_alvo.username }} — Jurídico SaaS{% endblock %}
+
+{% block content %}
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <p class="text-xs text-gray-400 mb-0.5">Usuário</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Processos em que está habilitado como integrante</p>
+  </div>
+</div>
+
+<form method="get" class="card p-5 mb-4 flex flex-wrap items-end gap-4">
+  <div>
+    <label class="label">Cliente</label>
+    <select name="cliente" class="select">
+      <option value="">Todos</option>
+      {% for c in clientes_opcoes %}
+        <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label">Matéria</label>
+    <select name="materia" class="select">
+      <option value="">Todas</option>
+      {% for valor, rotulo in materias_opcoes %}
+        <option value="{{ valor }}" {% if materia == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="label">Data de distribuição</label>
+    <input type="date" name="data" class="input" value="{{ data }}">
+  </div>
+  <div class="flex-1 min-w-40">
+    <label class="label">Buscar</label>
+    <input type="text" name="busca" class="input" placeholder="Nome ou número..." value="{{ busca }}">
+  </div>
+  <button type="submit" class="btn-primary">Filtrar</button>
+  {% if cliente_id or materia or data or busca %}
+    <a href="{% url 'configuracoes:usuario_processos_habilitados' usuario_alvo.pk %}" class="text-sm font-medium text-juridico-ouro">Limpar filtros</a>
+  {% endif %}
+</form>
+
+<div class="card p-0 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+          <th class="text-left px-5 py-3 font-medium">Processo</th>
+          <th class="text-left px-5 py-3 font-medium">Cliente</th>
+          <th class="text-left px-5 py-3 font-medium">Ação</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for processo in processos %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-5 py-4">
+            <p class="font-medium text-gray-900">{{ processo.titulo }}</p>
+            {% if processo.numero %}<p class="text-xs text-gray-400">{{ processo.numero }}</p>{% endif %}
+          </td>
+          <td class="px-5 py-4 text-gray-600">{{ processo.cliente|default:"—" }}</td>
+          <td class="px-5 py-4">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="processo_id" value="{{ processo.pk }}">
+              {% if processo.pk in ids_habilitados %}
+                <input type="hidden" name="acao" value="remover">
+                <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
+                  Remover habilitação
+                </button>
+              {% else %}
+                <button type="submit" class="text-sm text-juridico-ouro hover:underline underline-offset-2">
+                  Habilitar
+                </button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum processo encontrado no filtro atual.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
