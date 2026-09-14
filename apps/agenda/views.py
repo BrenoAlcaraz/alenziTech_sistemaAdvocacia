@@ -446,8 +446,8 @@ def editar(request, pk):
             compromisso = form.save(commit=False)
             compromisso.responsavel = responsavel_original
             compromisso.status = status_original
-            if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
-                compromisso.cliente = compromisso.processo.cliente
+            if not compromisso.cliente and compromisso.processo:
+                compromisso.cliente = compromisso.processo.clientes.first()
             compromisso.save()
             if compromisso.data_hora_inicio != data_anterior:
                 _resetar_confirmacoes_por_reagendamento(compromisso)
@@ -491,8 +491,8 @@ def form_compromisso(request):
             if compromisso.responsavel != request.user and not _pode_criar_para_outros(request):
                 raise PermissionDenied
             compromisso.status = "agendado"
-            if not compromisso.cliente and compromisso.processo and compromisso.processo.cliente:
-                compromisso.cliente = compromisso.processo.cliente
+            if not compromisso.cliente and compromisso.processo:
+                compromisso.cliente = compromisso.processo.clientes.first()
             compromisso.save()
             for usuario in form.cleaned_data.get("participantes") or []:
                 if usuario.pk == compromisso.responsavel_id:

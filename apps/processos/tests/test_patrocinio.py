@@ -22,9 +22,12 @@ class TestPatrocinioDoProcesso(TenantTestCase):
         self.responsavel = User.objects.create_user("resp_patrocinio", password="testpass")
 
     def _processo(self, cliente=None):
-        return Processo.objects.create(
-            titulo="Processo teste", responsavel=self.responsavel, cliente=cliente
+        processo = Processo.objects.create(
+            titulo="Processo teste", responsavel=self.responsavel
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
     def test_sem_cliente_retorna_none(self):
         processo = self._processo(cliente=None)

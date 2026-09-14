@@ -11,9 +11,13 @@ from .models import (
 
 @admin.register(Processo)
 class ProcessoAdmin(admin.ModelAdmin):
-    list_display = ["titulo", "area_direito", "status", "cliente", "prazo_proximo"]
+    list_display = ["titulo", "area_direito", "status", "clientes_exibicao", "prazo_proximo"]
     list_filter = ["area_direito", "status"]
     search_fields = ["titulo", "numero"]
+
+    @admin.display(description="Clientes")
+    def clientes_exibicao(self, obj):
+        return ", ".join(str(cliente) for cliente in obj.clientes.all())
 
 
 @admin.register(MovimentacaoProcessual)

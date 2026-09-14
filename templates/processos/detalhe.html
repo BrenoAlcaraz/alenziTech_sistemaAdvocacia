@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}{{ processo.titulo }} — Processos{% endblock %}
 
 {% block content %}
@@ -24,6 +25,15 @@
     </form>
     {% endif %}
     {% endif %}
+    {% if pode_excluir_processo %}
+    <form method="post" action="{% url 'processos:excluir' processo.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="text-sm text-red-600 hover:text-red-700"
+              onclick="return confirm('Excluir definitivamente este processo? Documentos, partes, andamentos, apensos e intimações também serão apagados. Lançamentos financeiros, tarefas e compromissos de agenda vinculados são mantidos, apenas perdem a referência. Esta ação não pode ser desfeita.')">
+        Excluir processo
+      </button>
+    </form>
+    {% endif %}
     </div>
   </div>
   <h1 class="text-xl font-bold text-gray-900 mb-1">{{ processo.titulo }}</h1>
@@ -31,8 +41,12 @@
 
   <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
     <div>
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Vara/Juízo</p>
-      <p class="text-sm font-medium text-gray-900">{{ processo.vara_juizo }}</p>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Vara</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.vara|default:"—" }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Comarca</p>
+      <p class="text-sm font-medium text-gray-900">{{ processo.comarca|default:"—" }}</p>
     </div>
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Localidade</p>
@@ -42,16 +56,26 @@
     </div>
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Valor da Causa</p>
-      <p class="text-sm font-medium text-gray-900">{{ processo.valor_causa }}</p>
+      <p class="text-sm font-medium text-gray-900">{% if processo.valor_causa %}R$ {{ processo.valor_causa|moeda_br }}{% else %}—{% endif %}</p>
     </div>
     <div>
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cliente</p>
-      <p class="text-sm font-medium text-gray-900">{{ processo.cliente }}</p>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cliente{{ processo.clientes.all|length|pluralize }}</p>
+      <p class="text-sm font-medium text-gray-900">
+        {% for c in processo.clientes.all %}<a href="{% url 'clientes:detalhe' c.pk %}" class="hover:underline hover:text-juridico-verde">{{ c }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+      </p>
     </div>
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Responsável</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.responsavel }}</p>
     </div>
+    {% if parte_contraria %}
+    <div>
+      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Parte contrária</p>
+      <p class="text-sm font-medium text-gray-900">
+        {{ parte_contraria.nome }}{% if parte_contraria.outros_total > 0 %} (+{{ parte_contraria.outros_total }} {{ parte_contraria.papel|lower }}{{ parte_contraria.outros_total|pluralize }}){% endif %}
+      </p>
+    </div>
+    {% endif %}
     {% if processo.resultado_sentenca %}
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Resultado da sentença</p>
@@ -60,6 +84,20 @@
     {% endif %}
   </div>
 </div>
+
+{% if faixa_status.fase_atual or faixa_status.parado_ha_dias != None or faixa_status.tempo_medio_dias %}
+<div class="card px-5 py-3 mb-4 flex flex-wrap items-center gap-x-8 gap-y-2 bg-gray-50">
+  {% if faixa_status.fase_atual %}
+  <div class="text-xs"><span class="text-gray-400">Fase atual</span> <span class="font-medium text-gray-800">{{ faixa_status.fase_atual }}</span></div>
+  {% endif %}
+  {% if faixa_status.parado_ha_dias != None %}
+  <div class="text-xs"><span class="text-gray-400">Parado há</span> <span class="font-medium {% if faixa_status.parado_ha_dias > 30 %}text-red-600{% else %}text-gray-800{% endif %}">{{ faixa_status.parado_ha_dias }} dia{{ faixa_status.parado_ha_dias|pluralize }}</span></div>
+  {% endif %}
+  {% if faixa_status.tempo_medio_dias %}
+  <div class="text-xs"><span class="text-gray-400">Tempo médio entre andamentos</span> <span class="font-medium text-gray-800">{{ faixa_status.tempo_medio_dias }} dia{{ faixa_status.tempo_medio_dias|pluralize }}</span></div>
+  {% endif %}
+</div>
+{% endif %}
 
 {% if processo.status == "arquivado" %}
 <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
@@ -72,6 +110,64 @@
   {% endif %}
 </div>
 {% endif %}
+
+{# ── Integrantes e Tarefas relacionadas — cards, fora do sistema de abas ─────── #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-gray-700">Integrantes <span class="text-gray-400">({{ integrantes_total }})</span></h2>
+    </div>
+
+    {% if pode_gerenciar_integrantes %}
+    <form method="post" action="{% url 'processos:adicionar_integrante' processo.pk %}" class="flex items-center gap-2 mb-3">
+      {% csrf_token %}
+      <div class="flex-1">{{ form_integrante.usuario }}</div>
+      <button type="submit" class="btn-primary text-xs" {% if not tem_candidatos_integrante %}disabled{% endif %}>
+        Adicionar
+      </button>
+    </form>
+    {% endif %}
+
+    <div class="flex flex-col gap-2">
+      {% for integrante in integrantes %}
+        <div class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0">
+          <p class="text-sm text-gray-900">{{ integrante.get_full_name|default:integrante.username }}</p>
+          {% if pode_gerenciar_integrantes %}
+          <form method="post" action="{% url 'processos:remover_integrante' processo.pk integrante.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
+          </form>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-xs text-gray-400">Nenhum integrante habilitado além do responsável.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-gray-700">Tarefas relacionadas <span class="text-gray-400">({{ tarefas_relacionadas_total }})</span></h2>
+      {% if tarefas_relacionadas_total %}
+      <a href="{% url 'tarefas:quadro' %}?processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
+      {% endif %}
+    </div>
+
+    <div class="flex flex-col gap-2">
+      {% for tarefa in tarefas_relacionadas %}
+        <a href="{% url 'tarefas:editar' tarefa.pk %}?next={% url 'processos:detalhe' processo.pk %}"
+           class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
+          <p class="text-sm text-gray-900 truncate">{{ tarefa.titulo }}</p>
+          <span class="badge-area flex-shrink-0">{{ tarefa.get_status_display }}</span>
+        </a>
+      {% empty %}
+        <p class="text-xs text-gray-400">Nenhuma tarefa relacionada a este processo.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
 
 {# ── Abas internas ──────────────────────────────────────────────────────────── #}
 <div class="border-b border-gray-200 mb-6">
@@ -111,12 +207,13 @@
       </svg>
       Apensos <span class="text-gray-400">({{ apensos_total }})</span>
     </a>
-    <a href="?aba=integrantes"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'integrantes' %}tab-active{% else %}tab-inactive{% endif %}">
+    <a href="?aba=custas"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'custas' %}tab-active{% else %}tab-inactive{% endif %}">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        <circle cx="12" cy="12" r="9" stroke-width="1.5"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 7v5l3 3"/>
       </svg>
-      Integrantes <span class="text-gray-400">({{ integrantes_total }})</span>
+      Custas Judiciais <span class="text-gray-400">({{ custas_total }})</span>
     </a>
   </nav>
 </div>
@@ -132,6 +229,19 @@
       <div>{{ form_movimentacao.data }}</div>
       <div class="col-span-2">{{ form_movimentacao.descricao }}</div>
     </div>
+    <details class="mb-3">
+      <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar prazo ou resultado da sentença do processo (opcional)</summary>
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="label">{{ form_movimentacao.atualizar_prazo_proximo.label }}</label>
+          {{ form_movimentacao.atualizar_prazo_proximo }}
+        </div>
+        <div>
+          <label class="label">{{ form_movimentacao.atualizar_resultado_sentenca.label }}</label>
+          {{ form_movimentacao.atualizar_resultado_sentenca }}
+        </div>
+      </div>
+    </details>
     <button type="submit" class="btn-primary text-sm">+ Adicionar andamento</button>
   </form>
   {% endif %}
@@ -162,10 +272,17 @@
     {% csrf_token %}
     <div class="flex items-center justify-between mb-3">
       <p class="text-sm font-semibold text-gray-900">Adicionar parte</p>
-      {% if processo.cliente %}
-      <button type="button" class="text-xs text-juridico-verde hover:underline" onclick="preencherParteComCliente()">
-        Usar dados do Cliente do processo
-      </button>
+      {% if processo.clientes.all %}
+      <div class="flex items-center gap-2">
+        <select id="select-cliente-parte" class="select text-xs">
+          {% for c in processo.clientes.all %}
+            <option value="{{ forloop.counter0 }}" data-nome="{{ c.nome_razao_social|escapejs }}" data-doc="{{ c.cpf_cnpj|escapejs }}">{{ c.nome_razao_social }}</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="text-xs text-juridico-verde hover:underline" onclick="preencherParteComCliente()">
+          Usar dados do cliente selecionado
+        </button>
+      </div>
       {% endif %}
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
@@ -177,12 +294,14 @@
     </div>
     <button type="submit" class="btn-primary text-sm">+ Adicionar parte</button>
   </form>
-  {% if processo.cliente %}
+  {% if processo.clientes.all %}
   <script>
     function preencherParteComCliente() {
       var form = document.getElementById("form-adicionar-parte");
-      form.querySelector('[name="nome"]').value = "{{ processo.cliente.nome_razao_social|escapejs }}";
-      form.querySelector('[name="cpf_cnpj"]').value = "{{ processo.cliente.cpf_cnpj|escapejs }}";
+      var select = document.getElementById("select-cliente-parte");
+      var opcao = select.options[select.selectedIndex];
+      form.querySelector('[name="nome"]').value = opcao.dataset.nome;
+      form.querySelector('[name="cpf_cnpj"]').value = opcao.dataset.doc;
     }
   </script>
   {% endif %}
@@ -308,10 +427,10 @@
           <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ item.processo.titulo }}</p>
           {% if item.processo.numero %}<p class="text-xs text-gray-400 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs">
-            <div><dt class="text-gray-400">Cliente</dt><dd class="text-gray-700">{{ item.processo.cliente|default:"—" }}</dd></div>
+            <div><dt class="text-gray-400">Cliente</dt><dd class="text-gray-700">{{ item.processo.clientes.all|join:", "|default:"—" }}</dd></div>
             <div><dt class="text-gray-400">Responsável</dt><dd class="text-gray-700">{{ item.processo.responsavel }}</dd></div>
             <div><dt class="text-gray-400">Fase</dt><dd class="text-gray-700">{{ item.processo.get_fase_display }}</dd></div>
-            <div><dt class="text-gray-400">Vara/Juízo</dt><dd class="text-gray-700">{{ item.processo.vara_juizo|default:"—" }}</dd></div>
+            <div><dt class="text-gray-400">Vara/Comarca</dt><dd class="text-gray-700">{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}</dd></div>
           </dl>
         </a>
         {% if item.pode_remover %}
@@ -328,41 +447,43 @@
     {% endfor %}
   </div>
 
-{% elif aba_ativa == "integrantes" %}
+{% elif aba_ativa == "custas" %}
 
-  {% if pode_gerenciar_integrantes %}
-  <form method="post" action="{% url 'processos:adicionar_integrante' processo.pk %}" class="card px-5 py-4 mb-4">
-    {% csrf_token %}
-    <p class="text-sm font-semibold text-gray-900 mb-3">Adicionar integrante habilitado</p>
-    <div class="flex items-center gap-3">
-      <div class="flex-1">{{ form_integrante.usuario }}</div>
-      <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_integrante %}disabled{% endif %}>
-        Adicionar integrante
-      </button>
-    </div>
-    {% if not tem_candidatos_integrante %}
-      <p class="text-xs text-gray-400 mt-2">Nenhum usuário elegível para adicionar.</p>
-    {% endif %}
-  </form>
+  <p class="text-xs text-gray-400 mb-4">
+    Solicitações de pagamento vinculadas a este processo — visíveis a qualquer pessoa que abra o processo, não só a quem solicitou. Evita pedido duplicado da mesma custa por dois advogados diferentes.
+  </p>
+
+  {% if pode_criar_solicitacao_financeira %}
+  <div class="flex justify-end mb-4">
+    <a href="{% url 'financeiro:form_solicitacao' %}?processo={{ processo.pk }}" class="btn-primary text-sm">+ Nova solicitação</a>
+  </div>
   {% endif %}
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {% for integrante in integrantes %}
+  {% if custas_financeiras %}
+  <div class="flex flex-col gap-3">
+    {% for solicitacao in custas_financeiras %}
+      {# Sem link para o detalhe da solicitação em Financeiro de propósito:
+         essa aba mostra de qualquer solicitante, mas o detalhe/anexo em
+         Financeiro segue restrito por dados_proprios/dados_todos — a
+         visão compartilhada é só desta lista. #}
       <div class="card px-5 py-4 flex items-center justify-between gap-4">
-        <p class="text-sm font-medium text-gray-900">{{ integrante.get_full_name|default:integrante.username }}</p>
-        {% if pode_gerenciar_integrantes %}
-        <form method="post" action="{% url 'processos:remover_integrante' processo.pk integrante.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
-        </form>
-        {% endif %}
-      </div>
-    {% empty %}
-      <div class="md:col-span-2">
-        {% include "components/empty_state.html" with mensagem="Nenhum integrante habilitado além do responsável." %}
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">{{ solicitacao.descricao }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            Solicitado por {{ solicitacao.solicitante|default:"—" }} em {{ solicitacao.criado_em|date:"d/m/Y" }}
+            {% if solicitacao.status == "paga" %} · Paga{% endif %}
+          </p>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <span class="text-sm font-medium text-gray-900">R$ {{ solicitacao.valor|moeda_br }}</span>
+          <span class="badge-area">{{ solicitacao.get_status_display }}</span>
+        </div>
       </div>
     {% endfor %}
   </div>
+  {% else %}
+    {% include "components/empty_state.html" with mensagem="Nenhuma custa judicial registrada para este processo." %}
+  {% endif %}
 {% endif %}
 
 {% endblock %}

@@ -24,7 +24,7 @@ class Processo(models.Model):
         ("CONSUMIDOR", "Consumidor"),
         ("TRABALHISTA", "Trabalhista"),
         ("SUCESSÕES", "Sucessões"),
-        ("CRIMINAL", "Criminal"),
+        ("CRIMINAL", "Penal"),
         ("ADMINISTRATIVO", "Administrativo"),
         ("TRIBUTÁRIO", "Tributário"),
         ("FAMÍLIA", "Família"),
@@ -35,8 +35,7 @@ class Processo(models.Model):
         ("conhecimento", "Conhecimento"),
         ("recursal", "Recursal"),
         ("cumprimento_sentenca", "Cumprimento de Sentença"),
-        ("execucao_extrajudicial", "Execução Extrajudicial"),
-        ("monitoria", "Monitória"),
+        ("execucao_extrajudicial", "Execução"),
         ("outro", "Outro"),
     ]
 
@@ -70,7 +69,8 @@ class Processo(models.Model):
     numero = models.CharField(max_length=50, blank=True)
     area_direito = models.CharField(max_length=30, choices=AREAS_CHOICES, default="CÍVEL")
     instancia = models.CharField(max_length=50, blank=True, default="1ª Instância")
-    vara_juizo = models.CharField(max_length=255, blank=True)
+    vara = models.CharField(max_length=255, blank=True)
+    comarca = models.CharField(max_length=255, blank=True)
     estado = models.CharField(max_length=2, choices=UF_CHOICES, blank=True)
     cidade = models.CharField(max_length=100, blank=True)
     valor_causa = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
@@ -81,7 +81,7 @@ class Processo(models.Model):
         max_length=30, choices=RESULTADO_SENTENCA_CHOICES, blank=True
     )
     data_distribuicao = models.DateField(null=True, blank=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="processos")
+    clientes = models.ManyToManyField(Cliente, blank=True, related_name="processos")
     responsavel = models.ForeignKey(User, on_delete=models.PROTECT, related_name="processos")
     equipe = models.ForeignKey(
         "accounts.Equipe",
@@ -266,12 +266,29 @@ class ParteProcesso(models.Model):
         ("autor", "Autor"),
         ("embargante", "Embargante"),
         ("recorrente", "Recorrente"),
+        ("exequente", "Exequente"),
+        ("requerente", "Requerente"),
+        ("reclamante", "Reclamante"),
+        ("agravante", "Agravante"),
+        ("impugnante", "Impugnante"),
+        ("reconvinte", "Reconvinte"),
+        ("excipiente", "Excipiente"),
+        ("impetrante", "Impetrante"),
+        ("inventariante", "Inventariante"),
         ("reu", "Réu"),
         ("embargado", "Embargado"),
         ("recorrido", "Recorrido"),
+        ("executado", "Executado"),
+        ("requerido", "Requerido"),
+        ("reclamado", "Reclamado"),
+        ("agravado", "Agravado"),
+        ("impugnado", "Impugnado"),
+        ("reconvindo", "Reconvindo"),
+        ("excepto", "Excepto"),
+        ("impetrado", "Impetrado"),
+        ("inventariado", "Inventariado"),
         ("terceiro_interessado", "Terceiro Interessado"),
         ("ministerio_publico", "Ministério Público"),
-        ("amicus_curiae", "Amicus Curiae"),
         ("juiz", "Juiz"),
     ]
 
@@ -279,12 +296,29 @@ class ParteProcesso(models.Model):
         "autor": "polo_ativo",
         "embargante": "polo_ativo",
         "recorrente": "polo_ativo",
+        "exequente": "polo_ativo",
+        "requerente": "polo_ativo",
+        "reclamante": "polo_ativo",
+        "agravante": "polo_ativo",
+        "impugnante": "polo_ativo",
+        "reconvinte": "polo_ativo",
+        "excipiente": "polo_ativo",
+        "impetrante": "polo_ativo",
+        "inventariante": "polo_ativo",
         "reu": "polo_passivo",
         "embargado": "polo_passivo",
         "recorrido": "polo_passivo",
+        "executado": "polo_passivo",
+        "requerido": "polo_passivo",
+        "reclamado": "polo_passivo",
+        "agravado": "polo_passivo",
+        "impugnado": "polo_passivo",
+        "reconvindo": "polo_passivo",
+        "excepto": "polo_passivo",
+        "impetrado": "polo_passivo",
+        "inventariado": "polo_passivo",
         "terceiro_interessado": "outros",
         "ministerio_publico": "outros",
-        "amicus_curiae": "outros",
         "juiz": "outros",
     }
 

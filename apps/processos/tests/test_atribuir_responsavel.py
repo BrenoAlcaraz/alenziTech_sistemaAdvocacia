@@ -92,12 +92,15 @@ class AtribuirResponsavelBase(TenantTestCase):
         )
 
     def _processo(self, responsavel, cliente, titulo="Processo Atribuição"):
-        return Processo.objects.create(
-            titulo=titulo, responsavel=responsavel, cliente=cliente, status="ativo"
+        processo = Processo.objects.create(
+            titulo=titulo, responsavel=responsavel, status="ativo"
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
     def _payload(self, cliente, titulo="Processo alterado", **extra):
-        payload = {"titulo": titulo, "cliente": cliente.pk, **FORM_BASE}
+        payload = {"titulo": titulo, "clientes": [cliente.pk], **FORM_BASE}
         payload.update(extra)
         return payload
 

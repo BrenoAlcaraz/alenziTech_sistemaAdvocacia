@@ -391,7 +391,7 @@ def form_lancamento(request):
             if not lancamento.responsavel:
                 lancamento.responsavel = request.user
             if lancamento.processo and not lancamento.cliente:
-                lancamento.cliente = lancamento.processo.cliente
+                lancamento.cliente = lancamento.processo.clientes.first()
             lancamento.save()
             gerar_ocorrencias(lancamento)
             return redirect("financeiro:index")
@@ -420,7 +420,7 @@ def editar_lancamento(request, pk):
             if not lancamento.responsavel:
                 lancamento.responsavel = request.user
             if lancamento.processo and not lancamento.cliente:
-                lancamento.cliente = lancamento.processo.cliente
+                lancamento.cliente = lancamento.processo.clientes.first()
             lancamento.save()
             gerar_ocorrencias(lancamento)
             return redirect("financeiro:index")
@@ -792,11 +792,13 @@ def form_solicitacao(request):
             solicitacao = form.save(commit=False)
             solicitacao.solicitante = request.user
             if solicitacao.processo and not solicitacao.cliente:
-                solicitacao.cliente = solicitacao.processo.cliente
+                solicitacao.cliente = solicitacao.processo.clientes.first()
             solicitacao.save()
             return redirect("financeiro:solicitacoes_lista")
     else:
-        form = SolicitacaoFinanceiraForm()
+        # Pré-preenche o processo quando a solicitação nasce a partir da
+        # aba Custas Judiciais do próprio processo — sem escolher de novo.
+        form = SolicitacaoFinanceiraForm(initial={"processo": request.GET.get("processo")})
 
     return render(request, "financeiro/form_solicitacao.html", {
         "form": form,

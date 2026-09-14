@@ -88,13 +88,13 @@
     </div>
   </div>
 
-  {# ── Processos por localidade (Estado → Cidade → Vara) ──────────────────── #}
+  {# ── Processos por localidade (Estado → Cidade → Comarca → Vara) ────────── #}
   <div class="card p-5">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por localidade</h2>
 
     {% if loc_breadcrumb %}
-    <div class="text-xs text-gray-500 mb-3 flex items-center gap-1.5">
-      {% with crumb0=loc_breadcrumb.0 crumb1=loc_breadcrumb.1 %}
+    <div class="text-xs text-gray-500 mb-3 flex items-center gap-1.5 flex-wrap">
+      {% with crumb0=loc_breadcrumb.0 crumb1=loc_breadcrumb.1 crumb2=loc_breadcrumb.2 %}
         {% if crumb0.clicavel %}
           <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb0.label }}</a>
         {% else %}
@@ -106,6 +106,14 @@
             <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb1.label }}</a>
           {% else %}
             <span>{{ crumb1.label }}</span>
+          {% endif %}
+        {% endif %}
+        {% if crumb2 %}
+          <span class="text-gray-300">/</span>
+          {% if crumb2.clicavel %}
+            <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}&loc_cidade={{ loc_cidade_ativa }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb2.label }}</a>
+          {% else %}
+            <span>{{ crumb2.label }}</span>
           {% endif %}
         {% endif %}
       {% endwith %}
@@ -126,6 +134,16 @@
       <div class="flex flex-col gap-2">
         {% for opcao in loc_cidade_opcoes %}
           <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}&loc_cidade={{ opcao.valor }}"
+             class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
+            <span class="text-xs text-gray-700">{{ opcao.label }}</span>
+            <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% elif loc_mostrando_comarcas %}
+      <div class="flex flex-col gap-2">
+        {% for opcao in loc_comarca_opcoes %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&loc_estado={{ loc_estado_ativo }}&loc_cidade={{ loc_cidade_ativa }}&loc_comarca={{ opcao.valor }}"
              class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
             <span class="text-xs text-gray-700">{{ opcao.label }}</span>
             <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>

@@ -50,3 +50,5 @@ serem efetivamente decididas.
 | PDR-0020 | Participantes e confirmação de presença em Compromisso (Agenda) | accepted | [PDR-0020-participantes-confirmacao-agenda.md](PDR-0020-participantes-confirmacao-agenda.md) |
 | PDR-0021 | Periodicidades da recorrência financeira | accepted | [PDR-0021-periodicidades-financeiras.md](PDR-0021-periodicidades-financeiras.md) |
 | PDR-0022 | Honorários — recebimento parcial e correção monetária/juros | accepted | [PDR-0022-honorarios-recebimento-parcial-correcao.md](PDR-0022-honorarios-recebimento-parcial-correcao.md) |
+| PDR-0023 | Partes — catálogo de papéis estendido com pares por tipo de ação | accepted | [PDR-0023-partes-catalogo-pares-por-tipo-acao.md](PDR-0023-partes-catalogo-pares-por-tipo-acao.md) |
+| PDR-0024 | Exclusão definitiva de Processo | accepted | [PDR-0024-exclusao-definitiva-processo.md](PDR-0024-exclusao-definitiva-processo.md) |

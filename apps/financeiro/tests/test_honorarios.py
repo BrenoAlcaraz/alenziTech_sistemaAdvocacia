@@ -45,7 +45,9 @@ class HonorariosBase(TenantTestCase):
 
     def _processo(self, *, responsavel):
         cliente = Cliente.objects.create(nome_razao_social="Cliente Teste", responsavel=responsavel)
-        return Processo.objects.create(titulo="Processo Teste", cliente=cliente, responsavel=responsavel)
+        processo = Processo.objects.create(titulo="Processo Teste", responsavel=responsavel)
+        processo.clientes.add(cliente)
+        return processo
 
     def _honorario(self, **kwargs):
         defaults = {"tipo": "contratual", "valor_estimado": "2000.00"}
@@ -174,7 +176,7 @@ class TestConfirmarRecebimentoNotificacao(HonorariosBase):
     def test_confirmar_com_processo_notifica_responsavel(self):
         advogado = self._user("advogado_responsavel")
         processo = self._processo(responsavel=advogado)
-        honorario = self._honorario(processo=processo, cliente=processo.cliente)
+        honorario = self._honorario(processo=processo, cliente=processo.clientes.first())
         antes = Notificacao.objects.count()
 
         r = self.client.post(
@@ -201,7 +203,7 @@ class TestConfirmarRecebimentoNotificacao(HonorariosBase):
 
     def test_admin_confirma_proprio_processo_nao_notifica_a_si_mesmo(self):
         processo = self._processo(responsavel=self.admin)
-        honorario = self._honorario(processo=processo, cliente=processo.cliente)
+        honorario = self._honorario(processo=processo, cliente=processo.clientes.first())
         antes = Notificacao.objects.count()
 
         r = self.client.post(

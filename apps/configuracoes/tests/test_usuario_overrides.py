@@ -208,7 +208,7 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         self.assertTrue(tem_permissao_modulo(self.alvo, MODULO_PROCESSOS))
 
         processo = Processo.objects.create(
-            responsavel=self.alvo, cliente=None, titulo="Processo do Alvo"
+            responsavel=self.alvo, titulo="Processo do Alvo"
         )
 
         r = self.client.post(

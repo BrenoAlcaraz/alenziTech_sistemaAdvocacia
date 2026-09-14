@@ -88,10 +88,13 @@ class ProcessosAutorizacaoBase(TenantTestCase):
     def _processo(self, *, responsavel, cliente=None, **kwargs):
         defaults = {"titulo": "Processo Teste"}
         defaults.update(kwargs)
-        return Processo.objects.create(responsavel=responsavel, cliente=cliente, **defaults)
+        processo = Processo.objects.create(responsavel=responsavel, **defaults)
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
     def _processo_payload(self, cliente, **overrides):
-        payload = {"titulo": "Processo Form", "cliente": cliente.pk}
+        payload = {"titulo": "Processo Form", "clientes": [cliente.pk]}
         payload.update(_PROCESSO_FORM_BASE)
         payload.update(overrides)
         return payload

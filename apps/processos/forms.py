@@ -24,11 +24,11 @@ INSTANCIA_CHOICES = [
 
 
 class ProcessoForm(forms.ModelForm):
-    cliente = forms.ModelChoiceField(
+    clientes = forms.ModelMultipleChoiceField(
         queryset=Cliente.objects.filter(ativo=True),
         required=True,
-        widget=forms.Select(attrs={"class": "select"}),
-        empty_label="Selecionar cliente...",
+        widget=forms.SelectMultiple(attrs={"class": "select", "size": "5"}),
+        label="Cliente(s)",
     )
     instancia = forms.ChoiceField(
         choices=INSTANCIA_CHOICES,
@@ -39,10 +39,9 @@ class ProcessoForm(forms.ModelForm):
     class Meta:
         model = Processo
         fields = [
-            "titulo", "numero", "cliente", "area_direito", "fase",
-            "instancia", "vara_juizo", "estado", "cidade", "valor_causa",
-            "data_distribuicao", "gratuidade_justica_status", "prazo_proximo",
-            "resultado_sentenca",
+            "titulo", "numero", "clientes", "area_direito", "fase",
+            "instancia", "vara", "comarca", "estado", "cidade", "valor_causa",
+            "data_distribuicao", "gratuidade_justica_status",
         ]
         widgets = {
             "titulo": forms.TextInput(attrs={
@@ -55,38 +54,37 @@ class ProcessoForm(forms.ModelForm):
             }),
             "area_direito": forms.Select(attrs={"class": "select"}),
             "fase": forms.Select(attrs={"class": "select"}),
-            "vara_juizo": forms.TextInput(attrs={
+            "vara": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "Ex: 11ª Vara Cível",
+            }),
+            "comarca": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Comarca da Capital",
             }),
             "estado": forms.Select(attrs={"class": "select"}),
             "cidade": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "Ex: Belo Horizonte",
             }),
-            "resultado_sentenca": forms.Select(attrs={"class": "select"}),
             "valor_causa": forms.NumberInput(attrs={
                 "class": "input",
                 "step": "0.01",
                 "min": "0",
-                "placeholder": "0.00",
+                "placeholder": "0,00",
             }),
             "data_distribuicao": forms.DateInput(attrs={
                 "class": "input",
                 "type": "date",
             }, format="%Y-%m-%d"),
             "gratuidade_justica_status": forms.Select(attrs={"class": "select"}),
-            "prazo_proximo": forms.DateInput(attrs={
-                "class": "input",
-                "type": "date",
-            }, format="%Y-%m-%d"),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # O schema do tenant delimita a consulta. A seleção de cliente de
         # Processo não depende da permissão nem do escopo do módulo Clientes.
-        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
+        self.fields["clientes"].queryset = Cliente.objects.filter(ativo=True)
 
 
 class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
@@ -162,16 +160,33 @@ class ParteProcessoForm(forms.ModelForm):
             ("autor", "Autor"),
             ("embargante", "Embargante"),
             ("recorrente", "Recorrente"),
+            ("exequente", "Exequente"),
+            ("requerente", "Requerente"),
+            ("reclamante", "Reclamante"),
+            ("agravante", "Agravante"),
+            ("impugnante", "Impugnante"),
+            ("reconvinte", "Reconvinte"),
+            ("excipiente", "Excipiente"),
+            ("impetrante", "Impetrante"),
+            ("inventariante", "Inventariante"),
         ]),
         ("Polo Passivo", [
             ("reu", "Réu"),
             ("embargado", "Embargado"),
             ("recorrido", "Recorrido"),
+            ("executado", "Executado"),
+            ("requerido", "Requerido"),
+            ("reclamado", "Reclamado"),
+            ("agravado", "Agravado"),
+            ("impugnado", "Impugnado"),
+            ("reconvindo", "Reconvindo"),
+            ("excepto", "Excepto"),
+            ("impetrado", "Impetrado"),
+            ("inventariado", "Inventariado"),
         ]),
         ("Outros", [
             ("terceiro_interessado", "Terceiro Interessado"),
             ("ministerio_publico", "Ministério Público"),
-            ("amicus_curiae", "Amicus Curiae"),
             ("juiz", "Juiz"),
         ]),
     ]
@@ -236,6 +251,11 @@ class DocumentoForm(forms.ModelForm):
 
 
 class MovimentacaoProcessualForm(forms.ModelForm):
+    """Além do andamento em si, permite atualizar opcionalmente o
+    'Próximo prazo' e o 'Resultado da sentença' do Processo — esses dois
+    campos saíram do formulário de criação/edição do processo e passaram
+    a ser definidos a partir daqui (reunião de 13/09)."""
+
     data = forms.DateTimeField(
         initial=timezone.now,
         input_formats=["%Y-%m-%dT%H:%M"],
@@ -243,6 +263,17 @@ class MovimentacaoProcessualForm(forms.ModelForm):
             attrs={"class": "input", "type": "datetime-local"},
             format="%Y-%m-%dT%H:%M",
         ),
+    )
+    atualizar_prazo_proximo = forms.DateField(
+        required=False,
+        label="Atualizar próximo prazo do processo",
+        widget=forms.DateInput(attrs={"class": "input", "type": "date"}, format="%Y-%m-%d"),
+    )
+    atualizar_resultado_sentenca = forms.ChoiceField(
+        required=False,
+        label="Atualizar resultado da sentença do processo",
+        choices=[("", "Não alterar")] + Processo.RESULTADO_SENTENCA_CHOICES,
+        widget=forms.Select(attrs={"class": "select"}),
     )
 
     class Meta:

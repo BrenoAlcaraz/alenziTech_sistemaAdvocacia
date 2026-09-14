@@ -18,7 +18,7 @@ class TarefaForm(forms.ModelForm):
         empty_label="Nenhum",
     )
     processo = forms.ModelChoiceField(
-        queryset=Processo.objects.select_related("cliente").exclude(status="arquivado"),
+        queryset=Processo.objects.prefetch_related("clientes").exclude(status="arquivado"),
         required=False,
         widget=forms.Select(attrs={"class": "select"}),
         empty_label="Nenhum",
@@ -57,9 +57,9 @@ class TarefaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         cliente_id = self.data.get("cliente") or self.initial.get("cliente") or getattr(self.instance, "cliente_id", None)
-        qs = Processo.objects.select_related("cliente").exclude(status="arquivado")
+        qs = Processo.objects.prefetch_related("clientes").exclude(status="arquivado")
         if cliente_id:
-            qs = qs.filter(cliente_id=cliente_id)
+            qs = qs.filter(clientes__id=cliente_id)
         self.fields["processo"].queryset = qs
         self.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
         self.fields["processo"].widget.attrs["data-processos-url"] = reverse("tarefas:processos_por_cliente")

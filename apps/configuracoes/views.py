@@ -838,9 +838,9 @@ def usuario_processos_habilitados(request, user_pk):
     data = request.GET.get("data") or ""
     busca = request.GET.get("busca") or ""
 
-    processos = Processo.objects.exclude(status="arquivado").select_related("cliente")
+    processos = Processo.objects.exclude(status="arquivado").prefetch_related("clientes")
     if cliente_id:
-        processos = processos.filter(cliente_id=cliente_id)
+        processos = processos.filter(clientes__id=cliente_id)
     if materia:
         processos = processos.filter(area_direito=materia)
     if data:
