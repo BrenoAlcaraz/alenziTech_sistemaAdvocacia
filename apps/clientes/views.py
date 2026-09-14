@@ -1,7 +1,9 @@
+from django.db.models import Q
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
@@ -10,11 +12,13 @@ from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_EDITAR,
     HAB_CLIENTES_DESATIVAR,
     HAB_CLIENTES_REATIVAR,
+    HAB_CLIENTES_EXCLUIR,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
 from .models import Cliente
 from .forms import ClienteForm, ClienteResponsavelForm
+from .services import clientes_relacionados
 
 User = get_user_model()
 
@@ -89,11 +93,17 @@ def lista(request):
         raise PermissionDenied
     escopo, escopo_maximo = _resolver_escopo(request)
     clientes = _clientes_no_escopo(request, escopo, ativo=True)
+    busca = (request.GET.get("busca") or "").strip()
+    if busca:
+        clientes = clientes.filter(
+            Q(nome_razao_social__icontains=busca) | Q(cpf_cnpj__icontains=busca)
+        )
     return render(request, "clientes/lista.html", {
         "clientes": clientes,
         "item_ativo": "clientes",
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "filtro_busca": busca,
     })
 
 
@@ -104,9 +114,22 @@ def detalhe(request, pk):
     escopo, _ = _resolver_escopo(request)
     cliente = get_object_or_404(_clientes_no_escopo(request, escopo, ativo=True), pk=pk)
     processos = cliente.processos.all()
+    tarefas_relacionadas_total = cliente.tarefas.count()
+    tarefas_relacionadas = list(
+        cliente.tarefas.select_related("responsavel")
+        .exclude(status="cancelada")
+        .order_by("prazo")[:5]
+    )
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
         "processos": processos,
+        "clientes_relacionados": clientes_relacionados(cliente),
+        "tarefas_relacionadas": tarefas_relacionadas,
+        "tarefas_relacionadas_total": tarefas_relacionadas_total,
+        "pode_excluir_cliente": (
+            usuario_admin_escritorio(request.user)
+            or cliente.responsavel_id == request.user.pk
+        ) and tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR),
         "aba_ativa": request.GET.get("aba", "processos"),
         "item_ativo": "clientes",
     })
@@ -199,6 +222,26 @@ def desativar(request, pk):
 
 
 @login_required
+@require_POST
+def excluir(request, pk):
+    """Exclusão definitiva — distinta de Desativar. Remove o Cliente;
+    lançamentos, custas, honorários, tarefas e compromissos vinculados
+    permanecem no sistema, só perdem a referência (`on_delete=SET_NULL`,
+    já é o padrão hoje nesses modelos)."""
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    qs = Cliente.objects.all()
+    if not usuario_admin_escritorio(request.user):
+        qs = qs.filter(responsavel=request.user)
+    cliente = get_object_or_404(qs, pk=pk)
+    cliente.delete()
+    return redirect("clientes:lista")
+
+
+@login_required
 def inativos(request):
     if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
         raise PermissionDenied
@@ -209,6 +252,7 @@ def inativos(request):
         "item_ativo": "clientes",
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "pode_excluir_cliente": tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR),
     })
 
 
