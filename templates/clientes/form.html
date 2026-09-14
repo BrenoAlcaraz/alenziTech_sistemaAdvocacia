@@ -39,6 +39,13 @@
       </div>
     </div>
 
+    {# Brasileiro / Estrangeiro #}
+    <div class="mb-5 flex items-center gap-2">
+      {{ form.estrangeiro }}
+      <label for="id_estrangeiro" class="text-sm font-medium text-gray-700 cursor-pointer">Estrangeiro</label>
+      <span class="text-xs text-gray-400">(desmarcado = Brasileiro)</span>
+    </div>
+
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="col-span-2">
         <label class="label">Nome / Razão social</label>
@@ -46,8 +53,13 @@
       </div>
 
       <div>
-        <label class="label">CPF / CNPJ</label>
+        <label class="label" id="label-documento">CPF / CNPJ</label>
         {{ form.cpf_cnpj }}
+      </div>
+
+      <div>
+        <label class="label">RG</label>
+        {{ form.rg }}
       </div>
 
       <div>
@@ -55,16 +67,62 @@
         {{ form.telefone }}
       </div>
 
-      <div class="col-span-2">
+      <div>
         <label class="label">E-mail</label>
         {{ form.email }}
       </div>
 
-      <div class="col-span-2">
-        <label class="label">Endereço</label>
-        {{ form.endereco }}
+      <div>
+        <label class="label">Nacionalidade</label>
+        {{ form.nacionalidade }}
       </div>
 
+      <div>
+        <label class="label">Estado civil</label>
+        {{ form.estado_civil }}
+      </div>
+
+      <div class="col-span-2">
+        <label class="label">Profissão</label>
+        {{ form.profissao }}
+      </div>
+    </div>
+
+    <div class="pt-4 mt-2 border-t border-gray-100 mb-4">
+      <p class="text-sm font-semibold text-gray-900 mb-3">Endereço</p>
+      <div class="grid grid-cols-4 gap-4">
+        <div>
+          <label class="label">CEP</label>
+          {{ form.cep }}
+        </div>
+        <div class="col-span-3">
+          <label class="label">Logradouro</label>
+          {{ form.logradouro }}
+        </div>
+        <div>
+          <label class="label">Número</label>
+          {{ form.numero }}
+        </div>
+        <div class="col-span-2">
+          <label class="label">Complemento</label>
+          {{ form.complemento }}
+        </div>
+        <div>
+          <label class="label">Bairro</label>
+          {{ form.bairro }}
+        </div>
+        <div class="col-span-2">
+          <label class="label">Cidade</label>
+          {{ form.cidade }}
+        </div>
+        <div>
+          <label class="label">Estado</label>
+          {{ form.estado }}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="col-span-2">
         <label class="label">Observações</label>
         {{ form.observacoes }}
@@ -107,6 +165,7 @@
     document.getElementById("id_tipo").value = tipo;
     document.getElementById("btn-pf").className = tipo === "PF" ? ATIVO : INATIVO;
     document.getElementById("btn-pj").className = tipo === "PJ" ? ATIVO : INATIVO;
+    aplicarMascaraDocumento();
   }
 
   selecionarTipo(document.getElementById("id_tipo").value || "PF");
@@ -120,5 +179,122 @@
     });
   });
   {% endif %}
+
+  // ── Máscaras de CPF/CNPJ e telefone ─────────────────────────────────────────
+  function apenasDigitos(valor) {
+    return (valor || "").replace(/\D/g, "");
+  }
+
+  function mascararCpf(digitos) {
+    digitos = digitos.slice(0, 11);
+    return digitos
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+
+  function mascararCnpj(digitos) {
+    digitos = digitos.slice(0, 14);
+    return digitos
+      .replace(/(\d{2})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1/$2")
+      .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+  }
+
+  function mascararTelefone(digitos) {
+    digitos = digitos.slice(0, 11);
+    if (digitos.length > 10) {
+      return digitos.replace(/(\d{2})(\d{5})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
+    }
+    return digitos.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
+  }
+
+  var campoDocumento = document.getElementById("id_cpf_cnpj");
+  var campoEstrangeiro = document.getElementById("id_estrangeiro");
+
+  function aplicarMascaraDocumento() {
+    if (campoEstrangeiro.checked) {
+      return; // documento de estrangeiro: digitação livre, sem máscara
+    }
+    var tipo = document.getElementById("id_tipo").value;
+    var digitos = apenasDigitos(campoDocumento.value);
+    campoDocumento.value = tipo === "PJ" ? mascararCnpj(digitos) : mascararCpf(digitos);
+  }
+
+  campoDocumento.addEventListener("input", aplicarMascaraDocumento);
+
+  var campoTelefone = document.getElementById("id_telefone");
+  campoTelefone.addEventListener("input", function () {
+    campoTelefone.value = mascararTelefone(apenasDigitos(campoTelefone.value));
+  });
+
+  // ── Brasileiro / Estrangeiro — trava/libera campos dependentes ─────────────
+  // Nota: campos de endereço usam `readOnly`, nunca `disabled` — um campo
+  // `disabled` não é enviado no POST, o que apagaria silenciosamente o
+  // endereço já preenchido pela busca de CEP ao salvar o formulário.
+  var campoNacionalidade = document.getElementById("id_nacionalidade");
+  var campoRg = document.getElementById("id_rg");
+  var campoCep = document.getElementById("id_cep");
+  var campoLogradouro = document.getElementById("id_logradouro");
+  var campoBairro = document.getElementById("id_bairro");
+  var campoCidade = document.getElementById("id_cidade");
+  var camposEnderecoTexto = [campoLogradouro, campoBairro, campoCidade];
+  var labelDocumento = document.getElementById("label-documento");
+
+  function aplicarEstrangeiro() {
+    var estrangeiro = campoEstrangeiro.checked;
+
+    labelDocumento.textContent = estrangeiro ? "Documento" : "CPF / CNPJ";
+    campoDocumento.placeholder = estrangeiro ? "Número do documento" : "000.000.000-00";
+
+    campoRg.disabled = estrangeiro;
+    campoRg.classList.toggle("bg-gray-50", estrangeiro);
+    if (estrangeiro) campoRg.value = "";
+
+    campoNacionalidade.disabled = !estrangeiro;
+    campoNacionalidade.classList.toggle("bg-gray-50", !estrangeiro);
+    if (!estrangeiro) campoNacionalidade.value = "Brasileira";
+
+    // CEP só existe (e busca automática) para brasileiro; estrangeiro
+    // preenche o endereço inteiro manualmente.
+    campoCep.disabled = estrangeiro;
+    campoCep.classList.toggle("bg-gray-50", estrangeiro);
+
+    // Brasileiro: logradouro/bairro/cidade só vêm da busca por CEP
+    // (readOnly, não editável à mão). Estrangeiro: digitação livre.
+    camposEnderecoTexto.forEach(function (campo) {
+      campo.readOnly = !estrangeiro;
+      campo.classList.toggle("bg-gray-50", !estrangeiro);
+    });
+
+    aplicarMascaraDocumento();
+  }
+
+  campoEstrangeiro.addEventListener("change", aplicarEstrangeiro);
+  aplicarEstrangeiro();
+
+  // ── Busca automática de endereço por CEP (ViaCEP) ───────────────────────────
+  campoCep.addEventListener("input", function () {
+    var digitos = apenasDigitos(campoCep.value).slice(0, 8);
+    campoCep.value = digitos.length > 5 ? digitos.slice(0, 5) + "-" + digitos.slice(5) : digitos;
+  });
+
+  campoCep.addEventListener("blur", function () {
+    if (campoEstrangeiro.checked) return;
+    var cep = apenasDigitos(campoCep.value);
+    if (cep.length !== 8) return;
+
+    fetch("https://viacep.com.br/ws/" + cep + "/json/")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.erro) return;
+        campoLogradouro.value = data.logradouro || "";
+        campoBairro.value = data.bairro || "";
+        campoCidade.value = data.localidade || "";
+        document.getElementById("id_estado").value = data.uf || "";
+      })
+      .catch(function () { /* serviço de CEP indisponível — segue manual */ });
+  });
 </script>
 {% endblock %}

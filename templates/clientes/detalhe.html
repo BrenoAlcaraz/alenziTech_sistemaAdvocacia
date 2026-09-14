@@ -62,7 +62,38 @@
           Desativar
         </button>
       </form>
+      {% if pode_excluir_cliente %}
+      <form method="post" action="{% url 'clientes:excluir' cliente.id %}">
+        {% csrf_token %}
+        <button type="submit"
+                class="px-3 py-2 text-sm font-medium text-red-700 hover:underline"
+                onclick="return confirm('Excluir definitivamente este cliente? Lançamentos financeiros, tarefas e compromissos vinculados são mantidos, apenas perdem a referência. Esta ação não pode ser desfeita.')">
+          Excluir
+        </button>
+      </form>
+      {% endif %}
     </div>
+  </div>
+</div>
+
+{# ── Tarefas relacionadas — card, fora do sistema de abas ─────────────────── #}
+<div class="card p-5 mb-4">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-sm font-semibold text-gray-700">Tarefas relacionadas <span class="text-gray-400">({{ tarefas_relacionadas_total }})</span></h2>
+    {% if tarefas_relacionadas_total %}
+    <a href="{% url 'tarefas:quadro' %}?cliente={{ cliente.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
+    {% endif %}
+  </div>
+  <div class="flex flex-col gap-2">
+    {% for tarefa in tarefas_relacionadas %}
+      <a href="{% url 'tarefas:editar' tarefa.pk %}?next={% url 'clientes:detalhe' cliente.pk %}"
+         class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
+        <p class="text-sm text-gray-900 truncate">{{ tarefa.titulo }}</p>
+        <span class="badge-area flex-shrink-0">{{ tarefa.get_status_display }}</span>
+      </a>
+    {% empty %}
+      <p class="text-xs text-gray-400">Nenhuma tarefa relacionada a este cliente.</p>
+    {% endfor %}
   </div>
 </div>
 
@@ -83,6 +114,13 @@
       </svg>
       Documentos <span class="text-gray-400">(2)</span>
     </a>
+    <a href="?aba=relacionados"
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'relacionados' %}tab-active{% else %}tab-inactive{% endif %}">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      Clientes relacionados <span class="text-gray-400">({{ clientes_relacionados|length }})</span>
+    </a>
   </nav>
 </div>
 
@@ -101,6 +139,25 @@
       </a>
     {% empty %}
       {% include "components/empty_state.html" with mensagem="Nenhum processo vinculado." %}
+    {% endfor %}
+  </div>
+{% elif aba_ativa == "relacionados" %}
+  <p class="text-xs text-gray-400 mb-4">
+    Clientes que estão no mesmo polo (ativo ou passivo) que este cliente em algum processo em comum — depende de os dois terem sido cadastrados como Parte do processo.
+  </p>
+  <div class="flex flex-col gap-3">
+    {% for c in clientes_relacionados %}
+      <a href="{% url 'clientes:detalhe' c.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-gray-900">{{ c.nome_razao_social }}</p>
+          <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
+        </div>
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum cliente relacionado." %}
     {% endfor %}
   </div>
 {% else %}

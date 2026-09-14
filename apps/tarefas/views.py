@@ -165,11 +165,14 @@ def quadro(request):
         tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
 
     # Atalho "ver todas" do card de Tarefas relacionadas no detalhe do
-    # Processo — só mais um filtro sobre o escopo normal do usuário,
-    # nunca amplia o que ele já enxergaria no quadro.
+    # Processo/Cliente — só mais um filtro sobre o escopo normal do
+    # usuário, nunca amplia o que ele já enxergaria no quadro.
     processo_filtro_id = request.GET.get("processo")
     if processo_filtro_id:
         tarefas = tarefas.filter(processo_id=processo_filtro_id)
+    cliente_filtro_id = request.GET.get("cliente")
+    if cliente_filtro_id:
+        tarefas = tarefas.filter(cliente_id=cliente_filtro_id)
 
     tarefas_por_status = {
         "a_fazer": [t for t in tarefas if t.status == "a_fazer"],
@@ -184,6 +187,7 @@ def quadro(request):
         "escopo_maximo": escopo_maximo,
         "usuario_filtro": usuario_filtro,
         "processo_filtro_id": processo_filtro_id,
+        "cliente_filtro_id": cliente_filtro_id,
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",

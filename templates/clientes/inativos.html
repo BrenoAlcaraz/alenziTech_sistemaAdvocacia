@@ -58,13 +58,25 @@
         {% endif %}
       </div>
 
-      <form method="post" action="{% url 'clientes:reativar' c.id %}" class="flex-shrink-0">
-        {% csrf_token %}
-        <button type="submit"
-                class="px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
-          Reativar
-        </button>
-      </form>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <form method="post" action="{% url 'clientes:reativar' c.id %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="px-3 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+            Reativar
+          </button>
+        </form>
+        {% if pode_excluir_cliente %}
+        <form method="post" action="{% url 'clientes:excluir' c.id %}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="px-3 py-2 text-sm font-medium text-red-600 hover:underline"
+                  onclick="return confirm('Excluir definitivamente este cliente? Esta ação não pode ser desfeita.')">
+            Excluir
+          </button>
+        </form>
+        {% endif %}
+      </div>
 
     </div>
   {% empty %}

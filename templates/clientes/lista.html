@@ -16,22 +16,33 @@
 
 {% if escopo_maximo == "todos" %}
 <div class="flex items-center gap-2 mb-4">
-  <a href="?escopo=todos"
+  <a href="?escopo=todos{% if filtro_busca %}&busca={{ filtro_busca|urlencode }}{% endif %}"
      class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
     Todos
   </a>
   <span class="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-50 text-gray-300 cursor-not-allowed" title="Em breve">
     Da equipe
   </span>
-  <a href="?escopo=somente_seus"
+  <a href="?escopo=somente_seus{% if filtro_busca %}&busca={{ filtro_busca|urlencode }}{% endif %}"
      class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
     Somente os seus
   </a>
 </div>
 {% endif %}
 
-{# Barra de busca visual — sem lógica real nesta fase #}
-{% include "components/search_bar.html" with placeholder="Buscar por nome ou documento..." %}
+<form method="get" class="search-bar mb-4">
+  <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+  </svg>
+  <input type="text" name="busca" value="{{ filtro_busca }}"
+         placeholder="Buscar por nome ou CPF/CNPJ..."
+         class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-700 placeholder-gray-400">
+  {% if escopo_atual %}<input type="hidden" name="escopo" value="{{ escopo_atual }}">{% endif %}
+  {% if filtro_busca %}
+    <a href="?{% if escopo_atual %}escopo={{ escopo_atual }}{% endif %}" class="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0">Limpar</a>
+  {% endif %}
+</form>
 
 <div class="flex flex-col gap-2">
   {% for c in clientes %}
