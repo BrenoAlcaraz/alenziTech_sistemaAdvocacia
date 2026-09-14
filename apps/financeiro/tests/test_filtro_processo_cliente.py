@@ -37,9 +37,12 @@ class FiltroProcessoClienteBase(TenantTestCase):
         return Cliente.objects.create(nome_razao_social=nome, tipo="PF", responsavel=responsavel)
 
     def _processo(self, titulo, *, cliente, responsavel, status="ativo"):
-        return Processo.objects.create(
-            titulo=titulo, cliente=cliente, responsavel=responsavel, status=status
+        processo = Processo.objects.create(
+            titulo=titulo, responsavel=responsavel, status=status
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
 
 class TestLancamentoFinanceiroFormValidaProcessoDoCliente(FiltroProcessoClienteBase):

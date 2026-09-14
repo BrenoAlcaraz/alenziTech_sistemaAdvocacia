@@ -40,10 +40,13 @@ class AnaliseBase(TenantTestCase):
             )
         return papel
 
-    def _processo(self, titulo, *, responsavel=None, **extra):
-        return Processo.objects.create(
+    def _processo(self, titulo, *, responsavel=None, cliente=None, **extra):
+        processo = Processo.objects.create(
             titulo=titulo, responsavel=responsavel or self.usuario, **extra
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
     def _get(self, **params):
         return self.client.get("/analise/", params, HTTP_HOST=self.http_host)
@@ -135,8 +138,8 @@ class TestAnaliseLocalidade(AnaliseBase):
         self.client.force_login(self.usuario)
 
     def test_pula_nivel_estado_quando_so_ha_uma_opcao(self):
-        self._processo("P1", estado="SP", cidade="Campinas", vara_juizo="1ª Vara Cível")
-        self._processo("P2", estado="SP", cidade="São Paulo", vara_juizo="2ª Vara Cível")
+        self._processo("P1", estado="SP", cidade="Campinas", vara="1ª Vara Cível")
+        self._processo("P2", estado="SP", cidade="São Paulo", vara="2ª Vara Cível")
 
         resposta = self._get()
 
@@ -156,8 +159,8 @@ class TestAnaliseLocalidade(AnaliseBase):
         self.assertEqual(opcoes["RJ"], 1)
 
     def test_drill_down_ate_vara_por_query_param(self):
-        self._processo("P1", estado="SP", cidade="Campinas", vara_juizo="1ª Vara Cível")
-        self._processo("P2", estado="RJ", cidade="Niterói", vara_juizo="3ª Vara Cível")
+        self._processo("P1", estado="SP", cidade="Campinas", vara="1ª Vara Cível")
+        self._processo("P2", estado="RJ", cidade="Niterói", vara="3ª Vara Cível")
 
         resposta = self._get(loc_estado="SP")
 

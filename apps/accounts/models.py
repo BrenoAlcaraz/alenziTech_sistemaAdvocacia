@@ -497,6 +497,7 @@ class HabilitacaoPapel(models.Model):
                         "processos_atribuir_responsavel",
                         "processos_documento_adicionar",
                         "processos_documento_excluir",
+                        "processos_excluir",
                     ])
                     | Q(modulo="clientes", item__in=[
                         "clientes_criar",
@@ -617,6 +618,7 @@ class HabilitacaoUsuario(models.Model):
                         "processos_atribuir_responsavel",
                         "processos_documento_adicionar",
                         "processos_documento_excluir",
+                        "processos_excluir",
                     ])
                     | Q(modulo="clientes", item__in=[
                         "clientes_criar",

@@ -49,8 +49,13 @@
       </div>
 
       <div>
-        <label class="label">Vara / Juízo</label>
-        {{ form.vara_juizo }}
+        <label class="label">Vara</label>
+        {{ form.vara }}
+      </div>
+
+      <div>
+        <label class="label">Comarca</label>
+        {{ form.comarca }}
       </div>
 
       <div>
@@ -65,12 +70,16 @@
 
       <div>
         <label class="label">Valor da causa</label>
-        {{ form.valor_causa }}
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500">R$</span>
+          {{ form.valor_causa }}
+        </div>
       </div>
 
       <div>
-        <label class="label">Cliente</label>
-        {{ form.cliente }}
+        <label class="label">Cliente(s)</label>
+        {{ form.clientes }}
+        <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um cliente.</p>
       </div>
 
       <div>
@@ -86,17 +95,11 @@
         <label class="label">Data de distribuição</label>
         {{ form.data_distribuicao }}
       </div>
-
-      <div>
-        <label class="label">Próximo prazo</label>
-        {{ form.prazo_proximo }}
-      </div>
-
-      <div>
-        <label class="label">Resultado da sentença</label>
-        {{ form.resultado_sentenca }}
-      </div>
     </div>
+
+    <p class="text-xs text-gray-400 mb-4">
+      Próximo prazo e resultado da sentença agora são definidos a partir de um andamento, na aba Andamentos do processo.
+    </p>
 
     {% if form.errors %}
     <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">

@@ -164,6 +164,13 @@ def quadro(request):
         escopo, escopo_maximo = _resolver_escopo(request)
         tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
 
+    # Atalho "ver todas" do card de Tarefas relacionadas no detalhe do
+    # Processo — só mais um filtro sobre o escopo normal do usuário,
+    # nunca amplia o que ele já enxergaria no quadro.
+    processo_filtro_id = request.GET.get("processo")
+    if processo_filtro_id:
+        tarefas = tarefas.filter(processo_id=processo_filtro_id)
+
     tarefas_por_status = {
         "a_fazer": [t for t in tarefas if t.status == "a_fazer"],
         "em_andamento": [t for t in tarefas if t.status == "em_andamento"],
@@ -176,6 +183,7 @@ def quadro(request):
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
         "usuario_filtro": usuario_filtro,
+        "processo_filtro_id": processo_filtro_id,
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
@@ -228,8 +236,8 @@ def nova(request):
             tarefa.responsavel = destinatario or request.user
             tarefa.atribuido_em = timezone.now()
             tarefa.status = "a_fazer"
-            if not tarefa.cliente and tarefa.processo and tarefa.processo.cliente:
-                tarefa.cliente = tarefa.processo.cliente
+            if not tarefa.cliente and tarefa.processo:
+                tarefa.cliente = tarefa.processo.clientes.first()
             tarefa.save()
             return redirect("tarefas:quadro")
     else:
@@ -243,6 +251,9 @@ def editar(request, pk):
         raise PermissionDenied
     _resolver_escopo(request)
     tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
+    next_url = request.GET.get("next") or request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = None
     if request.method == "POST":
         form = TarefaForm(request.POST, instance=tarefa)
         if form.is_valid():
@@ -251,16 +262,17 @@ def editar(request, pk):
             tarefa = form.save(commit=False)
             tarefa.responsavel = responsavel_original
             tarefa.status = status_original
-            if not tarefa.cliente and tarefa.processo and tarefa.processo.cliente:
-                tarefa.cliente = tarefa.processo.cliente
+            if not tarefa.cliente and tarefa.processo:
+                tarefa.cliente = tarefa.processo.clientes.first()
             tarefa.save()
-            return redirect("tarefas:quadro")
+            return redirect(next_url or "tarefas:quadro")
     else:
         form = TarefaForm(instance=tarefa)
     return render(request, "tarefas/form.html", {
         "form": form,
         "modo": "editar",
         "tarefa": tarefa,
+        "next_url": next_url,
         "item_ativo": "tarefas",
     })
 

@@ -102,7 +102,7 @@ def _compromissos_confirmados(user, hoje):
 
 def _processos_escopo_ativos(user, escopo):
     """Processos não arquivados no escopo somente_seus/todos do usuário."""
-    qs = Processo.objects.exclude(status="arquivado").select_related("cliente")
+    qs = Processo.objects.exclude(status="arquivado").prefetch_related("clientes")
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(responsavel=user)
     return qs
@@ -381,8 +381,8 @@ def analise(request):
     else:
         escopo = nivel_maximo
 
-    processos_qs = Processo.objects.select_related("cliente", "equipe", "responsavel").prefetch_related(
-        "partes", "movimentacoes"
+    processos_qs = Processo.objects.select_related("equipe", "responsavel").prefetch_related(
+        "partes", "movimentacoes", "clientes"
     )
     if escopo == NIVEL_SOMENTE_SEUS:
         processos_qs = processos_qs.filter(responsavel=request.user)
@@ -393,7 +393,7 @@ def analise(request):
     mostrar_filtro_usuario = escopo == NIVEL_TODOS
 
     if cliente_id:
-        processos_qs = processos_qs.filter(cliente_id=cliente_id)
+        processos_qs = processos_qs.filter(clientes__id=cliente_id)
     if equipe_id:
         processos_qs = processos_qs.filter(equipe_id=equipe_id)
     if mostrar_filtro_usuario and usuario_id:
@@ -429,9 +429,10 @@ def analise(request):
         total,
     )
 
-    # Localidade hierárquica: Estado → Cidade → Vara, com auto-skip
+    # Localidade hierárquica: Estado → Cidade → Comarca → Vara, com auto-skip
     loc_estado_qs = request.GET.get("loc_estado")
     loc_cidade_qs = request.GET.get("loc_cidade")
+    loc_comarca_qs = request.GET.get("loc_comarca")
 
     grupos_estado = _agrupar_por_campo(processos, "estado")
     estado_opcoes = None
@@ -455,10 +456,22 @@ def analise(request):
         else:
             cidade_opcoes = _barras(grupos_cidade, _rotulo_simples, len(grupos_estado[estado_ativo]))
 
-    vara_barras = []
+    comarca_opcoes = None
+    comarca_ativa = None
+    grupos_comarca = {}
     if cidade_ativa is not None:
-        grupos_vara = _agrupar_por_campo(grupos_cidade[cidade_ativa], "vara_juizo")
-        vara_barras = _barras(grupos_vara, _rotulo_simples, len(grupos_cidade[cidade_ativa]))
+        grupos_comarca = _agrupar_por_campo(grupos_cidade[cidade_ativa], "comarca")
+        if len(grupos_comarca) <= 1:
+            comarca_ativa = next(iter(grupos_comarca), None)
+        elif loc_comarca_qs in grupos_comarca:
+            comarca_ativa = loc_comarca_qs
+        else:
+            comarca_opcoes = _barras(grupos_comarca, _rotulo_simples, len(grupos_cidade[cidade_ativa]))
+
+    vara_barras = []
+    if comarca_ativa is not None:
+        grupos_vara = _agrupar_por_campo(grupos_comarca[comarca_ativa], "vara")
+        vara_barras = _barras(grupos_vara, _rotulo_simples, len(grupos_comarca[comarca_ativa]))
 
     breadcrumb = []
     if estado_ativo is not None:
@@ -470,6 +483,11 @@ def analise(request):
         breadcrumb.append({
             "label": _rotulo_simples(cidade_ativa),
             "clicavel": len(grupos_cidade) > 1,
+        })
+    if comarca_ativa is not None:
+        breadcrumb.append({
+            "label": _rotulo_simples(comarca_ativa),
+            "clicavel": len(grupos_comarca) > 1,
         })
 
     # Tempo e resultados
@@ -524,12 +542,15 @@ def analise(request):
         "patrocinio_barras": patrocinio_barras,
         "loc_breadcrumb": breadcrumb,
         "loc_estado_ativo": estado_ativo,
+        "loc_cidade_ativa": cidade_ativa,
         "loc_estado_opcoes": estado_opcoes,
         "loc_cidade_opcoes": cidade_opcoes,
+        "loc_comarca_opcoes": comarca_opcoes,
         "loc_vara_barras": vara_barras,
         "loc_mostrando_estados": estado_opcoes is not None,
         "loc_mostrando_cidades": estado_ativo is not None and cidade_opcoes is not None,
-        "loc_mostrando_varas": cidade_ativa is not None,
+        "loc_mostrando_comarcas": cidade_ativa is not None and comarca_opcoes is not None,
+        "loc_mostrando_varas": comarca_ativa is not None,
         "filtros_querystring": filtros_querystring,
         "tempo_vida_medio": _formatar_periodo(media_dias_vida),
         "tempo_entre_andamentos": _formatar_periodo(media_geral_entre_andamentos),

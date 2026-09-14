@@ -61,7 +61,7 @@
             <p class="font-medium text-gray-900">{{ processo.titulo }}</p>
             {% if processo.numero %}<p class="text-xs text-gray-400">{{ processo.numero }}</p>{% endif %}
           </td>
-          <td class="px-5 py-4 text-gray-600">{{ processo.cliente|default:"—" }}</td>
+          <td class="px-5 py-4 text-gray-600">{{ processo.clientes.all|join:", "|default:"—" }}</td>
           <td class="px-5 py-4">
             <form method="post">
               {% csrf_token %}

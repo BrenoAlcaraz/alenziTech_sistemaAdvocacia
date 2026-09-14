@@ -37,9 +37,9 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         )
         self.processo = Processo.objects.create(
             titulo="Processo Config",
-            cliente=cliente,
             responsavel=self.limitado,
         )
+        self.processo.clientes.add(cliente)
         self.client.force_login(self.admin)
 
     def _post_revogacao(self):

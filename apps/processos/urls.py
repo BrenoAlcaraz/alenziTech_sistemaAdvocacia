@@ -11,6 +11,7 @@ urlpatterns = [
     path("processos/<int:pk>/editar/", views.editar, name="editar"),
     path("processos/<int:pk>/arquivar/", views.arquivar, name="arquivar"),
     path("processos/<int:pk>/reabrir/", views.reabrir, name="reabrir"),
+    path("processos/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("processos/<int:pk>/movimentacoes/nova/", views.adicionar_movimentacao, name="adicionar_movimentacao"),
     path("processos/<int:pk>/partes/nova/", views.adicionar_parte, name="adicionar_parte"),
     path(

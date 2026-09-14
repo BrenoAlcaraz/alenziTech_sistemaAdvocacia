@@ -13,18 +13,71 @@
   <a href="{% url 'processos:novo' %}" class="btn-primary">+ Novo processo</a>
 </div>
 
-<form method="get" class="card px-4 py-3 mb-4 flex items-center gap-3">
-  <label for="escopo" class="text-sm font-medium text-gray-700">Visualizar</label>
-  <select id="escopo" name="escopo" class="select max-w-xs" onchange="this.form.submit()">
-    <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
-    {% if escopo_maximo == "todos" %}
-      <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
-    {% endif %}
-  </select>
-</form>
+<form method="get" class="card px-4 py-3 mb-4 flex flex-wrap items-end gap-3">
+  <div>
+    <label for="escopo" class="text-sm font-medium text-gray-700">Visualizar</label>
+    <select id="escopo" name="escopo" class="select max-w-xs" onchange="this.form.submit()">
+      <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
+      {% if escopo_maximo == "todos" %}
+        <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+      {% endif %}
+    </select>
+  </div>
 
-{# Barra de busca visual — sem lógica real nesta fase #}
-{% include "components/search_bar.html" with placeholder="Buscar por título ou número..." %}
+  <div class="flex-1 min-w-[180px]">
+    <label for="busca" class="text-xs font-medium text-gray-500">Buscar</label>
+    <input type="text" id="busca" name="busca" value="{{ filtro_busca }}"
+           placeholder="Título ou número..." class="input">
+  </div>
+
+  <div>
+    <label for="materia" class="text-xs font-medium text-gray-500">Matéria</label>
+    <select id="materia" name="materia" class="select">
+      <option value="">Todas</option>
+      {% for valor, rotulo in areas_choices %}
+        <option value="{{ valor }}" {% if filtro_materia == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="status" class="text-xs font-medium text-gray-500">Status</label>
+    <select id="status" name="status" class="select">
+      <option value="">Todos</option>
+      {% for valor, rotulo in status_choices %}
+        <option value="{{ valor }}" {% if filtro_status == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="cliente" class="text-xs font-medium text-gray-500">Cliente</label>
+    <select id="cliente" name="cliente" class="select">
+      <option value="">Todos</option>
+      {% for cliente in clientes_filtro %}
+        <option value="{{ cliente.pk }}" {% if filtro_cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>{{ cliente.nome_razao_social }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label for="equipe" class="text-xs font-medium text-gray-500">Equipe</label>
+    <select id="equipe" name="equipe" class="select">
+      <option value="">Todas</option>
+      <option value="nenhuma" {% if filtro_equipe == "nenhuma" %}selected{% endif %}>Nenhuma equipe</option>
+      {% for equipe in equipes_filtro %}
+        <option value="{{ equipe.pk }}" {% if filtro_equipe == equipe.pk|stringformat:"s" %}selected{% endif %}>{{ equipe.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button type="submit" class="btn-primary text-sm">Filtrar</button>
+    {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}
+      <a href="{% url 'processos:lista' %}?escopo={{ escopo_atual }}" class="text-xs text-gray-400 hover:text-gray-600 underline">Limpar filtros</a>
+    {% endif %}
+  </div>
+</form>
 
 {# Lista de processos #}
 <div class="flex flex-col gap-3">
@@ -33,7 +86,7 @@
       <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate">{{ p.titulo }}</p>
-        <p class="text-xs text-gray-400 mt-0.5">{{ p.numero }} &bull; {{ p.cliente }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}</p>
       </div>
       <div class="flex items-center gap-3 flex-shrink-0">
         {% if p.prazo_urgente %}

@@ -3,11 +3,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from apps.accounts.escopo import equipe_padrao_para_usuario
 from apps.accounts.decorators import usuario_admin_escritorio
+from apps.accounts.models import Equipe
 from apps.accounts.permissoes import nivel_acesso_modulo, tem_habilitacao, tem_permissao_modulo
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
@@ -17,12 +19,16 @@ from apps.accounts.permissoes_constants import (
     HAB_PROCESSOS_DOCUMENTO_ADICIONAR,
     HAB_PROCESSOS_DOCUMENTO_EXCLUIR,
     HAB_PROCESSOS_EDITAR,
+    HAB_PROCESSOS_EXCLUIR,
+    MODULO_FINANCEIRO,
     MODULO_GERIR,
     MODULO_PROCESSOS,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
 from apps.atividade.services import registrar_atividade
+from apps.clientes.models import Cliente
+from apps.financeiro.models import SolicitacaoFinanceira
 from .models import Documento, Intimacao, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -35,8 +41,10 @@ from .forms import (
     ProcessoResponsavelForm,
 )
 from .services import (
+    faixa_status_do_processo,
     ids_processos_apensos_do,
     nome_exibicao_usuario,
+    parte_contraria_do_processo,
     responsaveis_elegiveis,
     vincular_processos_apensos,
     vinculos_apensos_do,
@@ -67,6 +75,10 @@ def _pode_excluir_documento(user):
     return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_DOCUMENTO_EXCLUIR)
 
 
+def _pode_excluir_processo(user):
+    return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_EXCLUIR)
+
+
 def _resolver_escopo(request):
     nivel_maximo = nivel_acesso_modulo(request.user, MODULO_PROCESSOS)
     if nivel_maximo not in _ESCOPOS_VALIDOS:
@@ -83,7 +95,7 @@ def _resolver_escopo(request):
 
 
 def _processos_no_escopo(request, escopo):
-    qs = Processo.objects.select_related("cliente", "responsavel")
+    qs = Processo.objects.select_related("responsavel").prefetch_related("clientes")
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(responsavel=request.user)
     return qs
@@ -102,12 +114,42 @@ def lista(request):
         raise PermissionDenied
     escopo, escopo_maximo = _resolver_escopo(request)
     processos = _processos_no_escopo(request, escopo).exclude(status="arquivado")
+
+    busca = (request.GET.get("busca") or "").strip()
+    if busca:
+        processos = processos.filter(
+            Q(titulo__icontains=busca) | Q(numero__icontains=busca)
+        )
+    materia = request.GET.get("materia") or ""
+    if materia:
+        processos = processos.filter(area_direito=materia)
+    status = request.GET.get("status") or ""
+    if status:
+        processos = processos.filter(status=status)
+    cliente_id = request.GET.get("cliente") or ""
+    if cliente_id:
+        processos = processos.filter(clientes__id=cliente_id)
+    equipe_id = request.GET.get("equipe") or ""
+    if equipe_id == "nenhuma":
+        processos = processos.filter(equipe__isnull=True)
+    elif equipe_id:
+        processos = processos.filter(equipe_id=equipe_id)
+
     return render(request, "processos/lista.html", {
         "processos": processos,
         "item_ativo": "processos",
         "novo_url": reverse("processos:novo"),
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "filtro_busca": busca,
+        "filtro_materia": materia,
+        "filtro_status": status,
+        "filtro_cliente": cliente_id,
+        "filtro_equipe": equipe_id,
+        "areas_choices": Processo.AREAS_CHOICES,
+        "status_choices": Processo.STATUS_CHOICES,
+        "clientes_filtro": Cliente.objects.filter(ativo=True).order_by("nome_razao_social"),
+        "equipes_filtro": Equipe.objects.filter(ativo=True).order_by("nome"),
     })
 
 
@@ -131,6 +173,7 @@ def detalhe(request, pk):
     pode_gerenciar_integrantes = _pode_gerenciar_integrantes(request.user)
     pode_adicionar_documento = pode_modificar and _pode_adicionar_documento(request.user)
     pode_excluir_documento = pode_modificar and _pode_excluir_documento(request.user)
+    pode_excluir_processo = pode_modificar and _pode_excluir_processo(request.user)
     partes = list(processo.partes.all())
     for parte in partes:
         if pode_modificar:
@@ -140,10 +183,11 @@ def detalhe(request, pk):
             processo,
             processos_visiveis=_processos_no_escopo(request, escopo),
         ).select_related(
-            "processo_menor__cliente",
             "processo_menor__responsavel",
-            "processo_maior__cliente",
             "processo_maior__responsavel",
+        ).prefetch_related(
+            "processo_menor__clientes",
+            "processo_maior__clientes",
         )
     )
     processos_apensos = [
@@ -182,14 +226,34 @@ def detalhe(request, pk):
         )
     form_integrante = AdicionarIntegranteForm(usuarios_queryset=candidatos_integrante)
     documentos = list(processo.documentos.select_related("autor"))
+    movimentacoes = list(processo.movimentacoes.order_by("-data"))
+    tarefas_relacionadas_total = processo.tarefas.count()
+    tarefas_relacionadas = list(
+        processo.tarefas.select_related("responsavel")
+        .exclude(status="cancelada")
+        .order_by("prazo")[:5]
+    )
+    custas_financeiras = list(
+        SolicitacaoFinanceira.objects.filter(processo=processo)
+        .select_related("solicitante")
+        .order_by("-criado_em")
+    )
     return render(request, "processos/detalhe.html", {
         "processo": processo,
-        "movimentacoes": processo.movimentacoes.order_by("-data"),
+        "movimentacoes": movimentacoes,
+        "parte_contraria": parte_contraria_do_processo(processo, partes=partes),
+        "faixa_status": faixa_status_do_processo(processo, movimentacoes=movimentacoes),
+        "tarefas_relacionadas": tarefas_relacionadas,
+        "tarefas_relacionadas_total": tarefas_relacionadas_total,
+        "custas_financeiras": custas_financeiras,
+        "custas_total": len(custas_financeiras),
+        "pode_criar_solicitacao_financeira": tem_permissao_modulo(request.user, MODULO_FINANCEIRO),
         "documentos": documentos,
         "documentos_total": len(documentos),
         "form_documento": DocumentoForm(),
         "pode_adicionar_documento": pode_adicionar_documento,
         "pode_excluir_documento": pode_excluir_documento,
+        "pode_excluir_processo": pode_excluir_processo,
         "partes": partes,
         "partes_polo_ativo": [p for p in partes if p.grupo_visual == "polo_ativo"],
         "partes_polo_passivo": [p for p in partes if p.grupo_visual == "polo_passivo"],
@@ -327,6 +391,7 @@ def novo(request):
             if not processo.equipe:
                 processo.equipe = equipe_padrao_para_usuario(request.user)
             processo.save()
+            form.save_m2m()
             registrar_atividade(
                 request.user, "processo_criado",
                 f"Criou o processo {processo.titulo}",
@@ -430,6 +495,29 @@ def reabrir(request, pk):
 
 
 @login_required
+@require_POST
+def excluir(request, pk):
+    """Exclusão definitiva — distinta de arquivar. Remove o Processo e
+    tudo que é intrínseco a ele (Documentos, Partes, Andamentos, Apensos,
+    Intimações já cascateiam pelo modelo). Registros de outros módulos
+    (lançamentos financeiros, tarefas, compromissos de agenda) não são
+    apagados — a FK deles já é SET_NULL, então só perdem a referência."""
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    if not _pode_excluir_processo(request.user):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    titulo = processo.titulo
+    registrar_atividade(
+        request.user, "processo_excluido",
+        f"Excluiu definitivamente o processo {titulo}",
+    )
+    processo.delete()
+    return redirect("processos:lista")
+
+
+@login_required
 def adicionar_movimentacao(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
@@ -444,6 +532,17 @@ def adicionar_movimentacao(request, pk):
             movimentacao.processo = processo
             movimentacao.autor = request.user
             movimentacao.save()
+            campos_processo_atualizados = []
+            novo_prazo = form.cleaned_data.get("atualizar_prazo_proximo")
+            if novo_prazo:
+                processo.prazo_proximo = novo_prazo
+                campos_processo_atualizados.append("prazo_proximo")
+            novo_resultado = form.cleaned_data.get("atualizar_resultado_sentenca")
+            if novo_resultado:
+                processo.resultado_sentenca = novo_resultado
+                campos_processo_atualizados.append("resultado_sentenca")
+            if campos_processo_atualizados:
+                processo.save(update_fields=campos_processo_atualizados)
             registrar_atividade(
                 request.user, "processo_andamento_adicionado",
                 f"Adicionou andamento ({movimentacao.get_tipo_display()}) no processo {processo.titulo}",

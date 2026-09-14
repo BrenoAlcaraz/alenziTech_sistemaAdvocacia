@@ -17,9 +17,9 @@ def _filtrar_processo_por_cliente(form, url_name):
     """Restringe o campo Processo ao cliente já conhecido e prepara os
     atributos consumidos pelo filtro dinâmico em static/js/main.js."""
     cliente_id = _cliente_id_atual(form)
-    qs = Processo.objects.select_related("cliente").exclude(status="arquivado")
+    qs = Processo.objects.prefetch_related("clientes").exclude(status="arquivado")
     if cliente_id:
-        qs = qs.filter(cliente_id=cliente_id)
+        qs = qs.filter(clientes__id=cliente_id)
     form.fields["processo"].queryset = qs
     form.fields["cliente"].widget.attrs["data-cliente-filtro"] = "1"
     form.fields["processo"].widget.attrs["data-processos-url"] = reverse(url_name)

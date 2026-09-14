@@ -39,8 +39,9 @@ class AtividadeLogProcessosBase(TenantTestCase):
             nome_razao_social="Cliente Log", tipo="PF", responsavel=self.admin, ativo=True
         )
         self.processo = Processo.objects.create(
-            titulo="Processo Log", responsavel=self.admin, cliente=self.cliente
+            titulo="Processo Log", responsavel=self.admin,
         )
+        self.processo.clientes.add(self.cliente)
 
     def _payload(self, titulo="Processo Log", **extra):
         # self.admin sempre usa ProcessoResponsavelForm (bypass de Admin em
@@ -48,7 +49,7 @@ class AtividadeLogProcessosBase(TenantTestCase):
         # formulário, igual o campo pré-selecionado (initial) que o GET real
         # já mostra na tela.
         payload = {
-            "titulo": titulo, "cliente": self.cliente.pk, "responsavel": self.admin.pk,
+            "titulo": titulo, "clientes": [self.cliente.pk], "responsavel": self.admin.pk,
             **FORM_BASE,
         }
         payload.update(extra)
@@ -164,8 +165,9 @@ class TestLogIntegranteEApenso(AtividadeLogProcessosBase):
 
     def test_adicionar_e_remover_apenso_geram_log(self):
         outro_processo = Processo.objects.create(
-            titulo="Processo Apenso", responsavel=self.admin, cliente=self.cliente
+            titulo="Processo Apenso", responsavel=self.admin,
         )
+        outro_processo.clientes.add(self.cliente)
         resposta = self.client.post(
             f"/processos/{self.processo.pk}/apensos/adicionar/",
             {"processo_apenso": outro_processo.pk},

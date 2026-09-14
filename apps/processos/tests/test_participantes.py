@@ -74,7 +74,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
             "/processos/novo/",
             {
                 "titulo": "Processo criado por HTTP",
-                "cliente": cliente.pk,
+                "clientes": [cliente.pk],
                 "area_direito": "CÍVEL",
                 "fase": "conhecimento",
                 "instancia": "1ª Instância",
@@ -98,7 +98,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
                 self.assertEqual(parte.papel, papel)
                 self.assertEqual(parte.grupo_visual, grupo)
 
-    def test_grupos_visuais_agrupam_os_dez_papeis(self):
+    def test_grupos_visuais_agrupam_todos_os_papeis(self):
         grupos = dict(ParteProcessoForm.GRUPOS_PAPEL)
         self.assertEqual(set(grupos.keys()), {"Polo Ativo", "Polo Passivo", "Outros"})
         valores = {valor for opcoes in grupos.values() for valor, _ in opcoes}
@@ -229,7 +229,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
             {"aba": "partes"},
             HTTP_HOST=self.http_host,
         )
-        self.assertContains(resposta, "Usar dados do Cliente do processo")
+        self.assertContains(resposta, "Usar dados do cliente selecionado")
         self.assertContains(resposta, self.cliente.nome_razao_social)
         # cpf_cnpj vai para dentro de um literal JS: o hífen é escapado por
         # `escapejs` (-), então comparamos só o trecho sem hífen.
@@ -238,7 +238,6 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
     def test_form_adicionar_parte_nao_oferece_reaproveitar_sem_cliente_no_processo(self):
         processo_sem_cliente = Processo.objects.create(
             titulo="Processo sem cliente",
-            cliente=None,
             responsavel=self.user,
         )
         resposta = self.client.get(
@@ -246,7 +245,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
             {"aba": "partes"},
             HTTP_HOST=self.http_host,
         )
-        self.assertNotContains(resposta, "Usar dados do Cliente do processo")
+        self.assertNotContains(resposta, "Usar dados do cliente selecionado")
 
 
 class TestParticipantesIdor(ProcessosEscopoBase):

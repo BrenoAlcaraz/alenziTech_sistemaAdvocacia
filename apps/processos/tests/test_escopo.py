@@ -86,15 +86,17 @@ class ProcessosEscopoBase(TenantTestCase):
         )
 
     def _processo(self, responsavel, cliente, titulo, *, status="ativo"):
-        return Processo.objects.create(
+        processo = Processo.objects.create(
             titulo=titulo,
             responsavel=responsavel,
-            cliente=cliente,
             status=status,
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
     def _payload(self, cliente, titulo="Processo alterado", **extra):
-        payload = {"titulo": titulo, "cliente": cliente.pk, **FORM_BASE}
+        payload = {"titulo": titulo, "clientes": [cliente.pk], **FORM_BASE}
         payload.update(extra)
         return payload
 
@@ -168,10 +170,9 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
             self.cliente,
             titulo="Título adulterado",
             numero="9999999-99.9999.9.99.9999",
-            vara_juizo="Vara adulterada",
+            vara="Vara adulterada",
             valor_causa="12345.67",
             data_distribuicao="2026-08-20",
-            prazo_proximo="2026-09-20",
             responsavel=self.user.pk,
         )
         formulario = ProcessoForm(
@@ -256,7 +257,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
 
     def test_cliente_ativo_independe_de_acesso_a_clientes_e_inativo_e_rejeitado(self):
         formulario = self.client.get("/processos/novo/", HTTP_HOST=self.http_host)
-        self.assertIn(self.cliente, formulario.context["form"].fields["cliente"].queryset)
+        self.assertIn(self.cliente, formulario.context["form"].fields["clientes"].queryset)
 
         inativo = self._cliente(self.user, "Cliente inativo", ativo=False)
         resposta = self.client.post(

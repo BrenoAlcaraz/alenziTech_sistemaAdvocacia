@@ -76,9 +76,12 @@ class IntegrantesBase(TenantTestCase):
         )
 
     def _processo(self, responsavel, cliente, titulo="Processo Integrantes"):
-        return Processo.objects.create(
-            titulo=titulo, responsavel=responsavel, cliente=cliente, status="ativo"
+        processo = Processo.objects.create(
+            titulo=titulo, responsavel=responsavel, status="ativo"
         )
+        if cliente is not None:
+            processo.clientes.add(cliente)
+        return processo
 
 
 class TestGerenciarIntegrantesComHabilitacao(IntegrantesBase):

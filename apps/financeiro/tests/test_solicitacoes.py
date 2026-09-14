@@ -284,8 +284,9 @@ class TestSolicitacoesEscopoNivelSolicitacoes(SolicitacaoFinanceiraBase):
 
         cliente = Cliente.objects.create(nome_razao_social="Cliente Teste", responsavel=self.user)
         processo = Processo.objects.create(
-            titulo="Processo Teste", cliente=cliente, responsavel=self.user,
+            titulo="Processo Teste", responsavel=self.user,
         )
+        processo.clientes.add(cliente)
         antes = SolicitacaoFinanceira.objects.count()
         r = self.client.post(
             "/financeiro/solicitacoes/nova/",
