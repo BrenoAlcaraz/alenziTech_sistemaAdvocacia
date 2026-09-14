@@ -72,14 +72,28 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
 
 - Cadastro de Cliente é reaproveitado como participante de processo —
   nunca redigitado.
-- Um processo pode ter vários clientes representados; um processo
-  compartilhado não duplica entre pastas.
+- Um processo pode ter vários clientes representados (`Processo.clientes`,
+  N:N); um processo compartilhado não duplica entre pastas.
 - Vínculo cliente-processo deve ser íntegro: servidor rejeita
   associação inconsistente mesmo com requisição manipulada; seletores
   dependentes de processo não oferecem processos incompatíveis com o
   cliente selecionado.
-- Fora de escopo: dedup por CPF/CNPJ, exclusão física vs. lógica,
-  cardinalidade de endereços/contatos — sem decisão aprovada.
+- Brasileiro por padrão; marcar Estrangeiro libera documento em
+  digitação livre (sem validação de CPF/CNPJ), nacionalidade por lista
+  suspensa e endereço inteiro manual. Brasileiro exige CPF/CNPJ com
+  dígito verificador válido quando preenchido, trava nacionalidade em
+  "Brasileira", libera RG, e busca endereço automaticamente por CEP
+  (demais campos de endereço só vêm dessa busca, não digitáveis à mão).
+- Exclusão definitiva (PDR-0025), distinta de desativar — lançamentos
+  financeiros, tarefas e compromissos vinculados permanecem, só perdem
+  a referência.
+- "Clientes relacionados": dois clientes aparecem vinculados um ao
+  outro quando estão do mesmo polo (ambos ativo, ou ambos passivo) de
+  algum processo em comum — depende de os dois terem sido cadastrados
+  manualmente como Parte desse processo (sem vínculo automático
+  Cliente↔Parte ainda, ver [modules/processos.md](modules/processos.md)).
+- Fora de escopo: dedup por CPF/CNPJ, cardinalidade de múltiplos
+  endereços/contatos por cliente — sem decisão aprovada.
 
 ### Tarefas
 
