@@ -2,8 +2,8 @@
 
 Processos judiciais e casos extrajudiciais: dados, participantes,
 documentos, andamentos, vínculos, prazos, apensos. Arquivo próprio por
-volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
-[PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
+volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014, 0023, 0024) —
+ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
 ## Autorização e responsabilidade (PDR-0010, PDR-0014, PDR-0017)
 
@@ -30,21 +30,89 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
   escritório. Gerenciar integrantes habilitados exige
   `gerir_habilitar_usuario_processos`.
 
-## Partes (PDR-0013 — modelo vigente)
+## Partes (PDR-0013 — modelo vigente; catálogo estendido por PDR-0023)
 
-- Cada parte tem um único campo de papel processual (10 opções: Autor,
-  Embargante, Recorrente, Réu, Embargado, Recorrido, Terceiro
-  Interessado, Ministério Público, Amicus Curiae, Juiz), agrupadas
-  visualmente em Polo Ativo / Polo Passivo / Outros.
-- Parte que corresponde ao Cliente do processo reaproveita o cadastro
-  (sem redigitação); campos de advogado pré-preenchidos quando a parte
-  bate com o Cliente por CPF/CNPJ.
+- Cada parte tem um único campo de papel processual, agrupado
+  visualmente em Polo Ativo / Polo Passivo / Outros — forma do modelo
+  definida por PDR-0013, catálogo de valores estendido por PDR-0023:
+  - Polo Ativo: Autor, Embargante, Recorrente, Exequente, Requerente,
+    Reclamante, Agravante, Impugnante, Reconvinte, Excipiente,
+    Impetrante, Inventariante.
+  - Polo Passivo: Réu, Embargado, Recorrido, Executado, Requerido,
+    Reclamado, Agravado, Impugnado, Reconvindo, Excepto, Impetrado,
+    Inventariado.
+  - Outros: Terceiro Interessado, Ministério Público, Juiz. ("Amicus
+    Curiae" removido do catálogo por PDR-0023.)
+  - Autor/Réu seguem válidos para o caso genérico; os pares por tipo de
+    ação (execução, trabalhista, recurso, agravo, impugnação,
+    reconvenção, exceção, mandado de segurança, inventário) são
+    escolha manual de quem cadastra a Parte — nada infere o par a
+    partir de outro campo do processo.
+- Parte que corresponde a um dos Clientes do processo reaproveita o
+  cadastro (sem redigitação); campos de advogado pré-preenchidos quando
+  a parte bate com um dos Clientes por CPF/CNPJ.
 - Advogado é texto livre (nome + OAB) associado à parte, no máximo um
   por parte — nunca uma parte em si do processo.
 - PDR-0013 substitui PDR-0001/PDR-0011 (modelo de três dimensões:
   vínculo/posição estrutural/qualificação processual, representantes
   normalizados, histórico de classificação). O modelo antigo não deve
   ser reintroduzido.
+
+## Clientes
+
+- Um processo pode ter **mais de um Cliente vinculado**
+  (`Processo.clientes`, N:N) — regra de produto já registrada em
+  [PRODUCT.md](../PRODUCT.md), implementada a partir da reunião de
+  13/09. Card superior do detalhe do processo lista todos os clientes
+  vinculados, cada um linkando para sua própria página.
+- Outros módulos que referenciam "o cliente do processo" para
+  pré-preenchimento automático (Tarefas, Agenda, Financeiro) usam o
+  primeiro cliente vinculado como melhor esforço — esses módulos
+  continuam com cliente único no próprio cadastro.
+
+## Comarca e Vara
+
+- `vara` e `comarca` são dois campos de texto livre separados (antes um
+  único campo `vara_juizo`) — reunião de 13/09. Alimentam, junto com
+  `estado`/`cidade`, o agrupamento hierárquico por localidade do
+  Dashboard: Estado → Cidade → Comarca → Vara — ver
+  [dashboard.md](dashboard.md).
+
+## Exclusão definitiva (PDR-0024)
+
+- Distinta de Arquivar. Exige a habilitação `processos_excluir` mais o
+  mesmo escopo de mutação de Arquivar (Administrador ou responsável).
+- Remove o Processo e o que é intrínseco a ele — Documentos, Partes,
+  Andamentos, vínculos de Apenso, Intimações (cascata já existente no
+  modelo). Lançamentos financeiros, tarefas e compromissos de agenda
+  vinculados **não são apagados** — só perdem a referência
+  (`on_delete=SET_NULL`, já era o padrão).
+- Ação definitiva nesta versão — sem lixeira, sem desfazer.
+
+## Faixa de status, Integrantes e Tarefas relacionadas (detalhe do processo)
+
+- Abaixo do card superior, uma faixa somente informativa mostra Fase
+  atual (tipo do andamento mais recente), Parado há X dias (dias desde
+  o último andamento, ou desde a distribuição sem nenhum andamento) e
+  Tempo médio entre andamentos — todos recalculados a cada carregamento
+  a partir dos Andamentos, nunca campos próprios do Processo.
+- Integrantes habilitados e Tarefas relacionadas ao processo aparecem
+  como cards funcionais abaixo do card superior, fora do sistema de
+  abas — reunião de 13/09. No card de Tarefas, clicar numa tarefa abre
+  o formulário dela no módulo de Tarefas; "ver todas" filtra o quadro
+  de Tarefas por este processo (`tarefas:quadro?processo=<id>`).
+
+## Custas Judiciais (aba do processo)
+
+- Aba própria no detalhe do processo, reaproveitando as Solicitações
+  Financeiras (PDR-0006/PDR-0015) filtradas por este processo —
+  **visível a qualquer usuário que abra o processo**, sem o filtro por
+  solicitante que a aba "Solicitações" do Financeiro aplica para quem
+  não tem acesso amplo a dados. Evita que dois advogados solicitem a
+  mesma custa em duplicidade. "+ Nova solicitação" pré-preenche o
+  processo; exige acesso ao módulo Financeiro para criar (a leitura da
+  aba não exige). Status seguem o fluxo já aprovado (PDR-0015) —
+  solicitada → em análise → aprovada → paga, ou rejeitada.
 
 ## Apensos (PDR-0012)
 
@@ -66,6 +134,12 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
   identificável. Data do último andamento é a referência de inatividade.
 - Fase processual, status processual e andamento processual são
   conceitos distintos (não usar como sinônimos).
+- `prazo_proximo` e `resultado_sentenca` saíram do formulário de
+  criação/edição do processo (reunião de 13/09) — passam a ser
+  definidos a partir de um Andamento, com dois campos opcionais no
+  formulário de "Adicionar andamento" ("atualizar próximo prazo" /
+  "atualizar resultado da sentença"). Os campos continuam existindo em
+  `Processo` e alimentando Dashboard/Agenda normalmente.
 
 ## Documentos
 
@@ -89,8 +163,8 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 ## Localidade e resultado de sentença
 
 - `estado` (UF) e `cidade` são campos opcionais, em branco por padrão;
-  alimentam o agrupamento hierárquico por localidade do Dashboard
-  (Estado → Cidade → `vara_juizo`) — ver
+  alimentam o agrupamento hierárquico por localidade do Dashboard junto
+  com `comarca`/`vara` (ver seção "Comarca e Vara" acima) — ver
   [dashboard.md](dashboard.md).
 - `resultado_sentenca` (procedente/parcialmente procedente/
   improcedente) é opcional e sempre preenchido manualmente nesta
@@ -132,4 +206,6 @@ volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014) — ver
 - [PDR-0013](../decisions/PDR-0013-partes-processo-modelo-simplificado.md)
 - [PDR-0014](../decisions/PDR-0014-responsavel-integrantes-processos.md)
 - [PDR-0017](../decisions/PDR-0017-habilitacoes-criar-editar-andamento-processos.md)
+- [PDR-0023](../decisions/PDR-0023-partes-catalogo-pares-por-tipo-acao.md)
+- [PDR-0024](../decisions/PDR-0024-exclusao-definitiva-processo.md)
 - [STATUS.md](../STATUS.md#processos) para o estado real de implementação

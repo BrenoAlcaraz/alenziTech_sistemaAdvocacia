@@ -62,6 +62,12 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   efetivamente processado altera o saldo realizado.
 - Reabrir lançamento pago exige habilitação própria; ao reabrir, o
   advogado responsável pela solicitação original é notificado.
+- Solicitação vinculada a um processo também aparece na aba "Custas
+  Judiciais" do detalhe desse processo (`docs/modules/processos.md`),
+  visível a qualquer usuário do processo — sem o filtro por
+  `solicitante` que a aba "Solicitações" deste módulo aplica para quem
+  não tem `dados_proprios`/`dados_todos`. É a mesma linha de
+  `SolicitacaoFinanceira`, só uma segunda visão sem esse filtro.
 
 ## Honorários (PDR-0007, recebimento parcial e correção em PDR-0022)
 

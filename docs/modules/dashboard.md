@@ -47,10 +47,11 @@ continua disponível em análise de dados).
   patrocínio), todos por query string: Escopo (seletor só aparece
   quando o nível máximo do usuário no módulo `processos` é `todos`),
   Cliente, Equipe, e Usuário (só quando o escopo efetivo é `todos`).
-- **Processos por localidade**: hierárquico Estado → Cidade → Vara
-  (`Processo.vara_juizo`), com auto-skip de nível quando o subconjunto
-  filtrado tem só uma opção naquele nível (não renderiza uma lista de
-  1 item só). Usa os campos opcionais `Processo.estado`/`Processo.cidade`
+- **Processos por localidade**: hierárquico Estado → Cidade → Comarca →
+  Vara (`Processo.comarca`/`Processo.vara` — campo único `vara_juizo`
+  separado em dois na reunião de 13/09), com auto-skip de nível quando o
+  subconjunto filtrado tem só uma opção naquele nível (não renderiza uma
+  lista de 1 item só). Usa os campos opcionais `Processo.estado`/`Processo.cidade`
   — ver [processos.md](processos.md).
 - **Processos por patrocínio**: best-effort — casa `Processo.cliente`
   com uma `ParteProcesso` do mesmo processo por CPF/CNPJ normalizado
