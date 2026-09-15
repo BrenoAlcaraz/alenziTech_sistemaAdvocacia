@@ -24,6 +24,11 @@ especificação não determina quantas tabelas existirão; modelagem física
 - Navegação por mês: a lista de lançamentos e os cards de resumo são
   sempre referentes a um mês por vez (navegador ◀▶ + indicação de "mês
   atual"), nunca a visão consolidada de todos os períodos.
+- Filtros da aba Lançamentos (reunião de 13/09): Todos, Receitas,
+  Despesas, Pagos (despesas pagas), Recebidos (receitas pagas), A pagar
+  (despesas pendentes), A receber (receitas pendentes), Atrasados,
+  Pagamentos solicitados (lançamento originado de uma Solicitação
+  Financeira) — mesmo conjunto do protótipo.
 
 ## Previsto e realizado (PDR-0004)
 
@@ -38,8 +43,11 @@ especificação não determina quantas tabelas existirão; modelagem física
 
 ## Custas judiciais (PDR-0005)
 
-- Área separada do caixa geral. Tela inicial lista clientes e saldo de
-  custas de cada um.
+- Área separada do caixa geral. Tela inicial lista **todo cliente
+  ativo** (mesmo sem nenhum lançamento ainda — corrigido na reunião de
+  13/09; antes só listava quem já tinha `CustaJudicial`), com nome e
+  documento (CPF/CNPJ ou outro, se estrangeiro), e o saldo de custas de
+  cada um.
 
 ```
 saldo de custas = créditos depositados pelo cliente − custas pagas pelo escritório
@@ -49,6 +57,13 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   mas não reduz o crédito nem altera o saldo calculado.
 - Cálculo do saldo deve ser feito e testado no backend, nunca só
   no template.
+- Lançar débito (custa adiantada pelo escritório ou paga diretamente
+  pelo cliente) e Creditar (depósito do cliente) são dois formulários
+  distintos na interface (reunião de 13/09) — o formulário de débito
+  nunca oferece "Depósito do cliente" como tipo; o de Creditar não
+  expõe Cliente nem Tipo como campo, os dois vêm do próprio contexto da
+  rota (`financeiro/custas/cliente/<id>/creditar/`), nunca do que foi
+  submetido. O model `CustaJudicial` continua único por trás dos dois.
 
 ## Solicitações financeiras (PDR-0006, fluxo em PDR-0015)
 
