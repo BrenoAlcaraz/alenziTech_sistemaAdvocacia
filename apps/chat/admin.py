@@ -4,7 +4,7 @@ from .models import Conversa, LeituraConversa, Mensagem
 
 @admin.register(Conversa)
 class ConversaAdmin(admin.ModelAdmin):
-    list_display = ["titulo", "tipo", "criada_em"]
+    list_display = ["titulo", "tipo", "equipe", "criada_em"]
 
 
 @admin.register(Mensagem)
