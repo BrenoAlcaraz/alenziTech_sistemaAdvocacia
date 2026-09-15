@@ -113,6 +113,11 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
 - Notificação (PDR-0016): ao concluir, o criador é notificado — exceto
   se o criador for o próprio responsável ou for a IA. Notificação de
   atribuição/reatribuição/prazo fica fora de escopo.
+- Faixa de sub-abas abaixo da lista principal: "Recentes (últimas 24h)"
+  e "Atribuídas a mim por terceiros" sempre visíveis para qualquer
+  usuário; "Delegadas por mim" e "Ver tarefas de outra pessoa" só para
+  quem já tem a habilitação de atribuir tarefa a terceiros — mesma
+  habilitação nas duas, nenhuma habilitação nova.
 - Fora de escopo: aceite/recusa, gamificação, avaliação de desempenho.
 
 ### Agenda
