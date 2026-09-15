@@ -120,6 +120,62 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Disponibilidade de convidado (Agenda) ───────────────────────────────────
+  // Ao marcar/selecionar um participante num container com
+  // data-disponibilidade-url, consulta os compromissos que esse usuário já
+  // tem no horário do formulário (campos data_hora_inicio/data_hora_fim da
+  // página) e mostra o resultado no data-disponibilidade-resultado mais
+  // próximo — nunca bloqueia o envio, é só informativo.
+  document.querySelectorAll("[data-disponibilidade-url]").forEach((container) => {
+    const url = container.dataset.disponibilidadeUrl;
+    const campoInicio = document.querySelector('[name="data_hora_inicio"]');
+    const campoFim = document.querySelector('[name="data_hora_fim"]');
+
+    function escaparHtml(texto) {
+      const div = document.createElement("div");
+      div.textContent = texto;
+      return div.innerHTML;
+    }
+
+    function elementoResultado(campo) {
+      if (campo.type === "checkbox") {
+        return document.getElementById(`disponibilidade-${campo.value}`);
+      }
+      return container.querySelector("[data-disponibilidade-resultado]");
+    }
+
+    function consultar(campo) {
+      const resultado = elementoResultado(campo);
+      if (!resultado) return;
+
+      const usuarioId = campo.type === "checkbox" ? (campo.checked ? campo.value : "") : campo.value;
+      if (!usuarioId || !campoInicio?.value) {
+        resultado.innerHTML = "";
+        return;
+      }
+
+      const params = new URLSearchParams({ usuario: usuarioId, inicio: campoInicio.value });
+      if (campoFim?.value) params.set("fim", campoFim.value);
+
+      fetch(`${url}?${params}`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.compromissos.length) {
+            resultado.innerHTML = '<span class="text-xs text-juridico-verde">Sem conflito de horário.</span>';
+            return;
+          }
+          const lista = data.compromissos
+            .map((c) => `${escaparHtml(c.titulo)} (${escaparHtml(c.horario)})`)
+            .join(", ");
+          resultado.innerHTML = `<span class="text-xs text-juridico-urgente">Já tem compromisso nesse horário: ${lista}</span>`;
+        });
+    }
+
+    container.querySelectorAll("[data-disponibilidade-participante]").forEach((campo) => {
+      campo.addEventListener("change", () => consultar(campo));
+    });
+  });
+
   // ── Chat em tempo real (WebSocket) ──────────────────────────────────────────
   // Progressivo: sem WebSocket disponível, o Chat continua funcionando só
   // por HTTP (envio e leitura de mensagem), como antes desta feature.

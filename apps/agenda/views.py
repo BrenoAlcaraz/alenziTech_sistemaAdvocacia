@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, JsonResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.accounts.decorators import usuario_admin_escritorio
@@ -30,6 +31,7 @@ from .forms import AdicionarParticipanteForm, CompromissoForm
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 VISOES_VALIDAS = {"lista", "calendario"}
+ABAS_VALIDAS = {"novidades", "terceiro", "delegados", "outros"}
 
 MESES = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -75,6 +77,21 @@ def _normalizar_visao(visao):
     if visao in VISOES_VALIDAS:
         return visao
     return "lista"
+
+
+def _normalizar_aba(request, usuario_filtro):
+    """
+    Sub-aba ativa da faixa abaixo da lista/calendário. Quem chega via
+    `?usuario=` (seletor de colega da aba "Agenda de outros usuários")
+    reabre já naquela aba; senão respeita `?aba=` se válido; senão
+    "Novos na sua agenda" é o padrão.
+    """
+    if usuario_filtro is not None:
+        return "outros"
+    aba = request.GET.get("aba")
+    if aba in ABAS_VALIDAS:
+        return aba
+    return "novidades"
 
 
 def _resolver_escopo(request):
@@ -160,6 +177,58 @@ def _compromissos_mutaveis(request):
 def _pode_criar_para_outros(request):
     return usuario_admin_escritorio(request.user) or tem_habilitacao(
         request.user, MODULO_AGENDA, HAB_AGENDA_CRIAR_PARA_OUTROS
+    )
+
+
+def _compromissos_novidades(request):
+    """
+    Sub-aba "Novos na sua agenda (últimas 24h)": qualquer compromisso
+    que entrou na agenda do usuário nas últimas 24h, de qualquer
+    origem — responsável desde a criação, ou convidado como
+    participante nas últimas 24h (o que for mais recente para cada
+    caso). Sempre visível, sem checagem de habilitação.
+    """
+    limite = timezone.now() - timedelta(hours=24)
+    return (
+        Compromisso.objects.select_related("responsavel", "processo", "cliente")
+        .exclude(status="cancelado")
+        .filter(
+            Q(responsavel=request.user, criado_em__gte=limite)
+            | Q(participacoes__usuario=request.user, participacoes__criado_em__gte=limite)
+        )
+        .distinct()
+        .order_by("-criado_em")
+    )
+
+
+def _compromissos_adicionado_por_terceiro(request):
+    """
+    Sub-aba "Adicionado por terceiro": só compromissos em que o usuário
+    é responsável, mas quem criou foi outra pessoa. Sempre visível, sem
+    checagem de habilitação.
+    """
+    return (
+        Compromisso.objects.select_related("responsavel", "processo", "cliente")
+        .exclude(status="cancelado")
+        .filter(responsavel=request.user)
+        .exclude(criado_por__isnull=True)
+        .exclude(criado_por=request.user)
+        .order_by("-criado_em")
+    )
+
+
+def _compromissos_delegados_por_mim(request):
+    """
+    Sub-aba "Delegados por mim": compromissos que o próprio usuário
+    colocou na agenda de outra pessoa — inclui qualquer status
+    (agendado/concluído/cancelado), diferente da grade operacional
+    padrão. Só para quem tem a habilitação de criar para outros.
+    """
+    return (
+        Compromisso.objects.select_related("responsavel", "processo", "cliente")
+        .filter(criado_por=request.user)
+        .exclude(responsavel=request.user)
+        .order_by("-criado_em")
     )
 
 
@@ -354,36 +423,44 @@ def _contexto_calendario(request, escopo):
 
 @login_required
 def index(request):
+    """
+    Lista e calendário convivem na mesma página — as duas visões são
+    sempre montadas no mesmo request e alternadas no cliente (JS,
+    `data-view-toggle`/`data-view`), sem recarregar a página nem perder
+    filtro/data selecionada. `?visao=` só decide qual delas nasce
+    visível (deep link e reload de filtro/navegação de mês).
+    """
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
         raise PermissionDenied
     escopo, escopo_maximo = _resolver_escopo(request)
     visao = _normalizar_visao(request.GET.get("visao"))
+    pode_ver_outro_usuario = _pode_ver_outro_usuario(request.user)
+    pode_criar_para_outros = _pode_criar_para_outros(request)
 
     usuario_filtro = None
     usuario_filtro_id = request.GET.get("usuario")
-    if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
+    if usuario_filtro_id and pode_ver_outro_usuario:
         usuario_filtro = get_object_or_404(User, pk=usuario_filtro_id)
 
     contexto = {
         "visao": visao,
+        "aba_ativa": _normalizar_aba(request, usuario_filtro),
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
         "usuario_filtro": usuario_filtro,
         "is_admin": usuario_admin_escritorio(request.user),
         "item_ativo": "agenda",
         "next_url": request.get_full_path(),
+        "pode_ver_outro_usuario": pode_ver_outro_usuario,
+        "pode_criar_para_outros": pode_criar_para_outros,
     }
 
-    if visao == "calendario":
-        contexto.update(_contexto_calendario(request, escopo))
-        return render(request, "agenda/calendario.html", contexto)
-
+    # ── Bloco Lista ──────────────────────────────────────────────────
     filtro = _normalizar_filtro(request.GET.get("filtro", "proximos_7"))
     hoje = timezone.localdate()
     agora = timezone.now()
 
     compromissos = _compromissos_no_escopo(request, escopo)
-
     if filtro == "hoje":
         compromissos = compromissos.filter(data_hora_inicio__date=hoje)
     elif filtro == "proximos_7":
@@ -400,9 +477,31 @@ def index(request):
 
     compromissos = list(compromissos.order_by("data_hora_inicio"))
     _anexar_minha_participacao(request, compromissos)
-
     contexto.update({"compromissos": compromissos, "filtro": filtro})
-    return render(request, "agenda/lista.html", contexto)
+
+    # ── Bloco Calendário ─────────────────────────────────────────────
+    contexto.update(_contexto_calendario(request, escopo))
+
+    # ── Faixa de sub-abas ────────────────────────────────────────────
+    novidades = list(_compromissos_novidades(request))
+    terceiro = list(_compromissos_adicionado_por_terceiro(request))
+    _anexar_minha_participacao(request, novidades)
+    _anexar_minha_participacao(request, terceiro)
+    contexto.update({
+        "compromissos_novidades": novidades,
+        "compromissos_terceiro": terceiro,
+    })
+
+    if pode_criar_para_outros:
+        delegados = list(_compromissos_delegados_por_mim(request))
+        contexto["compromissos_delegados"] = delegados
+
+    if pode_ver_outro_usuario:
+        contexto["usuarios_outros"] = User.objects.filter(is_active=True).order_by(
+            "first_name", "username"
+        )
+
+    return render(request, "agenda/index.html", contexto)
 
 
 @login_required
@@ -463,6 +562,7 @@ def editar(request, pk):
             usuarios_queryset=_usuarios_elegiveis_para_participante(compromisso)
         ),
         "item_ativo": "agenda",
+        "pode_ver_disponibilidade": _pode_ver_outro_usuario(request.user),
     })
 
 
@@ -479,11 +579,72 @@ def processos_por_cliente(request):
 
 
 @login_required
+def disponibilidade_convidado(request):
+    """
+    Compromissos que o convidado já tem no mesmo horário — checagem
+    informativa ao adicionar participante, nunca bloqueia a criação.
+    Mesma condição de habilitação da sub-aba "Agenda de outros
+    usuários" (Permissão "Agenda"/"Todos" + Gerir).
+    """
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    if not _pode_ver_outro_usuario(request.user):
+        raise PermissionDenied
+
+    usuario_id = request.GET.get("usuario")
+    inicio = parse_datetime(request.GET.get("inicio") or "")
+    if not usuario_id or inicio is None:
+        return JsonResponse({"compromissos": []})
+    if timezone.is_naive(inicio):
+        inicio = timezone.make_aware(inicio)
+
+    fim = parse_datetime(request.GET.get("fim") or "") or inicio
+    if timezone.is_naive(fim):
+        fim = timezone.make_aware(fim)
+
+    candidatos = Compromisso.objects.filter(
+        responsavel_id=usuario_id,
+        data_hora_inicio__date=inicio.date(),
+    ).exclude(status="cancelado").order_by("data_hora_inicio")
+
+    conflitos = [
+        c for c in candidatos
+        if c.data_hora_inicio <= fim and inicio <= (c.data_hora_fim or c.data_hora_inicio)
+    ]
+
+    return JsonResponse({
+        "compromissos": [
+            {"titulo": c.titulo, "horario": _horario_curto(c)} for c in conflitos
+        ],
+    })
+
+
+def _usuario_travado(request):
+    """
+    Usuário travado no campo Responsável quando o formulário é aberto a
+    partir de "+ Novo compromisso nesta agenda" (sub-aba "Agenda de
+    outros usuários"). `disabled=True` no form faz o Django ignorar
+    qualquer valor de `responsavel` vindo do POST e usar sempre o
+    `initial` — por isso o travamento é seguro mesmo que o campo seja
+    adulterado no HTML.
+    """
+    para_usuario_id = request.POST.get("para_usuario") or request.GET.get("para_usuario")
+    if not para_usuario_id:
+        return None
+    return get_object_or_404(User, pk=para_usuario_id, is_active=True)
+
+
+@login_required
 def form_compromisso(request):
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
         raise PermissionDenied
+    usuario_travado = _usuario_travado(request)
+
     if request.method == "POST":
         form = CompromissoForm(request.POST)
+        if usuario_travado:
+            form.fields["responsavel"].disabled = True
+            form.fields["responsavel"].initial = usuario_travado
         if form.is_valid():
             compromisso = form.save(commit=False)
             if not compromisso.responsavel:
@@ -491,6 +652,7 @@ def form_compromisso(request):
             if compromisso.responsavel != request.user and not _pode_criar_para_outros(request):
                 raise PermissionDenied
             compromisso.status = "agendado"
+            compromisso.criado_por = request.user
             if not compromisso.cliente and compromisso.processo:
                 compromisso.cliente = compromisso.processo.clientes.first()
             compromisso.save()
@@ -503,10 +665,14 @@ def form_compromisso(request):
                 _notificar_convite(participacao)
             return redirect("agenda:index")
     else:
-        form = CompromissoForm(initial={"responsavel": request.user})
+        form = CompromissoForm(initial={"responsavel": usuario_travado or request.user})
+        if usuario_travado:
+            form.fields["responsavel"].disabled = True
     return render(request, "agenda/form.html", {
         "form": form,
         "item_ativo": "agenda",
+        "usuario_travado": usuario_travado,
+        "pode_ver_disponibilidade": _pode_ver_outro_usuario(request.user),
     })
 
 

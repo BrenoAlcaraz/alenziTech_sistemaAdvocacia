@@ -42,7 +42,10 @@ class CompromissoForm(forms.ModelForm):
     participantes = ParticipanteMultipleChoiceField(
         queryset=User.objects.filter(is_active=True).order_by("first_name", "username"),
         required=False,
-        widget=forms.CheckboxSelectMultiple(attrs={"class": "rounded border-gray-300"}),
+        widget=forms.CheckboxSelectMultiple(attrs={
+            "class": "rounded border-gray-300",
+            "data-disponibilidade-participante": "1",
+        }),
     )
     data_hora_inicio = forms.DateTimeField(
         input_formats=["%Y-%m-%dT%H:%M"],
@@ -99,7 +102,10 @@ class AdicionarParticipanteForm(forms.Form):
     usuario = ParticipanteChoiceField(
         queryset=User.objects.none(),
         label="Usuário",
-        widget=forms.Select(attrs={"class": "select"}),
+        widget=forms.Select(attrs={
+            "class": "select",
+            "data-disponibilidade-participante": "1",
+        }),
     )
 
     def __init__(self, *args, usuarios_queryset, **kwargs):

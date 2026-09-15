@@ -7,6 +7,7 @@ urlpatterns = [
     path("agenda/", views.index, name="index"),
     path("agenda/cancelados/", views.cancelados, name="cancelados"),
     path("agenda/processos-por-cliente/", views.processos_por_cliente, name="processos_por_cliente"),
+    path("agenda/disponibilidade/", views.disponibilidade_convidado, name="disponibilidade_convidado"),
     path("agenda/novo/", views.form_compromisso, name="novo"),
     path("agenda/<int:pk>/editar/", views.editar, name="editar"),
     path("agenda/<int:pk>/concluir/", views.concluir, name="concluir"),
