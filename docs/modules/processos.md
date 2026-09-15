@@ -109,10 +109,17 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   **visível a qualquer usuário que abra o processo**, sem o filtro por
   solicitante que a aba "Solicitações" do Financeiro aplica para quem
   não tem acesso amplo a dados. Evita que dois advogados solicitem a
-  mesma custa em duplicidade. "+ Nova solicitação" pré-preenche o
-  processo; exige acesso ao módulo Financeiro para criar (a leitura da
-  aba não exige). Status seguem o fluxo já aprovado (PDR-0015) —
-  solicitada → em análise → aprovada → paga, ou rejeitada.
+  mesma custa em duplicidade. "+ Nova solicitação" pré-preenche **e
+  trava** tipo (sempre Pagamento, nunca Reembolso), processo e cliente
+  do processo de origem — sem opção de trocar por outro processo/cliente
+  no meio do caminho (só fica escolhível entre os clientes do próprio
+  processo quando ele tem mais de um vinculado); exige acesso ao módulo
+  Financeiro para criar (a leitura da aba não exige). Status seguem o
+  fluxo já aprovado (PDR-0015) — solicitada → em análise → aprovada →
+  paga, ou rejeitada. Ao marcar como paga, ver
+  [financeiro.md](financeiro.md#solicitações-financeiras-pdr-0006-fluxo-em-pdr-0015)
+  para a exigência de comprovante + quem pagou e o reflexo no saldo de
+  custas do cliente (PDR-0005).
 
 ## Apensos (PDR-0012)
 

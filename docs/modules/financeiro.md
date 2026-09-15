@@ -83,6 +83,24 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   `solicitante` que a aba "Solicitações" deste módulo aplica para quem
   não tem `dados_proprios`/`dados_todos`. É a mesma linha de
   `SolicitacaoFinanceira`, só uma segunda visão sem esse filtro.
+- Solicitação nascida do "+ Nova solicitação" da aba Custas Judiciais de
+  um processo (`?processo=<id>`) sempre nasce `tipo="pagamento"` —
+  campo travado, sem opção de virar reembolso — e com processo/cliente
+  pré-preenchidos a partir do processo de origem, também travados (só
+  ficam escolhíveis entre os clientes do próprio processo quando ele tem
+  mais de um vinculado). O formulário sem esse parâmetro continua livre
+  (pagamento ou reembolso, qualquer cliente/processo), igual ao "+ Nova
+  solicitação" do próprio módulo Financeiro.
+- Marcar uma solicitação de `tipo="pagamento"` como "paga" exige
+  informar se a custa foi paga pelo escritório ou diretamente pelo
+  cliente, e anexar o comprovante de pagamento (campo próprio, separado
+  do anexo enviado na criação da solicitação, que serve de boleto).
+  Reembolso não passa por essa exigência. Ao confirmar, o pagamento é
+  replicado como um `CustaJudicial` do cliente (PDR-0005, abaixo): "paga
+  pelo escritório" vira `adiantamento` (débito que entra no saldo a
+  cobrar do cliente), "paga pelo cliente" vira `paga_pelo_cliente`
+  (só histórico, sem afetar o saldo) — mesmo efeito do lançamento manual
+  equivalente na aba Custas Judiciais do Financeiro.
 
 ## Honorários (PDR-0007, recebimento parcial e correção em PDR-0022)
 

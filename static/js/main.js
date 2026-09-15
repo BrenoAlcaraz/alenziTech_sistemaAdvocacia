@@ -123,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     clienteSelect.addEventListener("change", () => {
       const clienteId = clienteSelect.value;
+      const processoSelecionado = processoSelect.value;
 
       if (!clienteId) {
         processoSelect.innerHTML = "";
@@ -148,6 +149,13 @@ document.addEventListener("DOMContentLoaded", () => {
             processoSelect.appendChild(opt);
           });
           processoSelect.disabled = data.processos.length === 0;
+          // Mantém o processo já selecionado (ex.: pré-preenchido ao abrir
+          // o formulário) se ele continuar valendo para o cliente escolhido
+          // — sem isso, trocar o cliente desmarcava silenciosamente o
+          // processo já escolhido, mesmo quando ele pertence ao cliente.
+          if (processoSelecionado && data.processos.some((p) => String(p.id) === processoSelecionado)) {
+            processoSelect.value = processoSelecionado;
+          }
         });
     });
   });

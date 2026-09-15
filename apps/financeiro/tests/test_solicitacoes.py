@@ -15,6 +15,7 @@ django_tenants.test.cases.TenantTestCase.
 import shutil
 import tempfile
 
+from django import forms
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -31,8 +32,10 @@ from apps.accounts.permissoes_constants import (
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
-from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
+from apps.clientes.models import Cliente
+from apps.financeiro.models import CustaJudicial, LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.notificacoes.models import Notificacao
+from apps.processos.models import Processo
 from apps.saas_tenants.models import Dominio, Escritorio
 
 _MEDIA_TMP = tempfile.mkdtemp(prefix="lawsystem_test_media_")
@@ -661,3 +664,235 @@ class TestAnexoSolicitacaoIsolamentoMultiTenant(SolicitacaoFinanceiraBase):
             with schema_context("public"):
                 tenant_b.delete(force_drop=True)
             connection.set_tenant(self.tenant)
+
+
+# ── Pagamento de custa judicial: comprovante + quem pagou (relato do sócio) ─────
+
+class TestPagamentoDeCustaJudicial(SolicitacaoFinanceiraBase):
+    """Marcar como paga uma solicitação de pagamento (a "custa judicial"
+    vista pelo processo) exige comprovante de pagamento e se a custa foi
+    paga pelo escritório ou pelo cliente, e replica o pagamento como
+    CustaJudicial do cliente (PDR-0005) — só "escritorio" reduz o saldo
+    (débito a cobrar), "cliente" fica no histórico sem afetar o saldo.
+    Reembolso não passa por essa exigência."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_pagamento_custa"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Pagamento Custa"
+        tenant.slug = "solicitacoes-pagamento-custa"
+
+    def setUp(self):
+        super().setUp()
+        self.financeiro = self._user("financeiro_dados")
+        self._conceder_modulo(self.financeiro, nivel=NIVEL_DADOS_TODOS)
+        self.client.force_login(self.financeiro)
+
+        self.solicitante = self._user("advogado")
+        self._conceder_modulo(self.solicitante, nivel=NIVEL_SOLICITACOES)
+
+        self.cliente = Cliente.objects.create(nome_razao_social="Cliente Custa", responsavel=self.solicitante)
+        self.processo = Processo.objects.create(titulo="Processo Custa", responsavel=self.solicitante)
+        self.processo.clientes.add(self.cliente)
+
+        self.solicitacao = self._solicitacao(
+            solicitante=self.solicitante,
+            tipo="pagamento",
+            descricao="Custa de citação",
+            cliente=self.cliente,
+            processo=self.processo,
+            vencimento="2026-10-10",
+            anexo=_anexo("boleto.pdf"),
+        )
+        self.solicitacao.avancar_para("em_analise")
+        self.solicitacao.avancar_para("aprovada")
+
+    def test_avancar_para_paga_sem_pago_por_levanta_erro(self):
+        with self.assertRaises(ValueError):
+            self.solicitacao.avancar_para("paga", comprovante_pagamento=_anexo("comprovante.pdf"))
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "aprovada")
+
+    def test_avancar_para_paga_sem_comprovante_levanta_erro(self):
+        with self.assertRaises(ValueError):
+            self.solicitacao.avancar_para("paga", pago_por="escritorio")
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "aprovada")
+
+    def test_marcar_paga_sem_comprovante_na_view_nao_avanca_status(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {"acao": "pagar", "pago_por": "escritorio"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "aprovada")
+
+    def test_marcar_paga_sem_pago_por_na_view_nao_avanca_status(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {"acao": "pagar", "comprovante_pagamento": _anexo("comprovante.pdf")},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "aprovada")
+
+    def test_marcar_paga_pelo_escritorio_gera_debito_no_saldo_do_cliente(self):
+        antes = CustaJudicial.objects.count()
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {
+                "acao": "pagar",
+                "pago_por": "escritorio",
+                "comprovante_pagamento": _anexo("comprovante.pdf"),
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.solicitacao.refresh_from_db()
+        self.assertEqual(self.solicitacao.status, "paga")
+        self.assertEqual(self.solicitacao.pago_por, "escritorio")
+        self.assertTrue(self.solicitacao.comprovante_pagamento)
+
+        self.assertEqual(CustaJudicial.objects.count(), antes + 1)
+        custa = CustaJudicial.objects.latest("criado_em")
+        self.assertEqual(custa.tipo, "adiantamento")
+        self.assertEqual(custa.cliente_id, self.cliente.pk)
+        self.assertEqual(custa.processo_id, self.processo.pk)
+        self.assertEqual(custa.valor, self.solicitacao.valor)
+        self.assertTrue(custa.anexo)
+
+    def test_marcar_paga_pelo_cliente_fica_so_no_historico(self):
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{self.solicitacao.pk}/processar/",
+            {
+                "acao": "pagar",
+                "pago_por": "cliente",
+                "comprovante_pagamento": _anexo("comprovante.pdf"),
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        custa = CustaJudicial.objects.latest("criado_em")
+        self.assertEqual(custa.tipo, "paga_pelo_cliente")
+
+    def test_avancar_para_paga_sem_cliente_nao_gera_custa_judicial(self):
+        avulsa = self._solicitacao(
+            solicitante=self.solicitante, tipo="pagamento", vencimento="2026-10-10",
+        )
+        avulsa.avancar_para("em_analise")
+        avulsa.avancar_para("aprovada")
+        antes = CustaJudicial.objects.count()
+
+        avulsa.avancar_para("paga", pago_por="escritorio", comprovante_pagamento=_anexo("comprovante.pdf"))
+
+        self.assertEqual(CustaJudicial.objects.count(), antes)
+
+    def test_reembolso_marcar_paga_nao_exige_comprovante_extra(self):
+        reembolso = self._solicitacao(solicitante=self.solicitante)  # tipo default: reembolso
+        reembolso.avancar_para("em_analise")
+        reembolso.avancar_para("aprovada")
+        antes = CustaJudicial.objects.count()
+
+        r = self.client.post(
+            f"/financeiro/solicitacoes/{reembolso.pk}/processar/",
+            {"acao": "pagar"},
+            HTTP_HOST=self.http_host,
+        )
+
+        self.assertEqual(r.status_code, 302)
+        reembolso.refresh_from_db()
+        self.assertEqual(reembolso.status, "paga")
+        self.assertEqual(CustaJudicial.objects.count(), antes)
+
+
+# ── "+ Nova solicitação" a partir da aba Custas Judiciais do processo ──────────
+
+class TestNovaSolicitacaoAPartirDoProcesso(SolicitacaoFinanceiraBase):
+    """Tipo, processo e cliente vêm travados quando a solicitação nasce
+    de `?processo=<id>` — esse caminho é sempre uma custa a pagar, para o
+    processo e cliente que originaram o pedido, sem a opção de trocar
+    (relato do sócio: o formulário replicava o do Financeiro geral, que
+    permite editar tudo)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_nova_do_processo"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Nova Do Processo"
+        tenant.slug = "solicitacoes-nova-do-processo"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("advogado")
+        self._conceder_modulo(self.user, nivel=NIVEL_SOLICITACOES)
+        self.client.force_login(self.user)
+
+        self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo.clientes.add(self.cliente)
+
+    def test_form_vem_travado_em_pagamento_processo_e_cliente(self):
+        r = self.client.get(
+            f"/financeiro/solicitacoes/nova/?processo={self.processo.pk}", HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 200)
+        form = r.context["form"]
+        self.assertIsInstance(form.fields["tipo"].widget, forms.HiddenInput)
+        self.assertIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        self.assertIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+        self.assertEqual(form.initial["tipo"], "pagamento")
+        self.assertEqual(form.initial["processo"], self.processo.pk)
+        self.assertEqual(form.initial["cliente"], self.cliente.pk)
+
+    def test_sem_processo_form_continua_livre(self):
+        r = self.client.get("/financeiro/solicitacoes/nova/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        form = r.context["form"]
+        self.assertNotIsInstance(form.fields["tipo"].widget, forms.HiddenInput)
+        self.assertNotIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        self.assertNotIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+
+    def test_criar_solicitacao_pelo_processo_preenche_cliente_automaticamente(self):
+        antes = SolicitacaoFinanceira.objects.count()
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "processo_fixo": self.processo.pk,
+                "tipo": "pagamento",
+                "descricao": "Custa de citação",
+                "valor": "250.00",
+                "cliente": self.cliente.pk,
+                "processo": self.processo.pk,
+                "vencimento": "2026-10-15",
+                "anexo": _anexo("boleto.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, "/financeiro/solicitacoes/", fetch_redirect_response=False)
+        self.assertEqual(SolicitacaoFinanceira.objects.count(), antes + 1)
+        nova = SolicitacaoFinanceira.objects.get(descricao="Custa de citação")
+        self.assertEqual(nova.tipo, "pagamento")
+        self.assertEqual(nova.cliente_id, self.cliente.pk)
+        self.assertEqual(nova.processo_id, self.processo.pk)
+
+    def test_processo_com_varios_clientes_mantem_cliente_selecionavel_entre_eles(self):
+        outro_cliente = Cliente.objects.create(nome_razao_social="Segundo Cliente", responsavel=self.user)
+        self.processo.clientes.add(outro_cliente)
+
+        r = self.client.get(
+            f"/financeiro/solicitacoes/nova/?processo={self.processo.pk}", HTTP_HOST=self.http_host
+        )
+        form = r.context["form"]
+        self.assertNotIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+        self.assertIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        ids_disponiveis = set(form.fields["cliente"].queryset.values_list("pk", flat=True))
+        self.assertEqual(ids_disponiveis, {self.cliente.pk, outro_cliente.pk})

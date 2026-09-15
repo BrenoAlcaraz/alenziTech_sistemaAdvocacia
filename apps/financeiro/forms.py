@@ -375,7 +375,7 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
             "anexo": "Anexo (boleto para pagamento, comprovante para reembolso)",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, processo_fixo=None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
@@ -391,6 +391,38 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
         self.fields["data_gasto"].required = False
         self.fields["data_gasto"].input_formats = ["%Y-%m-%d"]
         self.fields["observacao"].required = False
+
+        self.processo_fixo = processo_fixo
+        self.cliente_travado = False
+        if processo_fixo is not None:
+            self._travar_tipo_processo_cliente(processo_fixo)
+
+    def _travar_tipo_processo_cliente(self, processo_fixo):
+        """Solicitação nascida da aba Custas Judiciais de um processo
+        (`?processo=<id>`): sempre uma custa a pagar, sem margem para virar
+        reembolso, e sem poder trocar o processo/cliente que originou o
+        pedido — evita a inconsistência de o usuário escolher outro
+        processo/cliente no meio do caminho."""
+        self.fields["tipo"].widget = forms.HiddenInput()
+        self.initial["tipo"] = "pagamento"
+
+        self.fields["processo"].widget = forms.HiddenInput()
+        self.fields["processo"].queryset = Processo.objects.filter(pk=processo_fixo.pk)
+        self.initial["processo"] = processo_fixo.pk
+
+        clientes_processo = list(processo_fixo.clientes.all())
+        self.fields["cliente"].queryset = Cliente.objects.filter(
+            pk__in=[cliente.pk for cliente in clientes_processo]
+        )
+        if len(clientes_processo) == 1:
+            self.fields["cliente"].widget = forms.HiddenInput()
+            self.initial["cliente"] = clientes_processo[0].pk
+            self.cliente_travado = True
+        else:
+            # Mais de um cliente no processo: usuário ainda escolhe entre
+            # eles, nunca de toda a base de clientes.
+            self.fields["cliente"].required = True
+            self.fields["cliente"].empty_label = None
 
     def clean_valor(self):
         valor = self.cleaned_data.get("valor")

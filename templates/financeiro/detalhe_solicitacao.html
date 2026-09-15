@@ -74,6 +74,18 @@
         {{ solicitacao.anexo.name|default:"—" }}
       </a>
     </div>
+    {% if solicitacao.status == "paga" and solicitacao.tipo == "pagamento" %}
+      <div>
+        <p class="text-xs text-gray-400">Paga por</p>
+        <p class="text-gray-900">{{ solicitacao.get_pago_por_display }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400">Comprovante de pagamento</p>
+        <a href="{% url 'financeiro:comprovante_pagamento_solicitacao' solicitacao.pk %}" target="_blank" rel="noopener" class="text-juridico-ouro hover:underline">
+          {{ solicitacao.comprovante_pagamento.name|default:"—" }}
+        </a>
+      </div>
+    {% endif %}
   </div>
 
   {% if pode_processar and solicitacao.status != "rejeitada" and solicitacao.status != "paga" %}
@@ -96,10 +108,29 @@
           <button type="submit" class="btn-secondary text-red-600">Rejeitar</button>
         </form>
       {% elif solicitacao.status == "aprovada" %}
-        <form method="post" action="{% url 'financeiro:processar_solicitacao' solicitacao.pk %}">
+        <form method="post" action="{% url 'financeiro:processar_solicitacao' solicitacao.pk %}" enctype="multipart/form-data" class="flex flex-col gap-3 w-full">
           {% csrf_token %}
           <input type="hidden" name="acao" value="pagar">
-          <button type="submit" class="btn-primary">Marcar como paga</button>
+          {% if solicitacao.tipo == "pagamento" %}
+            <div>
+              <label class="label">Paga pelo escritório ou pelo cliente?</label>
+              <div class="flex gap-4 text-sm text-gray-700">
+                <label class="flex items-center gap-1.5">
+                  <input type="radio" name="pago_por" value="escritorio" required> Escritório
+                </label>
+                <label class="flex items-center gap-1.5">
+                  <input type="radio" name="pago_por" value="cliente" required> Cliente
+                </label>
+              </div>
+            </div>
+            <div>
+              <label class="label">Comprovante de pagamento</label>
+              <input type="file" name="comprovante_pagamento" required class="input">
+            </div>
+          {% endif %}
+          <div>
+            <button type="submit" class="btn-primary">Marcar como paga</button>
+          </div>
         </form>
       {% endif %}
     </div>

@@ -14,6 +14,9 @@
 <div class="card p-6 max-w-2xl">
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    {% if processo_fixo %}
+      <input type="hidden" name="processo_fixo" value="{{ processo_fixo.pk }}">
+    {% endif %}
 
     {% if form.non_field_errors %}
       <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -25,9 +28,14 @@
 
     <div class="flex flex-col gap-4">
 
-      {# Tipo #}
+      {# Tipo — travado em Pagamento quando a solicitação nasce da aba
+         Custas Judiciais de um processo: esse caminho é sempre uma custa
+         a pagar, nunca um reembolso. #}
       <div>
         <label class="label">{{ form.tipo.label }}</label>
+        {% if processo_fixo %}
+          <p class="input bg-gray-50 text-gray-600">Pagamento <span class="text-gray-400">(custa judicial do processo)</span></p>
+        {% endif %}
         {{ form.tipo }}
         {% if form.tipo.errors %}
           <p class="text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
@@ -72,9 +80,12 @@
           {% endif %}
         </div>
 
-        {# Cliente #}
+        {# Cliente — travado quando o processo de origem tem um só cliente #}
         <div>
           <label class="label">Cliente <span class="text-gray-400 font-normal">(obrigatório para pagamento)</span></label>
+          {% if form.cliente_travado %}
+            <p class="input bg-gray-50 text-gray-600">{{ processo_fixo.clientes.first }}</p>
+          {% endif %}
           {{ form.cliente }}
           {% if form.cliente.errors %}
             <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
@@ -84,6 +95,9 @@
         {# Processo #}
         <div>
           <label class="label">Processo <span class="text-gray-400 font-normal">(obrigatório para pagamento)</span></label>
+          {% if processo_fixo %}
+            <p class="input bg-gray-50 text-gray-600">{{ processo_fixo }}</p>
+          {% endif %}
           {{ form.processo }}
           {% if form.processo.errors %}
             <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>

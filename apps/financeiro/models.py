@@ -253,6 +253,15 @@ class SolicitacaoFinanceira(models.Model):
         ("paga", "Paga"),
     ]
 
+    # Quem efetivamente pagou a custa (só se aplica a `tipo="pagamento"`,
+    # exigido ao confirmar o pagamento) — alimenta o CustaJudicial gerado
+    # para o cliente (PDR-0005): "escritorio" vira débito que reduz o
+    # saldo do cliente, "cliente" fica só no histórico, sem afetar saldo.
+    PAGO_POR_CHOICES = [
+        ("escritorio", "Escritório"),
+        ("cliente", "Cliente"),
+    ]
+
     TRANSICOES_VALIDAS = {
         "solicitada": {"em_analise"},
         "em_analise": {"aprovada", "rejeitada"},
@@ -274,6 +283,12 @@ class SolicitacaoFinanceira(models.Model):
         storage=StorageProtegido(),
     )
     observacao = models.TextField(blank=True)
+    pago_por = models.CharField(max_length=12, choices=PAGO_POR_CHOICES, blank=True)
+    comprovante_pagamento = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/solicitacoes/comprovantes"),
+        storage=StorageProtegido(),
+        null=True, blank=True,
+    )
     solicitante = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="solicitacoes_financeiras",
@@ -299,33 +314,65 @@ class SolicitacaoFinanceira(models.Model):
     def pode_transicionar_para(self, novo_status):
         return novo_status in self.TRANSICOES_VALIDAS.get(self.status, set())
 
-    def avancar_para(self, novo_status):
+    def avancar_para(self, novo_status, *, pago_por=None, comprovante_pagamento=None):
         """Move a solicitação para o próximo estado do fluxo (PDR-0015).
 
         Ao atingir 'paga', gera o único LancamentoFinanceiro realizado
         desta solicitação — só nesse momento a despesa passa a existir
-        como realizada (PDR-0006).
+        como realizada (PDR-0006). Para `tipo="pagamento"` (a custa
+        judicial solicitada a partir de um processo), exige também quem
+        pagou e o comprovante, e replica o pagamento como CustaJudicial
+        do cliente (PDR-0005) — "escritorio" vira débito (`adiantamento`,
+        entra no saldo a cobrar do cliente), "cliente" só fica no
+        histórico (`paga_pelo_cliente`, mesmo comportamento do
+        lançamento manual equivalente). Reembolso não passa por essa
+        exigência: não representa uma custa judicial paga pelo
+        escritório ou pelo cliente.
         """
         if not self.pode_transicionar_para(novo_status):
             raise ValueError(f"Transição inválida de '{self.status}' para '{novo_status}'.")
 
-        if novo_status == "paga":
-            with transaction.atomic():
-                self.lancamento = LancamentoFinanceiro.objects.create(
-                    tipo="despesa",
-                    descricao=self.descricao,
-                    valor=self.valor,
-                    data_vencimento=self.vencimento or timezone.localdate(),
-                    status="pago",
-                    categoria="reembolso" if self.tipo == "reembolso" else "solicitacao_pagamento",
-                    data_pagamento=timezone.localdate(),
-                    observacoes=self.observacao,
-                    cliente=self.cliente,
-                    processo=self.processo,
-                    responsavel=self.solicitante,
-                )
-                self.status = novo_status
-                self.save(update_fields=["status", "lancamento"])
-        else:
+        if novo_status != "paga":
             self.status = novo_status
             self.save(update_fields=["status"])
+            return
+
+        exige_pagamento_de_custa = self.tipo == "pagamento"
+        if exige_pagamento_de_custa:
+            if pago_por not in dict(self.PAGO_POR_CHOICES):
+                raise ValueError("Informe se a custa foi paga pelo escritório ou pelo cliente.")
+            if not comprovante_pagamento:
+                raise ValueError("O comprovante de pagamento é obrigatório.")
+
+        with transaction.atomic():
+            self.lancamento = LancamentoFinanceiro.objects.create(
+                tipo="despesa",
+                descricao=self.descricao,
+                valor=self.valor,
+                data_vencimento=self.vencimento or timezone.localdate(),
+                status="pago",
+                categoria="reembolso" if self.tipo == "reembolso" else "solicitacao_pagamento",
+                data_pagamento=timezone.localdate(),
+                observacoes=self.observacao,
+                cliente=self.cliente,
+                processo=self.processo,
+                responsavel=self.solicitante,
+            )
+            self.status = novo_status
+            update_fields = ["status", "lancamento"]
+            if exige_pagamento_de_custa:
+                self.pago_por = pago_por
+                self.comprovante_pagamento = comprovante_pagamento
+                update_fields += ["pago_por", "comprovante_pagamento"]
+            self.save(update_fields=update_fields)
+
+            if exige_pagamento_de_custa and self.cliente_id:
+                CustaJudicial.objects.create(
+                    tipo="adiantamento" if pago_por == "escritorio" else "paga_pelo_cliente",
+                    descricao=self.descricao,
+                    valor=self.valor,
+                    data=timezone.localdate(),
+                    cliente=self.cliente,
+                    processo=self.processo,
+                    anexo=comprovante_pagamento,
+                )

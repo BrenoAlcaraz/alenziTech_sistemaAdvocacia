@@ -46,5 +46,10 @@ urlpatterns = [
     path("financeiro/solicitacoes/nova/", views.form_solicitacao, name="form_solicitacao"),
     path("financeiro/solicitacoes/<int:pk>/", views.detalhe_solicitacao, name="detalhe_solicitacao"),
     path("financeiro/solicitacoes/<int:pk>/anexo/", views.anexo_solicitacao, name="anexo_solicitacao"),
+    path(
+        "financeiro/solicitacoes/<int:pk>/comprovante-pagamento/",
+        views.comprovante_pagamento_solicitacao,
+        name="comprovante_pagamento_solicitacao",
+    ),
     path("financeiro/solicitacoes/<int:pk>/processar/", views.processar_solicitacao, name="processar_solicitacao"),
 ]

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
@@ -23,6 +24,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.clientes.models import Cliente
 from apps.notificacoes.models import Notificacao
+from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente, rotulo_processo
 from apps.saas_tenants.storage import nome_do_arquivo
 
@@ -839,8 +841,19 @@ def solicitacoes_lista(request):
 def form_solicitacao(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+
+    # Nasce a partir da aba Custas Judiciais de um processo (`?processo=`
+    # no link de origem, carregado depois via campo oculto `processo_fixo`
+    # em reenvios) — nesse caminho é sempre uma custa a pagar, com
+    # processo/cliente travados no que originou o pedido (relato do
+    # sócio: não fazia sentido deixar trocar tipo/processo/cliente aqui).
+    processo_fixo_id = (
+        request.POST.get("processo_fixo") if request.method == "POST" else request.GET.get("processo")
+    )
+    processo_fixo = Processo.objects.filter(pk=processo_fixo_id).first() if processo_fixo_id else None
+
     if request.method == "POST":
-        form = SolicitacaoFinanceiraForm(request.POST, request.FILES)
+        form = SolicitacaoFinanceiraForm(request.POST, request.FILES, processo_fixo=processo_fixo)
         if form.is_valid():
             solicitacao = form.save(commit=False)
             solicitacao.solicitante = request.user
@@ -849,12 +862,11 @@ def form_solicitacao(request):
             solicitacao.save()
             return redirect("financeiro:solicitacoes_lista")
     else:
-        # Pré-preenche o processo quando a solicitação nasce a partir da
-        # aba Custas Judiciais do próprio processo — sem escolher de novo.
-        form = SolicitacaoFinanceiraForm(initial={"processo": request.GET.get("processo")})
+        form = SolicitacaoFinanceiraForm(processo_fixo=processo_fixo)
 
     return render(request, "financeiro/form_solicitacao.html", {
         "form": form,
+        "processo_fixo": processo_fixo,
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })
@@ -884,14 +896,40 @@ def anexo_solicitacao(request, pk):
 
 
 @login_required
+def comprovante_pagamento_solicitacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
+    if not solicitacao.comprovante_pagamento:
+        raise Http404
+    return FileResponse(
+        solicitacao.comprovante_pagamento.open("rb"),
+        filename=nome_do_arquivo(solicitacao.comprovante_pagamento),
+    )
+
+
+@login_required
 def processar_solicitacao(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     solicitacao = get_object_or_404(SolicitacaoFinanceira, pk=pk)
     if request.method == "POST":
-        novo_status = _ACOES_SOLICITACAO.get(request.POST.get("acao"))
+        acao = request.POST.get("acao")
+        novo_status = _ACOES_SOLICITACAO.get(acao)
         if novo_status is None or not solicitacao.pode_transicionar_para(novo_status):
             raise PermissionDenied
-        solicitacao.avancar_para(novo_status)
+        if acao == "pagar" and solicitacao.tipo == "pagamento":
+            pago_por = request.POST.get("pago_por")
+            comprovante = request.FILES.get("comprovante_pagamento")
+            if pago_por not in dict(SolicitacaoFinanceira.PAGO_POR_CHOICES) or not comprovante:
+                messages.error(
+                    request,
+                    "Para marcar a custa como paga, anexe o comprovante de pagamento e informe "
+                    "se ela foi paga pelo escritório ou pelo cliente.",
+                )
+                return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)
+            solicitacao.avancar_para(novo_status, pago_por=pago_por, comprovante_pagamento=comprovante)
+        else:
+            solicitacao.avancar_para(novo_status)
     return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)
