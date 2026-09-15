@@ -28,6 +28,7 @@ from apps.saas_tenants.storage import nome_do_arquivo
 
 from .forms import (
     ConfirmarRecebimentoHonorarioForm,
+    CreditarCustaForm,
     CustaJudicialForm,
     HonorarioForm,
     LancamentoFinanceiroForm,
@@ -50,11 +51,14 @@ def _redirect_seguro(request):
 
 FILTROS_LANCAMENTOS_VALIDOS = {
     "todos",
-    "pendentes",
-    "pagos",
-    "atrasados",
     "receitas",
     "despesas",
+    "pagos",
+    "recebidos",
+    "apagar",
+    "areceber",
+    "atrasados",
+    "solicitados",
 }
 
 MESES = [
@@ -149,19 +153,25 @@ def index(request):
     escopo_mes = escopo.filter(data_vencimento__gte=primeiro_dia, data_vencimento__lte=ultimo_dia)
 
     lancamentos = escopo_mes
-    if filtro == "pendentes":
-        lancamentos = lancamentos.filter(status="pendente")
+    if filtro == "receitas":
+        lancamentos = lancamentos.filter(tipo="receita")
+    elif filtro == "despesas":
+        lancamentos = lancamentos.filter(tipo="despesa")
     elif filtro == "pagos":
-        lancamentos = lancamentos.filter(status="pago")
+        lancamentos = lancamentos.filter(tipo="despesa", status="pago")
+    elif filtro == "recebidos":
+        lancamentos = lancamentos.filter(tipo="receita", status="pago")
+    elif filtro == "apagar":
+        lancamentos = lancamentos.filter(tipo="despesa", status="pendente")
+    elif filtro == "areceber":
+        lancamentos = lancamentos.filter(tipo="receita", status="pendente")
     elif filtro == "atrasados":
         lancamentos = lancamentos.filter(
             status="pendente",
             data_vencimento__lt=hoje,
         )
-    elif filtro == "receitas":
-        lancamentos = lancamentos.filter(tipo="receita")
-    elif filtro == "despesas":
-        lancamentos = lancamentos.filter(tipo="despesa")
+    elif filtro == "solicitados":
+        lancamentos = lancamentos.filter(solicitacao_origem__isnull=False)
 
     a_receber = (
         escopo_mes.filter(tipo="receita", status="pendente")
@@ -312,16 +322,15 @@ def custas(request):
     )
 
     por_cliente = defaultdict(list)
-    nomes_clientes = {}
     for c in custas_qs:
-        if not c.cliente_id:
-            continue
-        nomes_clientes[c.cliente_id] = str(c.cliente)
-        por_cliente[c.cliente_id].append(c)
+        if c.cliente_id:
+            por_cliente[c.cliente_id].append(c)
 
+    # Lista sempre todo cliente ativo, mesmo sem nenhum lançamento —
+    # antes só aparecia quem já tinha CustaJudicial (reunião de 13/09).
     saldo_clientes = []
-    for cid in sorted(nomes_clientes, key=lambda k: nomes_clientes[k]):
-        saldo = _saldo_liquido_custas(por_cliente[cid])
+    for cliente in Cliente.objects.filter(ativo=True):
+        saldo = _saldo_liquido_custas(por_cliente.get(cliente.id, []))
         credito = saldo >= 0
         if saldo == 0:
             rotulo_saldo = "Sem saldo pendente"
@@ -329,8 +338,8 @@ def custas(request):
             prefixo = "Crédito: " if credito else "A cobrar: "
             rotulo_saldo = prefixo + _formatar_moeda(abs(saldo))
         saldo_clientes.append({
-            "cliente_id": cid,
-            "cliente": nomes_clientes[cid],
+            "cliente_id": cliente.id,
+            "cliente": cliente,
             "saldo": rotulo_saldo,
             "credito": credito,
         })
@@ -566,6 +575,35 @@ def form_custa(request):
 
 
 @login_required
+def form_creditar_custa(request, cliente_id):
+    """Fluxo dedicado de Creditar — Cliente e Tipo ('Depósito do
+    cliente') nunca chegam como campo do formulário: o cliente vem da
+    própria rota, o tipo é fixado no momento de salvar (reunião de
+    13/09)."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    cliente = get_object_or_404(Cliente, pk=cliente_id, ativo=True)
+    if request.method == "POST":
+        form = CreditarCustaForm(request.POST, request.FILES, cliente=cliente)
+        if form.is_valid():
+            custa = form.save(commit=False)
+            custa.cliente = cliente
+            custa.tipo = "deposito_cliente"
+            custa.save()
+            return redirect("financeiro:extrato_custas_cliente", cliente_id=cliente.pk)
+    else:
+        form = CreditarCustaForm(cliente=cliente, initial={"data": timezone.localdate()})
+
+    return render(request, "financeiro/form_creditar_custa.html", {
+        "form": form,
+        "cliente": cliente,
+        "aba_ativa": "custas",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
 def anexo_custa(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
@@ -585,8 +623,23 @@ def honorarios_lista(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
+    hoje = timezone.localdate()
+    honorarios = list(_honorarios_no_escopo().order_by("-criado_em"))
+    for h in honorarios:
+        valor_efetivo = h.valor_efetivo or h.valor_estimado
+        pendente_base = valor_efetivo - h.valor_recebido
+        correcao = calcular_correcao_honorario(
+            valor_pendente=pendente_base,
+            taxa_mensal=h.taxa_mensal,
+            data_termo=h.data_termo,
+            referencia_anterior=h.data_recebida,
+            ate_data=hoje,
+        )
+        h.valor_total_exibido = valor_efetivo
+        h.valor_pendente_hoje = pendente_base + correcao
+
     return render(request, "financeiro/honorarios_lista.html", {
-        "honorarios": _honorarios_no_escopo().order_by("-criado_em"),
+        "honorarios": honorarios,
         "is_admin": usuario_admin_escritorio(request.user),
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",

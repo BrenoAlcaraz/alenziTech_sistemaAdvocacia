@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}Confirmar recebimento — Financeiro{% endblock %}
 
 {% block content %}
@@ -13,22 +14,22 @@
 
 <div class="card p-6 max-w-lg">
   <p class="text-sm text-gray-600 mb-2">
-    {{ honorario.get_tipo_display }} — valor estimado R$ {{ honorario.valor_estimado|floatformat:2 }}{% if honorario.processo %} — {{ honorario.processo }}{% endif %}
+    {{ honorario.get_tipo_display }} — valor estimado R$ {{ honorario.valor_estimado|moeda_br }}{% if honorario.processo %} — {{ honorario.processo }}{% endif %}
   </p>
 
   {% if honorario.valor_recebido > 0 %}
     <div class="flex gap-6 mb-5 p-3 bg-juridico-bege rounded-lg text-sm">
       <div>
         <p class="text-gray-500 text-xs">Já recebido</p>
-        <p class="font-semibold text-juridico-verde">R$ {{ honorario.valor_recebido|floatformat:2 }}</p>
+        <p class="font-semibold text-juridico-verde">R$ {{ honorario.valor_recebido|moeda_br }}</p>
       </div>
       <div>
         <p class="text-gray-500 text-xs">Pendente {% if honorario.taxa_mensal %}(corrigido){% endif %}</p>
-        <p class="font-semibold text-gray-900">R$ {{ pendente_corrigido|floatformat:2 }}</p>
+        <p class="font-semibold text-gray-900">R$ {{ pendente_corrigido|moeda_br }}</p>
       </div>
     </div>
   {% elif honorario.taxa_mensal %}
-    <p class="text-sm text-gray-500 mb-5">Valor pendente corrigido: <span class="font-semibold text-gray-900">R$ {{ pendente_corrigido|floatformat:2 }}</span></p>
+    <p class="text-sm text-gray-500 mb-5">Valor pendente corrigido: <span class="font-semibold text-gray-900">R$ {{ pendente_corrigido|moeda_br }}</span></p>
   {% endif %}
 
   <form method="post" enctype="multipart/form-data">
