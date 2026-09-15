@@ -53,3 +53,4 @@ serem efetivamente decididas.
 | PDR-0023 | Partes — catálogo de papéis estendido com pares por tipo de ação | accepted | [PDR-0023-partes-catalogo-pares-por-tipo-acao.md](PDR-0023-partes-catalogo-pares-por-tipo-acao.md) |
 | PDR-0024 | Exclusão definitiva de Processo | accepted | [PDR-0024-exclusao-definitiva-processo.md](PDR-0024-exclusao-definitiva-processo.md) |
 | PDR-0025 | Exclusão definitiva de Cliente | accepted | [PDR-0025-exclusao-definitiva-cliente.md](PDR-0025-exclusao-definitiva-cliente.md) |
+| PDR-0026 | Grupo automático de Chat por Equipe | accepted | [PDR-0026-grupo-automatico-chat-por-equipe.md](PDR-0026-grupo-automatico-chat-por-equipe.md) |
