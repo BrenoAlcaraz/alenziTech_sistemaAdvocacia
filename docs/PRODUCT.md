@@ -179,7 +179,12 @@ Comunicação interna dentro do mesmo tenant.
 - Conversas individuais e em grupo são conceitos distintos.
 - Acesso a mensagens/anexos verificado no backend — conhecer o
   identificador não concede acesso.
-- Equipe não gera grupo de chat automaticamente.
+- Criar uma Equipe cria automaticamente um grupo de chat correspondente,
+  com a lista de participantes sincronizada com os membros efetivos da
+  equipe — entrar/sair da equipe reflete no grupo automaticamente, mas
+  não no sentido contrário (sair do grupo manualmente não remove da
+  equipe); efeito de desativar uma equipe sobre o grupo é gap em aberto
+  (PDR-0026).
 - Notificação: ao enviar mensagem em conversa individual ou em grupo,
   cada participante exceto o autor é notificado dentro do sistema
   (mesmo mecanismo de PDR-0016); sala global não notifica —

@@ -23,6 +23,14 @@ class Conversa(models.Model):
     titulo = models.CharField(max_length=255, blank=True)
     participantes = models.ManyToManyField(User, related_name="conversas")
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default="individual")
+    equipe = models.OneToOneField(
+        "accounts.Equipe",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="conversa_grupo",
+        help_text="Grupo automático de uma Equipe — participantes sincronizados com os membros dela.",
+    )
     criada_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
