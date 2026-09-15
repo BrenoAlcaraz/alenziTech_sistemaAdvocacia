@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}Honorários — Financeiro{% endblock %}
 
 {% block content %}
@@ -17,21 +18,24 @@
 <div class="flex flex-col gap-2">
   {% for h in honorarios %}
     <div class="card px-5 py-4">
-      <div class="flex items-start justify-between gap-4 mb-1">
-        <p class="font-medium text-gray-900">{{ h.get_tipo_display }}</p>
+      <div class="flex items-start justify-between gap-4 mb-1 flex-wrap">
+        <div>
+          <p class="font-medium text-gray-900">{{ h.get_tipo_display }}{% if h.processo %} — {{ h.processo }}{% endif %}</p>
+          <p class="text-xs text-gray-500 mt-0.5">
+            {% if h.processo.responsavel %}Responsável: {{ h.processo.responsavel.get_full_name|default:h.processo.responsavel.username }}{% endif %}
+            {% if not h.processo and h.cliente %}{{ h.cliente }}{% endif %}
+          </p>
+        </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           {% if h.status == "previsto" and h.valor_recebido > 0 %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Parcialmente recebido</span>
           {% elif h.status == "previsto" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Previsto</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Aguardando recebimento</span>
           {% elif h.status == "recebido" %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Recebido</span>
           {% else %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
           {% endif %}
-          <p class="font-semibold text-gray-900">
-            R$ {{ h.valor_efetivo|default:h.valor_estimado|floatformat:2 }}
-          </p>
           <a href="{% url 'financeiro:editar_honorario' h.pk %}"
              title="Editar honorário" aria-label="Editar honorário"
              class="text-gray-300 hover:text-gray-500 ml-1">
@@ -42,17 +46,33 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-2">
-        {% if h.processo %}<span>{{ h.processo }}</span>{% elif h.cliente %}<span>{{ h.cliente }}</span>{% endif %}
+      {% if h.status == "previsto" %}
+        {# Três colunas — mesmo layout do protótipo: Valor total / Já recebido / Ainda pendente #}
+        <div class="flex flex-wrap gap-7 mt-3">
+          <div>
+            <p class="text-xs text-gray-400">Valor total</p>
+            <p class="font-semibold text-gray-900">R$ {{ h.valor_total_exibido|moeda_br }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Já recebido</p>
+            <p class="font-semibold text-juridico-verde">R$ {{ h.valor_recebido|moeda_br }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Ainda pendente</p>
+            <p class="font-semibold text-amber-600">R$ {{ h.valor_pendente_hoje|moeda_br }}</p>
+          </div>
+        </div>
+      {% else %}
+        <p class="font-semibold text-gray-900 mt-1">R$ {{ h.valor_total_exibido|moeda_br }}</p>
+      {% endif %}
+
+      <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
         {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
-        {% if h.data_recebida %}<span>Recebido em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}
-        {% if h.valor_recebido > 0 %}
-          <span>Já recebido: R$ {{ h.valor_recebido|floatformat:2 }}</span>
-        {% endif %}
+        {% if h.data_recebida %}<span>Última confirmação em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}
       </div>
 
       {% if h.status == "previsto" %}
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 mt-3">
           {% if is_admin %}
             <a href="{% url 'financeiro:confirmar_recebimento_honorario' h.pk %}" class="text-xs text-green-700 hover:text-green-900 hover:underline">Confirmar recebimento</a>
             <span class="text-gray-200 text-xs">|</span>

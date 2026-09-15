@@ -5,6 +5,7 @@ from django.urls import reverse
 from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
+from apps.processos.services import processos_do_cliente
 
 
 def _cliente_id_atual(form):
@@ -151,12 +152,27 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         return cleaned_data
 
 
+_TIPO_CHOICES_DEBITO = [
+    (valor, rotulo) for valor, rotulo in CustaJudicial.TIPO_CHOICES if valor != "deposito_cliente"
+]
+
+
 class CustaJudicialForm(forms.ModelForm):
+    """Formulário de lançar débito (custa adiantada pelo escritório, ou
+    paga diretamente pelo cliente) — 'Depósito do cliente' não aparece
+    aqui, só existe pelo fluxo dedicado de Creditar (`CreditarCustaForm`,
+    reunião de 13/09)."""
+
+    tipo = forms.ChoiceField(
+        choices=_TIPO_CHOICES_DEBITO,
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Tipo de custa",
+    )
+
     class Meta:
         model = CustaJudicial
         fields = ["tipo", "descricao", "valor", "data", "cliente", "processo", "anexo"]
         widgets = {
-            "tipo": forms.Select(attrs={"class": "select"}),
             "descricao": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Custas de citação – Processo 001/2026"}),
             "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
@@ -165,7 +181,6 @@ class CustaJudicialForm(forms.ModelForm):
             "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
-            "tipo": "Tipo de custa",
             "descricao": "Descrição",
             "valor": "Valor (R$)",
             "data": "Data",
@@ -182,6 +197,48 @@ class CustaJudicialForm(forms.ModelForm):
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
         _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
+        self.fields["data"].input_formats = ["%Y-%m-%d"]
+        self.fields["anexo"].required = False
+
+    def clean_valor(self):
+        valor = self.cleaned_data.get("valor")
+        if valor is not None and valor <= 0:
+            raise forms.ValidationError("O valor deve ser maior que zero.")
+        return valor
+
+
+class CreditarCustaForm(forms.ModelForm):
+    """Formulário dedicado de Creditar — Cliente e Tipo ('Depósito do
+    cliente') nunca aparecem como campo editável: o cliente vem do
+    contexto da view (`form_creditar_custa`) e o tipo é sempre fixado no
+    save() — reunião de 13/09."""
+
+    class Meta:
+        model = CustaJudicial
+        fields = ["descricao", "valor", "data", "processo", "anexo"]
+        widgets = {
+            "descricao": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Depósito antecipado para custas",
+            }),
+            "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
+            "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "processo": forms.Select(attrs={"class": "select"}),
+            "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
+        }
+        labels = {
+            "descricao": "Descrição",
+            "valor": "Valor (R$)",
+            "data": "Data",
+            "processo": "Processo (opcional)",
+            "anexo": "Anexo (comprovante)",
+        }
+
+    def __init__(self, *args, cliente, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["processo"].required = False
+        self.fields["processo"].empty_label = "Nenhum"
+        self.fields["processo"].queryset = processos_do_cliente(cliente.pk)
         self.fields["data"].input_formats = ["%Y-%m-%d"]
         self.fields["anexo"].required = False
 

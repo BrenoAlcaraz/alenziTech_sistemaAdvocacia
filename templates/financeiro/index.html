@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}Financeiro — Jurídico SaaS{% endblock %}
 
 {% block content %}
@@ -115,18 +116,6 @@
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Todos
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pendentes"
-       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pendentes' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-      Pendentes
-    </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pagos"
-       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pagos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-      Pagos
-    </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=atrasados"
-       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-      Atrasados
-    </a>
     <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=receitas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'receitas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Receitas
@@ -134,6 +123,30 @@
     <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=despesas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'despesas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Despesas
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pagos"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pagos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Pagos
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=recebidos"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'recebidos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Recebidos
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=apagar"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'apagar' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      A pagar
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=areceber"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'areceber' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      A receber
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=atrasados"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Atrasados
+    </a>
+    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=solicitados"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'solicitados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Pagamentos solicitados
     </a>
   </div>
   <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary flex-shrink-0">+ Novo lançamento</a>
@@ -180,7 +193,7 @@
 
               {# Valor: verde para receita, vermelho para despesa #}
               <p class="font-semibold {% if l.tipo == 'receita' %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
-                {% if l.tipo == "despesa" %}&minus; {% endif %}R$ {{ l.valor|floatformat:2 }}
+                {% if l.tipo == "despesa" %}&minus; {% endif %}R$ {{ l.valor|moeda_br }}
               </p>
 
               {# Editar lançamento #}
