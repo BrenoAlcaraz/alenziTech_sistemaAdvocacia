@@ -16,7 +16,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.notificacoes.models import Notificacao
-from apps.processos.services import processos_do_cliente
+from apps.processos.services import processos_do_cliente, rotulo_processo
 from .models import ReatribuicaoTarefa, Tarefa
 from .forms import ReatribuirForm, TarefaForm
 
@@ -220,7 +220,7 @@ def processos_por_cliente(request):
         raise PermissionDenied
     processos = processos_do_cliente(request.GET.get("cliente"))
     return JsonResponse({
-        "processos": [{"id": p.id, "label": str(p)} for p in processos],
+        "processos": [{"id": p.id, "label": rotulo_processo(p)} for p in processos],
     })
 
 

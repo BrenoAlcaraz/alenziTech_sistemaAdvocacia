@@ -118,6 +118,14 @@ def nome_exibicao_usuario(usuario):
     return usuario.get_full_name() or usuario.username
 
 
+def rotulo_processo(processo):
+    """Rótulo padrão "Título — Número" de Processo em qualquer seletor
+    do sistema (ver ProcessoChoiceField, apps/processos/forms.py)."""
+    if processo.numero:
+        return f"{processo.titulo} — {processo.numero}"
+    return processo.titulo
+
+
 def processos_do_cliente(cliente_id):
     """Processos ativos vinculados a um cliente, para seletores dependentes."""
     try:

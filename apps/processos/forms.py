@@ -8,11 +8,23 @@ from .models import (
     ParteProcesso,
     Processo,
 )
-from .services import cliente_do_processo_corresponde_documento, nome_exibicao_usuario
+from .services import (
+    cliente_do_processo_corresponde_documento,
+    nome_exibicao_usuario,
+    rotulo_processo,
+)
 from apps.clientes.models import Cliente
 
 
 User = get_user_model()
+
+
+# Widget padrão de qualquer campo que selecione um Processo — o
+# `data-processo-busca` liga o <select> à busca/combobox genérica em
+# static/js/main.js (seção "Busca em campo de Processo"). Compartilhado
+# entre apps (processos, financeiro, agenda, tarefas) para manter um
+# único nome de atributo.
+PROCESSO_SELECT_ATTRS = {"class": "select", "data-processo-busca": "1"}
 
 
 INSTANCIA_CHOICES = [
@@ -113,11 +125,12 @@ class ProcessoResponsavelForm(ProcessoForm):
             self.fields["responsavel"].queryset = responsaveis_queryset
 
 
-class ProcessoApensoChoiceField(forms.ModelChoiceField):
+class ProcessoChoiceField(forms.ModelChoiceField):
+    """Padrão de label ("Título — Número") de qualquer seletor de
+    Processo do sistema — usar em todo campo desse tipo."""
+
     def label_from_instance(self, obj):
-        if obj.numero:
-            return f"{obj.numero} — {obj.titulo}"
-        return obj.titulo
+        return rotulo_processo(obj)
 
 
 class AdicionarIntegranteForm(forms.Form):
@@ -133,11 +146,11 @@ class AdicionarIntegranteForm(forms.Form):
 
 
 class AdicionarApensoForm(forms.Form):
-    processo_apenso = ProcessoApensoChoiceField(
+    processo_apenso = ProcessoChoiceField(
         queryset=Processo.objects.none(),
         empty_label="Selecionar processo...",
         label="Processo",
-        widget=forms.Select(attrs={"class": "select"}),
+        widget=forms.Select(attrs=PROCESSO_SELECT_ATTRS),
     )
 
     def __init__(self, *args, processo_origem, processos_queryset, **kwargs):
@@ -292,8 +305,9 @@ class IntimacaoForm(forms.ModelForm):
     class Meta:
         model = Intimacao
         fields = ["processo", "motivo", "prazo_manifestacao"]
+        field_classes = {"processo": ProcessoChoiceField}
         widgets = {
-            "processo": forms.Select(attrs={"class": "select"}),
+            "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "motivo": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "Ex: Réplica à contestação",

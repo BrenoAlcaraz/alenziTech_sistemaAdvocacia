@@ -23,7 +23,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.clientes.models import Cliente
 from apps.notificacoes.models import Notificacao
-from apps.processos.services import processos_do_cliente
+from apps.processos.services import processos_do_cliente, rotulo_processo
 from apps.saas_tenants.storage import nome_do_arquivo
 
 from .forms import (
@@ -384,7 +384,7 @@ def processos_por_cliente(request):
         raise PermissionDenied
     processos = processos_do_cliente(request.GET.get("cliente"))
     return JsonResponse({
-        "processos": [{"id": p.id, "label": str(p)} for p in processos],
+        "processos": [{"id": p.id, "label": rotulo_processo(p)} for p in processos],
     })
 
 

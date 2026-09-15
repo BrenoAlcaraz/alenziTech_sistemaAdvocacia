@@ -212,6 +212,37 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   customizado do app). Colocar a mesma checagem só no `clean()` do
   form deixaria o Admin descoberto.
 
+## Seletor de Processo com busca — padrão a reutilizar
+
+Todo campo que referencia um Processo (Intimações, Apensos, e os
+campos dependentes de Cliente listados acima) usa
+`ProcessoChoiceField` (`apps/processos/forms.py`), nunca
+`forms.ModelChoiceField` puro:
+
+- **Label padrão "Título — Número"**: `label_from_instance` delega em
+  `apps/processos/services.py::rotulo_processo` — mesma função usada
+  pelos três endpoints `processos-por-cliente` (financeiro, agenda,
+  tarefas) ao montar o `label` do JSON, para o rótulo não regredir
+  para só o título depois que o filtro por Cliente reconstrói as
+  opções via fetch.
+- **Widget com busca (combobox)**: usar `PROCESSO_SELECT_ATTRS`
+  (mesmo módulo) como `attrs` do `forms.Select` — o
+  `data-processo-busca` liga o campo ao JS genérico em
+  `static/js/main.js` (seção "Busca em campo de Processo"), que
+  substitui o `<select>` simples por um campo de texto com filtro em
+  tempo real. Em `ModelForm`, quando o campo `processo` vem do
+  `Meta.fields` (não declarado explicitamente na classe), trocar a
+  classe do campo via `Meta.field_classes = {"processo":
+  ProcessoChoiceField}` — só o widget não muda o `label_from_instance`.
+- **Nenhuma template precisa de alteração** — mesmo princípio da seção
+  anterior, os `data-*` já saem no widget renderizado.
+- O `<select>` original continua no DOM (oculto via `sr-only`, nunca
+  `display:none`/`hidden`) para não quebrar o foco por Tab; o JS
+  também zera `required` nele porque a validação nativa do navegador
+  não alcança um campo oculto e bloqueia o submit em silêncio — a
+  obrigatoriedade real continua garantida em `form.is_valid()` no
+  servidor.
+
 ## Campos condicionados a um `<select>` — padrão a reutilizar
 
 Quando um bloco do formulário só faz sentido para certos valores de um

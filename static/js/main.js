@@ -120,6 +120,151 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Busca em campo de Processo (combobox) ───────────────────────────────────
+  // Todo <select> de Processo leva data-processo-busca="1" (ver
+  // PROCESSO_SELECT_ATTRS em apps/processos/forms.py). Envolve o <select>
+  // original (mantido no DOM, só oculto — sem display:none/hidden, para não
+  // quebrar o foco por Tab) com um campo de texto que filtra as opções
+  // exibidas numa lista customizada, e mantém os dois sincronizados nos dois
+  // sentidos. Reaproveitável por qualquer formulário: nenhuma template
+  // precisa de alteração, o data-* já sai no widget renderizado.
+  document.querySelectorAll("[data-processo-busca]").forEach((select) => {
+    const classeOriginal = select.className;
+    const placeholder = select.dataset.processoBuscaPlaceholder || "Digite para buscar um processo...";
+
+    // Backend é a autoridade: a validação nativa do navegador não alcança um
+    // <select> oculto (bloqueia o submit em silêncio, sem mensagem visível,
+    // em qualquer campo required) — required continua garantido em
+    // form.is_valid() no servidor.
+    select.required = false;
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+    select.className = "sr-only";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "relative";
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.autocomplete = "off";
+    input.className = classeOriginal;
+    input.placeholder = placeholder;
+    wrapper.insertBefore(input, select);
+
+    const lista = document.createElement("ul");
+    lista.className = "absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg hidden";
+    wrapper.appendChild(lista);
+
+    if (select.id) {
+      const rotulo = document.querySelector(`label[for="${select.id}"]`);
+      if (rotulo) rotulo.addEventListener("click", (e) => {
+        e.preventDefault();
+        input.focus();
+      });
+    }
+
+    function opcoes() {
+      return Array.from(select.options);
+    }
+
+    function sincronizarComSelecao() {
+      const selecionada = select.options[select.selectedIndex];
+      input.value = selecionada && selecionada.value ? selecionada.textContent : "";
+      input.disabled = select.disabled;
+    }
+
+    function escolher(opcao) {
+      select.value = opcao.value;
+      sincronizarComSelecao();
+      lista.classList.add("hidden");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function destacar(indice) {
+      Array.from(lista.children).forEach((item, i) => {
+        item.classList.toggle("bg-gray-100", i === indice);
+      });
+      lista.children[indice]?.scrollIntoView({ block: "nearest" });
+    }
+
+    function criarItem(opcao) {
+      const item = document.createElement("li");
+      item.className = "cursor-pointer px-3 py-2 text-sm hover:bg-gray-100";
+      item.textContent = opcao.value === "" ? (opcao.textContent || "Nenhum") : opcao.textContent;
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault(); // mantém o foco no input até processar o clique
+        escolher(opcao);
+      });
+      return item;
+    }
+
+    function renderizarLista(termoDigitado) {
+      const termo = termoDigitado.trim().toLowerCase();
+      const filtradas = opcoes().filter((o) => o.textContent.toLowerCase().includes(termo));
+      lista.innerHTML = "";
+      if (!filtradas.length) {
+        const vazio = document.createElement("li");
+        vazio.className = "px-3 py-2 text-sm text-gray-400";
+        vazio.textContent = "Nenhum processo encontrado.";
+        lista.appendChild(vazio);
+      } else {
+        filtradas.forEach((o) => lista.appendChild(criarItem(o)));
+      }
+      lista.classList.remove("hidden");
+      return filtradas;
+    }
+
+    let opcoesFiltradas = [];
+    let indiceAtivo = -1;
+
+    input.addEventListener("focus", () => {
+      if (input.disabled) return;
+      opcoesFiltradas = renderizarLista("");
+      indiceAtivo = -1;
+    });
+    input.addEventListener("input", () => {
+      opcoesFiltradas = renderizarLista(input.value);
+      indiceAtivo = -1;
+    });
+    input.addEventListener("blur", () => {
+      // Atraso para o mousedown do item processar antes do input perder o foco.
+      setTimeout(() => lista.classList.add("hidden"), 150);
+      sincronizarComSelecao();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        lista.classList.add("hidden");
+      } else if (e.key === "ArrowDown" && opcoesFiltradas.length) {
+        e.preventDefault();
+        indiceAtivo = (indiceAtivo + 1) % opcoesFiltradas.length;
+        destacar(indiceAtivo);
+      } else if (e.key === "ArrowUp" && opcoesFiltradas.length) {
+        e.preventDefault();
+        indiceAtivo = (indiceAtivo - 1 + opcoesFiltradas.length) % opcoesFiltradas.length;
+        destacar(indiceAtivo);
+      } else if (e.key === "Enter" && !lista.classList.contains("hidden") && opcoesFiltradas.length) {
+        e.preventDefault();
+        escolher(opcoesFiltradas[indiceAtivo >= 0 ? indiceAtivo : 0]);
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!wrapper.contains(e.target)) lista.classList.add("hidden");
+    });
+
+    // Mantém a busca sincronizada quando outro script troca as <option> do
+    // <select> em tempo real (ex.: "Filtro de Processo por Cliente", acima).
+    new MutationObserver(sincronizarComSelecao).observe(select, {
+      childList: true,
+      attributes: true,
+      attributeFilter: ["disabled"],
+    });
+
+    sincronizarComSelecao();
+  });
+
   // ── Disponibilidade de convidado (Agenda) ───────────────────────────────────
   // Ao marcar/selecionar um participante num container com
   // data-disponibilidade-url, consulta os compromissos que esse usuário já
