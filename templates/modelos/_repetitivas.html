@@ -1,0 +1,100 @@
+{% if pecas_geradas %}
+  <div class="card p-6 mb-6 bg-green-50 border-green-100">
+    <p class="font-semibold text-green-800 mb-1">
+      {{ pecas_geradas|length }} {{ pecas_geradas|length|pluralize:"peça gerada,peças geradas" }} com sucesso
+    </p>
+    <p class="text-sm text-green-700 mb-4">Cada peça foi adicionada ao acervo, já com os dados do caso preenchidos — revise o conteúdo antes de usar.</p>
+    <div class="flex flex-col gap-3">
+      {% for modelo in pecas_geradas %}
+        {% include "modelos/_peca_card.html" %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+<div class="card p-6 mb-6 max-w-3xl">
+  <h2 class="text-lg font-semibold text-gray-900 mb-1">Peças repetitivas</h2>
+  <p class="text-sm text-gray-500 mb-5">
+    Escolha uma peça base e gere várias peças de uma vez, uma para cada caso — sem depender de IA
+    (fase manual). Cliente já cadastrado pré-preenche nome e CPF/CNPJ; valor, endereço do caso e
+    particularidades ficam num editor manual, por caso.
+  </p>
+
+  <form method="post" action="{% url 'modelos:gerar_pecas_repetitivas' %}" enctype="multipart/form-data" id="rep-form">
+    {% csrf_token %}
+
+    {% if peca_base_form.non_field_errors %}
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {% for erro in peca_base_form.non_field_errors %}{{ erro }}{% endfor %}
+      </div>
+    {% endif %}
+
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Peça base</p>
+
+    <div class="mb-4">
+      <label class="label" for="{{ peca_base_form.modo_base.id_for_label }}">{{ peca_base_form.modo_base.label }}</label>
+      {{ peca_base_form.modo_base }}
+    </div>
+
+    <div data-toggle-panel="rep-base" data-toggle-values="acervo" class="mb-4">
+      <label class="label" for="{{ peca_base_form.peca_base.id_for_label }}">{{ peca_base_form.peca_base.label }}</label>
+      {{ peca_base_form.peca_base }}
+      {% if peca_base_form.peca_base.errors %}
+        <p class="text-xs text-red-600 mt-1">{{ peca_base_form.peca_base.errors|join:", " }}</p>
+      {% endif %}
+    </div>
+
+    <div data-toggle-panel="rep-base" data-toggle-values="anexar" class="hidden mb-4">
+      <div class="mb-3">
+        <label class="label" for="{{ peca_base_form.arquivo_base.id_for_label }}">{{ peca_base_form.arquivo_base.label }}</label>
+        {{ peca_base_form.arquivo_base }}
+        {% if peca_base_form.arquivo_base.errors %}
+          <p class="text-xs text-red-600 mt-1">{{ peca_base_form.arquivo_base.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="label" for="{{ peca_base_form.categoria.id_for_label }}">{{ peca_base_form.categoria.label }}</label>
+          {{ peca_base_form.categoria }}
+          {% if peca_base_form.categoria.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ peca_base_form.categoria.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ peca_base_form.area_direito.id_for_label }}">{{ peca_base_form.area_direito.label }}</label>
+          {{ peca_base_form.area_direito }}
+          {% if peca_base_form.area_direito.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ peca_base_form.area_direito.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mt-6 mb-3">Casos (cada um vira uma peça)</p>
+
+    {{ formset_casos.management_form }}
+    <div id="rep-casos-list" data-formset-prefix="casos" class="flex flex-col gap-4">
+      {% for caso_form in formset_casos %}
+        {% include "modelos/_caso_repetitivo_form.html" %}
+      {% endfor %}
+    </div>
+
+    <template id="rep-caso-template">
+      {% with caso_form=formset_casos.empty_form %}
+        {% include "modelos/_caso_repetitivo_form.html" %}
+      {% endwith %}
+    </template>
+
+    <div class="mt-3">
+      <button type="button"
+              class="text-sm font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2 cursor-pointer"
+              data-formset-add="rep-casos-list" data-formset-empty-template="rep-caso-template">
+        + Adicionar outro caso
+      </button>
+    </div>
+
+    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-6">
+      <button type="submit" class="btn-primary">Gerar peças</button>
+    </div>
+  </form>
+</div>

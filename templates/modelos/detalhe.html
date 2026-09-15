@@ -16,7 +16,7 @@
   {# Metadados #}
   <div class="flex flex-wrap gap-x-6 gap-y-1 mb-5 text-sm text-gray-500">
     <span>
-      <span class="font-medium text-gray-700">Categoria:</span>
+      <span class="font-medium text-gray-700">Tipo de peça:</span>
       {{ modelo.categoria }}
     </span>
     <span>
@@ -52,6 +52,8 @@
     <button type="button"
             id="copiar-conteudo"
             class="btn-secondary">Copiar conteúdo</button>
+    <a href="{% url 'modelos:baixar_pdf' modelo.pk %}" class="btn-secondary">Baixar PDF</a>
+    <a href="{% url 'modelos:baixar_docx' modelo.pk %}" class="btn-secondary">Baixar DOCX</a>
     {% if pode_excluir %}
       <form method="post" action="{% url 'modelos:excluir' modelo.pk %}" class="inline">
         {% csrf_token %}

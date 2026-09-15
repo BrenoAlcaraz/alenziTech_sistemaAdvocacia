@@ -3,6 +3,9 @@ import re
 from pathlib import Path
 
 from django import forms
+from django.forms import formset_factory
+
+from apps.clientes.models import Cliente
 from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca, config_documento_padrao
 
 TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -22,8 +25,8 @@ class ModeloPecaForm(forms.ModelForm):
     categoria = forms.ModelChoiceField(
         queryset=CategoriaModeloPeca.objects.all(),
         widget=forms.Select(attrs={"class": "select"}),
-        label="Categoria",
-        empty_label="Selecione uma categoria",
+        label="Tipo de peça",
+        empty_label="Selecione um tipo de peça",
     )
     area_direito = forms.ChoiceField(
         choices=AREAS_DIREITO,
@@ -68,8 +71,8 @@ class ImportarModeloPecaForm(forms.Form):
     categoria = forms.ModelChoiceField(
         queryset=CategoriaModeloPeca.objects.all(),
         widget=forms.Select(attrs={"class": "select"}),
-        label="Categoria",
-        empty_label="Selecione uma categoria",
+        label="Tipo de peça",
+        empty_label="Selecione um tipo de peça",
     )
     area_direito = forms.ChoiceField(
         choices=AREAS_DIREITO,
@@ -316,4 +319,115 @@ class CategoriaModeloPecaForm(forms.ModelForm):
                 "placeholder": "Ex: Petição inicial, Contestação, Recurso",
             }),
         }
-        labels = {"nome": "Nome da categoria"}
+        labels = {"nome": "Nome do tipo de peça"}
+
+
+# ── Peças repetitivas (Fase 1, sem IA) ──────────────────────────────────────
+
+MODO_BASE_ACERVO = "acervo"
+MODO_BASE_ANEXAR = "anexar"
+MODO_BASE_CHOICES = [
+    (MODO_BASE_ACERVO, "Usar peça do acervo"),
+    (MODO_BASE_ANEXAR, "Anexar peça nova como base"),
+]
+
+
+class PecaBaseRepetitivaForm(forms.Form):
+    """Primeira parte do fluxo de peças repetitivas: escolhe a peça que
+    serve de base para as N peças geradas — do acervo já existente, ou
+    anexando um arquivo novo (usado só como base desta geração, sem virar
+    um ModeloPeca próprio antes de gerar)."""
+
+    modo_base = forms.ChoiceField(
+        choices=MODO_BASE_CHOICES,
+        widget=forms.Select(attrs={"class": "select", "data-toggle-select": "rep-base"}),
+        initial=MODO_BASE_ACERVO,
+        label="Peça base",
+    )
+    peca_base = forms.ModelChoiceField(
+        queryset=ModeloPeca.objects.select_related("categoria"),
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        empty_label="Selecione uma peça do acervo...",
+        label="Peça do acervo",
+    )
+    arquivo_base = forms.FileField(
+        required=False,
+        label="Arquivo",
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
+    )
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaModeloPeca.objects.all(),
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        empty_label="Selecione um tipo de peça",
+        label="Tipo de peça",
+    )
+    area_direito = forms.ChoiceField(
+        choices=AREAS_DIREITO,
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Área do direito",
+    )
+
+    def clean(self):
+        dados = super().clean()
+        modo = dados.get("modo_base")
+
+        if modo == MODO_BASE_ACERVO and not dados.get("peca_base"):
+            self.add_error("peca_base", "Selecione uma peça do acervo.")
+
+        if modo == MODO_BASE_ANEXAR:
+            arquivo = dados.get("arquivo_base")
+            if not arquivo:
+                self.add_error("arquivo_base", "Anexe um arquivo PDF ou DOCX.")
+            elif Path(arquivo.name).suffix.lower() not in EXTENSOES_ACEITAS:
+                self.add_error("arquivo_base", "Envie um arquivo PDF ou DOCX.")
+            elif arquivo.size > TAMANHO_MAXIMO_BYTES:
+                self.add_error("arquivo_base", "O arquivo deve ter no máximo 10 MB.")
+            if not dados.get("categoria"):
+                self.add_error("categoria", "Selecione um tipo de peça.")
+            if not dados.get("area_direito"):
+                self.add_error("area_direito", "Selecione uma área do direito.")
+
+        return dados
+
+
+class CasoRepetitivoForm(forms.Form):
+    """Um caso da geração em lote: Cliente já cadastrado pré-preenche nome/
+    CPF-CNPJ automaticamente; valor, endereço do caso e particularidades
+    não vêm do cadastro do Cliente — ficam num editor manual (Fase 1, sem
+    IA — Fase 2 depende do PDR-0008)."""
+
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.filter(ativo=True),
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        empty_label="Nenhum — preencher manualmente",
+        label="Cliente já cadastrado",
+    )
+    valor = forms.CharField(
+        required=False, max_length=100, label="Valor (se aplicável)",
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "Ex: R$ 5.000,00"}),
+    )
+    endereco_caso = forms.CharField(
+        required=False, max_length=255, label="Endereço do caso",
+        widget=forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Rua Exemplo, 123 — Rio de Janeiro/RJ"}),
+    )
+    particularidades = forms.CharField(
+        required=False, label="Particularidades",
+        widget=forms.Textarea(attrs={"class": "input h-20 resize-y", "placeholder": "Qualquer detalhe específico deste caso"}),
+    )
+
+    def tem_dados(self):
+        """Formulário "vazio" (linha adicionada mas não preenchida, ou
+        removida no navegador sem ajustar TOTAL_FORMS) não vira peça."""
+        return bool(
+            self.cleaned_data.get("cliente")
+            or self.cleaned_data.get("valor")
+            or self.cleaned_data.get("endereco_caso")
+            or self.cleaned_data.get("particularidades")
+        )
+
+
+CasoRepetitivoFormSet = formset_factory(CasoRepetitivoForm, extra=1)

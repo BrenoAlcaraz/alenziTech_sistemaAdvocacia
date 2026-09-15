@@ -210,10 +210,18 @@ Repositório de modelos de peças/documentos reutilizáveis.
   e nunca salva definitivo sem confirmação humana.
 - Reutilizar um modelo não altera o original.
 - Categoria do modelo é um catálogo fechado por tenant
-  (`CategoriaModeloPeca`), não texto livre — gerenciar o catálogo
-  (criar/editar/excluir categoria) exige `modelos_gerir_categorias` ou
-  ser Administrador; excluir categoria em uso (por modelo atual ou por
-  histórico de versões) é bloqueado.
+  (`CategoriaModeloPeca`), não texto livre — exibida na interface como
+  "Tipo de peça" (o catálogo em si, nome do model e do campo, não muda);
+  gerenciar o catálogo (criar/editar/excluir) exige
+  `modelos_gerir_categorias` ou ser Administrador; excluir categoria em
+  uso (por modelo atual ou por histórico de versões) é bloqueado.
+- Cada modelo da listagem oferece visualizar (abre a peça para leitura)
+  e baixar em PDF ou DOCX — gerado a partir do `conteudo` salvo, aplicando
+  cabeçalho/rodapé/marca d'água/assinatura e fonte/espaçamento/recuo do
+  `EstiloEscritorio` vigente no momento do download (não um snapshot de
+  quando a peça foi criada). Reconhecimento de endereçamento/número de
+  processo/jurisprudência/citação não entra na exportação — depende do
+  pipeline de IA do PDR-0008, ainda não existe.
 - Toda edição de um modelo preserva a versão anterior no histórico
   (autor da edição, data, conteúdo completo); reverter para uma versão
   anterior é uma nova edição — gera nova entrada no histórico, nunca
@@ -239,9 +247,21 @@ Repositório de modelos de peças/documentos reutilizáveis.
   posterior em "Meu Estilo" não altera peça já criada. O reconhecimento
   automático de jurisprudência/citação pela IA durante a redação
   depende do pipeline de IA de peças (PDR-0008) — ainda não existe.
-- Fora de escopo: dedup automática, geração em massa, edição
-  colaborativa em tempo real, categorias hierárquicas, diff visual
-  entre versões de peça.
+- Peças repetitivas (aba "Peças repetitivas", exige `modelos_criar`) —
+  Fase 1, sem IA: usuário escolhe uma peça base (do acervo, ou anexando
+  um arquivo PDF/DOCX novo só para esta geração — não vira modelo
+  próprio antes de gerar) e define um ou mais casos. Cada caso pode
+  referenciar um Cliente já cadastrado — nome e CPF/CNPJ entram
+  automaticamente — e tem campos manuais para valor, endereço do caso e
+  particularidades (não vêm do cadastro do Cliente). Ao gerar, cada caso
+  vira um novo `ModeloPeca` no acervo: o conteúdo da peça base com um
+  bloco de identificação do caso à frente — não há identificação
+  automática dos campos variáveis da peça base nem extração automática
+  de dados de documento anexado por caso (isso é a Fase 2, com IA,
+  condicionada ao PDR-0008).
+- Fora de escopo: dedup automática, geração em massa assistida por IA
+  (Fase 2 do fluxo de peças repetitivas), edição colaborativa em tempo
+  real, categorias hierárquicas, diff visual entre versões de peça.
 
 ### Configurações
 

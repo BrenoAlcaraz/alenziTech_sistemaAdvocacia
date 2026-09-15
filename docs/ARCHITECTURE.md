@@ -72,6 +72,7 @@ processos   → clientes, accounts (equipe)
 tarefas     → processos, clientes (opcional), notificacoes
 agenda      → processos, clientes (opcional)
 financeiro  → clientes, processos (opcional)
+modelos     → clientes (opcional — Cliente do caso em peças repetitivas)
 dashboard   → clientes, processos, tarefas, agenda, financeiro (agregação, sem model próprio)
 configuracoes → accounts
 ```
@@ -265,6 +266,37 @@ Quantidade/Data final/Indeterminado em `LancamentoFinanceiroForm`,
   mora no `clean()` do form (`LancamentoFinanceiroForm.clean()`),
   reaplicada mesmo se o campo escondido chegar preenchido via POST
   manual.
+- Também serve para alternar por modo escolhido num `<select>` (não só
+  por classificação/duração) — ex.: peça base do acervo vs. anexada em
+  `PecaBaseRepetitivaForm` (`apps/modelos/forms.py`, `data-toggle-select="rep-base"`).
+
+## Formset dinâmico (Django) — padrão a reutilizar
+
+Quando o usuário adiciona/remove um número variável de blocos repetidos
+do mesmo form num único POST (hoje: casos de "Peças repetitivas",
+`CasoRepetitivoFormSet` — `apps/modelos/forms.py`,
+`templates/modelos/_repetitivas.html`):
+
+- Backend usa `django.forms.formset_factory` — nunca um esquema próprio
+  de `getlist`/índices manuais.
+- Template renderiza `{{ formset.management_form }}` + um form por
+  `{% for form in formset %}` dentro de um container com
+  `data-formset-prefix="<prefix>"`, e o `empty_form` (com `__prefix__`
+  no lugar do índice) dentro de um `<template>` — conteúdo inerte, não
+  participa do submit até ser clonado.
+- Botão "+ Adicionar" leva `data-formset-add="<container-id>"
+  data-formset-empty-template="<template-id>"`; cada bloco repetido leva
+  `data-formset-remove` no botão de remover e `data-formset-item` no
+  elemento a remover. O JS genérico em `static/js/main.js` (seção
+  "Formset dinâmico") clona o `<template>`, substitui `__prefix__` pelo
+  `TOTAL_FORMS` atual e incrementa o contador; "Remover" só tira do DOM,
+  sem decrementar `TOTAL_FORMS` — deixa um índice "faltando" no POST,
+  inofensivo **desde que todo campo do form daquele formset seja
+  opcional** (senão o índice ausente falha a validação do formset).
+- Nenhuma lógica nova por tela — só os atributos `data-*` e o `<template>`
+  no template; a view filtra os forms preenchidos (`caso.tem_dados()`)
+  antes de processar, já que um form "vazio" (linha adicionada e não
+  preenchida, ou removida no navegador) continua chegando no POST.
 
 ## Editor de texto embutido (contenteditable) — padrão a reutilizar
 
@@ -300,6 +332,33 @@ executa JS de verdade):
   inserido dentro do último bloco em vez de criar um novo. Preferir
   `document.createElement`/`appendChild` direto no DOM para inserir um
   bloco novo no fim de um `contenteditable`.
+
+## Exportação de peça em PDF/DOCX — padrão a reutilizar
+
+`apps/modelos/services.py` reduz `ModeloPeca.conteudo` (HTML do editor
+acima, ou texto puro de peça importada/digitada) a uma lista de
+parágrafos com runs de formatação (`extrair_paragrafos` — só entende
+`<p>`/`<div>`, `<b>/<strong>`, `<i>/<em>`, `<u>` e `text-align` inline,
+que é tudo que o editor produz; não reconhece endereçamento/número de
+processo/jurisprudência/citação, isso depende do pipeline de IA do
+PDR-0008). Esse formato intermediário único alimenta os dois
+exportadores:
+
+- `gerar_docx_modelo` (biblioteca `python-docx`, já usada para
+  importação) e `gerar_pdf_modelo` (biblioteca `reportlab`, nova
+  dependência — pura Python, sem lib de sistema) aplicam fonte/tamanho/
+  espaçamento/recuo e os slots de cabeçalho/rodapé/marca d'água/
+  assinatura do `EstiloEscritorio` **vigente no momento do download**,
+  não um snapshot da peça na criação (não existe esse snapshot hoje).
+- Marca d'água de verdade (rotacionada, atrás do texto) no DOCX exigiria
+  injetar um shape VML no XML do cabeçalho — desproporcional para o
+  ganho; a exportação DOCX aproxima com texto grande cinza-claro (ou a
+  imagem reduzida) no próprio cabeçalho. No PDF isso não é um problema —
+  `reportlab` desenha rotação/transparência direto no canvas
+  (`onFirstPage`/`onLaterPages` do `SimpleDocTemplate`).
+- Views `baixar_pdf`/`baixar_docx` (`apps/modelos/views.py`) exigem só
+  `tem_permissao_modulo` — mesma Camada 1 de `detalhe`, sem habilitação
+  extra (baixar é uma forma de leitura, não de escrita).
 
 ## Tempo real (WebSocket / Channels) — padrão a reutilizar
 

@@ -7,6 +7,7 @@ urlpatterns = [
     path("modelos/", views.lista, name="lista"),
     path("modelos/novo/", views.novo, name="novo"),
     path("modelos/importar/", views.importar, name="importar"),
+    path("modelos/repetitivas/gerar/", views.gerar_pecas_repetitivas, name="gerar_pecas_repetitivas"),
     path("modelos/estilo/editar/", views.editar_estilo, name="editar_estilo"),
     path(
         "modelos/estilo/documento/editar/",
@@ -24,5 +25,7 @@ urlpatterns = [
     path("modelos/<int:pk>/editar/", views.editar, name="editar"),
     path("modelos/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("modelos/<int:pk>/reverter/<int:versao_pk>/", views.reverter, name="reverter"),
+    path("modelos/<int:pk>/baixar/pdf/", views.baixar_pdf, name="baixar_pdf"),
+    path("modelos/<int:pk>/baixar/docx/", views.baixar_docx, name="baixar_docx"),
     path("modelos/<int:pk>/", views.detalhe, name="detalhe"),
 ]

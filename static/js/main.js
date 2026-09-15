@@ -78,6 +78,38 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizar();
   });
 
+  // ── Formset dinâmico (Django) — "+ Adicionar outro caso" ────────────────────
+  // Clona o <template id="..."> (o `empty_form` do formset, com "__prefix__"
+  // no lugar do índice) e substitui pelo índice atual de TOTAL_FORMS antes de
+  // inserir no container; "Remover" só tira do DOM, sem decrementar
+  // TOTAL_FORMS — deixa um índice "faltando" no POST, inofensivo enquanto
+  // todo campo do form daquele formset for opcional (ver CasoRepetitivoForm,
+  // apps/modelos/forms.py). Genérico: reaproveitável por qualquer formset
+  // renderizado com management_form + um <template> do empty_form.
+  document.querySelectorAll("[data-formset-add]").forEach((botao) => {
+    const container = document.getElementById(botao.dataset.formsetAdd);
+    const template = document.getElementById(botao.dataset.formsetEmptyTemplate);
+    if (!container || !template) return;
+
+    const prefixo = container.dataset.formsetPrefix;
+    const totalInput = document.getElementById(`id_${prefixo}-TOTAL_FORMS`);
+    if (!totalInput) return;
+
+    botao.addEventListener("click", () => {
+      const indice = parseInt(totalInput.value, 10);
+      const html = template.innerHTML.replace(/__prefix__/g, indice);
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html.trim();
+      Array.from(wrapper.children).forEach((el) => container.appendChild(el));
+      totalInput.value = indice + 1;
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    const botaoRemover = e.target.closest("[data-formset-remove]");
+    if (botaoRemover) botaoRemover.closest("[data-formset-item]")?.remove();
+  });
+
   // ── Filtro de Processo por Cliente ──────────────────────────────────────────
   // O campo Processo (marcado com data-processos-url) acompanha o Cliente
   // (marcado com data-cliente-filtro) do mesmo <form>, sem recarregar a página.
