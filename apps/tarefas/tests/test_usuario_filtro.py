@@ -15,6 +15,11 @@ class TestUsuarioFiltroTarefas(TenantTestCase):
     def get_test_schema_name(cls):
         return "wi_tarefas_usuario_filtro"
 
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Usuário Filtro Tarefas"
+        tenant.slug = "wi-tarefas-usuario-filtro"
+
     def setUp(self):
         super().setUp()
         from apps.saas_tenants.models import Dominio

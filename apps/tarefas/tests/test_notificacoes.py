@@ -19,6 +19,11 @@ class TarefasNotificacaoBase(TenantTestCase):
     def get_test_schema_name(cls):
         return "wi_notificacao_tarefas"
 
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Notificação Tarefas"
+        tenant.slug = "wi-notificacao-tarefas"
+
     def setUp(self):
         super().setUp()
         from apps.saas_tenants.models import Dominio

@@ -50,6 +50,11 @@ class TestTarefaFormValidaProcessoDoCliente(FiltroProcessoClienteTarefasBase):
     def get_test_schema_name(cls):
         return "tarefas_filtro_processo_cliente"
 
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Filtro Processo Cliente"
+        tenant.slug = "tarefas-filtro-processo-cliente"
+
     def setUp(self):
         super().setUp()
         self.user = self._user("resp_tarefas")
@@ -82,6 +87,11 @@ class TestEndpointProcessosPorClienteTarefas(FiltroProcessoClienteTarefasBase):
     @classmethod
     def get_test_schema_name(cls):
         return "tarefas_endpoint_processos_cliente"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Endpoint Processos por Cliente"
+        tenant.slug = "tarefas-endpoint-processos-cliente"
 
     def setUp(self):
         super().setUp()

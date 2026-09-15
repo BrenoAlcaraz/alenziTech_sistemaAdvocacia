@@ -22,6 +22,11 @@ class TarefasDelegacaoBase(TenantTestCase):
     def get_test_schema_name(cls):
         return "wi_delegacao_tarefas"
 
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Delegação Tarefas"
+        tenant.slug = "wi-delegacao-tarefas"
+
     def _set_admin(self, user, value=True):
         PerfilUsuario.objects.filter(user=user).update(is_admin_escritorio=value)
 
