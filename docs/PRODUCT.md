@@ -249,6 +249,15 @@ Perfil pessoal, gestão administrativa de usuários/papéis/habilitações/
 equipes, identidade do escritório, consulta ao plano SaaS.
 
 - Alteração de senha usa o fluxo seguro do Django.
+- Perfil pessoal permite trocar a própria foto (avatar), com storage
+  protegido por tenant — sem URL pública direta.
+- Tela de habilitações/permissões individuais de um usuário mostra
+  sempre o estado efetivo (ligado/desligado) de cada módulo/
+  habilitação — já refletindo o que veio herdado do papel/tipo de
+  conta base; não expõe herdado/override como conceito separado na
+  interface. Qualquer alteração grava um override individual
+  explícito, sem exigir uma ação separada de "desligar herança"; o
+  mecanismo de override continua existindo tecnicamente por baixo.
 - Gerente de equipe não ganha acesso global só por essa indicação.
 - Administração de usuários/acesso nunca atravessa tenant.
 - Plano/Assinatura pertencem a `saas_billing` (billing SaaS
