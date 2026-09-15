@@ -278,6 +278,7 @@ class PerfilUsuarioForm(forms.ModelForm):
         fields = [
             "nome_completo",
             "cargo",
+            "avatar",
         ]
         widgets = {
             "nome_completo": forms.TextInput(
@@ -292,4 +293,5 @@ class PerfilUsuarioForm(forms.ModelForm):
                     "placeholder": "Ex.: Advogado, Sócio, Administrativo",
                 }
             ),
+            "avatar": forms.ClearableFileInput(attrs={"class": "input"}),
         }
