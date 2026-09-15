@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.urls import reverse
 from .models import Compromisso
+from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
 
@@ -27,10 +28,10 @@ class CompromissoForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "select"}),
         empty_label="Nenhum",
     )
-    processo = forms.ModelChoiceField(
+    processo = ProcessoChoiceField(
         queryset=Processo.objects.prefetch_related("clientes").exclude(status="arquivado"),
         required=False,
-        widget=forms.Select(attrs={"class": "select"}),
+        widget=forms.Select(attrs=PROCESSO_SELECT_ATTRS),
         empty_label="Nenhum",
     )
     responsavel = forms.ModelChoiceField(

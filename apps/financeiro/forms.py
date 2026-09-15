@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
 from apps.clientes.models import Cliente
+from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente
 
@@ -29,6 +30,7 @@ def _filtrar_processo_por_cliente(form, url_name):
 class LancamentoFinanceiroForm(forms.ModelForm):
     class Meta:
         model = LancamentoFinanceiro
+        field_classes = {"processo": ProcessoChoiceField}
         fields = [
             "tipo",
             "descricao",
@@ -60,7 +62,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "status":          forms.Select(attrs={"class": "select"}),
             "forma_pagamento": forms.Select(attrs={"class": "select"}),
             "cliente":         forms.Select(attrs={"class": "select"}),
-            "processo":        forms.Select(attrs={"class": "select"}),
+            "processo":        forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "responsavel":     forms.Select(attrs={"class": "select"}),
             "observacoes":     forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
             "classificacao":   forms.Select(attrs={"class": "select", "data-toggle-select": "classificacao"}),
@@ -171,13 +173,14 @@ class CustaJudicialForm(forms.ModelForm):
 
     class Meta:
         model = CustaJudicial
+        field_classes = {"processo": ProcessoChoiceField}
         fields = ["tipo", "descricao", "valor", "data", "cliente", "processo", "anexo"]
         widgets = {
             "descricao": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Custas de citação – Processo 001/2026"}),
             "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "cliente": forms.Select(attrs={"class": "select"}),
-            "processo": forms.Select(attrs={"class": "select"}),
+            "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
@@ -215,6 +218,7 @@ class CreditarCustaForm(forms.ModelForm):
 
     class Meta:
         model = CustaJudicial
+        field_classes = {"processo": ProcessoChoiceField}
         fields = ["descricao", "valor", "data", "processo", "anexo"]
         widgets = {
             "descricao": forms.TextInput(attrs={
@@ -223,7 +227,7 @@ class CreditarCustaForm(forms.ModelForm):
             }),
             "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
-            "processo": forms.Select(attrs={"class": "select"}),
+            "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
@@ -252,11 +256,12 @@ class CreditarCustaForm(forms.ModelForm):
 class HonorarioForm(forms.ModelForm):
     class Meta:
         model = Honorario
+        field_classes = {"processo": ProcessoChoiceField}
         fields = ["tipo", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes"]
         widgets = {
             "tipo": forms.Select(attrs={"class": "select"}),
             "valor_estimado": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
-            "processo": forms.Select(attrs={"class": "select"}),
+            "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "cliente": forms.Select(attrs={"class": "select"}),
             "data_prevista": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "observacoes": forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
@@ -343,6 +348,7 @@ class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
 class SolicitacaoFinanceiraForm(forms.ModelForm):
     class Meta:
         model = SolicitacaoFinanceira
+        field_classes = {"processo": ProcessoChoiceField}
         fields = [
             "tipo",
             "descricao",
@@ -359,7 +365,7 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
             "descricao":   forms.TextInput(attrs={"class": "input"}),
             "valor":       forms.NumberInput(attrs={"class": "input", "step": "0.01"}),
             "cliente":     forms.Select(attrs={"class": "select"}),
-            "processo":    forms.Select(attrs={"class": "select"}),
+            "processo":    forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "vencimento":  forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "data_gasto":  forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "anexo":       forms.ClearableFileInput(attrs={"class": "input"}),

@@ -129,3 +129,16 @@ class TestEndpointProcessosPorCliente(FiltroProcessoClienteBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
+
+    def test_label_segue_o_padrao_titulo_traco_numero(self):
+        Processo.objects.filter(pk=self.processo_a.pk).update(numero="0000001-00.2026.8.00.0001")
+        self.client.force_login(self.user)
+        r = self.client.get(
+            "/financeiro/processos-por-cliente/",
+            {"cliente": self.cliente_a.id},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(
+            r.json()["processos"][0]["label"],
+            "Processo A — 0000001-00.2026.8.00.0001",
+        )
