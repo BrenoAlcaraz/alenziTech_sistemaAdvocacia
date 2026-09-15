@@ -10,6 +10,13 @@
   <a href="{% url 'tarefas:nova' %}" class="btn-primary">+ Nova tarefa</a>
 </div>
 
+{% if usuario_filtro %}
+<div class="mb-4 px-4 py-2.5 rounded-lg bg-juridico-bege text-sm text-gray-700 flex items-center justify-between">
+  <span>Mostrando as tarefas de <strong>{{ usuario_filtro.get_full_name|default:usuario_filtro.username }}</strong></span>
+  <a href="{% url 'tarefas:lista' %}" class="text-juridico-ouro font-medium hover:underline">Ver as minhas →</a>
+</div>
+{% endif %}
+
 {# Alternância Quadro / Lista #}
 <div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-6">
   <a href="{% url 'tarefas:quadro' %}"
@@ -187,4 +194,6 @@
     {% include "components/empty_state.html" with mensagem="Nenhuma tarefa cadastrada." %}
   {% endfor %}
 </div>
+
+{% include "tarefas/_subabas.html" %}
 {% endblock %}

@@ -15,7 +15,13 @@
   <form method="post">
     {% csrf_token %}
     {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+    {% if usuario_travado %}<input type="hidden" name="para_usuario" value="{{ usuario_travado.pk }}">{% endif %}
     <div class="flex flex-col gap-4">
+      {% if usuario_travado %}
+        <p class="text-xs text-juridico-ouro bg-juridico-bege px-3 py-2 rounded-lg">
+          Esta tarefa será atribuída a <strong>{{ usuario_travado.get_full_name|default:usuario_travado.username }}</strong>.
+        </p>
+      {% endif %}
       <div>
         <label class="label">Título</label>
         {{ form.titulo }}

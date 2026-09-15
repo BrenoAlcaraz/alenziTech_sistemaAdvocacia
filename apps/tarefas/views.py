@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -29,6 +31,8 @@ ORDENS_VALIDAS = {
     "mais_recentes",
     "mais_antigas",
 }
+
+ABAS_VALIDAS = {"novidades", "terceiro", "delegadas", "outros"}
 
 
 def _normalizar_ordem(ordem):
@@ -109,6 +113,80 @@ def _pode_atribuir_a_outros(request):
     return usuario_admin_escritorio(request.user) or tem_habilitacao(
         request.user, MODULO_TAREFAS, HAB_TAREFAS_ATRIBUIR_OUTROS
     )
+
+
+def _normalizar_aba(request, usuario_filtro):
+    """
+    Sub-aba ativa da faixa abaixo da lista principal (mesmo padrão de
+    `apps/agenda/views.py`). Quem chega via `?usuario=` (seletor de
+    colega da aba "Ver tarefas de outra pessoa") reabre já naquela aba;
+    senão respeita `?aba=` se válido; senão "Recentes" é o padrão.
+    """
+    if usuario_filtro is not None:
+        return "outros"
+    aba = request.GET.get("aba")
+    if aba in ABAS_VALIDAS:
+        return aba
+    return "novidades"
+
+
+def _tarefas_novidades(request):
+    """
+    Sub-aba "Recentes (últimas 24h)": qualquer tarefa que entrou na
+    lista do usuário nas últimas 24h, de qualquer origem — `atribuido_em`
+    marca tanto a atribuição inicial quanto uma reatribuição posterior.
+    Sempre visível, sem checagem de habilitação.
+    """
+    limite = timezone.now() - timedelta(hours=24)
+    return (
+        Tarefa.objects.select_related("responsavel", "processo", "cliente")
+        .filter(responsavel=request.user, atribuido_em__gte=limite)
+        .order_by("-atribuido_em")
+    )
+
+
+def _tarefas_atribuidas_por_terceiros(request):
+    """
+    Sub-aba "Atribuídas a mim por terceiros": só tarefas em que o
+    usuário é responsável, mas quem atribuiu foi outra pessoa. Sempre
+    visível, sem checagem de habilitação.
+    """
+    return (
+        Tarefa.objects.select_related("responsavel", "processo", "cliente")
+        .filter(responsavel=request.user)
+        .exclude(atribuidor__isnull=True)
+        .exclude(atribuidor=request.user)
+        .order_by("-atribuido_em")
+    )
+
+
+def _tarefas_delegadas_por_mim(request):
+    """
+    Sub-aba "Delegadas por mim": todas as tarefas que o próprio usuário
+    atribuiu a outra pessoa, qualquer status. Só para quem tem a
+    habilitação de atribuir tarefa a terceiros.
+    """
+    return (
+        Tarefa.objects.select_related("responsavel", "processo", "cliente")
+        .filter(atribuidor=request.user)
+        .exclude(responsavel=request.user)
+        .order_by("-atribuido_em")
+    )
+
+
+def _usuario_travado(request):
+    """
+    Usuário travado no campo "Atribuir a" quando o formulário é aberto a
+    partir de "+ Nova tarefa para esta pessoa" (sub-aba "Ver tarefas de
+    outra pessoa"). `disabled=True` no form faz o Django ignorar
+    qualquer valor de `destinatario` vindo do POST e usar sempre o
+    `initial` — por isso o travamento é seguro mesmo que o campo seja
+    adulterado no HTML.
+    """
+    para_usuario_id = request.POST.get("para_usuario") or request.GET.get("para_usuario")
+    if not para_usuario_id:
+        return None
+    return get_object_or_404(User, pk=para_usuario_id, is_active=True)
 
 
 def _get_order_args(ordem):
@@ -199,17 +277,50 @@ def lista(request):
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
     ordem = _normalizar_ordem(request.GET.get("ordem", "prazo_proximo"))
-    escopo, escopo_maximo = _resolver_escopo(request)
-    tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
-    return render(request, "tarefas/lista.html", {
+    pode_atribuir_a_outros = _pode_atribuir_a_outros(request)
+
+    usuario_filtro = None
+    usuario_filtro_id = request.GET.get("usuario")
+    if usuario_filtro_id and pode_atribuir_a_outros:
+        usuario_filtro = get_object_or_404(User, pk=usuario_filtro_id)
+
+    if usuario_filtro:
+        # Sub-aba "Ver tarefas de outra pessoa": ignora o escopo
+        # somente_seus/todos do próprio usuário logado — mostra as
+        # tarefas do usuário filtrado (mesmo padrão de agenda:index).
+        escopo = escopo_maximo = NIVEL_TODOS
+        tarefas = Tarefa.objects.select_related(
+            "responsavel", "processo", "cliente"
+        ).filter(responsavel=usuario_filtro).order_by(*_get_order_args(ordem))
+    else:
+        escopo, escopo_maximo = _resolver_escopo(request)
+        tarefas = _tarefas_no_escopo(request, escopo).order_by(*_get_order_args(ordem))
+
+    contexto = {
         "tarefas": tarefas,
         "ordem": ordem,
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "usuario_filtro": usuario_filtro,
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
+        "aba_ativa": _normalizar_aba(request, usuario_filtro),
+        "pode_atribuir_a_outros": pode_atribuir_a_outros,
+    }
+
+    # ── Faixa de sub-abas ────────────────────────────────────────────
+    contexto.update({
+        "tarefas_novidades": list(_tarefas_novidades(request)),
+        "tarefas_terceiro": list(_tarefas_atribuidas_por_terceiros(request)),
     })
+    if pode_atribuir_a_outros:
+        contexto["tarefas_delegadas"] = list(_tarefas_delegadas_por_mim(request))
+        contexto["usuarios_outros"] = User.objects.filter(is_active=True).order_by(
+            "first_name", "username"
+        )
+
+    return render(request, "tarefas/lista.html", contexto)
 
 
 @login_required
@@ -228,8 +339,12 @@ def processos_por_cliente(request):
 def nova(request):
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
+    usuario_travado = _usuario_travado(request)
     if request.method == "POST":
         form = TarefaForm(request.POST)
+        if usuario_travado:
+            form.fields["destinatario"].disabled = True
+            form.fields["destinatario"].initial = usuario_travado
         if form.is_valid():
             destinatario = form.cleaned_data.get("destinatario")
             if destinatario and destinatario != request.user and not _pode_atribuir_a_outros(request):
@@ -245,8 +360,15 @@ def nova(request):
             tarefa.save()
             return redirect("tarefas:quadro")
     else:
-        form = TarefaForm()
-    return render(request, "tarefas/form.html", {"form": form, "modo": "novo", "item_ativo": "tarefas"})
+        form = TarefaForm(initial={"destinatario": usuario_travado} if usuario_travado else None)
+        if usuario_travado:
+            form.fields["destinatario"].disabled = True
+    return render(request, "tarefas/form.html", {
+        "form": form,
+        "modo": "novo",
+        "item_ativo": "tarefas",
+        "usuario_travado": usuario_travado,
+    })
 
 
 @login_required
