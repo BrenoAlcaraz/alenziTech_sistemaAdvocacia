@@ -33,6 +33,7 @@ class Compromisso(models.Model):
     data_hora_fim = models.DateTimeField(null=True, blank=True)
     local = models.CharField(max_length=255, blank=True)
     responsavel = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos")
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromissos_criados")
     participantes = models.ManyToManyField(
         User,
         through="ParticipanteCompromisso",

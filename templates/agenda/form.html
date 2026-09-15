@@ -21,7 +21,16 @@
 
   <form method="post">
     {% csrf_token %}
+    {% if usuario_travado %}
+      <input type="hidden" name="para_usuario" value="{{ usuario_travado.pk }}">
+    {% endif %}
     <div class="flex flex-col gap-5">
+
+      {% if usuario_travado %}
+        <p class="text-xs text-juridico-ouro bg-juridico-bege px-3 py-2 rounded-lg">
+          Este compromisso será criado na agenda de <strong>{{ usuario_travado.get_full_name|default:usuario_travado.username }}</strong>.
+        </p>
+      {% endif %}
 
       {# Tipo | Responsável — classificação do compromisso vem primeiro #}
       <div class="grid grid-cols-2 gap-4">
@@ -33,7 +42,7 @@
           {% endif %}
         </div>
         <div>
-          <label class="label">Responsável</label>
+          <label class="label">Responsável (Agenda de)</label>
           {{ form.responsavel }}
           {% if form.responsavel.errors %}
             <p class="text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
@@ -110,12 +119,18 @@
       {# Participantes — só na criação; na edição, gestão fica na seção dedicada abaixo #}
       <div>
         <label class="label">Participantes <span class="text-gray-400 font-normal">(opcional)</span></label>
-        <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2">
+        <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2"
+             {% if pode_ver_disponibilidade %}data-disponibilidade-url="{% url 'agenda:disponibilidade_convidado' %}"{% endif %}>
           {% for checkbox in form.participantes %}
-            <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
-              {{ checkbox.tag }}
-              {{ checkbox.choice_label }}
-            </label>
+            <div>
+              <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-700">
+                {{ checkbox.tag }}
+                {{ checkbox.choice_label }}
+              </label>
+              {% if pode_ver_disponibilidade %}
+                <div class="ml-6 mt-0.5" id="disponibilidade-{{ checkbox.data.value }}" data-disponibilidade-resultado></div>
+              {% endif %}
+            </div>
           {% empty %}
             <p class="text-xs text-gray-400">Nenhum usuário disponível.</p>
           {% endfor %}
@@ -148,11 +163,16 @@
 <div class="card p-6 max-w-2xl mt-4">
   <p class="text-sm font-semibold text-gray-900 mb-3">Participantes</p>
 
-  <form method="post" action="{% url 'agenda:adicionar_participante' compromisso.pk %}" class="flex gap-2 mb-4">
-    {% csrf_token %}
-    <div class="flex-1">{{ form_participante.usuario }}</div>
-    <button type="submit" class="btn-primary text-sm">Convidar</button>
-  </form>
+  <div class="mb-4" {% if pode_ver_disponibilidade %}data-disponibilidade-url="{% url 'agenda:disponibilidade_convidado' %}"{% endif %}>
+    <form method="post" action="{% url 'agenda:adicionar_participante' compromisso.pk %}" class="flex gap-2">
+      {% csrf_token %}
+      <div class="flex-1">{{ form_participante.usuario }}</div>
+      <button type="submit" class="btn-primary text-sm">Convidar</button>
+    </form>
+    {% if pode_ver_disponibilidade %}
+      <div class="mt-1" data-disponibilidade-resultado></div>
+    {% endif %}
+  </div>
 
   <div class="flex flex-col gap-2">
     {% for participacao in participacoes %}

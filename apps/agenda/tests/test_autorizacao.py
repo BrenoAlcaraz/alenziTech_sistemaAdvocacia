@@ -175,7 +175,7 @@ class TestAgendaAutorizacaoModuloConcedido(AgendaAutorizacaoBase):
     def test_index_autorizado(self):
         r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        self.assertTemplateUsed(r, "agenda/lista.html")
+        self.assertTemplateUsed(r, "agenda/index.html")
 
     def test_novo_get_autorizado(self):
         r = self.client.get("/agenda/novo/", HTTP_HOST=self.http_host)
@@ -192,6 +192,8 @@ class TestAgendaAutorizacaoModuloConcedido(AgendaAutorizacaoBase):
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/agenda/", fetch_redirect_response=False)
+        criado = Compromisso.objects.get(titulo="Compromisso Próprio")
+        self.assertEqual(criado.criado_por_id, self.user.pk)
 
     def test_editar_get_autorizado(self):
         r = self.client.get(
