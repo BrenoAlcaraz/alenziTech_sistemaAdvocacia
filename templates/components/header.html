@@ -4,8 +4,10 @@
   <div class="flex items-center gap-2 text-sm text-gray-500">
     {% with perfil=request.user.perfil %}
     <div class="flex items-center gap-1.5">
-      <div class="w-7 h-7 rounded-full bg-stone-600 flex items-center justify-center text-white text-xs font-semibold">
-        {% if perfil.iniciais %}
+      <div class="w-7 h-7 rounded-full bg-stone-600 flex items-center justify-center text-white text-xs font-semibold overflow-hidden">
+        {% if perfil.avatar %}
+          <img src="{% url 'configuracoes:foto_perfil' %}" alt="" class="w-full h-full object-cover">
+        {% elif perfil.iniciais %}
           {{ perfil.iniciais }}
         {% else %}
           {{ request.user.username|upper|slice:":2" }}

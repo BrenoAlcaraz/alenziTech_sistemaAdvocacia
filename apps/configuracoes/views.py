@@ -1,5 +1,6 @@
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.contrib import messages
@@ -52,6 +53,7 @@ from apps.processos.services import (
     transferir_processos_de_usuarios_sem_acesso,
     usuarios_com_acesso_processos,
 )
+from apps.saas_tenants.storage import nome_do_arquivo
 from .models import ConfiguracaoEscritorio
 from .forms import ConfiguracaoEscritorioForm
 
@@ -133,7 +135,7 @@ def editar_perfil(request):
     perfil, _ = PerfilUsuario.objects.get_or_create(user=request.user)
 
     if request.method == "POST":
-        form = PerfilUsuarioForm(request.POST, instance=perfil)
+        form = PerfilUsuarioForm(request.POST, request.FILES, instance=perfil)
         if form.is_valid():
             form.save()
             return redirect("configuracoes:index")
@@ -149,6 +151,18 @@ def editar_perfil(request):
             "item_ativo": "configuracoes",
         },
     )
+
+
+@login_required
+def foto_perfil(request):
+    """Serve o avatar do próprio usuário logado — `PerfilUsuario.avatar`
+    usa storage protegido (sem URL pública), por isso a entrega passa
+    por uma view autenticada, mesmo padrão de `chat.anexo_mensagem`."""
+    perfil, _ = PerfilUsuario.objects.get_or_create(user=request.user)
+    if not perfil.avatar:
+        raise Http404
+
+    return FileResponse(perfil.avatar.open("rb"), filename=nome_do_arquivo(perfil.avatar))
 
 
 @login_required
@@ -672,51 +686,12 @@ def _herdado_item(papeis_ativos, tipo_legado, slug, item_slug):
     return False
 
 
-@login_required
-def usuario_overrides(request, user_pk):
-    if not _pode_gerenciar_permissoes(request.user):
-        raise PermissionDenied
-
-    usuario_alvo = get_object_or_404(User, pk=user_pk)
-    is_admin_alvo = usuario_admin_escritorio(usuario_alvo)
-
-    if request.method == "POST" and not is_admin_alvo:
-        with transaction.atomic():
-            for slug, _, niveis in _MODULOS_CONFIG:
-                estado = request.POST.get(f"override_{slug}", "herdar")
-                if estado == "herdar":
-                    PermissaoUsuario.objects.filter(usuario=usuario_alvo, modulo=slug).delete()
-                else:
-                    if niveis:
-                        nivel = request.POST.get(f"nivel_override_{slug}", niveis[0][0])
-                        if nivel not in [n[0] for n in niveis]:
-                            nivel = niveis[0][0]
-                    else:
-                        nivel = ""
-                    PermissaoUsuario.objects.update_or_create(
-                        usuario=usuario_alvo,
-                        modulo=slug,
-                        defaults={"ativo": estado == "ligado", "nivel": nivel},
-                    )
-                for item_slug in ITENS_POR_MODULO.get(slug, []):
-                    estado_item = request.POST.get(f"hab_override_{slug}_{item_slug}", "herdar")
-                    if estado_item == "herdar":
-                        HabilitacaoUsuario.objects.filter(
-                            usuario=usuario_alvo, modulo=slug, item=item_slug
-                        ).delete()
-                    else:
-                        HabilitacaoUsuario.objects.update_or_create(
-                            usuario=usuario_alvo,
-                            modulo=slug,
-                            item=item_slug,
-                            defaults={"ativo": estado_item == "ligado"},
-                        )
-            transferir_processos_de_usuarios_sem_acesso([usuario_alvo.pk])
-        return redirect("configuracoes:usuario_overrides", user_pk=usuario_alvo.pk)
-
-    papeis_ativos = _papeis_ativos_usuario(usuario_alvo)
-    tipo_legado = None if papeis_ativos else tipo_conta_usuario(usuario_alvo)
-
+def _modulos_efetivos_usuario(usuario_alvo, papeis_ativos, tipo_legado):
+    """Estado efetivo — já herdado do papel/tipo de conta base, com
+    override individual por cima quando existir — de cada módulo e
+    habilitação granular. A tela não expõe mais herdado/override como
+    conceitos separados (specs/configuracoes-perfil-e-habilitacoes.md);
+    o mecanismo de override continua existindo tecnicamente por baixo."""
     overrides_modulo = {po.modulo: po for po in PermissaoUsuario.objects.filter(usuario=usuario_alvo)}
     overrides_item = {
         (hu.modulo, hu.item): hu
@@ -731,22 +706,70 @@ def usuario_overrides(request, user_pk):
         itens = []
         for item_slug in ITENS_POR_MODULO.get(slug, []):
             override_item = overrides_item.get((slug, item_slug))
+            herdado_item = _herdado_item(papeis_ativos, tipo_legado, slug, item_slug)
             itens.append({
                 "slug": item_slug,
                 "label": NOMES_ITENS.get(item_slug, item_slug),
-                "herdado": _herdado_item(papeis_ativos, tipo_legado, slug, item_slug),
-                "estado": ("ligado" if override_item.ativo else "desligado") if override_item else "herdar",
+                "ativo": override_item.ativo if override_item else herdado_item,
             })
 
+        ativo = override.ativo if override else herdado["ativo"]
+        nivel_atual = (override.nivel if override else herdado["nivel"]) or (niveis[0][0] if niveis else "")
         modulos_contexto.append({
             "slug": slug,
             "label": label,
             "niveis": [{"valor": v, "label": lbl} for v, lbl in niveis],
-            "herdado": herdado,
-            "estado": ("ligado" if override.ativo else "desligado") if override else "herdar",
-            "nivel_override": override.nivel if override else (niveis[0][0] if niveis else ""),
+            "ativo": ativo,
+            "nivel_atual": nivel_atual,
             "itens": itens,
         })
+    return modulos_contexto
+
+
+def _salvar_overrides_usuario(request, usuario_alvo):
+    """Grava, para cada módulo/habilitação da tela, um override
+    individual explícito com o estado efetivo submetido — substitui o
+    valor herdado sem exigir uma ação separada de "desligar herança"."""
+    with transaction.atomic():
+        for slug, _, niveis in _MODULOS_CONFIG:
+            ativo = request.POST.get(f"ativo_{slug}") == "on"
+            if niveis:
+                nivel = request.POST.get(f"nivel_{slug}", niveis[0][0])
+                if nivel not in [n[0] for n in niveis]:
+                    nivel = niveis[0][0]
+            else:
+                nivel = ""
+            PermissaoUsuario.objects.update_or_create(
+                usuario=usuario_alvo,
+                modulo=slug,
+                defaults={"ativo": ativo, "nivel": nivel},
+            )
+            for item_slug in ITENS_POR_MODULO.get(slug, []):
+                habilitado = request.POST.get(f"hab_{slug}_{item_slug}") == "on"
+                HabilitacaoUsuario.objects.update_or_create(
+                    usuario=usuario_alvo,
+                    modulo=slug,
+                    item=item_slug,
+                    defaults={"ativo": habilitado},
+                )
+        transferir_processos_de_usuarios_sem_acesso([usuario_alvo.pk])
+
+
+@login_required
+def usuario_overrides(request, user_pk):
+    if not _pode_gerenciar_permissoes(request.user):
+        raise PermissionDenied
+
+    usuario_alvo = get_object_or_404(User, pk=user_pk)
+    is_admin_alvo = usuario_admin_escritorio(usuario_alvo)
+
+    if request.method == "POST" and not is_admin_alvo:
+        _salvar_overrides_usuario(request, usuario_alvo)
+        return redirect("configuracoes:usuario_overrides", user_pk=usuario_alvo.pk)
+
+    papeis_ativos = _papeis_ativos_usuario(usuario_alvo)
+    tipo_legado = None if papeis_ativos else tipo_conta_usuario(usuario_alvo)
+    modulos_contexto = _modulos_efetivos_usuario(usuario_alvo, papeis_ativos, tipo_legado)
 
     return render(
         request,
