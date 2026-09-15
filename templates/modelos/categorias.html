@@ -1,18 +1,18 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Categorias de Modelos — Jurídico SaaS{% endblock %}
+{% block title %}Tipos de Peça — Jurídico SaaS{% endblock %}
 
 {% block content %}
 
 <div class="flex items-start justify-between mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Categorias de modelos de peça</h1>
+    <h1 class="text-2xl font-bold text-gray-900">Tipos de peça</h1>
     <p class="text-sm text-gray-500 mt-0.5">Catálogo institucional usado para classificar os modelos do escritório.</p>
   </div>
   <a href="{% url 'modelos:lista' %}" class="btn-secondary text-sm flex-shrink-0">Voltar</a>
 </div>
 
 <div class="card p-6 max-w-lg mb-6">
-  <h2 class="font-semibold text-gray-900 mb-3">Nova categoria</h2>
+  <h2 class="font-semibold text-gray-900 mb-3">Novo tipo de peça</h2>
   <form method="post" class="flex items-start gap-3">
     {% csrf_token %}
     <div class="flex-1">
@@ -48,7 +48,7 @@
               {% csrf_token %}
               <button type="submit"
                       class="text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
-                      onclick="return confirm('Excluir a categoria \'{{ categoria.nome|escapejs }}\'? Só é possível se nenhum modelo a estiver usando.')">
+                      onclick="return confirm('Excluir o tipo de peça \'{{ categoria.nome|escapejs }}\'? Só é possível se nenhum modelo a estiver usando.')">
                 Excluir
               </button>
             </form>
@@ -60,7 +60,7 @@
   </table>
   {% else %}
   <div class="p-10 text-center">
-    <p class="text-sm font-medium text-gray-500">Nenhuma categoria cadastrada ainda.</p>
+    <p class="text-sm font-medium text-gray-500">Nenhum tipo de peça cadastrado ainda.</p>
   </div>
   {% endif %}
 </div>

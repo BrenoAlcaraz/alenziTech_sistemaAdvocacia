@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db.models import ProtectedError, Q
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -21,11 +21,14 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.modelos.forms import (
     AREAS_DIREITO,
+    MODO_BASE_ACERVO,
+    CasoRepetitivoFormSet,
     CategoriaModeloPecaForm,
     EstiloDocumentoForm,
     EstiloEscritorioForm,
     ImportarModeloPecaForm,
     ModeloPecaForm,
+    PecaBaseRepetitivaForm,
 )
 from apps.modelos.models import (
     CategoriaModeloPeca,
@@ -33,7 +36,14 @@ from apps.modelos.models import (
     ModeloPeca,
     VersaoModeloPeca,
 )
-from apps.modelos.services import ErroImportacaoDocumento, extrair_texto_documento
+from apps.modelos.services import (
+    ErroImportacaoDocumento,
+    extrair_texto_documento,
+    gerar_docx_modelo,
+    gerar_pdf_modelo,
+    montar_conteudo_caso_repetitivo,
+    titulo_peca_caso_repetitivo,
+)
 from apps.notificacoes.models import Notificacao
 
 
@@ -97,6 +107,10 @@ def _imagens_estilo_urls(estilo):
 
 def _pode_gerir_categorias(user):
     return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_GERIR_CATEGORIAS)
+
+
+def _pode_criar_modelo(user):
+    return tem_habilitacao(user, MODULO_MODELOS, HAB_MODELOS_CRIAR)
 
 
 def _listar_modelos(busca, categoria_id=None, area_direito=None, criado_por_id=None, data=None):
@@ -170,7 +184,7 @@ def lista(request):
     form_estilo_documento = None
     config_documento = None
     imagens_estilo_urls = None
-    if aba_ativa != "modelos":
+    if aba_ativa == "estilo":
         pode_editar_estilo = _pode_editar_estilo(request.user)
         estilo = _obter_estilo_escritorio()
         config_documento = estilo.config_documento
@@ -178,6 +192,17 @@ def lista(request):
         if pode_editar_estilo:
             form_estilo = EstiloEscritorioForm(instance=estilo)
             form_estilo_documento = EstiloDocumentoForm(instance=estilo)
+
+    pode_criar_modelo = _pode_criar_modelo(request.user)
+    peca_base_form = None
+    formset_casos = None
+    pecas_geradas = None
+    if aba_ativa == "repetitivas" and pode_criar_modelo:
+        peca_base_form = PecaBaseRepetitivaForm()
+        formset_casos = CasoRepetitivoFormSet(prefix="casos")
+        geradas_ids = [pk for pk in request.GET.get("geradas", "").split(",") if pk.isdigit()]
+        if geradas_ids:
+            pecas_geradas = ModeloPeca.objects.filter(pk__in=geradas_ids).select_related("categoria")
 
     return render(request, "modelos/lista.html", {
         "modelos": modelos,
@@ -191,6 +216,10 @@ def lista(request):
         "responsavel_selecionado": responsavel_id,
         "data_selecionada": data_criacao,
         "item_ativo": "modelos",
+        "pode_criar_modelo": pode_criar_modelo,
+        "peca_base_form": peca_base_form,
+        "formset_casos": formset_casos,
+        "pecas_geradas": pecas_geradas,
         "estilo": estilo,
         "pode_editar_estilo": pode_editar_estilo,
         "pode_gerir_categorias": _pode_gerir_categorias(request.user),
@@ -275,6 +304,40 @@ def detalhe(request, pk):
         "pode_editar": eh_dono or _pode_editar_alheio(request.user),
         "pode_excluir": eh_dono or _pode_excluir_alheio(request.user),
     })
+
+
+def _nome_arquivo_download(modelo, extensao):
+    nome = "".join(c if c.isalnum() or c in " -_" else "_" for c in modelo.titulo).strip() or "modelo"
+    return f"{nome}.{extensao}"
+
+
+@login_required
+def baixar_pdf(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    modelo = get_object_or_404(ModeloPeca, pk=pk)
+    estilo = _obter_estilo_escritorio()
+    buffer = gerar_pdf_modelo(modelo, estilo)
+    resposta = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    resposta["Content-Disposition"] = f'attachment; filename="{_nome_arquivo_download(modelo, "pdf")}"'
+    return resposta
+
+
+@login_required
+def baixar_docx(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    modelo = get_object_or_404(ModeloPeca, pk=pk)
+    estilo = _obter_estilo_escritorio()
+    buffer = gerar_docx_modelo(modelo, estilo)
+    resposta = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    resposta["Content-Disposition"] = f'attachment; filename="{_nome_arquivo_download(modelo, "docx")}"'
+    return resposta
 
 
 @login_required
@@ -481,6 +544,90 @@ def importar(request):
     return render(request, "modelos/importar.html", {
         "form": form,
         "item_ativo": "modelos",
+    })
+
+
+def _conteudo_e_metadados_peca_base(peca_base_form):
+    """Resolve conteúdo/título/tipo de peça/área a partir do modo escolhido
+    em PecaBaseRepetitivaForm — do acervo (ModeloPeca já existente) ou de um
+    arquivo anexado só para esta geração (nunca vira ModeloPeca próprio
+    antes de gerar). Retorna None em caso de erro de extração (já registrado
+    em peca_base_form)."""
+    dados = peca_base_form.cleaned_data
+    if dados["modo_base"] == MODO_BASE_ACERVO:
+        peca_base = dados["peca_base"]
+        return {
+            "conteudo": peca_base.conteudo,
+            "titulo": peca_base.titulo,
+            "categoria": peca_base.categoria,
+            "area_direito": peca_base.area_direito,
+        }
+
+    try:
+        conteudo = extrair_texto_documento(dados["arquivo_base"])
+    except ErroImportacaoDocumento as erro:
+        peca_base_form.add_error("arquivo_base", str(erro))
+        return None
+
+    return {
+        "conteudo": conteudo,
+        "titulo": Path(dados["arquivo_base"].name).stem.strip() or "Peça base",
+        "categoria": dados["categoria"],
+        "area_direito": dados["area_direito"],
+    }
+
+
+@login_required
+def gerar_pecas_repetitivas(request):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not tem_habilitacao(request.user, MODULO_MODELOS, HAB_MODELOS_CRIAR):
+        raise PermissionDenied
+
+    destino = f"{reverse('modelos:lista')}?aba=repetitivas"
+
+    if request.method != "POST":
+        return redirect(destino)
+
+    peca_base_form = PecaBaseRepetitivaForm(request.POST, request.FILES)
+    formset_casos = CasoRepetitivoFormSet(request.POST, prefix="casos")
+
+    if peca_base_form.is_valid() and formset_casos.is_valid():
+        casos_preenchidos = [caso for caso in formset_casos.forms if caso.tem_dados()]
+        if not casos_preenchidos:
+            peca_base_form.add_error(None, "Adicione ao menos um caso com dados preenchidos.")
+        else:
+            base = _conteudo_e_metadados_peca_base(peca_base_form)
+            if base is not None:
+                pecas_criadas = []
+                for indice, caso_form in enumerate(casos_preenchidos, start=1):
+                    dados_caso = caso_form.cleaned_data
+                    modelo = ModeloPeca.objects.create(
+                        titulo=titulo_peca_caso_repetitivo(base["titulo"], dados_caso.get("cliente"), indice),
+                        categoria=base["categoria"],
+                        area_direito=base["area_direito"],
+                        conteudo=montar_conteudo_caso_repetitivo(
+                            base["conteudo"],
+                            cliente=dados_caso.get("cliente"),
+                            valor=dados_caso.get("valor", ""),
+                            endereco_caso=dados_caso.get("endereco_caso", ""),
+                            particularidades=dados_caso.get("particularidades", ""),
+                        ),
+                        criado_por=request.user,
+                    )
+                    pecas_criadas.append(modelo.pk)
+                ids = ",".join(str(pk) for pk in pecas_criadas)
+                return redirect(f"{destino}&geradas={ids}")
+
+    return render(request, "modelos/lista.html", {
+        "modelos": _listar_modelos(""),
+        "aba_ativa": "repetitivas",
+        "busca": "",
+        "item_ativo": "modelos",
+        "pode_criar_modelo": True,
+        "peca_base_form": peca_base_form,
+        "formset_casos": formset_casos,
+        "pecas_geradas": None,
     })
 
 
