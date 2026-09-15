@@ -118,7 +118,8 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
 ### Agenda
 
 Compromissos manuais e originados de processo, lista + calendário
-mensal (mesmos dados, duas visões).
+mensal (mesmos dados, duas visões) convivendo na mesma página, com
+alternância dinâmica sem recarregar.
 
 - Prazo processual relevante deve poder aparecer na agenda, preservando
   a referência de origem mesmo após edição.
@@ -128,6 +129,16 @@ mensal (mesmos dados, duas visões).
   e antecedência configurável ficam fora de escopo.
 - Sincronização bidirecional automática prazo↔evento não está
   claramente aprovada em nenhum PDR — não presumir esse comportamento.
+- Faixa de sub-abas abaixo da lista/calendário: "Novos na sua agenda
+  (últimas 24h)" e "Adicionado por terceiro" sempre visíveis para
+  qualquer usuário; "Delegados por mim" e "Agenda de outros usuários"
+  só para quem já tem, respectivamente, a habilitação de criar
+  compromisso para outros e a Permissão "Agenda"/"Todos" + Gerir —
+  nenhuma habilitação nova.
+- Verificar disponibilidade de um convidado ao adicioná-lo como
+  participante (mostra os compromissos que ele já tem no horário)
+  é só informativo — nunca impede a criação do compromisso — e exige a
+  mesma permissão da aba "Agenda de outros usuários".
 - Fora de escopo: Google Calendar, múltiplos fusos, recorrência de
   evento.
 
