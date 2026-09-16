@@ -492,7 +492,7 @@
 
   {% if pode_criar_solicitacao_financeira %}
   <div class="flex justify-end mb-4">
-    <a href="{% url 'financeiro:form_solicitacao' %}?processo={{ processo.pk }}" class="btn-primary text-sm">+ Nova solicitação</a>
+    <a href="{% url 'financeiro:form_solicitacao' %}?processo={{ processo.pk }}&next={{ request.get_full_path|urlencode }}" class="btn-primary text-sm">+ Nova solicitação</a>
   </div>
   {% endif %}
 

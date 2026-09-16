@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'financeiro:solicitacoes_lista' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'financeiro:solicitacoes_lista' %}{% endif %}" class="text-gray-400 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -17,6 +17,7 @@
     {% if processo_fixo %}
       <input type="hidden" name="processo_fixo" value="{{ processo_fixo.pk }}">
     {% endif %}
+    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
 
     {% if form.non_field_errors %}
       <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -132,7 +133,7 @@
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
       <button type="submit" class="btn-primary">Criar solicitação</button>
-      <a href="{% url 'financeiro:solicitacoes_lista' %}" class="btn-secondary">Cancelar</a>
+      <a href="{% if next_url %}{{ next_url }}{% else %}{% url 'financeiro:solicitacoes_lista' %}{% endif %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>
 </div>

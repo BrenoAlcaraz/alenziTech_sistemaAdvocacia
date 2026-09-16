@@ -90,7 +90,13 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   ficam escolhíveis entre os clientes do próprio processo quando ele tem
   mais de um vinculado). O formulário sem esse parâmetro continua livre
   (pagamento ou reembolso, qualquer cliente/processo), igual ao "+ Nova
-  solicitação" do próprio módulo Financeiro.
+  solicitação" do próprio módulo Financeiro. Nesse caminho o link carrega
+  a origem (`next`, mesmo mecanismo genérico de retorno já usado entre
+  `processos` e `tarefas`); voltar, cancelar ou salvar com sucesso
+  devolvem ao processo de origem (`processos/<id>/?aba=custas`) em vez
+  da lista geral de solicitações. Sem essa origem, o formulário continua
+  voltando/cancelando/salvando para `financeiro/solicitacoes`, como
+  antes.
 - Marcar uma solicitação de `tipo="pagamento"` como "paga" exige
   informar se a custa foi paga pelo escritório ou diretamente pelo
   cliente, e anexar o comprovante de pagamento (campo próprio, separado

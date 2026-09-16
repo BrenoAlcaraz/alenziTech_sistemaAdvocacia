@@ -28,9 +28,11 @@ from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, 
 from apps.accounts.permissoes_constants import (
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
     MODULO_FINANCEIRO,
+    MODULO_PROCESSOS,
     NIVEL_DADOS_PROPRIOS,
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
+    NIVEL_TODOS,
 )
 from apps.clientes.models import Cliente
 from apps.financeiro.models import CustaJudicial, LancamentoFinanceiro, SolicitacaoFinanceira
@@ -896,3 +898,105 @@ class TestNovaSolicitacaoAPartirDoProcesso(SolicitacaoFinanceiraBase):
         self.assertIsInstance(form.fields["processo"].widget, forms.HiddenInput)
         ids_disponiveis = set(form.fields["cliente"].queryset.values_list("pk", flat=True))
         self.assertEqual(ids_disponiveis, {self.cliente.pk, outro_cliente.pk})
+
+
+# ── Retorno ao processo de origem via `next` (specs/retorno-ao-processo-nova-solicitacao-custas.md) ──
+
+class TestNovaSolicitacaoRetornoAoProcesso(SolicitacaoFinanceiraBase):
+    """Voltar/cancelar/salvar em `financeiro:form_solicitacao` deve
+    devolver ao processo de origem quando o link veio com `?next=`
+    (mecanismo genérico já usado em tarefas), preservando o destino
+    padrão (`financeiro/solicitacoes/`) quando não há origem."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_retorno_processo"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Retorno Processo"
+        tenant.slug = "solicitacoes-retorno-processo"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("advogado")
+        self._conceder_modulo(self.user, nivel=NIVEL_SOLICITACOES)
+        papel_processos = self._new_papel("Papel Processos")
+        UsuarioPapel.objects.create(usuario=self.user, papel=papel_processos, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel_processos, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+        )
+        self.client.force_login(self.user)
+
+        self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo.clientes.add(self.cliente)
+        self.origem = f"/processos/{self.processo.pk}/?aba=custas"
+
+    def test_link_na_aba_custas_do_processo_propaga_next(self):
+        r = self.client.get(self.origem, HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(
+            r,
+            f'/financeiro/solicitacoes/nova/?processo={self.processo.pk}&next=/processos/{self.processo.pk}/%3Faba%3Dcustas',
+        )
+
+    def test_get_com_next_valido_expoe_next_url_no_contexto(self):
+        r = self.client.get(
+            f"/financeiro/solicitacoes/nova/?processo={self.processo.pk}&next={self.origem}",
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context["next_url"], self.origem)
+        self.assertContains(r, f'value="{self.origem}"')
+
+    def test_get_com_next_de_outro_host_e_ignorado(self):
+        r = self.client.get(
+            "/financeiro/solicitacoes/nova/?next=https://evil.example.com/",
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.context["next_url"])
+
+    def test_sem_next_contexto_fica_none(self):
+        r = self.client.get("/financeiro/solicitacoes/nova/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertIsNone(r.context["next_url"])
+
+    def test_salvar_com_next_redireciona_ao_processo_de_origem(self):
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "processo_fixo": self.processo.pk,
+                "next": self.origem,
+                "tipo": "pagamento",
+                "descricao": "Custa de citação",
+                "valor": "250.00",
+                "cliente": self.cliente.pk,
+                "processo": self.processo.pk,
+                "vencimento": "2026-10-15",
+                "anexo": _anexo("boleto.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, self.origem, fetch_redirect_response=False)
+
+    def test_salvar_com_next_de_outro_host_cai_no_destino_padrao(self):
+        r = self.client.post(
+            "/financeiro/solicitacoes/nova/",
+            {
+                "processo_fixo": self.processo.pk,
+                "next": "https://evil.example.com/",
+                "tipo": "pagamento",
+                "descricao": "Custa de citação maliciosa",
+                "valor": "250.00",
+                "cliente": self.cliente.pk,
+                "processo": self.processo.pk,
+                "vencimento": "2026-10-15",
+                "anexo": _anexo("boleto.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, "/financeiro/solicitacoes/", fetch_redirect_response=False)

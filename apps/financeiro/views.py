@@ -852,6 +852,10 @@ def form_solicitacao(request):
     )
     processo_fixo = Processo.objects.filter(pk=processo_fixo_id).first() if processo_fixo_id else None
 
+    next_url = request.GET.get("next") or request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = None
+
     if request.method == "POST":
         form = SolicitacaoFinanceiraForm(request.POST, request.FILES, processo_fixo=processo_fixo)
         if form.is_valid():
@@ -860,13 +864,14 @@ def form_solicitacao(request):
             if solicitacao.processo and not solicitacao.cliente:
                 solicitacao.cliente = solicitacao.processo.clientes.first()
             solicitacao.save()
-            return redirect("financeiro:solicitacoes_lista")
+            return redirect(next_url or "financeiro:solicitacoes_lista")
     else:
         form = SolicitacaoFinanceiraForm(processo_fixo=processo_fixo)
 
     return render(request, "financeiro/form_solicitacao.html", {
         "form": form,
         "processo_fixo": processo_fixo,
+        "next_url": next_url,
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })
