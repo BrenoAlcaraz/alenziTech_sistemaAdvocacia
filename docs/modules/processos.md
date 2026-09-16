@@ -30,24 +30,37 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   escritório. Gerenciar integrantes habilitados exige
   `gerir_habilitar_usuario_processos`.
 
-## Partes (PDR-0013 — modelo vigente; catálogo estendido por PDR-0023)
+## Partes (PDR-0013 — modelo vigente; catálogo estendido por PDR-0023/PDR-0027)
 
 - Cada parte tem um único campo de papel processual, agrupado
   visualmente em Polo Ativo / Polo Passivo / Outros — forma do modelo
-  definida por PDR-0013, catálogo de valores estendido por PDR-0023:
+  definida por PDR-0013, catálogo de valores estendido por
+  PDR-0023/PDR-0027:
   - Polo Ativo: Autor, Embargante, Recorrente, Exequente, Requerente,
     Reclamante, Agravante, Impugnante, Reconvinte, Excipiente,
     Impetrante, Inventariante.
   - Polo Passivo: Réu, Embargado, Recorrido, Executado, Requerido,
     Reclamado, Agravado, Impugnado, Reconvindo, Excepto, Impetrado,
     Inventariado.
-  - Outros: Terceiro Interessado, Ministério Público, Juiz. ("Amicus
+  - Outros: Terceiro Interessado, Ministério Público, Juiz, Perito,
+    Testemunha, Assistente de Acusação (PDR-0027 — sem polo, sem
+    contraparte, disponíveis para qualquer área do direito). ("Amicus
     Curiae" removido do catálogo por PDR-0023.)
   - Autor/Réu seguem válidos para o caso genérico; os pares por tipo de
     ação (execução, trabalhista, recurso, agravo, impugnação,
     reconvenção, exceção, mandado de segurança, inventário) são
     escolha manual de quem cadastra a Parte — nada infere o par a
     partir de outro campo do processo.
+- Sugestão automática de contraparte (PDR-0027): os 12 pares Polo
+  Ativo/Polo Passivo estão mapeados em `ParteProcesso.PAPEL_CONTRAPARTE`.
+  Ao selecionar, no formulário de cadastro, um papel pareado, um
+  segundo mini-formulário aparece via JS (sem reload) com o papel
+  oposto pré-selecionado — envio continua sendo dois POSTs
+  independentes para `adicionar_parte`. Sugestão é dispensável e não
+  aparece se a contraparte já estiver cadastrada no processo; papéis de
+  "Outros" nunca disparam a sugestão. Não contradiz o PDR-0023: a
+  inferência é a partir da parte já selecionada no formulário, nunca a
+  partir de um campo do processo.
 - Parte que corresponde a um dos Clientes do processo reaproveita o
   cadastro (sem redigitação); campos de advogado pré-preenchidos quando
   a parte bate com um dos Clientes por CPF/CNPJ.
@@ -240,7 +253,9 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 ## Pontos em aberto
 
 - Lista canônica definitiva de valores de status processual.
-- Autoridades além de juiz (relator, desembargador, perito).
+- Autoridades além de juiz (relator, desembargador) — Perito já
+  resolvido como valor simples em Outros pelo PDR-0027, sem modelagem
+  própria de "autoridade".
 - Mecanismo exato de criação rápida de cliente durante o fluxo de
   processo.
 - Materialização automática do Cliente como Parte ao vincular o
@@ -258,4 +273,5 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 - [PDR-0017](../decisions/PDR-0017-habilitacoes-criar-editar-andamento-processos.md)
 - [PDR-0023](../decisions/PDR-0023-partes-catalogo-pares-por-tipo-acao.md)
 - [PDR-0024](../decisions/PDR-0024-exclusao-definitiva-processo.md)
+- [PDR-0027](../decisions/PDR-0027-sugestao-contraparte-e-papeis-outros.md)
 - [STATUS.md](../STATUS.md#processos) para o estado real de implementação

@@ -54,3 +54,4 @@ serem efetivamente decididas.
 | PDR-0024 | Exclusão definitiva de Processo | accepted | [PDR-0024-exclusao-definitiva-processo.md](PDR-0024-exclusao-definitiva-processo.md) |
 | PDR-0025 | Exclusão definitiva de Cliente | accepted | [PDR-0025-exclusao-definitiva-cliente.md](PDR-0025-exclusao-definitiva-cliente.md) |
 | PDR-0026 | Grupo automático de Chat por Equipe | accepted | [PDR-0026-grupo-automatico-chat-por-equipe.md](PDR-0026-grupo-automatico-chat-por-equipe.md) |
+| PDR-0027 | Sugestão automática de contraparte e novos papéis em Outros | accepted | [PDR-0027-sugestao-contraparte-e-papeis-outros.md](PDR-0027-sugestao-contraparte-e-papeis-outros.md) |
