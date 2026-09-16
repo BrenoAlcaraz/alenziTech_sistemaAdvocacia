@@ -594,6 +594,10 @@ class TestSolicitacoesModuloNegado(SolicitacaoFinanceiraBase):
         )
         self.assertEqual(r.status_code, 403)
 
+    def test_editar_negado(self):
+        r = self.client.get(f"/financeiro/solicitacoes/{self.solicitacao.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
 
 class TestAnexoSolicitacaoIsolamentoMultiTenant(SolicitacaoFinanceiraBase):
     @classmethod
@@ -1000,3 +1004,208 @@ class TestNovaSolicitacaoRetornoAoProcesso(SolicitacaoFinanceiraBase):
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/financeiro/solicitacoes/", fetch_redirect_response=False)
+
+
+# ── Edição de solicitação enquanto pendente (specs/edicao-solicitacao-financeira-pendente.md) ──
+
+class TestEditarSolicitacao(SolicitacaoFinanceiraBase):
+    """Editar campos de uma SolicitacaoFinanceira é permitido só em
+    `solicitada`/`em_analise`; a partir de `aprovada`/`rejeitada`/`paga` a
+    edição é bloqueada. Reaproveita SolicitacaoFinanceiraForm e a mesma
+    trava de tipo/processo/cliente já usada na criação a partir da aba
+    Custas Judiciais."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "solicitacoes_editar"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Solicitacoes Editar"
+        tenant.slug = "solicitacoes-editar"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("advogado")
+        self._conceder_modulo(self.user, nivel=NIVEL_SOLICITACOES)
+        self.client.force_login(self.user)
+
+        self.outro = self._user("outro_advogado")
+        self._conceder_modulo(self.outro, nivel=NIVEL_SOLICITACOES)
+
+        self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo.clientes.add(self.cliente)
+
+    def _url(self, solicitacao):
+        return f"/financeiro/solicitacoes/{solicitacao.pk}/editar/"
+
+    def _pagamento(self, **kwargs):
+        defaults = dict(
+            tipo="pagamento", descricao="Custa de citação", cliente=self.cliente,
+            processo=self.processo, vencimento="2026-10-15",
+        )
+        defaults.update(kwargs)
+        return self._solicitacao(solicitante=self.user, **defaults)
+
+    def test_get_editar_solicitada_autorizado(self):
+        s = self._solicitacao(solicitante=self.user)
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context["form"].instance.pk, s.pk)
+
+    def test_get_editar_em_analise_autorizado(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+
+    def test_editar_aprovada_negado(self):
+        s = self._pagamento()
+        s.avancar_para("em_analise")
+        s.avancar_para("aprovada")
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_rejeitada_negado(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        s.avancar_para("rejeitada")
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_editar_paga_negado(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        s.avancar_para("aprovada")
+        s.avancar_para("paga")
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 403)
+
+    def test_post_editar_fora_da_janela_negado(self):
+        s = self._pagamento()
+        s.avancar_para("em_analise")
+        s.avancar_para("aprovada")
+        r = self.client.post(
+            self._url(s), {"descricao": "Tentativa de alterar"}, HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.status_code, 403)
+        s.refresh_from_db()
+        self.assertEqual(s.descricao, "Custa de citação")
+
+    def test_editar_alheia_nao_encontrada(self):
+        alheia = self._solicitacao(solicitante=self.outro)
+        r = self.client.get(self._url(alheia), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 404)
+
+    def test_post_editar_atualiza_descricao_e_valor_sem_criar_nova(self):
+        s = self._solicitacao(solicitante=self.user, descricao="Original", valor="100.00")
+        antes = SolicitacaoFinanceira.objects.count()
+        r = self.client.post(
+            self._url(s),
+            {
+                "tipo": "reembolso",
+                "descricao": "Descrição corrigida",
+                "valor": "180.00",
+                "data_gasto": "2026-08-20",
+                "anexo": _anexo("comprovante-novo.pdf"),
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertRedirects(r, f"/financeiro/solicitacoes/{s.pk}/", fetch_redirect_response=False)
+        self.assertEqual(SolicitacaoFinanceira.objects.count(), antes)
+        s.refresh_from_db()
+        self.assertEqual(s.descricao, "Descrição corrigida")
+        self.assertEqual(str(s.valor), "180.00")
+        self.assertEqual(s.status, "solicitada")
+
+    def test_editar_pagamento_com_processo_trava_tipo_processo_cliente(self):
+        s = self._pagamento()
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        form = r.context["form"]
+        self.assertIsInstance(form.fields["tipo"].widget, forms.HiddenInput)
+        self.assertIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        self.assertIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+        self.assertEqual(form.initial["processo"], self.processo.pk)
+        self.assertEqual(form.initial["cliente"], self.cliente.pk)
+
+    def test_editar_pagamento_nao_permite_trocar_processo(self):
+        s = self._pagamento()
+        outro_cliente = Cliente.objects.create(nome_razao_social="Outro Cliente", responsavel=self.user)
+        outro_processo = Processo.objects.create(titulo="Outro Processo", responsavel=self.user)
+        outro_processo.clientes.add(outro_cliente)
+
+        r = self.client.post(
+            self._url(s),
+            {
+                "tipo": "pagamento",
+                "descricao": "Tentando trocar processo",
+                "valor": "300.00",
+                "cliente": outro_cliente.pk,
+                "processo": outro_processo.pk,
+                "vencimento": "2026-10-15",
+                "observacao": "",
+            },
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.context["form"].errors)
+        s.refresh_from_db()
+        self.assertEqual(s.processo_id, self.processo.pk)
+        self.assertEqual(s.cliente_id, self.cliente.pk)
+
+    def test_editar_pagamento_processo_perdeu_cliente_nao_reatribui_silenciosamente(self):
+        """O processo pode perder o cliente da solicitação depois de criada
+        (ProcessoForm permite editar `clientes` livremente). Travar mesmo
+        assim reatribuiria o campo oculto de cliente para o único cliente
+        restante do processo sem o usuário perceber — a edição deve deixar
+        de travar e expor o campo para correção manual."""
+        outro_cliente = Cliente.objects.create(nome_razao_social="Outro Cliente", responsavel=self.user)
+        self.processo.clientes.add(outro_cliente)
+        s = self._pagamento(cliente=outro_cliente)
+        self.processo.clientes.remove(outro_cliente)
+
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        form = r.context["form"]
+        self.assertNotIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+        self.assertNotIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        self.assertEqual(form.initial["cliente"], outro_cliente.pk)
+
+    def test_editar_reembolso_campos_livres_mesmo_com_processo_associado(self):
+        s = self._solicitacao(solicitante=self.user, processo=self.processo, cliente=self.cliente)
+        r = self.client.get(self._url(s), HTTP_HOST=self.http_host)
+        form = r.context["form"]
+        self.assertNotIsInstance(form.fields["tipo"].widget, forms.HiddenInput)
+        self.assertNotIsInstance(form.fields["processo"].widget, forms.HiddenInput)
+        self.assertNotIsInstance(form.fields["cliente"].widget, forms.HiddenInput)
+
+    def test_card_detalhe_mostra_editar_quando_solicitada(self):
+        s = self._solicitacao(solicitante=self.user)
+        r = self.client.get(f"/financeiro/solicitacoes/{s.pk}/", HTTP_HOST=self.http_host)
+        self.assertContains(r, self._url(s))
+
+    def test_card_detalhe_mostra_editar_quando_em_analise(self):
+        s = self._solicitacao(solicitante=self.user)
+        s.avancar_para("em_analise")
+        r = self.client.get(f"/financeiro/solicitacoes/{s.pk}/", HTTP_HOST=self.http_host)
+        self.assertContains(r, self._url(s))
+
+    def test_card_detalhe_esconde_editar_quando_aprovada_rejeitada_ou_paga(self):
+        aprovada = self._pagamento(descricao="Aprovada")
+        aprovada.avancar_para("em_analise")
+        aprovada.avancar_para("aprovada")
+
+        rejeitada = self._solicitacao(solicitante=self.user, descricao="Rejeitada")
+        rejeitada.avancar_para("em_analise")
+        rejeitada.avancar_para("rejeitada")
+
+        paga = self._solicitacao(solicitante=self.user, descricao="Paga")
+        paga.avancar_para("em_analise")
+        paga.avancar_para("aprovada")
+        paga.avancar_para("paga")
+
+        for s in (aprovada, rejeitada, paga):
+            r = self.client.get(f"/financeiro/solicitacoes/{s.pk}/", HTTP_HOST=self.http_host)
+            self.assertNotContains(r, self._url(s))

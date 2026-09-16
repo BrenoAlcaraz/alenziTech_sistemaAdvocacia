@@ -880,6 +880,62 @@ def form_solicitacao(request):
 
 
 @login_required
+def editar_solicitacao(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
+    if solicitacao.status not in ("solicitada", "em_analise"):
+        # Fora da janela de edição (PDR-0015): a partir de aprovada, a
+        # solicitação já está em processamento pelo caixa geral.
+        raise PermissionDenied
+
+    # Toda solicitação tipo="pagamento" tem processo obrigatório desde a
+    # criação (SolicitacaoFinanceiraForm.clean); tratá-la como travada na
+    # edição replica a trava da criação via aba Custas Judiciais e evita
+    # trocar o processo/cliente de uma custa já vinculada. Reembolso nunca
+    # trava (mesmo se tiver processo associado), pois travar forçaria o
+    # campo oculto de tipo para "pagamento" e mudaria o tipo ao salvar.
+    #
+    # Só trava se o cliente já salvo ainda pertence ao processo: o
+    # processo pode ter perdido esse cliente (ProcessoForm permite editar
+    # `clientes`) desde que a solicitação foi criada, e
+    # `_travar_tipo_processo_cliente` reatribuiria silenciosamente o
+    # cliente hidden para o único cliente restante do processo — sem essa
+    # checagem, salvar a edição sem tocar no cliente trocaria o cliente da
+    # custa por engano.
+    processo_fixo = None
+    if solicitacao.tipo == "pagamento" and solicitacao.processo:
+        if solicitacao.processo.clientes.filter(pk=solicitacao.cliente_id).exists():
+            processo_fixo = solicitacao.processo
+
+    next_url = request.GET.get("next") or request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = None
+
+    if request.method == "POST":
+        form = SolicitacaoFinanceiraForm(
+            request.POST, request.FILES, instance=solicitacao, processo_fixo=processo_fixo
+        )
+        if form.is_valid():
+            form.save()
+            return redirect(next_url or "financeiro:detalhe_solicitacao", pk=solicitacao.pk)
+    else:
+        form = SolicitacaoFinanceiraForm(instance=solicitacao, processo_fixo=processo_fixo)
+
+    return render(request, "financeiro/form_solicitacao.html", {
+        "form": form,
+        "processo_fixo": processo_fixo,
+        "next_url": next_url,
+        "modo": "editar",
+        "solicitacao": solicitacao,
+        "aba_ativa": "solicitacoes",
+        "item_ativo": "financeiro",
+    })
+
+
+@login_required
 def detalhe_solicitacao(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied

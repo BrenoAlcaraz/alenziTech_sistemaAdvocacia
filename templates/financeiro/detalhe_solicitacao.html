@@ -18,6 +18,9 @@
     {% else %}bg-green-100 text-green-700{% endif %}">
     {{ solicitacao.get_status_display }}
   </span>
+  {% if solicitacao.status == "solicitada" or solicitacao.status == "em_analise" %}
+    <a href="{% url 'financeiro:editar_solicitacao' solicitacao.pk %}" class="ml-auto btn-secondary">Editar</a>
+  {% endif %}
 </div>
 
 <div class="card p-6 max-w-2xl">

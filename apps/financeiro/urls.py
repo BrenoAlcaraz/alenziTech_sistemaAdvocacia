@@ -44,6 +44,7 @@ urlpatterns = [
     path("financeiro/honorarios/<int:pk>/cancelar/", views.cancelar_honorario, name="cancelar_honorario"),
     path("financeiro/solicitacoes/", views.solicitacoes_lista, name="solicitacoes_lista"),
     path("financeiro/solicitacoes/nova/", views.form_solicitacao, name="form_solicitacao"),
+    path("financeiro/solicitacoes/<int:pk>/editar/", views.editar_solicitacao, name="editar_solicitacao"),
     path("financeiro/solicitacoes/<int:pk>/", views.detalhe_solicitacao, name="detalhe_solicitacao"),
     path("financeiro/solicitacoes/<int:pk>/anexo/", views.anexo_solicitacao, name="anexo_solicitacao"),
     path(
