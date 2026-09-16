@@ -29,7 +29,7 @@ from apps.accounts.permissoes_constants import (
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
-from .models import Documento, Intimacao, Processo
+from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
     AdicionarIntegranteForm,
@@ -275,6 +275,9 @@ def detalhe(request, pk):
         "tem_candidatos_integrante": candidatos_integrante.exists(),
         "pode_gerenciar_integrantes": pode_gerenciar_integrantes,
         "form_parte": ParteProcessoForm(processo=processo),
+        "form_parte_contraparte": ParteProcessoForm(processo=processo, auto_id="id_contraparte_%s"),
+        "papel_contraparte": ParteProcesso.PAPEL_CONTRAPARTE,
+        "papeis_cadastrados": [parte.papel for parte in partes],
         "form_movimentacao": MovimentacaoProcessualForm(processo=processo),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",

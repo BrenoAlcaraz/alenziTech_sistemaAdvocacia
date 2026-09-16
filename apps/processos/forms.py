@@ -201,6 +201,9 @@ class ParteProcessoForm(forms.ModelForm):
             ("terceiro_interessado", "Terceiro Interessado"),
             ("ministerio_publico", "Ministério Público"),
             ("juiz", "Juiz"),
+            ("perito", "Perito"),
+            ("testemunha", "Testemunha"),
+            ("assistente_acusacao", "Assistente de Acusação"),
         ]),
     ]
 

@@ -1,0 +1,31 @@
+<script>
+(function () {
+  "use strict";
+
+  var papelSelect = document.getElementById("id_papel");
+  var sugestaoForm = document.getElementById("form-sugestao-contraparte");
+  var contraparteSelect = document.getElementById("id_contraparte_papel");
+  var dataEl = document.getElementById("papel-contraparte-data");
+  var cadastradosEl = document.getElementById("papeis-cadastrados-data");
+  var btnDispensar = document.getElementById("btn-dispensar-sugestao-contraparte");
+  if (!papelSelect || !sugestaoForm || !contraparteSelect || !dataEl || !cadastradosEl || !btnDispensar) return;
+
+  var papelContraparte = JSON.parse(dataEl.textContent);
+  var papeisCadastrados = JSON.parse(cadastradosEl.textContent);
+
+  function atualizarSugestao() {
+    var contraparte = papelContraparte[papelSelect.value];
+    if (!contraparte || papeisCadastrados.indexOf(contraparte) !== -1) {
+      sugestaoForm.classList.add("hidden");
+      return;
+    }
+    contraparteSelect.value = contraparte;
+    sugestaoForm.classList.remove("hidden");
+  }
+
+  papelSelect.addEventListener("change", atualizarSugestao);
+  btnDispensar.addEventListener("click", function () {
+    sugestaoForm.classList.add("hidden");
+  });
+})();
+</script>

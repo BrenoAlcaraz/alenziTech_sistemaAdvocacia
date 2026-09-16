@@ -1,3 +1,6 @@
+import json
+import re
+
 from django.apps import apps as django_apps
 from django.core.exceptions import ValidationError
 
@@ -105,6 +108,40 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
         self.assertEqual(valores, set(dict(ParteProcesso.PAPEL_CHOICES).keys()))
         self.assertIn("juiz", dict(grupos["Outros"]))
         self.assertIn("ministerio_publico", dict(grupos["Outros"]))
+
+    def test_novos_papeis_outros_disponiveis_sem_polo_nem_contraparte(self):
+        outros_do_form = dict(dict(ParteProcessoForm.GRUPOS_PAPEL)["Outros"])
+        for papel in ("perito", "testemunha", "assistente_acusacao"):
+            with self.subTest(papel=papel):
+                self.assertEqual(ParteProcesso.GRUPO_POR_PAPEL[papel], "outros")
+                self.assertNotIn(papel, ParteProcesso.PAPEL_CONTRAPARTE)
+                self.assertIn(papel, outros_do_form)
+
+    def test_papel_contraparte_cobre_exatamente_os_12_pares_e_e_simetrico(self):
+        pares_esperados = {
+            "autor": "reu",
+            "embargante": "embargado",
+            "recorrente": "recorrido",
+            "exequente": "executado",
+            "requerente": "requerido",
+            "reclamante": "reclamado",
+            "agravante": "agravado",
+            "impugnante": "impugnado",
+            "reconvinte": "reconvindo",
+            "excipiente": "excepto",
+            "impetrante": "impetrado",
+            "inventariante": "inventariado",
+        }
+        mapa = ParteProcesso.PAPEL_CONTRAPARTE
+        self.assertEqual(len(mapa), 24)
+        for ativo, passivo in pares_esperados.items():
+            with self.subTest(par=(ativo, passivo)):
+                self.assertEqual(mapa[ativo], passivo)
+                self.assertEqual(mapa[passivo], ativo)
+        for papel_outros in ("terceiro_interessado", "ministerio_publico", "juiz",
+                              "perito", "testemunha", "assistente_acusacao"):
+            with self.subTest(papel=papel_outros):
+                self.assertNotIn(papel_outros, mapa)
 
     def test_juiz_e_um_papel_da_parte_sem_entidade_separada(self):
         resposta = self._adicionar_parte("juiz", nome="Juíza Maria")
@@ -246,6 +283,55 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
             HTTP_HOST=self.http_host,
         )
         self.assertNotContains(resposta, "Usar dados do cliente selecionado")
+
+    def _dado_embutido(self, resposta, elemento_id):
+        marcador = f'id="{elemento_id}"'
+        inicio = resposta.content.decode().index(marcador)
+        bloco = resposta.content.decode()[inicio:]
+        conteudo = bloco.split(">", 1)[1].split("</script>", 1)[0]
+        return json.loads(conteudo)
+
+    def test_detalhe_expoe_mapa_de_contraparte_e_papeis_ja_cadastrados(self):
+        self._parte(papel="exequente", nome="Parte exequente")
+        resposta = self.client.get(
+            f"/processos/{self.processo.pk}/",
+            {"aba": "partes"},
+            HTTP_HOST=self.http_host,
+        )
+        mapa = self._dado_embutido(resposta, "papel-contraparte-data")
+        self.assertEqual(mapa["exequente"], "executado")
+        self.assertEqual(mapa["executado"], "exequente")
+        for papel_outros in ("juiz", "perito", "testemunha", "assistente_acusacao"):
+            self.assertNotIn(papel_outros, mapa)
+
+        cadastrados = self._dado_embutido(resposta, "papeis-cadastrados-data")
+        self.assertEqual(cadastrados, ["exequente"])
+
+    def test_detalhe_exibe_formulario_de_sugestao_de_contraparte_oculto(self):
+        resposta = self.client.get(
+            f"/processos/{self.processo.pk}/",
+            {"aba": "partes"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertContains(resposta, 'id="form-sugestao-contraparte"')
+        self.assertContains(resposta, 'id="btn-dispensar-sugestao-contraparte"')
+        self.assertContains(resposta, 'id="id_contraparte_papel"')
+        # Formulário nasce oculto (classe utilitária "hidden") — JS decide
+        # quando exibir, sem reload do servidor.
+        tag_form = re.search(r"<form[^>]*id=\"form-sugestao-contraparte\"[^>]*>", resposta.content.decode())
+        self.assertIsNotNone(tag_form)
+        self.assertIn("hidden", tag_form.group(0))
+
+    def test_sem_pode_modificar_nao_expoe_formulario_de_sugestao(self):
+        leitor = self._user("leitor_sugestao_contraparte")
+        self._autorizar(leitor, NIVEL_TODOS)
+        self.client.force_login(leitor)
+        resposta = self.client.get(
+            f"/processos/{self.processo.pk}/",
+            {"aba": "partes"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertNotContains(resposta, 'id="form-sugestao-contraparte"')
 
 
 class TestParticipantesIdor(ProcessosEscopoBase):

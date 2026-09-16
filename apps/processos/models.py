@@ -457,7 +457,32 @@ class ParteProcesso(models.Model):
         ("terceiro_interessado", "Terceiro Interessado"),
         ("ministerio_publico", "Ministério Público"),
         ("juiz", "Juiz"),
+        ("perito", "Perito"),
+        ("testemunha", "Testemunha"),
+        ("assistente_acusacao", "Assistente de Acusação"),
     ]
+
+    # Pares Polo Ativo/Polo Passivo com contraparte processual direta —
+    # usado só para sugerir o cadastro da parte oposta (ver PAPEL_CONTRAPARTE
+    # abaixo); papéis de "Outros" não têm contraparte.
+    PARES_CONTRAPARTE = [
+        ("autor", "reu"),
+        ("embargante", "embargado"),
+        ("recorrente", "recorrido"),
+        ("exequente", "executado"),
+        ("requerente", "requerido"),
+        ("reclamante", "reclamado"),
+        ("agravante", "agravado"),
+        ("impugnante", "impugnado"),
+        ("reconvinte", "reconvindo"),
+        ("excipiente", "excepto"),
+        ("impetrante", "impetrado"),
+        ("inventariante", "inventariado"),
+    ]
+
+    PAPEL_CONTRAPARTE = dict(PARES_CONTRAPARTE) | {
+        passivo: ativo for ativo, passivo in PARES_CONTRAPARTE
+    }
 
     GRUPO_POR_PAPEL = {
         "autor": "polo_ativo",
@@ -487,6 +512,9 @@ class ParteProcesso(models.Model):
         "terceiro_interessado": "outros",
         "ministerio_publico": "outros",
         "juiz": "outros",
+        "perito": "outros",
+        "testemunha": "outros",
+        "assistente_acusacao": "outros",
     }
 
     processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="partes")
