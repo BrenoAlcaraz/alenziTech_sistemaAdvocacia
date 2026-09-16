@@ -220,11 +220,11 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
     def test_adicionar_movimentacao_alheia_retorna_404_e_nao_cria(self):
         quantidade_anterior = self.alheio.movimentacoes.count()
         payload = {
-            "tipo": "andamento",
+            "tipo": "despacho",
             "data": "2026-08-20T10:00",
             "descricao": "Movimentação adversarial válida",
         }
-        formulario = MovimentacaoProcessualForm(payload)
+        formulario = MovimentacaoProcessualForm(payload, processo=self.alheio)
         self.assertTrue(formulario.is_valid(), formulario.errors)
 
         resposta = self.client.post(

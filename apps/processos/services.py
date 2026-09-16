@@ -3,6 +3,7 @@ import re
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q, Subquery
+from django.utils import timezone
 
 from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS
@@ -111,6 +112,24 @@ def faixa_status_do_processo(processo, movimentacoes=None):
         "parado_ha_dias": parado_ha_dias,
         "tempo_medio_dias": tempo_medio_dias,
     }
+
+
+def recalcular_prazo_proximo(processo, movimentacoes=None):
+    """`Processo.prazo_proximo` automático (não mais editado manualmente):
+    o `data_prazo` ainda não vencido mais próximo entre os andamentos do
+    processo ou, se todos já venceram, o vencido mais recente. `None`
+    quando nenhum andamento tem `data_prazo`."""
+    movimentacoes = (
+        processo.movimentacoes.all() if movimentacoes is None else movimentacoes
+    )
+    datas_prazo = sorted(
+        mov.data_prazo for mov in movimentacoes if mov.data_prazo is not None
+    )
+    if not datas_prazo:
+        return None
+    hoje = timezone.localdate()
+    futuros = [data for data in datas_prazo if data >= hoje]
+    return futuros[0] if futuros else datas_prazo[-1]
 
 
 def nome_exibicao_usuario(usuario):

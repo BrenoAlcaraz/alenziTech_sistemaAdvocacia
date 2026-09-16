@@ -184,7 +184,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      Prazos
+      Prazos <span class="text-gray-400">({{ prazos|length }})</span>
     </a>
     <a href="?aba=documentos"
        class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}">
@@ -228,14 +228,18 @@
       <div>{{ form_movimentacao.tipo }}</div>
       <div>{{ form_movimentacao.data }}</div>
       <div class="col-span-2">{{ form_movimentacao.descricao }}</div>
+      <div>
+        <label class="label">{{ form_movimentacao.data_prazo.label }}</label>
+        {{ form_movimentacao.data_prazo }}
+      </div>
+      <div>
+        <label class="label">{{ form_movimentacao.origem_prazo.label }}</label>
+        {{ form_movimentacao.origem_prazo }}
+      </div>
     </div>
     <details class="mb-3">
-      <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar prazo ou resultado da sentença do processo (opcional)</summary>
+      <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar resultado da sentença do processo (opcional)</summary>
       <div class="grid grid-cols-2 gap-3 mt-3">
-        <div>
-          <label class="label">{{ form_movimentacao.atualizar_prazo_proximo.label }}</label>
-          {{ form_movimentacao.atualizar_prazo_proximo }}
-        </div>
         <div>
           <label class="label">{{ form_movimentacao.atualizar_resultado_sentenca.label }}</label>
           {{ form_movimentacao.atualizar_resultado_sentenca }}
@@ -258,6 +262,11 @@
           <span class="badge-area mb-1 inline-block">{{ mov.get_tipo_display }}</span>
           <p class="text-xs text-gray-400 mb-0.5">{{ mov.data|date:"d/m/Y" }}</p>
           <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
+          {% if mov.data_prazo %}
+            <p class="text-xs {% if mov.prazo_vencido %}text-red-600{% else %}text-gray-500{% endif %} mt-0.5">
+              Prazo: {{ mov.data_prazo|date:"d/m/Y" }}{% if mov.prazo_vencido %} (vencido){% endif %}
+            </p>
+          {% endif %}
         </div>
       </div>
     {% empty %}
@@ -396,7 +405,33 @@
   {% endif %}
 
 {% elif aba_ativa == "prazos" %}
-  {% include "components/empty_state.html" with mensagem="Nenhum prazo cadastrado." %}
+
+  {% if prazos %}
+  <div class="flex flex-col gap-4">
+    {% for mov in prazos %}
+      <div class="flex gap-3">
+        <div class="flex flex-col items-center">
+          <div class="w-2.5 h-2.5 rounded-full {% if mov.prazo_vencido %}bg-red-500{% else %}bg-juridico-verde{% endif %} mt-1.5 flex-shrink-0"></div>
+          {% if not forloop.last %}<div class="w-px flex-1 bg-gray-200 mt-1"></div>{% endif %}
+        </div>
+        <div class="pb-4">
+          <p class="text-base font-semibold {% if mov.prazo_vencido %}text-red-600{% else %}text-juridico-verde{% endif %}">
+            {{ mov.data_prazo|date:"d/m/Y" }}{% if mov.prazo_vencido %} <span class="text-xs font-normal">(vencido)</span>{% endif %}
+          </p>
+          <span class="badge-area mb-1 inline-block">{{ mov.get_tipo_display }}</span>
+          <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
+          {% if mov.origem_prazo %}
+            <p class="text-xs text-gray-400 mt-0.5">
+              Origem: {{ mov.origem_prazo.get_tipo_display }} ({{ mov.origem_prazo.data|date:"d/m/Y" }})
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with mensagem="Nenhum prazo cadastrado." %}
+  {% endif %}
 
 {% elif aba_ativa == "apensos" %}
 

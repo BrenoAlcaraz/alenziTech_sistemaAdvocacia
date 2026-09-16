@@ -141,12 +141,55 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   identificável. Data do último andamento é a referência de inatividade.
 - Fase processual, status processual e andamento processual são
   conceitos distintos (não usar como sinônimos).
-- `prazo_proximo` e `resultado_sentenca` saíram do formulário de
-  criação/edição do processo (reunião de 13/09) — passam a ser
-  definidos a partir de um Andamento, com dois campos opcionais no
-  formulário de "Adicionar andamento" ("atualizar próximo prazo" /
-  "atualizar resultado da sentença"). Os campos continuam existindo em
-  `Processo` e alimentando Dashboard/Agenda normalmente.
+- `resultado_sentenca` saiu do formulário de criação/edição do processo
+  (reunião de 13/09) — passa a ser definido a partir de um Andamento,
+  com um campo opcional no formulário de "Adicionar andamento"
+  ("atualizar resultado da sentença"). O campo continua existindo em
+  `Processo` e alimentando o indicador "Julgados" do Dashboard.
+
+### Catálogo de tipo de andamento, por área do direito
+
+- `tipo` do andamento não é mais uma lista genérica única — é um
+  catálogo agrupado pela área do processo (`Processo.area_direito`):
+  Cível, Trabalhista e Penal têm listas próprias; Consumidor, Sucessões,
+  Administrativo, Tributário, Família e Outro caem no catálogo Cível
+  como padrão (sem catálogo próprio). Um grupo "Genéricos" (Despacho,
+  Decisão interlocutória, Perícia) aparece sempre, em qualquer área.
+- Valores legados (`andamento`, `decisao`, `audiencia`, `outro`)
+  continuam válidos só para exibir o texto de andamentos já existentes
+  — não aparecem mais como opção no formulário de novos andamentos.
+- `MovimentacaoProcessual.catalogo_por_area(processo)` é a fonte única
+  do agrupamento; `MovimentacaoProcessualForm` exige `processo=` no
+  construtor para montar o catálogo certo e escopar `origem_prazo` ao
+  mesmo processo — POST com um valor de `tipo` fora do catálogo da área
+  do processo é rejeitado pela validação do form (defesa contra POST
+  forjado, não só UX).
+
+### Prazo como atributo do andamento (não mais um tipo)
+
+- "Prazo" não é mais um valor de `tipo` — é um atributo
+  (`MovimentacaoProcessual.data_prazo`, opcional) que qualquer
+  andamento, de qualquer tipo/catálogo, pode ter preenchido.
+- `origem_prazo` (FK opcional auto-referenciada) permite apontar, só
+  para rastreabilidade/exibição, qual andamento anterior do mesmo
+  processo originou aquele prazo — ex.: o Despacho que determinou "5
+  dias", vinculado à Intimação que efetivamente disparou a contagem.
+  Sem nenhum cálculo automático de data nesta versão — quem lança
+  digita a data final já calculada; ver
+  `specs/agenda-prazos-processuais-automaticos.md` (parada) para o
+  cálculo automático futuro.
+- `Processo.prazo_proximo` deixou de ser editado manualmente
+  ("atualizar próximo prazo" saiu do formulário de Adicionar andamento)
+  e passa a ser recalculado automaticamente
+  (`services.recalcular_prazo_proximo`) a cada andamento adicionado: o
+  `data_prazo` futuro mais próximo entre os andamentos do processo ou,
+  se todos já venceram, o vencido mais recente; `None` sem nenhum
+  `data_prazo` marcado. Continua alimentando Dashboard/Agenda
+  normalmente.
+- Aba "Prazos" do detalhe do processo agrega automaticamente todos os
+  andamentos com `data_prazo`, em timeline cronológica, com estado
+  vazio quando não há nenhum. O prazo também aparece (discreto) na aba
+  "Andamentos", sem ser o foco ali.
 
 ## Documentos
 

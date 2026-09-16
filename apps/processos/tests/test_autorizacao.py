@@ -321,7 +321,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         antes = self.processo.movimentacoes.count()
         r = self.client.post(
             f"/processos/{self.processo.pk}/movimentacoes/nova/",
-            {"tipo": "andamento", "data": "2026-08-19T10:00", "descricao": "Movimentação autorizada"},
+            {"tipo": "despacho", "data": "2026-08-19T10:00", "descricao": "Movimentação autorizada"},
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(
@@ -542,7 +542,7 @@ class TestProcessosAutorizacaoAdministrador(ProcessosAutorizacaoBase):
         antes = self.processo.movimentacoes.count()
         r = self.client.post(
             f"/processos/{self.processo.pk}/movimentacoes/nova/",
-            {"tipo": "andamento", "data": "2026-08-19T10:00", "descricao": "Movimentação admin"},
+            {"tipo": "despacho", "data": "2026-08-19T10:00", "descricao": "Movimentação admin"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)

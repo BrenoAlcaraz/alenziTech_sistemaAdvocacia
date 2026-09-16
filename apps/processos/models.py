@@ -230,19 +230,163 @@ class VinculoProcessoApenso(models.Model):
 
 
 class MovimentacaoProcessual(models.Model):
-    TIPO_CHOICES = [
+    # Valores legados (`tipo` genérico, anterior ao catálogo por área).
+    # "prazo" não está aqui — foi removido do enum e migrado para
+    # `data_prazo` (migration 0019); os outros 4 continuam válidos só
+    # para exibir o texto antigo de andamentos já existentes — não
+    # aparecem no catálogo novo oferecido no formulário
+    # (`catalogo_por_area`).
+    TIPO_LEGADO = [
         ("andamento", "Andamento"),
-        ("prazo", "Prazo"),
         ("decisao", "Decisão"),
         ("audiencia", "Audiência"),
         ("outro", "Outro"),
     ]
 
+    # Sempre visível em qualquer área, além do catálogo específico.
+    TIPO_GENERICOS = [
+        ("despacho", "Despacho"),
+        ("decisao_interlocutoria", "Decisão interlocutória"),
+        ("pericia", "Perícia"),
+    ]
+
+    TIPO_CIVEL = [
+        ("peticao_inicial", "Petição inicial"),
+        ("expedicao_de_mandado", "Expedição de mandado (citação, penhora, avaliação, levantamento de valores, carta precatória)"),
+        ("retorno_de_citacao", "Retorno de citação"),
+        ("intimacao", "Intimação"),
+        ("contestacao", "Contestação"),
+        ("reconvencao", "Reconvenção"),
+        ("excecao_de_pre_executividade", "Exceção de pré-executividade"),
+        ("replica", "Réplica"),
+        ("quesitos_tecnicos", "Quesitos técnicos"),
+        ("ata_de_audiencia", "Ata de audiência"),
+        ("alegacoes_finais", "Alegações finais"),
+        ("sentenca", "Sentença"),
+        ("embargos_de_declaracao", "Embargos de declaração"),
+        ("apelacao", "Apelação"),
+        ("contrarrazoes", "Contrarrazões"),
+        ("agravo_de_instrumento", "Agravo de instrumento"),
+        ("agravo_interno", "Agravo interno"),
+        ("recurso_adesivo", "Recurso adesivo"),
+        ("acordao", "Acórdão"),
+        ("recurso_especial", "Recurso especial (STJ)"),
+        ("recurso_extraordinario", "Recurso extraordinário (STF)"),
+        ("agravo_em_recurso_especial_extraordinario", "Agravo em recurso especial/extraordinário"),
+        ("embargos_de_divergencia", "Embargos de divergência"),
+        ("peticao", "Petição (mero expediente)"),
+        ("juntada_de_documento", "Juntada de documento"),
+        ("certidao", "Certidão"),
+        ("homologacao", "Homologação (acordo, transação, cálculos)"),
+        ("transito_em_julgado", "Trânsito em julgado"),
+        ("cumprimento_de_sentenca_execucao", "Cumprimento de sentença/execução"),
+        ("impugnacao", "Impugnação"),
+        ("penhora_constricao_de_bens", "Penhora/constrição de bens"),
+        ("arquivamento", "Arquivamento"),
+        ("desarquivamento", "Desarquivamento"),
+    ]
+
+    TIPO_TRABALHISTA = [
+        ("reclamacao_trabalhista", "Reclamação trabalhista (petição inicial)"),
+        ("expedicao_de_mandado", "Expedição de mandado (citação, penhora, avaliação, levantamento de valores, carta precatória)"),
+        ("retorno_de_citacao_notificacao_inicial", "Retorno de citação (notificação inicial)"),
+        ("intimacao", "Intimação"),
+        ("contestacao", "Contestação"),
+        ("reconvencao", "Reconvenção"),
+        ("replica", "Réplica"),
+        ("quesitos_tecnicos", "Quesitos técnicos"),
+        ("ata_de_audiencia", "Ata de audiência"),
+        ("razoes_finais", "Razões finais"),
+        ("sentenca", "Sentença"),
+        ("embargos_de_declaracao", "Embargos de declaração"),
+        ("recurso_ordinario", "Recurso ordinário (RO)"),
+        ("contrarrazoes", "Contrarrazões"),
+        ("agravo_de_instrumento", "Agravo de instrumento"),
+        ("acordao", "Acórdão"),
+        ("recurso_de_revista", "Recurso de revista (RR)"),
+        ("embargos_ao_tst", "Embargos ao TST"),
+        ("recurso_extraordinario", "Recurso extraordinário (STF)"),
+        ("peticao", "Petição (mero expediente)"),
+        ("juntada_de_documento", "Juntada de documento"),
+        ("certidao", "Certidão"),
+        ("homologacao", "Homologação (acordo, transação, cálculos)"),
+        ("transito_em_julgado", "Trânsito em julgado"),
+        ("liquidacao_de_sentenca", "Liquidação de sentença"),
+        ("execucao", "Execução"),
+        ("impugnacao", "Impugnação"),
+        ("penhora_constricao_de_bens", "Penhora/constrição de bens"),
+        ("agravo_de_peticao", "Agravo de petição"),
+        ("habilitacao_de_credito", "Habilitação de crédito (falência/recuperação judicial do executado)"),
+        ("arquivamento", "Arquivamento"),
+        ("desarquivamento", "Desarquivamento"),
+    ]
+
+    TIPO_PENAL = [
+        ("inquerito_policial_termo_circunstanciado", "Inquérito policial/termo circunstanciado"),
+        ("denuncia_queixa_crime", "Denúncia/queixa-crime"),
+        ("decisao_recebimento_rejeicao_denuncia", "Decisão (recebimento ou rejeição da denúncia/queixa)"),
+        ("expedicao_de_mandado_penal", "Expedição de mandado (citação, busca e apreensão, prisão)"),
+        ("retorno_de_citacao", "Retorno de citação"),
+        ("intimacao", "Intimação"),
+        ("resposta_a_acusacao", "Resposta à acusação"),
+        ("replica_rito_juri", "Réplica (rito do Júri — art. 409 CPP)"),
+        ("decisao_absolvicao_sumaria", "Decisão (absolvição sumária)"),
+        ("quesitos_tecnicos", "Quesitos técnicos"),
+        ("pronuncia_impronuncia", "Pronúncia/impronúncia (rito do Júri)"),
+        ("ata_de_audiencia_instrucao_julgamento", "Ata de audiência (instrução e julgamento)"),
+        ("interrogatorio", "Interrogatório"),
+        ("alegacoes_finais", "Alegações finais"),
+        ("sentenca", "Sentença"),
+        ("embargos_de_declaracao", "Embargos de declaração"),
+        ("apelacao", "Apelação"),
+        ("recurso_em_sentido_estrito", "Recurso em sentido estrito (RESE)"),
+        ("contrarrazoes", "Contrarrazões"),
+        ("acordao", "Acórdão"),
+        ("carta_testemunhavel", "Carta testemunhável"),
+        ("habeas_corpus", "Habeas corpus"),
+        ("recurso_especial", "Recurso especial (STJ)"),
+        ("recurso_extraordinario", "Recurso extraordinário (STF)"),
+        ("embargos_infringentes_ou_de_nulidade", "Embargos infringentes ou de nulidade"),
+        ("revisao_criminal", "Revisão criminal (ação autônoma, não recurso técnico — incluída na fase recursal por praticidade)"),
+        ("sessao_de_julgamento", "Sessão de julgamento (Plenário do Júri)"),
+        ("peticao", "Petição (mero expediente)"),
+        ("juntada_de_documento", "Juntada de documento"),
+        ("certidao", "Certidão"),
+        ("homologacao_penal", "Homologação (transação penal, suspensão condicional do processo)"),
+        ("transito_em_julgado", "Trânsito em julgado"),
+        ("guia_de_execucao_penal", "Guia de execução penal"),
+        ("progressao_regressao_de_regime", "Progressão/regressão de regime"),
+        ("livramento_condicional", "Livramento condicional"),
+        ("remicao_de_pena", "Remição de pena"),
+        ("agravo_em_execucao", "Agravo em execução"),
+        ("extincao_da_punibilidade", "Extinção da punibilidade"),
+        ("arquivamento_inquerito", "Arquivamento (do inquérito ou definitivo dos autos)"),
+        ("desarquivamento", "Desarquivamento"),
+    ]
+
+    # Valor único por rótulo — mesmo texto em mais de uma lista (ex.:
+    # "Intimação" em Cível/Trabalhista/Penal) reaproveita o mesmo choice;
+    # dict preserva a ordem da primeira ocorrência.
+    TIPO_CHOICES = list(
+        dict(
+            TIPO_LEGADO + TIPO_GENERICOS + TIPO_CIVEL + TIPO_TRABALHISTA + TIPO_PENAL
+        ).items()
+    )
+
     processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="movimentacoes")
     descricao = models.TextField()
     data = models.DateTimeField(default=timezone.now)
     autor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="andamento")
+    tipo = models.CharField(max_length=60, choices=TIPO_CHOICES, default="andamento")
+    data_prazo = models.DateField(null=True, blank=True, verbose_name="Prazo")
+    origem_prazo = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="prazos_originados",
+        verbose_name="Andamento de origem do prazo",
+    )
 
     class Meta:
         verbose_name = "Movimentação"
@@ -251,6 +395,29 @@ class MovimentacaoProcessual(models.Model):
 
     def __str__(self):
         return f"{self.processo.titulo} — {self.tipo}"
+
+    @property
+    def prazo_vencido(self):
+        if not self.data_prazo:
+            return False
+        return self.data_prazo < timezone.localdate()
+
+    @classmethod
+    def catalogo_por_area(cls, processo):
+        """(grupo, [(valor, rótulo), ...]) para o <select> de tipo do
+        formulário de andamento — área do processo + Genéricos sempre
+        visível. Consumidor/Sucessões/Administrativo/Tributário/Família/
+        Outro caem no fallback Cível (sem catálogo próprio)."""
+        if processo.area_direito == "TRABALHISTA":
+            especifico = cls.TIPO_TRABALHISTA
+        elif processo.area_direito == "CRIMINAL":
+            especifico = cls.TIPO_PENAL
+        else:
+            especifico = cls.TIPO_CIVEL
+        return [
+            (processo.get_area_direito_display(), especifico),
+            ("Genéricos", cls.TIPO_GENERICOS),
+        ]
 
 
 class ParteProcesso(models.Model):

@@ -263,11 +263,19 @@ class DocumentoForm(forms.ModelForm):
         }
 
 
+class MovimentacaoOrigemPrazoChoiceField(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        data_local = timezone.localtime(obj.data)
+        return f"{data_local:%d/%m/%Y} — {obj.get_tipo_display()}"
+
+
 class MovimentacaoProcessualForm(forms.ModelForm):
     """Além do andamento em si, permite atualizar opcionalmente o
-    'Próximo prazo' e o 'Resultado da sentença' do Processo — esses dois
-    campos saíram do formulário de criação/edição do processo e passaram
-    a ser definidos a partir daqui (reunião de 13/09)."""
+    'Resultado da sentença' do Processo — campo que saiu do formulário de
+    criação/edição do processo e passou a ser definido a partir daqui
+    (reunião de 13/09). 'Próximo prazo' do Processo não é mais definido
+    aqui: passou a ser calculado automaticamente a partir de `data_prazo`
+    dos andamentos (ver `services.recalcular_prazo_proximo`)."""
 
     data = forms.DateTimeField(
         initial=timezone.now,
@@ -276,11 +284,6 @@ class MovimentacaoProcessualForm(forms.ModelForm):
             attrs={"class": "input", "type": "datetime-local"},
             format="%Y-%m-%dT%H:%M",
         ),
-    )
-    atualizar_prazo_proximo = forms.DateField(
-        required=False,
-        label="Atualizar próximo prazo do processo",
-        widget=forms.DateInput(attrs={"class": "input", "type": "date"}, format="%Y-%m-%d"),
     )
     atualizar_resultado_sentenca = forms.ChoiceField(
         required=False,
@@ -291,14 +294,23 @@ class MovimentacaoProcessualForm(forms.ModelForm):
 
     class Meta:
         model = MovimentacaoProcessual
-        fields = ["tipo", "data", "descricao"]
+        fields = ["tipo", "data", "descricao", "data_prazo", "origem_prazo"]
+        field_classes = {"origem_prazo": MovimentacaoOrigemPrazoChoiceField}
         widgets = {
             "tipo": forms.Select(attrs={"class": "select"}),
             "descricao": forms.Textarea(attrs={
                 "class": "input h-20 resize-none",
                 "placeholder": "Descreva o andamento, decisão ou prazo...",
             }),
+            "data_prazo": forms.DateInput(attrs={"class": "input", "type": "date"}, format="%Y-%m-%d"),
+            "origem_prazo": forms.Select(attrs={"class": "select"}),
         }
+
+    def __init__(self, *args, processo, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tipo"].choices = MovimentacaoProcessual.catalogo_por_area(processo)
+        self.fields["origem_prazo"].queryset = processo.movimentacoes.order_by("-data")
+        self.fields["origem_prazo"].empty_label = "Nenhum (opcional)"
 
 
 class IntimacaoForm(forms.ModelForm):

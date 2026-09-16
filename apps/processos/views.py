@@ -45,6 +45,7 @@ from .services import (
     ids_processos_apensos_do,
     nome_exibicao_usuario,
     parte_contraria_do_processo,
+    recalcular_prazo_proximo,
     responsaveis_elegiveis,
     vincular_processos_apensos,
     vinculos_apensos_do,
@@ -226,7 +227,11 @@ def detalhe(request, pk):
         )
     form_integrante = AdicionarIntegranteForm(usuarios_queryset=candidatos_integrante)
     documentos = list(processo.documentos.select_related("autor"))
-    movimentacoes = list(processo.movimentacoes.order_by("-data"))
+    movimentacoes = list(processo.movimentacoes.select_related("origem_prazo").order_by("-data"))
+    prazos = sorted(
+        (mov for mov in movimentacoes if mov.data_prazo),
+        key=lambda mov: mov.data_prazo,
+    )
     tarefas_relacionadas_total = processo.tarefas.count()
     tarefas_relacionadas = list(
         processo.tarefas.select_related("responsavel")
@@ -241,6 +246,7 @@ def detalhe(request, pk):
     return render(request, "processos/detalhe.html", {
         "processo": processo,
         "movimentacoes": movimentacoes,
+        "prazos": prazos,
         "parte_contraria": parte_contraria_do_processo(processo, partes=partes),
         "faixa_status": faixa_status_do_processo(processo, movimentacoes=movimentacoes),
         "tarefas_relacionadas": tarefas_relacionadas,
@@ -269,7 +275,7 @@ def detalhe(request, pk):
         "tem_candidatos_integrante": candidatos_integrante.exists(),
         "pode_gerenciar_integrantes": pode_gerenciar_integrantes,
         "form_parte": ParteProcessoForm(processo=processo),
-        "form_movimentacao": MovimentacaoProcessualForm(),
+        "form_movimentacao": MovimentacaoProcessualForm(processo=processo),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
         "pode_modificar": pode_modificar,
@@ -526,16 +532,16 @@ def adicionar_movimentacao(request, pk):
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
     if request.method == "POST":
-        form = MovimentacaoProcessualForm(request.POST)
+        form = MovimentacaoProcessualForm(request.POST, processo=processo)
         if form.is_valid():
             movimentacao = form.save(commit=False)
             movimentacao.processo = processo
             movimentacao.autor = request.user
             movimentacao.save()
             campos_processo_atualizados = []
-            novo_prazo = form.cleaned_data.get("atualizar_prazo_proximo")
-            if novo_prazo:
-                processo.prazo_proximo = novo_prazo
+            novo_prazo_proximo = recalcular_prazo_proximo(processo)
+            if novo_prazo_proximo != processo.prazo_proximo:
+                processo.prazo_proximo = novo_prazo_proximo
                 campos_processo_atualizados.append("prazo_proximo")
             novo_resultado = form.cleaned_data.get("atualizar_resultado_sentenca")
             if novo_resultado:

@@ -93,7 +93,7 @@ class TestLogMovimentacaoParteDocumento(AtividadeLogProcessosBase):
     def test_adicionar_movimentacao_gera_log(self):
         resposta = self.client.post(
             f"/processos/{self.processo.pk}/movimentacoes/nova/",
-            {"tipo": "andamento", "data": "2026-01-10T10:00", "descricao": "Contestação protocolada"},
+            {"tipo": "despacho", "data": "2026-01-10T10:00", "descricao": "Contestação protocolada"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(resposta.status_code, 302)
