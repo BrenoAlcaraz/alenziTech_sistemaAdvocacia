@@ -305,6 +305,26 @@ document.addEventListener("DOMContentLoaded", () => {
     sincronizarComSelecao();
   });
 
+  // ── Limpar anexo selecionado (forms do Financeiro) ──────────────────────────
+  // Cada campo de arquivo envolto em [data-anexo-campo] mostra um "X"
+  // ([data-anexo-limpar]) assim que um arquivo é escolhido; clicar nele limpa
+  // a seleção do <input type="file">, voltando ao estado vazio, sem afetar o
+  // resto do formulário. Reaproveitável por qualquer form com esse wrapper.
+  document.querySelectorAll("[data-anexo-campo]").forEach((campo) => {
+    const input = campo.querySelector('input[type="file"]');
+    const botaoLimpar = campo.querySelector("[data-anexo-limpar]");
+    if (!input || !botaoLimpar) return;
+
+    input.addEventListener("change", () => {
+      botaoLimpar.classList.toggle("hidden", !input.files.length);
+    });
+
+    botaoLimpar.addEventListener("click", () => {
+      input.value = "";
+      botaoLimpar.classList.add("hidden");
+    });
+  });
+
   // ── Disponibilidade de convidado (Agenda) ───────────────────────────────────
   // Ao marcar/selecionar um participante num container com
   // data-disponibilidade-url, consulta os compromissos que esse usuário já

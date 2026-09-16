@@ -270,6 +270,29 @@ Quantidade/Data final/Indeterminado em `LancamentoFinanceiroForm`,
   por classificação/duração) — ex.: peça base do acervo vs. anexada em
   `PecaBaseRepetitivaForm` (`apps/modelos/forms.py`, `data-toggle-select="rep-base"`).
 
+## Limpar seleção de arquivo em campo de anexo — padrão a reutilizar
+
+Quando um form permite desfazer a seleção de um `input[type=file]`
+antes do envio, sem recarregar a página (hoje: `CustaJudicialForm`,
+`SolicitacaoFinanceiraForm`, `CreditarCustaForm` —
+`apps/financeiro/forms.py`; templates `form_custa.html`,
+`form_solicitacao.html`, `form_creditar_custa.html`):
+
+- No template, envolver `{{ form.<campo_arquivo> }}` num
+  `<div data-anexo-campo>` junto de um botão
+  `<button type="button" data-anexo-limpar class="hidden">` (ex.:
+  `&times;`, mesmo padrão de `data-dismiss-alert` em
+  `base_auth.html`) — nenhuma mudança no form/widget em si.
+- O JS genérico em `static/js/main.js` (seção "Limpar anexo
+  selecionado") mostra o botão no `change` do input quando há arquivo
+  selecionado e, ao clicar, zera `input.value` e reoculta o botão —
+  nenhuma lógica nova por form.
+- Cobre só "selecionei o arquivo errado antes de enviar": os três forms
+  acima só existem em modo de criação, sem instância com anexo já
+  persistido. Remover um anexo já salvo no banco (telas de edição
+  futuras) é um problema diferente — exige tratamento próprio no
+  backend, fora deste padrão.
+
 ## Formset dinâmico (Django) — padrão a reutilizar
 
 Quando o usuário adiciona/remove um número variável de blocos repetidos

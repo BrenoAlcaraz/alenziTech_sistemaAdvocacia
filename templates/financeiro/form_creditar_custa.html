@@ -67,7 +67,11 @@
 
       <div>
         <label class="label" for="{{ form.anexo.id_for_label }}">{{ form.anexo.label }}</label>
-        {{ form.anexo }}
+        <div class="flex items-center gap-2" data-anexo-campo>
+          {{ form.anexo }}
+          <button type="button" class="hidden text-gray-400 hover:text-gray-700 text-xl leading-none px-1"
+                  data-anexo-limpar title="Remover arquivo selecionado">&times;</button>
+        </div>
         {% if form.anexo.errors %}
           <p class="text-xs text-red-600 mt-1">{{ form.anexo.errors|join:", " }}</p>
         {% endif %}
