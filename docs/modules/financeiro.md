@@ -97,6 +97,16 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   da lista geral de solicitações. Sem essa origem, o formulário continua
   voltando/cancelando/salvando para `financeiro/solicitacoes`, como
   antes.
+- Solicitação editável (descrição, valor, tipo, cliente, processo,
+  vencimento, data do gasto, anexo, observação) enquanto `status` for
+  `solicitada` ou `em análise` — a partir de `aprovada`, `rejeitada` ou
+  `paga`, edição bloqueada (inclusive por URL direta, não só escondendo o
+  botão). Reaproveita o mesmo formulário e trava de tipo/processo/cliente
+  da criação a partir da aba Custas Judiciais; essa trava só se aplica se
+  o cliente já salvo ainda pertencer ao processo (o processo pode ter
+  perdido esse cliente depois de a solicitação criada — nesse caso o
+  formulário volta a ficar livre em vez de reatribuir o cliente
+  silenciosamente).
 - Marcar uma solicitação de `tipo="pagamento"` como "paga" exige
   informar se a custa foi paga pelo escritório ou diretamente pelo
   cliente, e anexar o comprovante de pagamento (campo próprio, separado
