@@ -177,6 +177,26 @@ o escopo é checado antes da habilitação `financeiro_reabrir_lancamento_pago`
 habilitação). Um usuário pensado para reabrir lançamento pago de terceiros
 precisa de `dados_todos`, não `dados_proprios` + a habilitação.
 
+## Redirect seguro via `next` — padrão a reutilizar
+
+Todo redirect pós-ação que lê `next` de `GET`/`POST` (voltar para a
+página de origem) valida com `django.utils.http.url_has_allowed_host_and_scheme`
+passando sempre os três argumentos:
+
+```python
+url_has_allowed_host_and_scheme(
+    next_url,
+    allowed_hosts={request.get_host()},
+    require_https=request.is_secure(),
+)
+```
+
+Sem `require_https=request.is_secure()`, em produção HTTPS um `next`
+para `http://<mesmo-host>/...` passa na validação (mesmo host, esquema
+diferente) — downgrade de protocolo pós-ação, expondo sessão/cookies a
+interceptação de rede. Referência: `apps/tarefas/views.py::_redirect_seguro`,
+`apps/financeiro/views.py::_redirect_seguro`, `apps/agenda/views.py::_redirect_seguro`.
+
 ## Campos dependentes em formulário (ex.: Cliente → Processo) — padrão a reutilizar
 
 Quando um campo `ModelChoiceField` deve ser restrito pelo valor de

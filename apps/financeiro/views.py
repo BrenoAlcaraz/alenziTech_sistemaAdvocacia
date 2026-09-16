@@ -853,7 +853,9 @@ def form_solicitacao(request):
     processo_fixo = Processo.objects.filter(pk=processo_fixo_id).first() if processo_fixo_id else None
 
     next_url = request.GET.get("next") or request.POST.get("next")
-    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         next_url = None
 
     if request.method == "POST":

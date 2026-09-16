@@ -378,7 +378,9 @@ def editar(request, pk):
     _resolver_escopo(request)
     tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     next_url = request.GET.get("next") or request.POST.get("next")
-    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         next_url = None
     if request.method == "POST":
         form = TarefaForm(request.POST, instance=tarefa)
