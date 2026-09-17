@@ -84,6 +84,16 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   dígito verificador válido quando preenchido, trava nacionalidade em
   "Brasileira", libera RG, e busca endereço automaticamente por CEP
   (demais campos de endereço só vêm dessa busca, não digitáveis à mão).
+- Formulário distinto por tipo: Pessoa Jurídica oculta os campos que só
+  fazem sentido para o próprio cliente Pessoa Física (estado civil,
+  profissão, RG, nacionalidade/Estrangeiro) e, no lugar, oferece uma
+  seção "Representante" — nome, CPF (mesmo dígito verificador do
+  CPF/CNPJ), cargo/qualificação (texto livre) e contato
+  (telefone e/ou e-mail). Dados do representante pertencem ao próprio
+  Cliente PJ (não criam um segundo Cliente nem usuário do sistema) e
+  servem de base a peças geradas para o cliente (ex.: "Gerar
+  procuração"). Um representante principal por cliente PJ nesta versão
+  — sem vínculo com um Cliente PF já cadastrado.
 - Exclusão definitiva (PDR-0025), distinta de desativar — lançamentos
   financeiros, tarefas e compromissos vinculados permanecem, só perdem
   a referência.
