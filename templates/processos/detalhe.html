@@ -568,6 +568,14 @@
             Solicitado por {{ solicitacao.solicitante|default:"—" }} em {{ solicitacao.criado_em|date:"d/m/Y" }}
             {% if solicitacao.status == "paga" %} · Paga{% endif %}
           </p>
+          {% if solicitacao.status == "paga" %}
+          <p class="text-xs text-gray-400 mt-0.5">
+            Pago pelo {{ solicitacao.get_pago_por_display|default:"—" }}
+            {% if solicitacao.comprovante_pagamento %}
+              · <a href="{% url 'processos:baixar_comprovante_custa' solicitacao.pk %}" class="text-juridico-verde hover:underline">Ver comprovante</a>
+            {% endif %}
+          </p>
+          {% endif %}
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
           <span class="text-sm font-medium text-gray-900">R$ {{ solicitacao.valor|moeda_br }}</span>

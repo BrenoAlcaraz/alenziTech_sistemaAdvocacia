@@ -29,6 +29,7 @@ from apps.accounts.permissoes_constants import (
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
+from apps.saas_tenants.storage import nome_do_arquivo
 from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -654,6 +655,28 @@ def baixar_documento(request, documento_pk):
     if not documento.arquivo:
         raise Http404
     return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())
+
+
+@login_required
+def baixar_comprovante_custa(request, solicitacao_pk):
+    """Comprovante de pagamento de uma custa judicial (Financeiro), aberto
+    a partir da aba Custas Judiciais do processo — mesma visibilidade da
+    aba (qualquer usuário que veja o processo, sem exigir o módulo
+    Financeiro nem o escopo dados_próprios/dados_todos que protege o
+    mesmo arquivo dentro de Financeiro)."""
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    escopo, _ = _resolver_escopo(request)
+    solicitacao = get_object_or_404(
+        SolicitacaoFinanceira.objects.filter(processo__in=_processos_no_escopo(request, escopo)),
+        pk=solicitacao_pk,
+    )
+    if not solicitacao.comprovante_pagamento:
+        raise Http404
+    return FileResponse(
+        solicitacao.comprovante_pagamento.open("rb"),
+        filename=nome_do_arquivo(solicitacao.comprovante_pagamento),
+    )
 
 
 # ── Intimações (specs/dashboard-intimacoes.md) ──────────────────────────────
