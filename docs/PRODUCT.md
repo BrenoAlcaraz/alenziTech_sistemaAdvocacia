@@ -92,6 +92,13 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   algum processo em comum — depende de os dois terem sido cadastrados
   manualmente como Parte desse processo (sem vínculo automático
   Cliente↔Parte ainda, ver [modules/processos.md](modules/processos.md)).
+- Aba "Documentos" do detalhe: anexo de arquivo (RG/CNH, comprovante de
+  residência, contrato social, procuração etc.) por Cliente, mesmo
+  padrão de storage protegido por tenant e de escopo de Documentos de
+  Processo — leitura segue o escopo de detalhe do cliente, mutação
+  (adicionar/excluir) exige ser responsável pelo cliente ou
+  Administrador, mais as habilitações `clientes_documento_adicionar`/
+  `clientes_documento_excluir`.
 - Fora de escopo: dedup por CPF/CNPJ, cardinalidade de múltiplos
   endereços/contatos por cliente — sem decisão aprovada.
 
