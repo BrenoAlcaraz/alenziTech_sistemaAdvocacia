@@ -302,6 +302,15 @@ Repositório de modelos de peças/documentos reutilizáveis.
   automática dos campos variáveis da peça base nem extração automática
   de dados de documento anexado por caso (isso é a Fase 2, com IA,
   condicionada ao PDR-0008).
+- "Gerar procuração" (botão na aba Documentos do Cliente, mesma
+  autorização de Peças repetitivas — `modelos_criar` — combinada com
+  poder ver o cliente no escopo de Clientes) usa o mesmo padrão: o
+  modelo de Procuração cadastrado pelo escritório (categoria
+  pré-definida "Procuração") + um bloco de identificação do cliente à
+  frente (nome/CPF-CNPJ/endereço, e nome/CPF/cargo do representante se
+  PJ), virando um novo `ModeloPeca` no acervo sem alterar o modelo
+  original. Sem nenhum modelo cadastrado nessa categoria, o botão
+  orienta a criar um em vez de gerar um texto genérico não revisável.
 - Fora de escopo: dedup automática, geração em massa assistida por IA
   (Fase 2 do fluxo de peças repetitivas), edição colaborativa em tempo
   real, categorias hierárquicas, diff visual entre versões de peça.
