@@ -161,6 +161,12 @@
   var ATIVO = "flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-900 rounded-xl text-sm font-medium text-gray-900 bg-white";
   var INATIVO = "flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 bg-white hover:bg-gray-50";
 
+  // campoDocumento/campoEstrangeiro precisam existir antes da primeira
+  // chamada de selecionarTipo() logo abaixo — ela aciona
+  // aplicarMascaraDocumento(), que lê campoEstrangeiro.checked.
+  var campoDocumento = document.getElementById("id_cpf_cnpj");
+  var campoEstrangeiro = document.getElementById("id_estrangeiro");
+
   function selecionarTipo(tipo) {
     document.getElementById("id_tipo").value = tipo;
     document.getElementById("btn-pf").className = tipo === "PF" ? ATIVO : INATIVO;
@@ -209,9 +215,6 @@
     }
     return digitos.replace(/(\d{2})(\d{4})(\d{0,4})/, "($1) $2-$3").replace(/-$/, "");
   }
-
-  var campoDocumento = document.getElementById("id_cpf_cnpj");
-  var campoEstrangeiro = document.getElementById("id_estrangeiro");
 
   function aplicarMascaraDocumento() {
     if (campoEstrangeiro.checked) {
