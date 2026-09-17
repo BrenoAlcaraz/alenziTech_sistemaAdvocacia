@@ -133,6 +133,14 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   [financeiro.md](financeiro.md#solicitações-financeiras-pdr-0006-fluxo-em-pdr-0015)
   para a exigência de comprovante + quem pagou e o reflexo no saldo de
   custas do cliente (PDR-0005).
+- Solicitação com status "paga" mostra também, só leitura, quem pagou e
+  o comprovante de pagamento anexado ao confirmar o pagamento — sem
+  opção de editar/anexar a partir daqui (isso continua exclusivo do
+  Financeiro). Download do comprovante usa endpoint próprio de
+  Processos (`baixar_comprovante_custa`), escopado pela mesma
+  visibilidade da aba (`_processos_no_escopo`) — não reaproveita o
+  endpoint de Financeiro porque aquele é restrito por
+  dados_próprios/dados_todos, mais estreito que a visibilidade da aba.
 
 ## Apensos (PDR-0012)
 
@@ -164,10 +172,18 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
 - `tipo` do andamento não é mais uma lista genérica única — é um
   catálogo agrupado pela área do processo (`Processo.area_direito`):
-  Cível, Trabalhista e Penal têm listas próprias; Consumidor, Sucessões,
-  Administrativo, Tributário, Família e Outro caem no catálogo Cível
-  como padrão (sem catálogo próprio). Um grupo "Genéricos" (Despacho,
-  Decisão interlocutória, Perícia) aparece sempre, em qualquer área.
+  Cível, Trabalhista e Penal têm listas próprias; todas as demais áreas
+  do catálogo (Consumidor, Sucessões, Administrativo, Tributário,
+  Família, Empresarial, Eleitoral, Médico, Previdenciário, Digital,
+  Propriedade Intelectual, Imobiliário, Desportivo, Direito
+  Internacional, Outro) caem no catálogo Cível como padrão (sem
+  catálogo próprio) — decisão deliberada para manter o escopo pequeno;
+  catálogo específico para alguma dessas áreas é spec futura própria,
+  não extensão silenciosa. Um grupo "Genéricos" (Despacho, Decisão
+  interlocutória, Perícia) aparece sempre, em qualquer área.
+- `Processo.AREAS_CHOICES` é a fonte única do catálogo de área do
+  direito — Modelo de Peças (`apps/modelos/forms.py`) reusa a mesma
+  lista em vez de manter um catálogo próprio divergente.
 - Valores legados (`andamento`, `decisao`, `audiencia`, `outro`)
   continuam válidos só para exibir o texto de andamentos já existentes
   — não aparecem mais como opção no formulário de novos andamentos.
