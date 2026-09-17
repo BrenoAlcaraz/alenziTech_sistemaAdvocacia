@@ -227,6 +227,16 @@ Repositório de modelos de peças/documentos reutilizáveis.
   gerenciar o catálogo (criar/editar/excluir) exige
   `modelos_gerir_categorias` ou ser Administrador; excluir categoria em
   uso (por modelo atual ou por histórico de versões) é bloqueado.
+- Todo tenant (novo ou já existente) já nasce com 15 tipos de peça
+  pré-cadastrados nesse catálogo (Petição inicial, Contestação,
+  Réplica, Alegações finais, Apelação, Embargos de declaração, Agravo
+  de instrumento, Agravo interno, Recurso especial, Recurso
+  extraordinário, Quesitos técnicos, Petição de mero andamento,
+  Exceção de pré-executividade, Embargos infringentes, Procuração) —
+  cada um editável/excluível como qualquer categoria criada
+  manualmente; nenhum vem com `ModeloPeca` de conteúdo pronto (fica a
+  critério de cada escritório), exceto Procuração, que serve de base ao
+  "Gerar procuração" de Clientes.
 - Cada modelo da listagem oferece visualizar (abre a peça para leitura)
   e baixar em PDF ou DOCX — gerado a partir do `conteudo` salvo, aplicando
   cabeçalho/rodapé/marca d'água/assinatura e fonte/espaçamento/recuo do
