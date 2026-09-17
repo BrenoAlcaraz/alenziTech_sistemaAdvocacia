@@ -1,8 +1,10 @@
 from django.db.models import Q
+from django.http import FileResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
@@ -13,11 +15,13 @@ from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_DESATIVAR,
     HAB_CLIENTES_REATIVAR,
     HAB_CLIENTES_EXCLUIR,
+    HAB_CLIENTES_DOCUMENTO_ADICIONAR,
+    HAB_CLIENTES_DOCUMENTO_EXCLUIR,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from .models import Cliente
-from .forms import ClienteForm, ClienteResponsavelForm
+from .models import Cliente, Documento
+from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
 from .services import clientes_relacionados
 
 User = get_user_model()
@@ -83,6 +87,14 @@ def _clientes_mutaveis(request, *, ativo):
     return qs
 
 
+def _pode_adicionar_documento(user):
+    return tem_habilitacao(user, MODULO_CLIENTES, HAB_CLIENTES_DOCUMENTO_ADICIONAR)
+
+
+def _pode_excluir_documento(user):
+    return tem_habilitacao(user, MODULO_CLIENTES, HAB_CLIENTES_DOCUMENTO_EXCLUIR)
+
+
 def _usuarios_ativos():
     return User.objects.filter(is_active=True).order_by("first_name", "last_name", "username")
 
@@ -120,16 +132,25 @@ def detalhe(request, pk):
         .exclude(status="cancelada")
         .order_by("prazo")[:5]
     )
+    pode_modificar = (
+        usuario_admin_escritorio(request.user)
+        or cliente.responsavel_id == request.user.pk
+    )
+    documentos = list(cliente.documentos.select_related("autor"))
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
         "processos": processos,
         "clientes_relacionados": clientes_relacionados(cliente),
         "tarefas_relacionadas": tarefas_relacionadas,
         "tarefas_relacionadas_total": tarefas_relacionadas_total,
-        "pode_excluir_cliente": (
-            usuario_admin_escritorio(request.user)
-            or cliente.responsavel_id == request.user.pk
-        ) and tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR),
+        "pode_excluir_cliente": pode_modificar and tem_habilitacao(
+            request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR
+        ),
+        "documentos": documentos,
+        "documentos_total": len(documentos),
+        "form_documento": DocumentoForm(),
+        "pode_adicionar_documento": pode_modificar and _pode_adicionar_documento(request.user),
+        "pode_excluir_documento": pode_modificar and _pode_excluir_documento(request.user),
         "aba_ativa": request.GET.get("aba", "processos"),
         "item_ativo": "clientes",
     })
@@ -269,3 +290,49 @@ def reativar(request, pk):
         cliente.save()
         return redirect("clientes:inativos")
     return redirect("clientes:inativos")
+
+
+@login_required
+@require_POST
+def adicionar_documento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    if not _pode_adicionar_documento(request.user):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    cliente = get_object_or_404(_clientes_mutaveis(request, ativo=True), pk=pk)
+    form = DocumentoForm(request.POST, request.FILES)
+    if form.is_valid():
+        documento = form.save(commit=False)
+        documento.cliente = cliente
+        documento.autor = request.user
+        documento.save()
+    return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
+
+
+@login_required
+@require_POST
+def excluir_documento(request, pk, documento_pk):
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    if not _pode_excluir_documento(request.user):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    cliente = get_object_or_404(_clientes_mutaveis(request, ativo=True), pk=pk)
+    documento = get_object_or_404(cliente.documentos, pk=documento_pk)
+    documento.delete()
+    return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
+
+
+@login_required
+def baixar_documento(request, documento_pk):
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    escopo, _ = _resolver_escopo(request)
+    documento = get_object_or_404(
+        Documento.objects.filter(cliente__in=_clientes_no_escopo(request, escopo, ativo=True)),
+        pk=documento_pk,
+    )
+    if not documento.arquivo:
+        raise Http404
+    return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())

@@ -1,6 +1,13 @@
 from django.conf import settings
 from django.db import models
 
+from apps.saas_tenants.storage import (
+    PROTEGIDO,
+    CaminhoArquivoTenant,
+    StorageProtegido,
+    nome_do_arquivo,
+)
+
 
 UF_CHOICES = [
     ("AC", "Acre"), ("AL", "Alagoas"), ("AP", "Amapá"), ("AM", "Amazonas"),
@@ -128,3 +135,41 @@ class Cliente(models.Model):
         if len(partes) >= 2:
             return f"{partes[0][0]}{partes[1][0]}".upper()
         return self.nome_razao_social[:2].upper()
+
+
+class Documento(models.Model):
+    """Arquivo anexado a um Cliente (RG/CNH, comprovante de residência,
+    contrato social etc.) — mesmo padrão de storage protegido por tenant
+    de `apps.processos.models.Documento`."""
+
+    TIPO_CHOICES = [
+        ("identificacao", "Documento de identificação"),
+        ("comprovante_residencia", "Comprovante de residência"),
+        ("contrato_social", "Contrato social"),
+        ("procuracao", "Procuração"),
+        ("outro", "Outro"),
+    ]
+
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name="documentos")
+    arquivo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "clientes/documentos"),
+        storage=StorageProtegido(),
+    )
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, default="outro")
+    descricao = models.CharField(max_length=255, blank=True)
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="documentos_cliente_autor",
+    )
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Documento"
+        verbose_name_plural = "Documentos"
+        ordering = ["-enviado_em"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {nome_do_arquivo(self.arquivo)}"
+
+    def nome_do_documento(self):
+        return nome_do_arquivo(self.arquivo)

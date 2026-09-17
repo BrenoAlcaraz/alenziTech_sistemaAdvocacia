@@ -505,6 +505,8 @@ class HabilitacaoPapel(models.Model):
                         "clientes_desativar",
                         "clientes_reativar",
                         "clientes_excluir",
+                        "clientes_documento_adicionar",
+                        "clientes_documento_excluir",
                     ])
                     | Q(modulo="tarefas", item__in=[
                         "tarefas_atribuir_outros",
@@ -627,6 +629,8 @@ class HabilitacaoUsuario(models.Model):
                         "clientes_desativar",
                         "clientes_reativar",
                         "clientes_excluir",
+                        "clientes_documento_adicionar",
+                        "clientes_documento_excluir",
                     ])
                     | Q(modulo="tarefas", item__in=[
                         "tarefas_atribuir_outros",

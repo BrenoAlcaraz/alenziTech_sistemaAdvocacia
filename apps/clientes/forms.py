@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import Cliente
+from .models import Cliente, Documento
 from .validators import cnpj_valido, cpf_valido, telefone_valido
 
 User = get_user_model()
@@ -92,6 +92,20 @@ class ClienteForm(forms.ModelForm):
             self.add_error("telefone", "Telefone inválido — informe DDD + número.")
 
         return cleaned
+
+
+class DocumentoForm(forms.ModelForm):
+    class Meta:
+        model = Documento
+        fields = ["arquivo", "tipo", "descricao"]
+        widgets = {
+            "arquivo": forms.ClearableFileInput(attrs={"class": "input"}),
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "descricao": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Descrição (opcional)",
+            }),
+        }
 
 
 class ResponsavelChoiceField(forms.ModelChoiceField):

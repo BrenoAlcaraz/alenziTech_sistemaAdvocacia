@@ -12,4 +12,19 @@ urlpatterns = [
     path("clientes/<int:pk>/desativar/", views.desativar, name="desativar"),
     path("clientes/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("clientes/<int:pk>/reativar/", views.reativar, name="reativar"),
+    path(
+        "clientes/<int:pk>/documentos/nova/",
+        views.adicionar_documento,
+        name="adicionar_documento",
+    ),
+    path(
+        "clientes/<int:pk>/documentos/<int:documento_pk>/excluir/",
+        views.excluir_documento,
+        name="excluir_documento",
+    ),
+    path(
+        "clientes/documentos/<int:documento_pk>/baixar/",
+        views.baixar_documento,
+        name="baixar_documento",
+    ),
 ]
