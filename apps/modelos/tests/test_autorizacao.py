@@ -78,7 +78,7 @@ class ModelosAutorizacaoBase(TenantTestCase):
         defaults = {
             "titulo": "Modelo Teste",
             "categoria": self._categoria(),
-            "area_direito": "civil",
+            "area_direito": "CÍVEL",
             "conteudo": "Conteúdo de teste.",
         }
         defaults.update(kwargs)
@@ -88,7 +88,7 @@ class ModelosAutorizacaoBase(TenantTestCase):
         dados = {
             "titulo": "Modelo Editado",
             "categoria": self._categoria("Contestação").pk,
-            "area_direito": "civil",
+            "area_direito": "CÍVEL",
             "conteudo": "Conteúdo editado.",
         }
         dados.update(overrides)
@@ -714,14 +714,14 @@ class TestModelosListaFiltrosCombinados(ModelosAutorizacaoBase):
         self._pp(papel, MODULO_MODELOS)
         self.client.force_login(self.user)
         self.modelo_civil = self._modelo(
-            criado_por=self.user, titulo="Modelo Cível", area_direito="civil",
+            criado_por=self.user, titulo="Modelo Cível", area_direito="CÍVEL",
         )
         self.modelo_trabalhista = self._modelo(
-            criado_por=self.outro_autor, titulo="Modelo Trabalhista", area_direito="trabalhista",
+            criado_por=self.outro_autor, titulo="Modelo Trabalhista", area_direito="TRABALHISTA",
         )
 
     def test_filtra_por_area_direito(self):
-        r = self.client.get("/modelos/?area_direito=trabalhista", HTTP_HOST=self.http_host)
+        r = self.client.get("/modelos/?area_direito=TRABALHISTA", HTTP_HOST=self.http_host)
         modelos = list(r.context["modelos"])
         self.assertIn(self.modelo_trabalhista, modelos)
         self.assertNotIn(self.modelo_civil, modelos)
@@ -759,7 +759,7 @@ class TestModelosListaFiltrosCombinados(ModelosAutorizacaoBase):
 
     def test_filtros_combinados_aplicam_todos_juntos(self):
         r = self.client.get(
-            f"/modelos/?area_direito=civil&responsavel={self.user.pk}",
+            f"/modelos/?area_direito=C%C3%8DVEL&responsavel={self.user.pk}",
             HTTP_HOST=self.http_host,
         )
         modelos = list(r.context["modelos"])

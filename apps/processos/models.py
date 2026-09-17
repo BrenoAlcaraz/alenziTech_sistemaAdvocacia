@@ -28,6 +28,15 @@ class Processo(models.Model):
         ("ADMINISTRATIVO", "Administrativo"),
         ("TRIBUTÁRIO", "Tributário"),
         ("FAMÍLIA", "Família"),
+        ("EMPRESARIAL", "Empresarial"),
+        ("ELEITORAL", "Eleitoral"),
+        ("MÉDICO", "Médico"),
+        ("PREVIDENCIÁRIO", "Previdenciário"),
+        ("DIGITAL", "Digital"),
+        ("PROPRIEDADE_INTELECTUAL", "Propriedade Intelectual"),
+        ("IMOBILIÁRIO", "Imobiliário"),
+        ("DESPORTIVO", "Desportivo"),
+        ("DIREITO_INTERNACIONAL", "Direito Internacional"),
         ("OUTRO", "Outro"),
     ]
 

@@ -7,18 +7,15 @@ from django.forms import formset_factory
 
 from apps.clientes.models import Cliente
 from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca, config_documento_padrao
+from apps.processos.models import Processo
 
 TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024  # 10 MB
 EXTENSOES_ACEITAS = {".pdf", ".docx"}
 EXTENSOES_IMAGEM_ACEITAS = {".png", ".jpg", ".jpeg", ".svg"}
 
-AREAS_DIREITO = [
-    ("", "Selecione uma área"),
-    ("civil", "Cível"),
-    ("consumidor", "Consumidor"),
-    ("trabalhista", "Trabalhista"),
-    ("tributario", "Tributário"),
-]
+# Mesmo catálogo de Processo.AREAS_CHOICES — sem lista própria divergente
+# (spec area-direito-novas-areas).
+AREAS_DIREITO = [("", "Selecione uma área")] + Processo.AREAS_CHOICES
 
 
 class ModeloPecaForm(forms.ModelForm):

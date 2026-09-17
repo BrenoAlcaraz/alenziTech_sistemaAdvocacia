@@ -39,7 +39,7 @@ class TestNovoModeloEditorVisual(ModelosAutorizacaoBase):
         payload = {
             "titulo": "Petição com editor visual",
             "categoria": self._categoria().pk,
-            "area_direito": "civil",
+            "area_direito": "CÍVEL",
             "conteudo": "<p>Texto <b>em negrito</b> editado na folha.</p>",
         }
         r = self.client.post("/modelos/novo/", payload, HTTP_HOST=self.http_host)

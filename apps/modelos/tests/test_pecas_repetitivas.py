@@ -206,7 +206,7 @@ class TestRepetitivasFluxoAnexar(RepetitivasBase):
         payload = {
             "modo_base": "anexar",
             "categoria": self._categoria().pk,
-            "area_direito": "civil",
+            "area_direito": "CÍVEL",
             **_management_form("casos", 1),
             "casos-0-valor": "R$ 2.000,00",
         }
@@ -220,7 +220,7 @@ class TestRepetitivasFluxoAnexar(RepetitivasBase):
         gerada = ModeloPeca.objects.exclude(pk=self.peca_base.pk).get()
         self.assertIn("Texto extraído do anexo.", gerada.conteudo)
         self.assertIn("R$ 2.000,00", gerada.conteudo)
-        self.assertEqual(gerada.area_direito, "civil")
+        self.assertEqual(gerada.area_direito, "CÍVEL")
 
     def test_sem_arquivo_nem_tipo_de_peca_reporta_erros(self):
         payload = {
