@@ -94,6 +94,17 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   servem de base a peças geradas para o cliente (ex.: "Gerar
   procuração"). Um representante principal por cliente PJ nesta versão
   — sem vínculo com um Cliente PF já cadastrado.
+- Segundo visor no detalhe do cliente (painel fora do bloco principal
+  de identificação): para PF mostra estado civil, nacionalidade,
+  profissão e idade; para PJ mostra os dados do representante. Idade é
+  sempre calculada a partir de `data_nascimento` (campo novo, só PF,
+  nunca digitada diretamente) — `Cliente.idade`/`Cliente.selo_prioridade`
+  (`None` sem data preenchida ou para PJ).
+- Selo de prioridade "Idoso" (Estatuto do Idoso, idade ≥ 60) ou "Menor
+  de idade" (< 18) ao lado do nome do cliente na listagem/detalhe e em
+  Tarefas/Processos vinculados a ele (componente
+  `templates/components/selo_prioridade.html`) — só indicativo/visual,
+  não altera ordenação de fila, prazo ou notificação.
 - Exclusão definitiva (PDR-0025), distinta de desativar — lançamentos
   financeiros, tarefas e compromissos vinculados permanecem, só perdem
   a referência.
