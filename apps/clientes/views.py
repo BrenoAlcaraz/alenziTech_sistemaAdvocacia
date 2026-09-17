@@ -5,12 +5,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_CLIENTES,
     MODULO_MODELOS,
+    MODULO_PROCESSOS,
     HAB_CLIENTES_CRIAR,
     HAB_CLIENTES_EDITAR,
     HAB_CLIENTES_DESATIVAR,
@@ -19,6 +21,7 @@ from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_DOCUMENTO_ADICIONAR,
     HAB_CLIENTES_DOCUMENTO_EXCLUIR,
     HAB_MODELOS_CRIAR,
+    HAB_PROCESSOS_CRIAR,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
@@ -105,6 +108,12 @@ def _pode_gerar_procuracao(user):
     )
 
 
+def _pode_criar_processo(user):
+    return tem_permissao_modulo(user, MODULO_PROCESSOS) and tem_habilitacao(
+        user, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR
+    )
+
+
 def _usuarios_ativos():
     return User.objects.filter(is_active=True).order_by("first_name", "last_name", "username")
 
@@ -162,6 +171,7 @@ def detalhe(request, pk):
         "pode_adicionar_documento": pode_modificar and _pode_adicionar_documento(request.user),
         "pode_excluir_documento": pode_modificar and _pode_excluir_documento(request.user),
         "pode_gerar_procuracao": _pode_gerar_procuracao(request.user),
+        "pode_criar_processo": _pode_criar_processo(request.user),
         "aba_ativa": request.GET.get("aba", "processos"),
         "item_ativo": "clientes",
     })
@@ -177,6 +187,12 @@ def novo(request):
     is_admin = usuario_admin_escritorio(request.user)
     FormClass = ClienteResponsavelForm if is_admin else ClienteForm
 
+    next_url = request.GET.get("next") or request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = None
+
     if request.method == "POST":
         form_kwargs = {"usuarios_queryset": _usuarios_ativos()} if is_admin else {}
         form = FormClass(request.POST, **form_kwargs)
@@ -185,6 +201,14 @@ def novo(request):
             if not is_admin:
                 cliente.responsavel = request.user
             cliente.save()
+            if next_url:
+                # Criação cruzada (specs/cliente-processo-criacao-cruzada.md):
+                # devolve ao formulário de origem (ex.: novo Processo) com o
+                # cliente recém-criado identificado por querystring — o
+                # próprio formulário de origem restaura o rascunho e
+                # pré-seleciona esse cliente.
+                separador = "&" if "?" in next_url else "?"
+                return redirect(f"{next_url}{separador}cliente_criado={cliente.pk}")
             return redirect("clientes:lista")
     else:
         form_kwargs = {"usuarios_queryset": _usuarios_ativos()} if is_admin else {}
@@ -197,6 +221,7 @@ def novo(request):
         "item_ativo": "clientes",
         "is_admin": is_admin,
         "responsavel_exibido": request.user,
+        "next_url": next_url,
     })
 
 

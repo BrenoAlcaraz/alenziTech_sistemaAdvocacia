@@ -77,7 +77,12 @@
       </div>
 
       <div>
-        <label class="label">Cliente(s)</label>
+        <div class="flex items-center justify-between">
+          <label class="label mb-0">Cliente(s)</label>
+          {% if modo == "novo" %}
+          <button type="button" id="btn-novo-cliente" class="text-xs text-juridico-verde hover:underline">+ Novo cliente</button>
+          {% endif %}
+        </div>
         {{ form.clientes }}
         <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um cliente.</p>
       </div>
@@ -115,4 +120,85 @@
     </div>
   </form>
 </div>
+
+{% if modo == "novo" %}
+<script>
+  // Criação cruzada Cliente↔Processo (specs/cliente-processo-criacao-cruzada.md):
+  // "+ Novo cliente" guarda um rascunho local (sessionStorage — some ao
+  // fechar o navegador, nunca vira registro no banco) de tudo que já foi
+  // preenchido aqui antes de ir para o formulário de Cliente, e restaura
+  // ao voltar. O cliente recém-criado chega pela querystring
+  // (?cliente_criado=<id>, adicionado pelo redirect de clientes:novo) e é
+  // selecionado por cima do rascunho restaurado.
+  var CHAVE_RASCUNHO_PROCESSO = "rascunho_processo_novo";
+  var formNovoProcesso = document.querySelector("form");
+
+  function capturarRascunhoProcesso() {
+    var dados = {};
+    Array.prototype.forEach.call(formNovoProcesso.elements, function (campo) {
+      if (!campo.name || campo.name === "csrfmiddlewaretoken") return;
+      if (campo.tagName === "SELECT" && campo.multiple) {
+        dados[campo.name] = Array.prototype.filter.call(campo.options, function (o) {
+          return o.selected;
+        }).map(function (o) { return o.value; });
+      } else {
+        dados[campo.name] = campo.value;
+      }
+    });
+    try {
+      sessionStorage.setItem(CHAVE_RASCUNHO_PROCESSO, JSON.stringify(dados));
+    } catch (e) { /* sessionStorage indisponível — segue sem rascunho */ }
+  }
+
+  var botaoNovoCliente = document.getElementById("btn-novo-cliente");
+  if (botaoNovoCliente) {
+    botaoNovoCliente.addEventListener("click", function () {
+      capturarRascunhoProcesso();
+      window.location.href = "{% url 'clientes:novo' %}?next=" + encodeURIComponent("{% url 'processos:novo' %}");
+    });
+  }
+
+  function restaurarRascunhoProcesso() {
+    var bruto;
+    try {
+      bruto = sessionStorage.getItem(CHAVE_RASCUNHO_PROCESSO);
+    } catch (e) {
+      return;
+    }
+    if (!bruto) return;
+    sessionStorage.removeItem(CHAVE_RASCUNHO_PROCESSO);
+    var dados;
+    try {
+      dados = JSON.parse(bruto);
+    } catch (e) {
+      return;
+    }
+    Object.keys(dados).forEach(function (nome) {
+      var campo = formNovoProcesso.elements[nome];
+      if (!campo) return;
+      if (campo.tagName === "SELECT" && campo.multiple) {
+        var valores = dados[nome] || [];
+        Array.prototype.forEach.call(campo.options, function (o) {
+          o.selected = valores.indexOf(o.value) !== -1;
+        });
+      } else {
+        campo.value = dados[nome];
+      }
+    });
+  }
+
+  function selecionarClienteRecemCriado() {
+    var clienteCriado = new URLSearchParams(window.location.search).get("cliente_criado");
+    if (!clienteCriado) return;
+    var campoClientes = formNovoProcesso.elements["clientes"];
+    if (!campoClientes) return;
+    Array.prototype.forEach.call(campoClientes.options, function (o) {
+      if (o.value === clienteCriado) o.selected = true;
+    });
+  }
+
+  restaurarRascunhoProcesso();
+  selecionarClienteRecemCriado();
+</script>
+{% endif %}
 {% endblock %}

@@ -172,6 +172,11 @@
 </div>
 
 {% if aba_ativa == "processos" %}
+  {% if pode_criar_processo %}
+  <div class="flex justify-end mb-4">
+    <a href="{% url 'processos:novo' %}?cliente={{ cliente.pk }}" class="btn-secondary text-sm">+ Novo processo</a>
+  </div>
+  {% endif %}
   <div class="flex flex-col gap-3">
     {% for p in processos %}
       <a href="{% url 'processos:detalhe' p.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">

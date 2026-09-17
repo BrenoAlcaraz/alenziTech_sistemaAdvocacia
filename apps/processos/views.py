@@ -410,6 +410,12 @@ def novo(request):
             return redirect("processos:detalhe", pk=processo.pk)
     else:
         initial = {"responsavel": request.user.pk} if pode_atribuir_responsavel else {}
+        cliente_id = request.GET.get("cliente")
+        if cliente_id and Cliente.objects.filter(pk=cliente_id, ativo=True).exists():
+            # Criação cruzada a partir da aba Processos do Cliente
+            # (specs/cliente-processo-criacao-cruzada.md) — mesmo padrão de
+            # pré-preenchimento por querystring já usado em Custas Judiciais.
+            initial["clientes"] = [cliente_id]
         form = FormClass(initial=initial, **form_kwargs)
     return render(request, "processos/form.html", {
         "modo": "novo",
