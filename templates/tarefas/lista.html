@@ -78,7 +78,10 @@
           {% if t.processo %}
             <span><span class="font-semibold text-gray-900">Processo:</span> {{ t.processo }}</span>
           {% elif t.cliente %}
-            <span><span class="font-semibold text-gray-900">Cliente:</span> {{ t.cliente }}</span>
+            <span class="inline-flex items-center gap-1">
+              <span class="font-semibold text-gray-900">Cliente:</span> {{ t.cliente }}
+              {% include "components/selo_prioridade.html" with cliente=t.cliente %}
+            </span>
           {% endif %}
           <span>
             <span class="font-semibold text-gray-900">Prazo:</span>

@@ -82,9 +82,14 @@
         {{ form.estado_civil }}
       </div>
 
-      <div class="col-span-2" id="campo-profissao">
+      <div id="campo-profissao">
         <label class="label">Profissão</label>
         {{ form.profissao }}
+      </div>
+
+      <div id="campo-data-nascimento">
+        <label class="label">Data de nascimento</label>
+        {{ form.data_nascimento }}
       </div>
     </div>
 
@@ -199,7 +204,7 @@
   // que a requisição seja manipulada sem passar pelo toggle.
   var camposPessoaFisica = [
     "campo-estrangeiro", "campo-nacionalidade", "campo-estado-civil",
-    "campo-profissao", "campo-rg",
+    "campo-profissao", "campo-rg", "campo-data-nascimento",
   ].map(function (id) { return document.getElementById(id); });
   var secaoRepresentante = document.getElementById("secao-representante");
 

@@ -60,8 +60,8 @@
     </div>
     <div>
       <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cliente{{ processo.clientes.all|length|pluralize }}</p>
-      <p class="text-sm font-medium text-gray-900">
-        {% for c in processo.clientes.all %}<a href="{% url 'clientes:detalhe' c.pk %}" class="hover:underline hover:text-juridico-verde">{{ c }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+      <p class="text-sm font-medium text-gray-900 flex flex-wrap items-center gap-x-1 gap-y-1">
+        {% for c in processo.clientes.all %}<span class="inline-flex items-center gap-1"><a href="{% url 'clientes:detalhe' c.pk %}" class="hover:underline hover:text-juridico-verde">{{ c }}</a>{% include "components/selo_prioridade.html" with cliente=c %}</span>{% if not forloop.last %}<span>,</span>{% endif %}{% empty %}—{% endfor %}
       </p>
     </div>
     <div>

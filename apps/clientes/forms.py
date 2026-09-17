@@ -13,6 +13,7 @@ class ClienteForm(forms.ModelForm):
         fields = [
             "tipo", "nome_razao_social", "cpf_cnpj", "email", "telefone",
             "estrangeiro", "nacionalidade", "estado_civil", "profissao", "rg",
+            "data_nascimento",
             "representante_nome", "representante_cpf", "representante_cargo",
             "representante_telefone", "representante_email",
             "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "estado",
@@ -47,6 +48,7 @@ class ClienteForm(forms.ModelForm):
                 "class": "input",
                 "placeholder": "00.000.000-0",
             }),
+            "data_nascimento": forms.DateInput(attrs={"class": "input", "type": "date"}),
             "representante_nome": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "Nome completo do representante",
@@ -104,6 +106,7 @@ class ClienteForm(forms.ModelForm):
             cleaned["estado_civil"] = ""
             cleaned["profissao"] = ""
             cleaned["rg"] = ""
+            cleaned["data_nascimento"] = None
 
             if documento and not cnpj_valido(documento):
                 self.add_error("cpf_cnpj", "CNPJ inválido.")

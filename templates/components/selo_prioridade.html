@@ -1,0 +1,14 @@
+{# ─── Selo de prioridade (idoso/menor de idade) ────────────────────────────── #}
+{# Uso: {% include "components/selo_prioridade.html" with cliente=c %} #}
+{# Só indicativo/visual (specs/clientes-segundo-visor-prioridade.md) — sem
+   efeito em ordenação de fila, prazo ou notificação. #}
+
+{% if cliente.selo_prioridade == "idoso" %}
+  <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full" title="Cliente idoso (Estatuto do Idoso)">
+    Idoso
+  </span>
+{% elif cliente.selo_prioridade == "menor_idade" %}
+  <span class="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full" title="Cliente menor de idade">
+    Menor de idade
+  </span>
+{% endif %}

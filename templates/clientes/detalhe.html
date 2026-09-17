@@ -28,7 +28,10 @@
       {% endif %}
     </div>
     <div class="flex-1">
-      <h1 class="text-xl font-bold text-gray-900">{{ cliente.nome_razao_social }}</h1>
+      <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+        {{ cliente.nome_razao_social }}
+        {% include "components/selo_prioridade.html" with cliente=cliente %}
+      </h1>
       <p class="text-sm text-gray-500 mt-0.5">
         {% if cliente.tipo == "PF" %}Pessoa Física &bull; CPF {% else %}Pessoa Jurídica &bull; CNPJ {% endif %}
         {{ cliente.cpf_cnpj }}
@@ -74,6 +77,50 @@
       {% endif %}
     </div>
   </div>
+</div>
+
+{# ── Segundo visor — dados de menor relevância no dia a dia ────────────────── #}
+<div class="card p-5 mb-4">
+  <p class="text-sm font-semibold text-gray-700 mb-3">Mais informações</p>
+  {% if cliente.tipo == "PF" %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Estado civil</p>
+        <p class="text-sm text-gray-700">{{ cliente.get_estado_civil_display|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Nacionalidade</p>
+        <p class="text-sm text-gray-700">{{ cliente.nacionalidade|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Profissão</p>
+        <p class="text-sm text-gray-700">{{ cliente.profissao|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Idade</p>
+        <p class="text-sm text-gray-700">{% if cliente.idade is not None %}{{ cliente.idade }} anos{% else %}—{% endif %}</p>
+      </div>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Representante</p>
+        <p class="text-sm text-gray-700">{{ cliente.representante_nome|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">CPF do representante</p>
+        <p class="text-sm text-gray-700">{{ cliente.representante_cpf|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cargo/qualificação</p>
+        <p class="text-sm text-gray-700">{{ cliente.representante_cargo|default:"—" }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Contato do representante</p>
+        <p class="text-sm text-gray-700">{{ cliente.representante_telefone|default:cliente.representante_email|default:"—" }}</p>
+      </div>
+    </div>
+  {% endif %}
 </div>
 
 {# ── Tarefas relacionadas — card, fora do sistema de abas ─────────────────── #}

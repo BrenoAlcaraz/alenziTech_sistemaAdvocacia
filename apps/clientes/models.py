@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.saas_tenants.storage import (
     PROTEGIDO,
@@ -102,6 +103,10 @@ class Cliente(models.Model):
     estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True)
     profissao = models.CharField(max_length=100, blank=True)
     rg = models.CharField(max_length=20, blank=True, verbose_name="RG")
+    data_nascimento = models.DateField(
+        null=True, blank=True, verbose_name="Data de nascimento",
+        help_text="Só para Pessoa Física — usada para calcular a idade, nunca digitada diretamente.",
+    )
 
     # Representante da Pessoa Jurídica (spec
     # clientes-formulario-pf-pj-representante) — dados de quem assina/
@@ -143,6 +148,32 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nome_razao_social
+
+    @property
+    def idade(self):
+        """Idade calculada a partir de `data_nascimento` — só para Pessoa
+        Física; `None` para PJ ou sem data de nascimento preenchida."""
+        if self.tipo != "PF" or not self.data_nascimento:
+            return None
+        hoje = timezone.localdate()
+        nascimento = self.data_nascimento
+        anos = hoje.year - nascimento.year
+        if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
+            anos -= 1
+        return anos
+
+    @property
+    def selo_prioridade(self):
+        """"idoso"/"menor_idade" (Estatuto do Idoso, ECA) ou `None` — só
+        indicativo/visual, sem efeito em ordenação de fila ou prazo."""
+        idade = self.idade
+        if idade is None:
+            return None
+        if idade >= 60:
+            return "idoso"
+        if idade < 18:
+            return "menor_idade"
+        return None
 
     def iniciais(self):
         partes = self.nome_razao_social.split()

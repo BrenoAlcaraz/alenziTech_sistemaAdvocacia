@@ -58,6 +58,7 @@
         </svg>
         <span class="font-semibold text-gray-900">Cliente:</span>
         <span>{{ tarefa.cliente }}</span>
+        {% include "components/selo_prioridade.html" with cliente=tarefa.cliente %}
       </span>
     {% endif %}
   </div>
