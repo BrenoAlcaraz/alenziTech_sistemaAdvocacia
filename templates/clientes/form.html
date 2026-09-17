@@ -39,8 +39,8 @@
       </div>
     </div>
 
-    {# Brasileiro / Estrangeiro #}
-    <div class="mb-5 flex items-center gap-2">
+    {# Brasileiro / Estrangeiro — exclusivo de Pessoa Física #}
+    <div class="mb-5 flex items-center gap-2" id="campo-estrangeiro">
       {{ form.estrangeiro }}
       <label for="id_estrangeiro" class="text-sm font-medium text-gray-700 cursor-pointer">Estrangeiro</label>
       <span class="text-xs text-gray-400">(desmarcado = Brasileiro)</span>
@@ -57,7 +57,7 @@
         {{ form.cpf_cnpj }}
       </div>
 
-      <div>
+      <div id="campo-rg">
         <label class="label">RG</label>
         {{ form.rg }}
       </div>
@@ -72,19 +72,45 @@
         {{ form.email }}
       </div>
 
-      <div>
+      <div id="campo-nacionalidade">
         <label class="label">Nacionalidade</label>
         {{ form.nacionalidade }}
       </div>
 
-      <div>
+      <div id="campo-estado-civil">
         <label class="label">Estado civil</label>
         {{ form.estado_civil }}
       </div>
 
-      <div class="col-span-2">
+      <div class="col-span-2" id="campo-profissao">
         <label class="label">Profissão</label>
         {{ form.profissao }}
+      </div>
+    </div>
+
+    <div class="pt-4 mt-2 border-t border-gray-100 mb-4" id="secao-representante">
+      <p class="text-sm font-semibold text-gray-900 mb-3">Representante</p>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="col-span-2">
+          <label class="label">Nome completo</label>
+          {{ form.representante_nome }}
+        </div>
+        <div>
+          <label class="label">CPF</label>
+          {{ form.representante_cpf }}
+        </div>
+        <div>
+          <label class="label">Cargo/qualificação</label>
+          {{ form.representante_cargo }}
+        </div>
+        <div>
+          <label class="label">Telefone</label>
+          {{ form.representante_telefone }}
+        </div>
+        <div>
+          <label class="label">E-mail</label>
+          {{ form.representante_email }}
+        </div>
       </div>
     </div>
 
@@ -167,10 +193,28 @@
   var campoDocumento = document.getElementById("id_cpf_cnpj");
   var campoEstrangeiro = document.getElementById("id_estrangeiro");
 
+  // Campos exclusivos de Pessoa Física (estrangeiro/nacionalidade/estado
+  // civil/profissão/RG) somem para PJ, que mostra a seção Representante
+  // no lugar — o form.clean() já limpa esses campos no servidor mesmo
+  // que a requisição seja manipulada sem passar pelo toggle.
+  var camposPessoaFisica = [
+    "campo-estrangeiro", "campo-nacionalidade", "campo-estado-civil",
+    "campo-profissao", "campo-rg",
+  ].map(function (id) { return document.getElementById(id); });
+  var secaoRepresentante = document.getElementById("secao-representante");
+
+  function aplicarTipoPessoa(tipo) {
+    camposPessoaFisica.forEach(function (el) {
+      el.classList.toggle("hidden", tipo === "PJ");
+    });
+    secaoRepresentante.classList.toggle("hidden", tipo !== "PJ");
+  }
+
   function selecionarTipo(tipo) {
     document.getElementById("id_tipo").value = tipo;
     document.getElementById("btn-pf").className = tipo === "PF" ? ATIVO : INATIVO;
     document.getElementById("btn-pj").className = tipo === "PJ" ? ATIVO : INATIVO;
+    aplicarTipoPessoa(tipo);
     aplicarMascaraDocumento();
   }
 
@@ -230,6 +274,16 @@
   var campoTelefone = document.getElementById("id_telefone");
   campoTelefone.addEventListener("input", function () {
     campoTelefone.value = mascararTelefone(apenasDigitos(campoTelefone.value));
+  });
+
+  var campoRepresentanteCpf = document.getElementById("id_representante_cpf");
+  campoRepresentanteCpf.addEventListener("input", function () {
+    campoRepresentanteCpf.value = mascararCpf(apenasDigitos(campoRepresentanteCpf.value));
+  });
+
+  var campoRepresentanteTelefone = document.getElementById("id_representante_telefone");
+  campoRepresentanteTelefone.addEventListener("input", function () {
+    campoRepresentanteTelefone.value = mascararTelefone(apenasDigitos(campoRepresentanteTelefone.value));
   });
 
   // ── Brasileiro / Estrangeiro — trava/libera campos dependentes ─────────────

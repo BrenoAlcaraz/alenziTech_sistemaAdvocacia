@@ -13,6 +13,8 @@ class ClienteForm(forms.ModelForm):
         fields = [
             "tipo", "nome_razao_social", "cpf_cnpj", "email", "telefone",
             "estrangeiro", "nacionalidade", "estado_civil", "profissao", "rg",
+            "representante_nome", "representante_cpf", "representante_cargo",
+            "representante_telefone", "representante_email",
             "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "estado",
             "observacoes",
         ]
@@ -45,6 +47,26 @@ class ClienteForm(forms.ModelForm):
                 "class": "input",
                 "placeholder": "00.000.000-0",
             }),
+            "representante_nome": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Nome completo do representante",
+            }),
+            "representante_cpf": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "000.000.000-00",
+            }),
+            "representante_cargo": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: Sócio-administrador, Procurador",
+            }),
+            "representante_telefone": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "(00) 00000-0000",
+            }),
+            "representante_email": forms.EmailInput(attrs={
+                "class": "input",
+                "placeholder": "email@exemplo.com",
+            }),
             "cep": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "00000-000",
@@ -69,27 +91,49 @@ class ClienteForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        estrangeiro = cleaned.get("estrangeiro")
+        tipo = cleaned.get("tipo") or "PF"
+        documento = (cleaned.get("cpf_cnpj") or "").strip()
 
-        if estrangeiro:
-            # RG é exclusivo de brasileiro — trava/limpa mesmo que alguém
-            # manipule a requisição manualmente (o campo vem desabilitado
-            # na tela).
-            cleaned["rg"] = ""
-        else:
+        if tipo == "PJ":
+            # Estado civil, profissão, RG, nacionalidade e estrangeiro só
+            # fazem sentido para o próprio cliente Pessoa Física — trava/
+            # limpa mesmo que alguém manipule a requisição manualmente (os
+            # campos vêm ocultos na tela para PJ).
+            cleaned["estrangeiro"] = False
             cleaned["nacionalidade"] = "Brasileira"
-            documento = (cleaned.get("cpf_cnpj") or "").strip()
-            if documento:
-                tipo = cleaned.get("tipo") or "PF"
-                if tipo == "PJ":
-                    if not cnpj_valido(documento):
-                        self.add_error("cpf_cnpj", "CNPJ inválido.")
-                elif not cpf_valido(documento):
+            cleaned["estado_civil"] = ""
+            cleaned["profissao"] = ""
+            cleaned["rg"] = ""
+
+            if documento and not cnpj_valido(documento):
+                self.add_error("cpf_cnpj", "CNPJ inválido.")
+
+            representante_cpf = (cleaned.get("representante_cpf") or "").strip()
+            if representante_cpf and not cpf_valido(representante_cpf):
+                self.add_error("representante_cpf", "CPF inválido.")
+        else:
+            # Representante é exclusivo de Pessoa Jurídica — trava/limpa
+            # pelo mesmo motivo acima.
+            cleaned["representante_nome"] = ""
+            cleaned["representante_cpf"] = ""
+            cleaned["representante_cargo"] = ""
+            cleaned["representante_telefone"] = ""
+            cleaned["representante_email"] = ""
+
+            if cleaned.get("estrangeiro"):
+                # RG é exclusivo de brasileiro — trava/limpa mesmo que
+                # alguém manipule a requisição manualmente (o campo vem
+                # desabilitado na tela).
+                cleaned["rg"] = ""
+            else:
+                cleaned["nacionalidade"] = "Brasileira"
+                if documento and not cpf_valido(documento):
                     self.add_error("cpf_cnpj", "CPF inválido.")
 
-        telefone = (cleaned.get("telefone") or "").strip()
-        if telefone and not telefone_valido(telefone):
-            self.add_error("telefone", "Telefone inválido — informe DDD + número.")
+        for campo in ("telefone", "representante_telefone"):
+            valor = (cleaned.get(campo) or "").strip()
+            if valor and not telefone_valido(valor):
+                self.add_error(campo, "Telefone inválido — informe DDD + número.")
 
         return cleaned
 

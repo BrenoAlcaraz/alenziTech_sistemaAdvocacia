@@ -103,6 +103,20 @@ class Cliente(models.Model):
     profissao = models.CharField(max_length=100, blank=True)
     rg = models.CharField(max_length=20, blank=True, verbose_name="RG")
 
+    # Representante da Pessoa Jurídica (spec
+    # clientes-formulario-pf-pj-representante) — dados de quem assina/
+    # representa a empresa, sem criar um segundo Cliente nem usuário do
+    # sistema. Um representante principal por cliente PJ, nesta versão.
+    representante_nome = models.CharField(max_length=255, blank=True, verbose_name="Nome do representante")
+    representante_cpf = models.CharField(max_length=14, blank=True, verbose_name="CPF do representante")
+    representante_cargo = models.CharField(
+        max_length=100, blank=True, verbose_name="Cargo/qualificação do representante",
+    )
+    representante_telefone = models.CharField(
+        max_length=20, blank=True, verbose_name="Telefone do representante",
+    )
+    representante_email = models.EmailField(blank=True, verbose_name="E-mail do representante")
+
     # Endereço estruturado — substitui o antigo campo único `endereco`.
     cep = models.CharField(max_length=9, blank=True, verbose_name="CEP")
     logradouro = models.CharField(max_length=255, blank=True)
