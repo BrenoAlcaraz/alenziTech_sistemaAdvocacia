@@ -209,6 +209,12 @@
   </div>
 {% elif aba_ativa == "documentos" %}
 
+  {% if pode_gerar_procuracao %}
+  <div class="flex justify-end mb-4">
+    <a href="{% url 'clientes:gerar_procuracao' cliente.pk %}" class="btn-secondary text-sm">Gerar procuração</a>
+  </div>
+  {% endif %}
+
   {% if pode_adicionar_documento %}
   <form method="post" action="{% url 'clientes:adicionar_documento' cliente.pk %}"
         enctype="multipart/form-data" class="card px-5 py-4 mb-4">

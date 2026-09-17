@@ -1,0 +1,44 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Gerar procuração — {{ cliente.nome_razao_social }} — Clientes{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{% url 'clientes:detalhe' cliente.pk %}?aba=documentos" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900">Gerar procuração — {{ cliente.nome_razao_social }}</h1>
+</div>
+
+<div class="card p-6 max-w-2xl">
+  {% if not modelos_procuracao %}
+    <p class="text-sm text-gray-700 mb-3">
+      Nenhum modelo de Procuração cadastrado ainda no acervo. Para gerar uma procuração deste cliente,
+      crie primeiro um modelo na categoria <b>Procuração</b> — o texto de poderes vem desse modelo,
+      esta tela nunca gera um texto de procuração do zero.
+    </p>
+    <a href="{% url 'modelos:novo' %}" class="btn-primary text-sm">+ Criar modelo de Procuração</a>
+  {% else %}
+    <p class="text-sm text-gray-500 mb-4">
+      Nome, CPF/CNPJ e endereço do cliente
+      {% if cliente.tipo == "PJ" %}(e os dados do representante){% endif %}
+      entram automaticamente no início da peça gerada, à frente do conteúdo do modelo escolhido abaixo.
+      Poderes/finalidade específicos continuam sendo ajustados manualmente depois de gerada.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="flex flex-col gap-2 mb-5">
+        {% for modelo in modelos_procuracao %}
+          <label class="flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+            <input type="radio" name="modelo_base" value="{{ modelo.pk }}" {% if forloop.first %}checked{% endif %}>
+            <span class="text-sm text-gray-900">{{ modelo.titulo }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <button type="submit" class="btn-primary">Gerar procuração</button>
+      <a href="{% url 'clientes:detalhe' cliente.pk %}?aba=documentos" class="btn-secondary">Cancelar</a>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

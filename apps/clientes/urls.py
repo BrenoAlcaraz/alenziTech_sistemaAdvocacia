@@ -27,4 +27,9 @@ urlpatterns = [
         views.baixar_documento,
         name="baixar_documento",
     ),
+    path(
+        "clientes/<int:pk>/gerar-procuracao/",
+        views.gerar_procuracao,
+        name="gerar_procuracao",
+    ),
 ]

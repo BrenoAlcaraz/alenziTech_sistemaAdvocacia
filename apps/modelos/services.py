@@ -128,6 +128,48 @@ def titulo_peca_caso_repetitivo(titulo_base, cliente, indice):
     return f"{titulo_base} — Caso {indice}"[:255]
 
 
+# ── Gerar procuração (specs/clientes-gerar-procuracao.md) ───────────────────
+# Mesma lógica de Peças repetitivas: sem pipeline de IA (PDR-0008), os dados
+# do cliente entram como bloco de identificação à frente do conteúdo do
+# modelo de Procuração cadastrado pelo escritório — nunca substituição de
+# marcador nem texto de poderes gerado do zero.
+
+def _endereco_cliente(cliente):
+    partes = [
+        cliente.logradouro, cliente.numero, cliente.complemento,
+        cliente.bairro, cliente.cidade, cliente.estado,
+    ]
+    endereco = ", ".join(parte for parte in partes if parte)
+    if cliente.cep:
+        endereco = f"{endereco} — CEP {cliente.cep}" if endereco else f"CEP {cliente.cep}"
+    return endereco
+
+
+def montar_conteudo_procuracao(conteudo_base, cliente):
+    documento = cliente.cpf_cnpj or "não informado"
+    linhas = [
+        f"<p><b>Outorgante:</b> {escapar_html(cliente.nome_razao_social)} "
+        f"(CPF/CNPJ: {escapar_html(documento)})</p>"
+    ]
+    endereco = _endereco_cliente(cliente)
+    if endereco:
+        linhas.append(f"<p><b>Endereço:</b> {escapar_html(endereco)}</p>")
+
+    if cliente.tipo == "PJ" and cliente.representante_nome:
+        cpf_representante = cliente.representante_cpf or "não informado"
+        cargo = f", {escapar_html(cliente.representante_cargo)}" if cliente.representante_cargo else ""
+        linhas.append(
+            f"<p><b>Representante:</b> {escapar_html(cliente.representante_nome)} "
+            f"(CPF: {escapar_html(cpf_representante)}{cargo})</p>"
+        )
+
+    return "".join(linhas) + "<p>&nbsp;</p>" + (conteudo_base or "")
+
+
+def titulo_peca_procuracao(titulo_base, cliente):
+    return f"{titulo_base} — {cliente.nome_razao_social}"[:255]
+
+
 # ── Exportação em PDF/DOCX ──────────────────────────────────────────────────
 # `ModeloPeca.conteudo` vem tanto do editor visual (HTML só com <p>/<div>,
 # <b>/<i>/<u> e `text-align` inline — ver `_nova_peca_editor_js.html`) quanto

@@ -10,6 +10,7 @@ from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_CLIENTES,
+    MODULO_MODELOS,
     HAB_CLIENTES_CRIAR,
     HAB_CLIENTES_EDITAR,
     HAB_CLIENTES_DESATIVAR,
@@ -17,9 +18,12 @@ from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_EXCLUIR,
     HAB_CLIENTES_DOCUMENTO_ADICIONAR,
     HAB_CLIENTES_DOCUMENTO_EXCLUIR,
+    HAB_MODELOS_CRIAR,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
+from apps.modelos.services import montar_conteudo_procuracao, titulo_peca_procuracao
 from .models import Cliente, Documento
 from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
 from .services import clientes_relacionados
@@ -95,6 +99,12 @@ def _pode_excluir_documento(user):
     return tem_habilitacao(user, MODULO_CLIENTES, HAB_CLIENTES_DOCUMENTO_EXCLUIR)
 
 
+def _pode_gerar_procuracao(user):
+    return tem_permissao_modulo(user, MODULO_MODELOS) and tem_habilitacao(
+        user, MODULO_MODELOS, HAB_MODELOS_CRIAR
+    )
+
+
 def _usuarios_ativos():
     return User.objects.filter(is_active=True).order_by("first_name", "last_name", "username")
 
@@ -151,6 +161,7 @@ def detalhe(request, pk):
         "form_documento": DocumentoForm(),
         "pode_adicionar_documento": pode_modificar and _pode_adicionar_documento(request.user),
         "pode_excluir_documento": pode_modificar and _pode_excluir_documento(request.user),
+        "pode_gerar_procuracao": _pode_gerar_procuracao(request.user),
         "aba_ativa": request.GET.get("aba", "processos"),
         "item_ativo": "clientes",
     })
@@ -322,6 +333,49 @@ def excluir_documento(request, pk, documento_pk):
     documento = get_object_or_404(cliente.documentos, pk=documento_pk)
     documento.delete()
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
+
+
+@login_required
+def gerar_procuracao(request, pk):
+    """Gera uma nova peça de Procuração no acervo de Modelos, a partir do
+    modelo de Procuração cadastrado pelo escritório + dados do cliente
+    (nome/CPF-CNPJ/endereço, e representante se PJ) — mesmo padrão de
+    Peças repetitivas Fase 1 (gerar e depois ajustar manualmente, sem IA).
+
+    Autorização: `modelos_criar` (é a mutação que efetivamente acontece,
+    criar um ModeloPeca) combinada com poder ver o cliente (escopo de
+    leitura de Clientes já aplicado) — não depende de ser responsável
+    pelo cliente nem de habilitação de documento de Clientes.
+    """
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        raise PermissionDenied
+    if not _pode_gerar_procuracao(request.user):
+        raise PermissionDenied
+    escopo, _ = _resolver_escopo(request)
+    cliente = get_object_or_404(_clientes_no_escopo(request, escopo, ativo=True), pk=pk)
+
+    categoria_procuracao = CategoriaModeloPeca.objects.filter(nome="Procuração").first()
+    modelos_procuracao = (
+        categoria_procuracao.modelos.order_by("-criado_em")
+        if categoria_procuracao else ModeloPeca.objects.none()
+    )
+
+    if request.method == "POST" and modelos_procuracao.exists():
+        modelo_base = get_object_or_404(modelos_procuracao, pk=request.POST.get("modelo_base"))
+        peca = ModeloPeca.objects.create(
+            titulo=titulo_peca_procuracao(modelo_base.titulo, cliente),
+            categoria=modelo_base.categoria,
+            area_direito=modelo_base.area_direito,
+            conteudo=montar_conteudo_procuracao(modelo_base.conteudo, cliente),
+            criado_por=request.user,
+        )
+        return redirect("modelos:detalhe", pk=peca.pk)
+
+    return render(request, "clientes/gerar_procuracao.html", {
+        "cliente": cliente,
+        "modelos_procuracao": modelos_procuracao,
+        "item_ativo": "clientes",
+    })
 
 
 @login_required
