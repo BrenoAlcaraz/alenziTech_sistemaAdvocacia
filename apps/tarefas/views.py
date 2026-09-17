@@ -174,6 +174,26 @@ def _tarefas_delegadas_por_mim(request):
     )
 
 
+def _contexto_faixa_subabas(request, usuario_filtro, pode_atribuir_a_outros):
+    """
+    Contexto da faixa de sub-abas abaixo da lista/quadro principal —
+    reaproveitado por `lista` e `quadro` (docs/PRODUCT.md, seção
+    Tarefas: a faixa fica sempre visível, independente da visão ativa).
+    """
+    contexto = {
+        "aba_ativa": _normalizar_aba(request, usuario_filtro),
+        "pode_atribuir_a_outros": pode_atribuir_a_outros,
+        "tarefas_novidades": list(_tarefas_novidades(request)),
+        "tarefas_terceiro": list(_tarefas_atribuidas_por_terceiros(request)),
+    }
+    if pode_atribuir_a_outros:
+        contexto["tarefas_delegadas"] = list(_tarefas_delegadas_por_mim(request))
+        contexto["usuarios_outros"] = User.objects.filter(is_active=True).order_by(
+            "first_name", "username"
+        )
+    return contexto
+
+
 def _usuario_travado(request):
     """
     Usuário travado no campo "Atribuir a" quando o formulário é aberto a
@@ -225,10 +245,17 @@ def quadro(request):
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
     ordem = _normalizar_ordem(request.GET.get("ordem", "prazo_proximo"))
+    pode_atribuir_a_outros = _pode_atribuir_a_outros(request)
 
     usuario_filtro = None
     usuario_filtro_id = request.GET.get("usuario")
-    if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
+    # `?usuario=` aqui serve dois atalhos distintos que convergem no mesmo
+    # efeito (ver as tarefas de um colega, escopo todos): o atalho "Ir
+    # para Tarefas" do Painel do gestor (gerir/Admin) e o seletor de
+    # colega da sub-aba "Ver tarefas de outra pessoa" (tarefas_atribuir_
+    # outros) — mesma condição de `lista`, para a faixa de sub-abas
+    # funcionar igual nas duas visões.
+    if usuario_filtro_id and (_pode_ver_outro_usuario(request.user) or pode_atribuir_a_outros):
         usuario_filtro = get_object_or_404(User, pk=usuario_filtro_id)
 
     if usuario_filtro:
@@ -258,7 +285,7 @@ def quadro(request):
         "concluida": [t for t in tarefas if t.status == "concluida"],
         "cancelada": [t for t in tarefas if t.status == "cancelada"],
     }
-    return render(request, "tarefas/quadro.html", {
+    contexto = {
         "tarefas_por_status": tarefas_por_status,
         "ordem": ordem,
         "escopo_atual": escopo,
@@ -269,7 +296,9 @@ def quadro(request):
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
-    })
+    }
+    contexto.update(_contexto_faixa_subabas(request, usuario_filtro, pode_atribuir_a_outros))
+    return render(request, "tarefas/quadro.html", contexto)
 
 
 @login_required
@@ -305,20 +334,8 @@ def lista(request):
         "is_admin": usuario_admin_escritorio(request.user),
         "next_url": request.get_full_path(),
         "item_ativo": "tarefas",
-        "aba_ativa": _normalizar_aba(request, usuario_filtro),
-        "pode_atribuir_a_outros": pode_atribuir_a_outros,
     }
-
-    # ── Faixa de sub-abas ────────────────────────────────────────────
-    contexto.update({
-        "tarefas_novidades": list(_tarefas_novidades(request)),
-        "tarefas_terceiro": list(_tarefas_atribuidas_por_terceiros(request)),
-    })
-    if pode_atribuir_a_outros:
-        contexto["tarefas_delegadas"] = list(_tarefas_delegadas_por_mim(request))
-        contexto["usuarios_outros"] = User.objects.filter(is_active=True).order_by(
-            "first_name", "username"
-        )
+    contexto.update(_contexto_faixa_subabas(request, usuario_filtro, pode_atribuir_a_outros))
 
     return render(request, "tarefas/lista.html", contexto)
 

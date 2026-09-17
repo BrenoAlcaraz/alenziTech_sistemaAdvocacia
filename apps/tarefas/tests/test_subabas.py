@@ -271,6 +271,67 @@ class TestSubabaVerTarefasDeOutraPessoa(TarefasSubabasBase):
         self.assertIn(tarefa_colega, r.context["tarefas"])
 
 
+class TestFaixaSubabasVisivelNoQuadro(TarefasSubabasBase):
+    """
+    Regressão (revisão do sócio de 2026-09-17, docs/STATUS.md): a faixa
+    de sub-abas precisa aparecer tanto na visão de lista quanto na de
+    quadro (kanban) — `quadro` não montava o contexto nem incluía o
+    template parcial, então a faixa sumia ao trocar de visão.
+    """
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "tarefas_subaba_quadro"
+
+    @classmethod
+    def setup_tenant(cls, tenant):
+        tenant.nome = "Tarefas Subaba Quadro"
+        tenant.slug = "tarefas-subaba-quadro"
+
+    def setUp(self):
+        super().setUp()
+        self.comum = self._user("comum_quadro")
+        self._dar_acesso_tarefas(self.comum)
+        self.gestor = self._user("gestor_quadro")
+        papel_gestor = self._dar_acesso_tarefas(self.gestor)
+        self._hp(papel_gestor, MODULO_TAREFAS, HAB_TAREFAS_ATRIBUIR_OUTROS)
+        self.colega = self._user("colega_quadro")
+
+    def test_recentes_e_terceiros_sempre_visiveis_no_quadro(self):
+        self.client.force_login(self.comum)
+        r = self.client.get("/tarefas/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "Recentes (últimas 24h)")
+        self.assertContains(r, "Atribuídas a mim por terceiros")
+
+    def test_delegadas_e_outros_ocultas_sem_habilitacao_no_quadro(self):
+        self.client.force_login(self.comum)
+        r = self.client.get("/tarefas/", HTTP_HOST=self.http_host)
+        self.assertNotContains(r, "Delegadas por mim")
+        self.assertNotContains(r, "Ver tarefas de outra pessoa")
+
+    def test_delegadas_e_outros_visiveis_com_habilitacao_no_quadro(self):
+        self.client.force_login(self.gestor)
+        r = self.client.get("/tarefas/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "Delegadas por mim")
+        self.assertContains(r, "Ver tarefas de outra pessoa")
+
+    def test_selecionar_colega_na_subaba_filtra_o_quadro(self):
+        # Mesma habilitação da sub-aba "Ver tarefas de outra pessoa"
+        # (tarefas_atribuir_outros) — sem gerir/Admin, distinta do
+        # atalho do Painel do gestor (ver test_usuario_filtro.py).
+        self.client.force_login(self.gestor)
+        tarefa_colega = self._tarefa(
+            titulo="Do colega no quadro", responsavel=self.colega, atribuidor=self.colega,
+            status="em_andamento",
+        )
+        r = self.client.get(
+            "/tarefas/", {"usuario": self.colega.pk}, HTTP_HOST=self.http_host
+        )
+        self.assertEqual(r.context["aba_ativa"], "outros")
+        self.assertEqual(r.context["usuario_filtro"], self.colega)
+        self.assertIn(tarefa_colega, r.context["tarefas_por_status"]["em_andamento"])
+
+
 class TestNovaTarefaParaOutraPessoa(TarefasSubabasBase):
     """
     "+ Nova tarefa para esta pessoa": campo "Atribuir a" pré-preenchido e
