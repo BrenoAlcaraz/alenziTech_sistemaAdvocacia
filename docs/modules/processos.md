@@ -82,6 +82,18 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   pré-preenchimento automático (Tarefas, Agenda, Financeiro) usam o
   primeiro cliente vinculado como melhor esforço — esses módulos
   continuam com cliente único no próprio cadastro.
+- Criação cruzada Cliente↔Processo: aba Processos do Cliente tem botão
+  "Novo processo" (`processos:novo?cliente=<id>`, mesmo padrão de
+  pré-preenchimento por querystring do `?processo=` de Custas
+  Judiciais; id inválido/inativo é ignorado sem erro). No formulário de
+  novo Processo, "+ Novo cliente" guarda um rascunho local
+  (`sessionStorage`, nunca vira registro no banco, some ao fechar o
+  navegador) de tudo já preenchido, abre `clientes:novo?next=<url>` e,
+  ao salvar (ou cancelar) o Cliente, volta e restaura o rascunho — o
+  cliente recém-criado chega por `?cliente_criado=<id>` e é
+  pré-selecionado por cima do rascunho. Nenhuma autorização nova: cada
+  atalho reusa a checagem de módulo/habilitação já existente da tela de
+  destino.
 
 ## Comarca e Vara
 
