@@ -304,25 +304,45 @@ Repositório de modelos de peças/documentos reutilizáveis.
   apaga a atual. Excluir o modelo remove também seu histórico.
 - Estilo do escritório é configuração única do tenant, sem autoria —
   leitura sempre liberada a quem tem o módulo, edição restrita a quem
-  tem `modelos_editar_estilo` ou é Administrador. Cobre tom de voz e
-  instruções gerais (reservados para uso futuro pela IA de geração de
-  peças) e um editor visual do padrão de documento: cabeçalho, rodapé,
-  marca d'água e assinatura (texto ou imagem, cada um ligável/
-  desligável), fonte/cor da folha, e a formatação própria de
-  endereçamento, número do processo, número da guia, nome das partes,
-  jurisprudência, transcrição de artigo e citação — cada peça nova
-  segue esse padrão automaticamente. Endereçamento/número do
-  processo/guia só aparecem na primeira página do documento gerado;
-  assinatura só na última. Alternativa a construir do zero: anexar uma
-  peça já formatada como referência visual apenas (sem extração
-  automática de estilo do arquivo).
+  tem `modelos_editar_estilo` ou é Administrador. Sem tom de voz/
+  instruções gerais (removidos — eram só reserva para uma IA de geração
+  de peças que não existe, PDR-0008). Editor visual do padrão de
+  documento: cabeçalho, rodapé e marca d'água (texto ou imagem, cada um
+  ligável/desligável — em modo imagem, tamanho em % da folha e posição
+  esquerda/centro/direita configuráveis), fonte/cor da folha, e a
+  formatação própria de endereçamento, número do processo, número da
+  guia, nome das partes, jurisprudência, transcrição de artigo e
+  citação — cada peça nova segue esse padrão automaticamente.
+  Endereçamento/número do processo/guia só aparecem na primeira página
+  do documento gerado. Alternativa a construir do zero: anexar uma peça
+  já formatada como referência visual apenas (sem extração automática
+  de estilo do arquivo).
+- Assinatura do padrão de Meu Estilo é uma lista (`AssinaturaEstilo`),
+  não mais um único bloco — o escritório cadastra quantas quiser (ex.:
+  dois sócios assinando a mesma peça), cada uma texto ou imagem, com
+  tamanho/posição próprios; a peça exportada traz todas, em sequência.
+- Cabeçalho e rodapé (só eles, não a marca d'água) escolhem em quais
+  páginas aparecem: todas, só a primeira ou só a última. Padrão vem de
+  Meu Estilo; cada `ModeloPeca` pode ter sua própria escolha
+  (`cabecalho_replicacao`/`rodape_replicacao`), semeada do padrão do
+  escritório no momento da criação e independente dele daí em diante —
+  mudar o padrão depois não afeta modelo já criado. "Só a última
+  página" não é suportável no .docx exportado (o formato não conhece
+  paginação no momento da geração — Word só calcula isso ao abrir o
+  arquivo); nesse caso o cabeçalho/rodapé simplesmente não aparece no
+  .docx, só no PDF (que consegue calcular a página final).
 - Criar um modelo manualmente (não importado) mostra cabeçalho, rodapé,
-  marca d'água e assinatura do estilo vigente do escritório como
+  marca d'água e assinaturas do estilo vigente do escritório como
   moldura de contexto ao redigir o conteúdo — não editável ali, sempre
-  a leitura do estilo atual no momento da criação; uma mudança
-  posterior em "Meu Estilo" não altera peça já criada. O reconhecimento
+  a leitura do estilo atual no momento da criação. O reconhecimento
   automático de jurisprudência/citação pela IA durante a redação
   depende do pipeline de IA de peças (PDR-0008) — ainda não existe.
+- Imagem inserida no conteúdo da peça (editor de "novo modelo") tem
+  tamanho (% da folha) e posição (esquerda/centro/direita) ajustáveis
+  após inserida — vira uma data-URL embutida no HTML salvo (sem upload
+  para storage); a exportação em PDF/DOCX reconhece essa imagem como um
+  parágrafo próprio (nunca mistura com o texto ao redor) e a desenha no
+  tamanho/posição configurados.
 - Peças repetitivas (aba "Peças repetitivas", exige `modelos_criar`) —
   Fase 1, sem IA: usuário escolhe uma peça base (do acervo, ou anexando
   um arquivo PDF/DOCX novo só para esta geração — não vira modelo
