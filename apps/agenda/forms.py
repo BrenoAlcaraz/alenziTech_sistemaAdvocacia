@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.urls import reverse
 from .models import Compromisso
+from apps.accounts.models import Equipe
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
@@ -112,3 +113,19 @@ class AdicionarParticipanteForm(forms.Form):
     def __init__(self, *args, usuarios_queryset, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["usuario"].queryset = usuarios_queryset
+
+
+class AdicionarEquipeParticipanteForm(forms.Form):
+    """Vínculo dinâmico de Equipe inteira como participante
+    (specs/grupo-integrante-participante-dinamico.md) — cada membro
+    ainda passa pela confirmação de presença individual de sempre."""
+
+    equipe = forms.ModelChoiceField(
+        queryset=Equipe.objects.none(),
+        label="Equipe",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, equipes_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["equipe"].queryset = equipes_queryset

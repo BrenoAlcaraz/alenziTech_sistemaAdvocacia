@@ -26,6 +26,13 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.accounts.vinculo_equipe import (
+    desvincular_equipe,
+    equipes_vinculadas,
+    registrar_vinculo_individual,
+    remover_pessoa,
+    vincular_equipe,
+)
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
@@ -33,6 +40,7 @@ from apps.saas_tenants.storage import nome_do_arquivo
 from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
+    AdicionarEquipeIntegranteForm,
     AdicionarIntegranteForm,
     DocumentoForm,
     IntimacaoForm,
@@ -222,11 +230,17 @@ def detalhe(request, pk):
     )
     integrantes = list(processo.integrantes_habilitados.all())
     candidatos_integrante = User.objects.none()
+    equipes_do_processo = list(equipes_vinculadas(processo))
+    candidatos_equipe_integrante = Equipe.objects.none()
     if pode_gerenciar_integrantes:
         candidatos_integrante = responsaveis_elegiveis().exclude(
             pk__in=[integrante.pk for integrante in integrantes]
         )
+        candidatos_equipe_integrante = Equipe.objects.exclude(
+            pk__in=[equipe.pk for equipe in equipes_do_processo]
+        )
     form_integrante = AdicionarIntegranteForm(usuarios_queryset=candidatos_integrante)
+    form_equipe_integrante = AdicionarEquipeIntegranteForm(equipes_queryset=candidatos_equipe_integrante)
     documentos = list(processo.documentos.select_related("autor"))
     movimentacoes = list(processo.movimentacoes.select_related("origem_prazo").order_by("-data"))
     prazos = sorted(
@@ -275,6 +289,9 @@ def detalhe(request, pk):
         "form_integrante": form_integrante,
         "tem_candidatos_integrante": candidatos_integrante.exists(),
         "pode_gerenciar_integrantes": pode_gerenciar_integrantes,
+        "equipes_do_processo": equipes_do_processo,
+        "form_equipe_integrante": form_equipe_integrante,
+        "tem_candidatos_equipe_integrante": candidatos_equipe_integrante.exists(),
         "form_parte": ParteProcessoForm(processo=processo),
         "form_parte_contraparte": ParteProcessoForm(processo=processo, auto_id="id_contraparte_%s"),
         "papel_contraparte": ParteProcesso.PAPEL_CONTRAPARTE,
@@ -355,6 +372,7 @@ def adicionar_integrante(request, pk):
         raise Http404
     usuario_integrante = formulario.cleaned_data["usuario"]
     processo.integrantes_habilitados.add(usuario_integrante)
+    registrar_vinculo_individual(processo, usuario_integrante)
     registrar_atividade(
         request.user, "processo_integrante_adicionado",
         f"Habilitou {nome_exibicao_usuario(usuario_integrante)} no processo {processo.titulo}",
@@ -371,9 +389,57 @@ def remover_integrante(request, pk, usuario_pk):
     processo = get_object_or_404(Processo, pk=pk)
     usuario = get_object_or_404(processo.integrantes_habilitados, pk=usuario_pk)
     processo.integrantes_habilitados.remove(usuario)
+    remover_pessoa(processo, usuario)
     registrar_atividade(
         request.user, "processo_integrante_removido",
         f"Removeu a habilitação de {nome_exibicao_usuario(usuario)} no processo {processo.titulo}",
+        processo=processo,
+    )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
+
+
+@login_required
+@require_POST
+def adicionar_equipe_integrante(request, pk):
+    """Vínculo dinâmico de Equipe inteira como integrante habilitado do
+    processo (specs/grupo-integrante-participante-dinamico.md) — não
+    afeta o responsável principal, mesma habilitação de sempre."""
+    if not _pode_gerenciar_integrantes(request.user):
+        raise PermissionDenied
+    processo = get_object_or_404(Processo, pk=pk)
+    formulario = AdicionarEquipeIntegranteForm(
+        request.POST,
+        equipes_queryset=Equipe.objects.exclude(pk__in=equipes_vinculadas(processo)),
+    )
+    if not formulario.is_valid():
+        raise Http404
+    equipe = formulario.cleaned_data["equipe"]
+    vincular_equipe(
+        processo, equipe,
+        aplicar_adicao=lambda alvo, usuario: alvo.integrantes_habilitados.add(usuario),
+    )
+    registrar_atividade(
+        request.user, "processo_integrante_adicionado",
+        f"Habilitou a equipe {equipe.nome} no processo {processo.titulo}",
+        processo=processo,
+    )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")
+
+
+@login_required
+@require_POST
+def remover_equipe_integrante(request, pk, equipe_pk):
+    if not _pode_gerenciar_integrantes(request.user):
+        raise PermissionDenied
+    processo = get_object_or_404(Processo, pk=pk)
+    equipe = get_object_or_404(equipes_vinculadas(processo), pk=equipe_pk)
+    desvincular_equipe(
+        processo, equipe,
+        aplicar_remocao=lambda alvo, usuario: alvo.integrantes_habilitados.remove(usuario),
+    )
+    registrar_atividade(
+        request.user, "processo_integrante_removido",
+        f"Removeu a habilitação da equipe {equipe.nome} no processo {processo.titulo}",
         processo=processo,
     )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=integrantes")

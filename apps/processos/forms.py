@@ -13,6 +13,7 @@ from .services import (
     nome_exibicao_usuario,
     rotulo_processo,
 )
+from apps.accounts.models import Equipe
 from apps.clientes.models import Cliente
 
 
@@ -143,6 +144,21 @@ class AdicionarIntegranteForm(forms.Form):
     def __init__(self, *args, usuarios_queryset, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["usuario"].queryset = usuarios_queryset
+
+
+class AdicionarEquipeIntegranteForm(forms.Form):
+    """Vínculo dinâmico de Equipe inteira como integrante
+    (specs/grupo-integrante-participante-dinamico.md)."""
+
+    equipe = forms.ModelChoiceField(
+        queryset=Equipe.objects.none(),
+        label="Equipe",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, equipes_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["equipe"].queryset = equipes_queryset
 
 
 class AdicionarApensoForm(forms.Form):

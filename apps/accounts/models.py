@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
@@ -124,6 +125,79 @@ class MembroEquipe(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} → {self.equipe.nome}"
+
+
+class EquipeVinculada(models.Model):
+    """Uma Equipe inteira adicionada como integrante/participante/
+    atribuído de um objeto de outro módulo (Processo, Tarefa,
+    Compromisso) — specs/grupo-integrante-participante-dinamico.md.
+    Mecanismo único e reaproveitado pelos três módulos (mesmo padrão do
+    grupo de chat automático por equipe, PDR-0026, `apps/chat/signals.py`),
+    nunca duplicado por app. Persiste mesmo se a equipe estiver sem
+    nenhum membro efetivo no momento — é o registro de que o vínculo
+    existe, para materializar quem entrar depois.
+    """
+
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    alvo = GenericForeignKey("content_type", "object_id")
+    equipe = models.ForeignKey(Equipe, on_delete=models.CASCADE, related_name="vinculos")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Equipe Vinculada"
+        verbose_name_plural = "Equipes Vinculadas"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type", "object_id", "equipe"],
+                name="uniq_equipe_vinculada",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.equipe.nome} → {self.alvo}"
+
+
+class VinculoIntegrante(models.Model):
+    """Por que `usuario` está entre os integrantes/participantes/
+    atribuídos de `alvo`: individualmente (`equipe=None`) ou porque é
+    membro efetivo de `equipe` (materialização de uma `EquipeVinculada`).
+    Fonte única da verdade da sincronização dinâmica — nunca criado/
+    apagado fora de `apps.accounts.vinculo_equipe`. Um usuário pode ter
+    mais de uma linha para o mesmo alvo (individual + uma ou mais
+    equipes); o acesso de fato só é revogado quando a última linha
+    desaparece (ver `vinculo_equipe.py`)."""
+
+    content_type = models.ForeignKey("contenttypes.ContentType", on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    alvo = GenericForeignKey("content_type", "object_id")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vinculos_integrante"
+    )
+    equipe = models.ForeignKey(
+        Equipe, on_delete=models.CASCADE, null=True, blank=True, related_name="vinculos_integrante"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Vínculo de Integrante"
+        verbose_name_plural = "Vínculos de Integrante"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type", "object_id", "usuario", "equipe"],
+                condition=Q(equipe__isnull=False),
+                name="uniq_vinculo_integrante_via_equipe",
+            ),
+            models.UniqueConstraint(
+                fields=["content_type", "object_id", "usuario"],
+                condition=Q(equipe__isnull=True),
+                name="uniq_vinculo_integrante_individual",
+            ),
+        ]
+
+    def __str__(self):
+        origem = self.equipe.nome if self.equipe_id else "individual"
+        return f"{self.usuario.username} em {self.alvo} ({origem})"
 
 
 class PapelAcesso(models.Model):

@@ -5,3 +5,6 @@ class AgendaConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.agenda"
     verbose_name = "Agenda"
+
+    def ready(self):
+        import apps.agenda.signals  # noqa: F401
