@@ -15,6 +15,7 @@ Segue o mesmo padrão de fixtures de apps/clientes/tests/test_autorizacao.py.
 """
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import (
@@ -713,7 +714,11 @@ class TestModelosListaFiltrosCombinados(ModelosAutorizacaoBase):
         self.assertNotIn(self.modelo_civil, modelos)
 
     def test_filtra_por_data_criacao(self):
-        hoje = self.modelo_civil.criado_em.strftime("%Y-%m-%d")
+        # `criado_em` é lido do banco em UTC; a view filtra por
+        # `criado_em__date`, que o Django converte para TIME_ZONE
+        # (America/Sao_Paulo) antes de comparar — comparar direto contra
+        # a data crua em UTC gera falso negativo perto da virada do dia.
+        hoje = timezone.localtime(self.modelo_civil.criado_em).strftime("%Y-%m-%d")
         r = self.client.get(f"/modelos/?data={hoje}", HTTP_HOST=self.http_host)
         modelos = list(r.context["modelos"])
         self.assertIn(self.modelo_civil, modelos)
