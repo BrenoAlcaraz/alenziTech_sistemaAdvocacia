@@ -262,6 +262,8 @@ class SolicitacaoFinanceira(models.Model):
         ("cliente", "Cliente"),
     ]
 
+    STATUS_ABERTOS = ("solicitada", "em_analise", "aprovada")
+
     TRANSICOES_VALIDAS = {
         "solicitada": {"em_analise"},
         "em_analise": {"aprovada", "rejeitada"},
@@ -310,6 +312,14 @@ class SolicitacaoFinanceira(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
+    @property
+    def vencida(self):
+        return (
+            self.status in self.STATUS_ABERTOS
+            and self.vencimento is not None
+            and self.vencimento < timezone.localdate()
+        )
 
     def pode_transicionar_para(self, novo_status):
         return novo_status in self.TRANSICOES_VALIDAS.get(self.status, set())

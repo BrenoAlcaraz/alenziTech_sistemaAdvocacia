@@ -10,14 +10,7 @@
     </svg>
   </a>
   <h1 class="text-xl font-bold text-gray-900">{{ solicitacao.descricao }}</h1>
-  <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium
-    {% if solicitacao.status == 'solicitada' %}bg-gray-100 text-gray-600
-    {% elif solicitacao.status == 'em_analise' %}bg-amber-100 text-amber-700
-    {% elif solicitacao.status == 'aprovada' %}bg-blue-100 text-blue-700
-    {% elif solicitacao.status == 'rejeitada' %}bg-red-100 text-red-600
-    {% else %}bg-green-100 text-green-700{% endif %}">
-    {{ solicitacao.get_status_display }}
-  </span>
+  {% include "components/estado_solicitacao.html" %}
   {% if solicitacao.status == "solicitada" or solicitacao.status == "em_analise" %}
     <a href="{% url 'financeiro:editar_solicitacao' solicitacao.pk %}" class="ml-auto btn-secondary">Editar</a>
   {% endif %}

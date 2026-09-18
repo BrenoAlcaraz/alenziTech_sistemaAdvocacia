@@ -73,6 +73,15 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   comprovante obrigatório, data do gasto, observação.
 - Fluxo: `solicitada → em análise → aprovada → paga`, ou
   `solicitada → em análise → rejeitada` — sem pular etapa.
+- Cor do estado, igual em todas as telas que mostram a solicitação
+  (lista e detalhe do Financeiro, aba "Custas Judiciais" do processo):
+  solicitada e em análise amarelo, aprovada azul, rejeitada vermelho,
+  paga verde. Os cards de lista/aba levam também uma faixa lateral na
+  cor do estado.
+- "Vencida": etiqueta vermelha ao lado do estado quando a solicitação
+  está aberta (`solicitada`, `em_analise` ou `aprovada`) e o vencimento
+  é anterior a hoje. Vencimento é opcional — sem data nunca é vencida;
+  vencimento hoje não é vencida; `paga` e `rejeitada` nunca são vencidas.
 - Criar solicitação não gera despesa realizada; só o pagamento
   efetivamente processado altera o saldo realizado.
 - Reabrir lançamento pago exige habilitação própria; ao reabrir, o

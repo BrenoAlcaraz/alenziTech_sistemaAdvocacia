@@ -591,7 +591,8 @@
   <div class="flex flex-col gap-3">
     {% for solicitacao in custas_financeiras %}
       {# Sem link para o detalhe da solicitação em Financeiro de propósito: essa aba mostra de qualquer solicitante, mas o detalhe/anexo em Financeiro segue restrito por dados_proprios/dados_todos — a visão compartilhada é só desta lista. #}
-      <div class="card px-5 py-4 flex items-center justify-between gap-4">
+      <div class="card relative overflow-hidden px-5 py-4 flex items-center justify-between gap-4">
+        {% include "components/estado_solicitacao.html" with parte="faixa" %}
         <div class="min-w-0">
           <p class="text-sm font-medium text-gray-900 truncate">{{ solicitacao.descricao }}</p>
           <p class="text-xs text-gray-400 mt-0.5">
@@ -609,7 +610,7 @@
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
           <span class="text-sm font-medium text-gray-900">R$ {{ solicitacao.valor|moeda_br }}</span>
-          <span class="badge-area">{{ solicitacao.get_status_display }}</span>
+          {% include "components/estado_solicitacao.html" %}
         </div>
       </div>
     {% endfor %}
