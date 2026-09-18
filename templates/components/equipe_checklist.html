@@ -1,0 +1,21 @@
+{# Equipe como atalho de seleção (PDR-0028): escolher a equipe lista os membros ativos marcados; só pessoas vão ao servidor. Espera `equipe_atalho` (apps/accounts/equipe_atalho.py:dados_para_js) e `action`. JS em static/js/main.js. #}
+{{ equipe_atalho|json_script:"equipe-atalho-dados" }}
+<form method="post" action="{{ action }}" data-equipe-checklist class="mb-3">
+  {% csrf_token %}
+  <label class="label" for="id_equipe_atalho">Adicionar equipe</label>
+  {% if equipe_atalho.equipes %}
+    <select id="id_equipe_atalho" name="equipe" class="select" data-equipe-select>
+      <option value="">Selecione uma equipe</option>
+      {% for equipe_id, equipe in equipe_atalho.equipes.items %}
+        <option value="{{ equipe_id }}">{{ equipe.nome }}</option>
+      {% endfor %}
+    </select>
+    <div class="hidden mt-2 border border-gray-200 rounded-lg p-3" data-equipe-painel>
+      <p class="text-xs text-gray-400 mb-2">Desmarque quem não deve ser adicionado.</p>
+      <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto mb-3" data-equipe-lista></div>
+      <button type="submit" class="btn-secondary text-xs" data-equipe-confirmar disabled>Adicionar selecionados</button>
+    </div>
+  {% else %}
+    <p class="text-xs text-gray-400">Nenhuma equipe cadastrada ainda</p>
+  {% endif %}
+</form>

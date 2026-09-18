@@ -45,11 +45,6 @@ urlpatterns = [
         name="adicionar_equipe_integrante",
     ),
     path(
-        "processos/<int:pk>/integrantes/equipe/<int:equipe_pk>/remover/",
-        views.remover_equipe_integrante,
-        name="remover_equipe_integrante",
-    ),
-    path(
         "processos/<int:pk>/documentos/nova/",
         views.adicionar_documento,
         name="adicionar_documento",

@@ -362,6 +362,7 @@ class TestNovaTarefaParaOutraPessoa(TarefasSubabasBase):
         )
         self.assertEqual(r.context["usuario_travado"], self.colega)
         self.assertTrue(r.context["form"].fields["destinatario"].disabled)
+        self.assertTrue(r.context["form"].fields["atribuidos"].disabled)
 
     def test_submeter_outro_destinatario_e_ignorado_permanece_travado(self):
         outro = self._user("outro_terceiro")
@@ -382,3 +383,4 @@ class TestNovaTarefaParaOutraPessoa(TarefasSubabasBase):
         self.assertEqual(resposta.status_code, 302)
         tarefa = Tarefa.objects.get(titulo="Tarefa para o colega")
         self.assertEqual(tarefa.responsavel_id, self.colega.pk)
+        self.assertEqual(tarefa.participantes.count(), 0)

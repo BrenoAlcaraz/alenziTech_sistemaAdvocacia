@@ -113,7 +113,6 @@ class EquipeForm(forms.ModelForm):
         fields = [
             "nome",
             "descricao",
-            "equipe_pai",
             "ativo",
         ]
         widgets = {
@@ -129,44 +128,12 @@ class EquipeForm(forms.ModelForm):
                     "placeholder": "Descrição opcional da equipe",
                 }
             ),
-            "equipe_pai": forms.Select(
-                attrs={
-                    "class": "input",
-                }
-            ),
             "ativo": forms.CheckboxInput(
                 attrs={
                     "class": "rounded border-gray-300",
                 }
             ),
         }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        qs = Equipe.objects.filter(ativo=True).order_by("nome")
-        if self.instance and self.instance.pk:
-            qs = qs.exclude(pk=self.instance.pk)
-        self.fields["equipe_pai"].queryset = qs
-        self.fields["equipe_pai"].empty_label = "Sem equipe pai"
-
-    def clean_equipe_pai(self):
-        equipe_pai = self.cleaned_data.get("equipe_pai")
-
-        if not equipe_pai or not self.instance or not self.instance.pk:
-            return equipe_pai
-
-        if equipe_pai.pk == self.instance.pk:
-            raise forms.ValidationError("Uma equipe não pode ser pai dela mesma.")
-
-        atual = equipe_pai
-        while atual:
-            if atual.pk == self.instance.pk:
-                raise forms.ValidationError(
-                    "Uma equipe não pode ser vinculada a uma de suas próprias subequipes."
-                )
-            atual = atual.equipe_pai
-
-        return equipe_pai
 
 
 class MembroEquipeForm(forms.ModelForm):

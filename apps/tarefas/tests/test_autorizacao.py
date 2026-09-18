@@ -199,7 +199,12 @@ class TestTarefasAutorizacaoModuloConcedido(TarefasAutorizacaoBase):
     def test_nova_post_para_si_mesmo_autorizado_sem_habilitacao(self):
         r = self.client.post(
             "/tarefas/nova/",
-            {"titulo": "Tarefa Própria", "prioridade": "media"},
+            {
+                "titulo": "Tarefa Própria",
+                "prioridade": "media",
+                "atribuidos": [self.user.pk],
+                "destinatario": self.user.pk,
+            },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/tarefas/", fetch_redirect_response=False)
@@ -261,6 +266,7 @@ class TestTarefasAtribuirOutrosAusente(TarefasAutorizacaoBase):
             {
                 "titulo": "Tentativa de Delegação",
                 "prioridade": "media",
+                "atribuidos": [self.outro_user.pk],
                 "destinatario": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
@@ -271,7 +277,12 @@ class TestTarefasAtribuirOutrosAusente(TarefasAutorizacaoBase):
     def test_criar_para_si_mesmo_permitido(self):
         r = self.client.post(
             "/tarefas/nova/",
-            {"titulo": "Tarefa Para Mim", "prioridade": "media"},
+            {
+                "titulo": "Tarefa Para Mim",
+                "prioridade": "media",
+                "atribuidos": [self.user.pk],
+                "destinatario": self.user.pk,
+            },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/tarefas/", fetch_redirect_response=False)
@@ -327,6 +338,7 @@ class TestTarefasAtribuirOutrosConcedido(TarefasAutorizacaoBase):
             {
                 "titulo": "Delegação Autorizada",
                 "prioridade": "media",
+                "atribuidos": [self.outro_user.pk],
                 "destinatario": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
@@ -371,6 +383,7 @@ class TestTarefasAtribuirOutrosAdmin(TarefasAutorizacaoBase):
             {
                 "titulo": "Delegação Pelo Admin",
                 "prioridade": "media",
+                "atribuidos": [self.outro_user.pk],
                 "destinatario": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,

@@ -43,14 +43,6 @@
       {% endif %}
     </div>
 
-    <div class="mb-4">
-      <label for="{{ form.equipe_pai.id_for_label }}" class="label">Equipe pai</label>
-      {{ form.equipe_pai }}
-      {% if form.equipe_pai.errors %}
-        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.equipe_pai.errors.0 }}</p>
-      {% endif %}
-    </div>
-
     <div class="mb-6 flex items-center gap-2">
       {{ form.ativo }}
       <label for="{{ form.ativo.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">

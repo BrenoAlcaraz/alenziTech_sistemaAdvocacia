@@ -34,8 +34,6 @@ class Tarefa(models.Model):
     # Participantes além do responsável (specs/tarefas-multiplos-
     # participantes.md) — sem responsabilidade formal (não concluem a
     # tarefa, não recebem a notificação de conclusão), só visibilidade.
-    # Individual ou via Equipe vinculada dinamicamente (specs/grupo-
-    # integrante-participante-dinamico.md, apps/accounts/vinculo_equipe.py).
     participantes = models.ManyToManyField(
         User, blank=True, related_name="tarefas_participante", verbose_name="Participantes",
     )

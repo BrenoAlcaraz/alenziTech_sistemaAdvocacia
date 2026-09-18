@@ -120,37 +120,18 @@
     </div>
 
     {% if pode_gerenciar_integrantes %}
-    <form method="post" action="{% url 'processos:adicionar_integrante' processo.pk %}" class="flex items-center gap-2 mb-2">
+    <form method="post" action="{% url 'processos:adicionar_integrante' processo.pk %}" class="mb-3">
       {% csrf_token %}
-      <div class="flex-1">{{ form_integrante.usuario }}</div>
-      <button type="submit" class="btn-primary text-xs" {% if not tem_candidatos_integrante %}disabled{% endif %}>
-        Adicionar
-      </button>
+      <label class="label" for="{{ form_integrante.usuario.id_for_label }}">Adicionar pessoa</label>
+      <div class="flex items-center gap-2">
+        <div class="flex-1">{{ form_integrante.usuario }}</div>
+        <button type="submit" class="btn-primary text-xs" {% if not tem_candidatos_integrante %}disabled{% endif %}>
+          Adicionar
+        </button>
+      </div>
     </form>
-    <form method="post" action="{% url 'processos:adicionar_equipe_integrante' processo.pk %}" class="flex items-center gap-2 mb-3">
-      {% csrf_token %}
-      <div class="flex-1">{{ form_equipe_integrante.equipe }}</div>
-      <button type="submit" class="btn-secondary text-xs" {% if not tem_candidatos_equipe_integrante %}disabled{% endif %}>
-        Adicionar equipe
-      </button>
-    </form>
-    {% endif %}
-
-    {% if equipes_do_processo %}
-    <p class="text-xs text-gray-400 mb-1">Equipes vinculadas — membros atuais entram/saem automaticamente:</p>
-    <div class="flex flex-wrap gap-2 mb-3">
-      {% for equipe in equipes_do_processo %}
-        <span class="badge-area inline-flex items-center gap-1.5 texto-quebra">
-          {{ equipe.nome }}
-          {% if pode_gerenciar_integrantes %}
-          <form method="post" action="{% url 'processos:remover_equipe_integrante' processo.pk equipe.pk %}" class="inline">
-            {% csrf_token %}
-            <button type="submit" class="text-red-600 hover:text-red-700" title="Remover equipe">×</button>
-          </form>
-          {% endif %}
-        </span>
-      {% endfor %}
-    </div>
+    {% url 'processos:adicionar_equipe_integrante' processo.pk as url_equipe %}
+    {% include "components/equipe_checklist.html" with action=url_equipe %}
     {% endif %}
 
     <div class="flex flex-col gap-2">

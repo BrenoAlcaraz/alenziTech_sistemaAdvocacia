@@ -24,17 +24,10 @@ from apps.accounts.permissoes_constants import (
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente, rotulo_processo
 
-from apps.accounts.models import Equipe
-from apps.accounts.vinculo_equipe import (
-    desvincular_equipe,
-    equipes_vinculadas,
-    registrar_vinculo_individual,
-    remover_pessoa,
-    vincular_equipe,
-)
+from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
 
 from .models import Compromisso, ParticipanteCompromisso
-from .forms import AdicionarEquipeParticipanteForm, AdicionarParticipanteForm, CompromissoForm
+from .forms import AdicionarParticipanteForm, CompromissoForm
 
 
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
@@ -241,12 +234,21 @@ def _compromissos_delegados_por_mim(request):
     )
 
 
+def _usuarios_participantes_possiveis(compromisso):
+    """Universo de quem pode participar (ativos, exceto o responsável),
+    inclusive quem já participa — a lista de conferência mostra estes
+    como já presentes."""
+    return User.objects.filter(is_active=True).exclude(
+        pk=compromisso.responsavel_id
+    ).order_by("first_name", "username")
+
+
 def _usuarios_elegiveis_para_participante(compromisso):
     """Usuários que ainda podem ser convidados: mesmo universo do
     responsável, exceto o próprio responsável e quem já participa."""
-    return User.objects.filter(is_active=True).exclude(
+    return _usuarios_participantes_possiveis(compromisso).exclude(
         pk__in=compromisso.participacoes.values("usuario_id")
-    ).exclude(pk=compromisso.responsavel_id).order_by("first_name", "username")
+    )
 
 
 def _horario_curto(compromisso):
@@ -570,9 +572,9 @@ def editar(request, pk):
         "form_participante": AdicionarParticipanteForm(
             usuarios_queryset=_usuarios_elegiveis_para_participante(compromisso)
         ),
-        "equipes_do_compromisso": equipes_vinculadas(compromisso),
-        "form_equipe_participante": AdicionarEquipeParticipanteForm(
-            equipes_queryset=Equipe.objects.exclude(pk__in=equipes_vinculadas(compromisso))
+        "equipe_atalho": dados_para_js(
+            _usuarios_participantes_possiveis(compromisso),
+            presentes=[*compromisso.participacoes.values_list("usuario_id", flat=True)],
         ),
         "item_ativo": "agenda",
         "pode_ver_disponibilidade": _pode_ver_outro_usuario(request.user),
@@ -685,6 +687,7 @@ def form_compromisso(request):
         "form": form,
         "item_ativo": "agenda",
         "usuario_travado": usuario_travado,
+        "equipe_atalho": dados_para_js(form.fields["participantes"].queryset),
         "pode_ver_disponibilidade": _pode_ver_outro_usuario(request.user),
     })
 
@@ -757,7 +760,6 @@ def adicionar_participante(request, pk):
         participacao = ParticipanteCompromisso.objects.create(
             compromisso=compromisso, usuario=form.cleaned_data["usuario"]
         )
-        registrar_vinculo_individual(compromisso, form.cleaned_data["usuario"])
         _notificar_convite(participacao)
     return redirect("agenda:editar", pk=pk)
 
@@ -773,56 +775,30 @@ def remover_participante(request, pk, usuario_pk):
             ParticipanteCompromisso, compromisso=compromisso, usuario_id=usuario_pk
         )
         participacao.delete()
-        remover_pessoa(compromisso, participacao.usuario)
     return redirect("agenda:editar", pk=pk)
 
 
 @login_required
 def adicionar_equipe_participante(request, pk):
-    """Vínculo dinâmico de Equipe inteira como participante do
-    compromisso (specs/grupo-integrante-participante-dinamico.md) —
-    mesma autorização de `adicionar_participante` (edição do
-    compromisso, sem habilitação granular própria)."""
+    """Equipe como atalho de seleção (PDR-0028): a lista de conferência
+    envia só pessoas; cada uma passa pela confirmação de presença normal
+    (PDR-0020). Mesma autorização de `adicionar_participante`."""
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
         raise PermissionDenied
     _resolver_escopo(request)
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
-        form = AdicionarEquipeParticipanteForm(
-            request.POST,
-            equipes_queryset=Equipe.objects.exclude(pk__in=equipes_vinculadas(compromisso)),
+        form = SelecionarMembrosEquipeForm(
+            request.POST, usuarios_elegiveis=_usuarios_participantes_possiveis(compromisso)
         )
         if not form.is_valid():
             raise Http404
-        equipe = form.cleaned_data["equipe"]
-
-        def _adicionar(alvo, usuario):
-            if usuario.pk == alvo.responsavel_id:
-                return
+        for usuario in form.cleaned_data["usuarios"]:
             participacao, criada = ParticipanteCompromisso.objects.get_or_create(
-                compromisso=alvo, usuario=usuario
+                compromisso=compromisso, usuario=usuario
             )
             if criada:
                 _notificar_convite(participacao)
-
-        vincular_equipe(compromisso, equipe, aplicar_adicao=_adicionar)
-    return redirect("agenda:editar", pk=pk)
-
-
-@login_required
-def remover_equipe_participante(request, pk, equipe_pk):
-    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
-        raise PermissionDenied
-    _resolver_escopo(request)
-    compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
-    if request.method == "POST":
-        equipe = get_object_or_404(equipes_vinculadas(compromisso), pk=equipe_pk)
-        desvincular_equipe(
-            compromisso, equipe,
-            aplicar_remocao=lambda alvo, usuario: ParticipanteCompromisso.objects.filter(
-                compromisso=alvo, usuario=usuario
-            ).delete(),
-        )
     return redirect("agenda:editar", pk=pk)
 
 

@@ -313,6 +313,31 @@ antes do envio, sem recarregar a página (hoje: `CustaJudicialForm`,
   futuras) é um problema diferente — exige tratamento próprio no
   backend, fora deste padrão.
 
+## Equipe como atalho de seleção — padrão a reutilizar
+
+Selecionar uma Equipe para preencher integrantes/participantes/atribuídos
+(PDR-0028) é só conveniência de UI: nada da equipe é persistido, e o
+servidor recebe apenas pessoas. Não existe motor de sincronização com
+`MembroEquipe` (o vínculo dinâmico `EquipeVinculada`/`VinculoIntegrante`
+foi removido); o único consumidor de `MembroEquipe` por signal continua
+sendo o chat por equipe (PDR-0026, `apps/chat/signals.py`).
+
+- `apps/accounts/equipe_atalho.py`: `dados_para_js(usuarios_elegiveis,
+  presentes)` monta equipes ativas → membros ativos elegíveis no
+  contexto (o módulo passa o próprio universo de elegíveis);
+  `SelecionarMembrosEquipeForm` valida no backend que cada usuário
+  recebido é elegível e membro ativo da equipe informada.
+- Templates: `components/equipe_botoes.html` (criação — botões marcam
+  caixinhas/`<select multiple>` indicado em `alvo`) e
+  `components/equipe_checklist.html` (edição — select de equipe + lista
+  de conferência + "Adicionar selecionados"); ambos leem o contexto
+  `equipe_atalho` via `json_script` (`#equipe-atalho-dados`) e o JS
+  fica em `static/js/main.js`.
+- Cada módulo mantém a própria view `adicionar_equipe_*`, com a
+  autorização que já tinha; a view valida com o form acima e aplica só
+  as pessoas na lista real (`Processo.integrantes_habilitados`,
+  `Tarefa.participantes`, `ParticipanteCompromisso`).
+
 ## Formset dinâmico (Django) — padrão a reutilizar
 
 Quando o usuário adiciona/remove um número variável de blocos repetidos

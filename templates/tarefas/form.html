@@ -73,6 +73,7 @@
             <button type="button" id="btn-atribuir-todos" class="text-xs text-juridico-verde hover:underline">Atribuir a todos</button>
             {% endif %}
           </div>
+          {% if equipe_atalho %}{% include "components/equipe_botoes.html" with alvo="#id_atribuidos" %}{% endif %}
           {{ form.atribuidos }}
           <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um usuário.</p>
           {% if form.atribuidos.errors %}
@@ -82,7 +83,7 @@
         <div>
           <label class="label">{{ form.destinatario.label }}</label>
           {{ form.destinatario }}
-          <p class="text-xs text-gray-400 mt-1">Quem, entre os atribuídos, é o responsável formal pela tarefa.</p>
+          <p class="text-xs text-gray-400 mt-1">Escolha, entre os atribuídos, quem é o responsável formal pela tarefa. A lista acompanha as pessoas marcadas em “Atribuir a”.</p>
           {% if form.destinatario.errors %}
             <p class="erro-campo text-xs text-red-600 mt-1">{{ form.destinatario.errors|join:", " }}</p>
           {% endif %}
@@ -106,10 +107,47 @@
 
 {% if modo == "novo" and not usuario_travado %}
 <script>
-  document.getElementById("btn-atribuir-todos").addEventListener("click", function () {
-    var campo = document.getElementById("id_atribuidos");
-    Array.prototype.forEach.call(campo.options, function (opcao) { opcao.selected = true; });
-  });
+  (function () {
+    var atribuidos = document.getElementById("id_atribuidos");
+    var responsavel = document.getElementById("id_destinatario");
+    var todasOpcoes = Array.prototype.map.call(responsavel.options, function (opcao) {
+      return { value: opcao.value, text: opcao.text };
+    });
+
+    function novaOpcao(value, text) {
+      var opcao = document.createElement("option");
+      opcao.value = value;
+      opcao.text = text;
+      return opcao;
+    }
+
+    // "Responsável" lista só quem está marcado em "Atribuir a".
+    function sincronizarResponsavel() {
+      var marcados = Array.prototype.filter.call(atribuidos.options, function (opcao) {
+        return opcao.selected;
+      }).map(function (opcao) { return opcao.value; });
+      var atual = responsavel.value;
+      var validas = todasOpcoes.filter(function (opcao) { return marcados.indexOf(opcao.value) !== -1; });
+
+      responsavel.innerHTML = "";
+      if (validas.length !== 1 && !validas.some(function (opcao) { return opcao.value === atual; })) {
+        responsavel.appendChild(novaOpcao("", validas.length ? "Selecione o responsável" : "Marque quem receberá a tarefa"));
+      }
+      validas.forEach(function (opcao) { responsavel.appendChild(novaOpcao(opcao.value, opcao.text)); });
+      if (validas.some(function (opcao) { return opcao.value === atual; })) {
+        responsavel.value = atual;
+      } else if (validas.length === 1) {
+        responsavel.value = validas[0].value;
+      }
+    }
+
+    atribuidos.addEventListener("change", sincronizarResponsavel);
+    document.getElementById("btn-atribuir-todos").addEventListener("click", function () {
+      Array.prototype.forEach.call(atribuidos.options, function (opcao) { opcao.selected = true; });
+      sincronizarResponsavel();
+    });
+    sincronizarResponsavel();
+  })();
 </script>
 {% endif %}
 
@@ -117,31 +155,16 @@
 <div class="card p-6 max-w-2xl mt-4">
   <p class="text-sm font-semibold text-gray-900 mb-3">Participantes</p>
 
-  <form method="post" action="{% url 'tarefas:adicionar_participante' tarefa.pk %}" class="flex items-center gap-2 mb-2">
+  <form method="post" action="{% url 'tarefas:adicionar_participante' tarefa.pk %}" class="mb-3">
     {% csrf_token %}
-    <div class="flex-1">{{ form_participante.usuario }}</div>
-    <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_participante %}disabled{% endif %}>Adicionar</button>
+    <label class="label" for="{{ form_participante.usuario.id_for_label }}">Adicionar pessoa</label>
+    <div class="flex items-center gap-2">
+      <div class="flex-1">{{ form_participante.usuario }}</div>
+      <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_participante %}disabled{% endif %}>Adicionar</button>
+    </div>
   </form>
-  <form method="post" action="{% url 'tarefas:adicionar_equipe_participante' tarefa.pk %}" class="flex items-center gap-2 mb-3">
-    {% csrf_token %}
-    <div class="flex-1">{{ form_equipe_participante.equipe }}</div>
-    <button type="submit" class="btn-secondary text-sm" {% if not tem_candidatos_equipe_participante %}disabled{% endif %}>Adicionar equipe</button>
-  </form>
-
-  {% if equipes_da_tarefa %}
-  <p class="text-xs text-gray-400 mb-1">Equipes vinculadas — membros atuais entram/saem automaticamente:</p>
-  <div class="flex flex-wrap gap-2 mb-3">
-    {% for equipe in equipes_da_tarefa %}
-      <span class="badge-area inline-flex items-center gap-1.5">
-        {{ equipe.nome }}
-        <form method="post" action="{% url 'tarefas:remover_equipe_participante' tarefa.pk equipe.pk %}" class="inline">
-          {% csrf_token %}
-          <button type="submit" class="text-red-600 hover:text-red-700" title="Remover equipe">×</button>
-        </form>
-      </span>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {% url 'tarefas:adicionar_equipe_participante' tarefa.pk as url_equipe %}
+  {% include "components/equipe_checklist.html" with action=url_equipe %}
 
   <div class="flex flex-col gap-2">
     {% for participante in participantes %}

@@ -119,7 +119,8 @@
       {# Participantes — só na criação; na edição, gestão fica na seção dedicada abaixo #}
       <div>
         <label class="label">Participantes <span class="text-gray-400 font-normal">(opcional)</span></label>
-        <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2"
+        {% include "components/equipe_botoes.html" with alvo="#participantes-lista" %}
+        <div id="participantes-lista" class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2"
              {% if pode_ver_disponibilidade %}data-disponibilidade-url="{% url 'agenda:disponibilidade_convidado' %}"{% endif %}>
           {% for checkbox in form.participantes %}
             <div>
@@ -164,36 +165,21 @@
   <p class="text-sm font-semibold text-gray-900 mb-3">Participantes</p>
 
   <div class="mb-4" {% if pode_ver_disponibilidade %}data-disponibilidade-url="{% url 'agenda:disponibilidade_convidado' %}"{% endif %}>
-    <form method="post" action="{% url 'agenda:adicionar_participante' compromisso.pk %}" class="flex gap-2">
+    <form method="post" action="{% url 'agenda:adicionar_participante' compromisso.pk %}">
       {% csrf_token %}
-      <div class="flex-1">{{ form_participante.usuario }}</div>
-      <button type="submit" class="btn-primary text-sm">Convidar</button>
+      <label class="label" for="{{ form_participante.usuario.id_for_label }}">Adicionar pessoa</label>
+      <div class="flex gap-2">
+        <div class="flex-1">{{ form_participante.usuario }}</div>
+        <button type="submit" class="btn-primary text-sm">Convidar</button>
+      </div>
     </form>
     {% if pode_ver_disponibilidade %}
       <div class="mt-1" data-disponibilidade-resultado></div>
     {% endif %}
   </div>
 
-  <form method="post" action="{% url 'agenda:adicionar_equipe_participante' compromisso.pk %}" class="flex gap-2 mb-3">
-    {% csrf_token %}
-    <div class="flex-1">{{ form_equipe_participante.equipe }}</div>
-    <button type="submit" class="btn-secondary text-sm">Convidar equipe</button>
-  </form>
-
-  {% if equipes_do_compromisso %}
-  <p class="text-xs text-gray-400 mb-1">Equipes convidadas — membros atuais entram/saem automaticamente:</p>
-  <div class="flex flex-wrap gap-2 mb-3">
-    {% for equipe in equipes_do_compromisso %}
-      <span class="badge-area inline-flex items-center gap-1.5">
-        {{ equipe.nome }}
-        <form method="post" action="{% url 'agenda:remover_equipe_participante' compromisso.pk equipe.pk %}" class="inline">
-          {% csrf_token %}
-          <button type="submit" class="text-red-600 hover:text-red-700" title="Remover equipe">×</button>
-        </form>
-      </span>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {% url 'agenda:adicionar_equipe_participante' compromisso.pk as url_equipe %}
+  {% include "components/equipe_checklist.html" with action=url_equipe %}
 
   <div class="flex flex-col gap-2">
     {% for participacao in participacoes %}

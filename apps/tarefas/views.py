@@ -10,7 +10,7 @@ from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from apps.accounts.decorators import usuario_admin_escritorio
-from apps.accounts.models import Equipe
+from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_GERIR,
@@ -19,20 +19,13 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from apps.accounts.vinculo_equipe import (
-    desvincular_equipe,
-    equipes_vinculadas,
-    registrar_vinculo_individual,
-    remover_pessoa,
-    vincular_equipe,
-)
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente, rotulo_processo
 from .models import ReatribuicaoTarefa, Tarefa
 from .forms import (
-    AdicionarEquipeParticipanteTarefaForm,
     AdicionarParticipanteTarefaForm,
     ReatribuirForm,
+    TarefaCriacaoForm,
     TarefaForm,
 )
 
@@ -124,6 +117,10 @@ def _pode_ver_outro_usuario(user):
     de um usuário específico via ?usuario= — para qualquer outra pessoa
     o parâmetro é ignorado (specs/dashboard-painel-do-gestor.md)."""
     return usuario_admin_escritorio(user) or tem_permissao_modulo(user, MODULO_GERIR)
+
+
+def _usuarios_participantes_elegiveis():
+    return User.objects.filter(is_active=True).order_by("first_name", "username")
 
 
 def _pode_atribuir_a_outros(request):
@@ -374,46 +371,46 @@ def nova(request):
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
     usuario_travado = _usuario_travado(request)
-    if request.method == "POST":
-        form = TarefaForm(request.POST)
-        if usuario_travado:
-            # Fluxo focado de "+ Nova tarefa para esta pessoa" (uma só
-            # pessoa, travada) — múltiplos atribuídos não se aplica aqui.
-            form.fields["destinatario"].disabled = True
-            form.fields["destinatario"].initial = usuario_travado
-            form.fields["atribuidos"].disabled = True
-        if form.is_valid():
-            destinatario = form.cleaned_data.get("destinatario")
-            atribuidos = list(form.cleaned_data.get("atribuidos") or [])
-            envolvidos = set(atribuidos)
-            if destinatario:
-                envolvidos.add(destinatario)
-            if envolvidos - {request.user} and not _pode_atribuir_a_outros(request):
-                raise PermissionDenied
-            tarefa = form.save(commit=False)
-            tarefa.criador = request.user
-            tarefa.atribuidor = request.user
-            tarefa.responsavel = destinatario or request.user
-            tarefa.atribuido_em = timezone.now()
-            tarefa.status = "a_fazer"
-            if not tarefa.cliente and tarefa.processo:
-                tarefa.cliente = tarefa.processo.clientes.first()
-            tarefa.save()
-            participantes = [u for u in atribuidos if u.pk != tarefa.responsavel_id]
-            tarefa.participantes.set(participantes)
-            for participante in participantes:
-                registrar_vinculo_individual(tarefa, participante)
-            return redirect("tarefas:quadro")
-    else:
-        form = TarefaForm(initial={"destinatario": usuario_travado} if usuario_travado else None)
-        if usuario_travado:
-            form.fields["destinatario"].disabled = True
-            form.fields["atribuidos"].disabled = True
+    pode_atribuir_a_outros = _pode_atribuir_a_outros(request)
+    # Fluxo focado de "+ Nova tarefa para esta pessoa": uma só pessoa,
+    # travada — atribuída e responsável. Campos `disabled` fazem o
+    # Django ignorar o POST e usar sempre o `initial`.
+    initial = (
+        {"atribuidos": [usuario_travado.pk], "destinatario": usuario_travado.pk}
+        if usuario_travado
+        else None
+    )
+    form = TarefaCriacaoForm(
+        request.POST if request.method == "POST" else None,
+        initial=initial,
+        usuario=request.user,
+        pode_atribuir_a_outros=pode_atribuir_a_outros,
+    )
+    if usuario_travado:
+        form.fields["destinatario"].disabled = True
+        form.fields["atribuidos"].disabled = True
+    if request.method == "POST" and form.is_valid():
+        atribuidos = list(form.cleaned_data["atribuidos"])
+        if set(atribuidos) - {request.user} and not pode_atribuir_a_outros:
+            raise PermissionDenied
+        tarefa = form.save(commit=False)
+        tarefa.criador = request.user
+        tarefa.atribuidor = request.user
+        tarefa.responsavel = form.cleaned_data["destinatario"]
+        tarefa.atribuido_em = timezone.now()
+        tarefa.status = "a_fazer"
+        if not tarefa.cliente and tarefa.processo:
+            tarefa.cliente = tarefa.processo.clientes.first()
+        tarefa.save()
+        participantes = [u for u in atribuidos if u.pk != tarefa.responsavel_id]
+        tarefa.participantes.set(participantes)
+        return redirect("tarefas:quadro")
     return render(request, "tarefas/form.html", {
         "form": form,
         "modo": "novo",
         "item_ativo": "tarefas",
         "usuario_travado": usuario_travado,
+        "equipe_atalho": None if usuario_travado or not pode_atribuir_a_outros else dados_para_js(form.fields["atribuidos"].queryset),
     })
 
 
@@ -445,17 +442,12 @@ def editar(request, pk):
 
     pode_gerenciar_participantes = _pode_atribuir_a_outros(request)
     participantes = list(tarefa.participantes.all())
-    equipes_da_tarefa = list(equipes_vinculadas(tarefa))
     candidatos_participante = User.objects.none()
-    candidatos_equipe_participante = Equipe.objects.none()
+    equipe_atalho = None
     if pode_gerenciar_participantes:
-        excluidos = [p.pk for p in participantes] + ([tarefa.responsavel_id] if tarefa.responsavel_id else [])
-        candidatos_participante = User.objects.filter(is_active=True).exclude(
-            pk__in=excluidos
-        ).order_by("first_name", "username")
-        candidatos_equipe_participante = Equipe.objects.exclude(
-            pk__in=[equipe.pk for equipe in equipes_da_tarefa]
-        )
+        presentes = [p.pk for p in participantes] + ([tarefa.responsavel_id] if tarefa.responsavel_id else [])
+        candidatos_participante = _usuarios_participantes_elegiveis().exclude(pk__in=presentes)
+        equipe_atalho = dados_para_js(_usuarios_participantes_elegiveis(), presentes=presentes)
     return render(request, "tarefas/form.html", {
         "form": form,
         "modo": "editar",
@@ -464,13 +456,9 @@ def editar(request, pk):
         "item_ativo": "tarefas",
         "pode_gerenciar_participantes": pode_gerenciar_participantes,
         "participantes": participantes,
-        "equipes_da_tarefa": equipes_da_tarefa,
         "form_participante": AdicionarParticipanteTarefaForm(usuarios_queryset=candidatos_participante),
         "tem_candidatos_participante": candidatos_participante.exists(),
-        "form_equipe_participante": AdicionarEquipeParticipanteTarefaForm(
-            equipes_queryset=candidatos_equipe_participante
-        ),
-        "tem_candidatos_equipe_participante": candidatos_equipe_participante.exists(),
+        "equipe_atalho": equipe_atalho,
     })
 
 
@@ -486,7 +474,7 @@ def adicionar_participante(request, pk):
     _resolver_escopo(request)
     tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
-        candidatos = User.objects.filter(is_active=True).exclude(
+        candidatos = _usuarios_participantes_elegiveis().exclude(
             pk__in=list(tarefa.participantes.values_list("pk", flat=True)) + (
                 [tarefa.responsavel_id] if tarefa.responsavel_id else []
             )
@@ -496,7 +484,6 @@ def adicionar_participante(request, pk):
             raise Http404
         usuario = formulario.cleaned_data["usuario"]
         tarefa.participantes.add(usuario)
-        registrar_vinculo_individual(tarefa, usuario)
     return redirect("tarefas:editar", pk=pk)
 
 
@@ -511,14 +498,13 @@ def remover_participante(request, pk, usuario_pk):
     if request.method == "POST":
         usuario = get_object_or_404(tarefa.participantes, pk=usuario_pk)
         tarefa.participantes.remove(usuario)
-        remover_pessoa(tarefa, usuario)
     return redirect("tarefas:editar", pk=pk)
 
 
 @login_required
 def adicionar_equipe_participante(request, pk):
-    """Vínculo dinâmico de Equipe inteira como participante da tarefa
-    (specs/grupo-integrante-participante-dinamico.md)."""
+    """Equipe como atalho de seleção (PDR-0028): a lista de conferência
+    envia só pessoas; a equipe não é gravada nem vira responsável."""
     if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
         raise PermissionDenied
     if not _pode_atribuir_a_outros(request):
@@ -526,35 +512,16 @@ def adicionar_equipe_participante(request, pk):
     _resolver_escopo(request)
     tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
-        candidatos = Equipe.objects.exclude(pk__in=equipes_vinculadas(tarefa))
-        formulario = AdicionarEquipeParticipanteTarefaForm(request.POST, equipes_queryset=candidatos)
+        formulario = SelecionarMembrosEquipeForm(
+            request.POST, usuarios_elegiveis=_usuarios_participantes_elegiveis()
+        )
         if not formulario.is_valid():
             raise Http404
-        equipe = formulario.cleaned_data["equipe"]
-
-        def _adicionar(alvo, usuario):
-            if usuario.pk == alvo.responsavel_id:
-                return
-            alvo.participantes.add(usuario)
-
-        vincular_equipe(tarefa, equipe, aplicar_adicao=_adicionar)
-    return redirect("tarefas:editar", pk=pk)
-
-
-@login_required
-def remover_equipe_participante(request, pk, equipe_pk):
-    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
-        raise PermissionDenied
-    if not _pode_atribuir_a_outros(request):
-        raise PermissionDenied
-    _resolver_escopo(request)
-    tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
-    if request.method == "POST":
-        equipe = get_object_or_404(equipes_vinculadas(tarefa), pk=equipe_pk)
-        desvincular_equipe(
-            tarefa, equipe,
-            aplicar_remocao=lambda alvo, usuario: alvo.participantes.remove(usuario),
-        )
+        selecionados = [
+            usuario for usuario in formulario.cleaned_data["usuarios"]
+            if usuario.pk != tarefa.responsavel_id
+        ]
+        tarefa.participantes.add(*selecionados)
     return redirect("tarefas:editar", pk=pk)
 
 

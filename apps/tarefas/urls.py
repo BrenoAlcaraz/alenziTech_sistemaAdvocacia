@@ -24,11 +24,6 @@ urlpatterns = [
         views.adicionar_equipe_participante,
         name="adicionar_equipe_participante",
     ),
-    path(
-        "tarefas/<int:pk>/participantes/equipe/<int:equipe_pk>/remover/",
-        views.remover_equipe_participante,
-        name="remover_equipe_participante",
-    ),
     path("tarefas/<int:pk>/reatribuir/", views.reatribuir, name="reatribuir"),
     path("tarefas/<int:pk>/concluir/", views.concluir, name="concluir"),
     path("tarefas/<int:pk>/reabrir/", views.reabrir, name="reabrir"),

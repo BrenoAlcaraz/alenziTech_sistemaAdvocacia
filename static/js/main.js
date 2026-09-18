@@ -424,3 +424,79 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+
+// ── Equipe como atalho de seleção (PDR-0028) ────────────────────────────────
+// Os dados vêm de <script id="equipe-atalho-dados"> (json_script). Nada da
+// equipe é enviado ao servidor: só as pessoas marcadas.
+document.addEventListener("DOMContentLoaded", () => {
+  const dadosEl = document.getElementById("equipe-atalho-dados");
+  if (!dadosEl) return;
+  const dados = JSON.parse(dadosEl.textContent);
+
+  // Criação: botão da equipe marca os membros no <select multiple> ou nas
+  // caixinhas do contêiner indicado em data-equipe-atalho-alvo.
+  document.querySelectorAll("[data-equipe-atalho-id]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const equipe = dados.equipes[botao.dataset.equipeAtalhoId];
+      const alvo = document.querySelector(botao.dataset.equipeAtalhoAlvo);
+      if (!equipe || !alvo) return;
+      const ids = equipe.membros.map((membro) => String(membro.id));
+      if (alvo.tagName === "SELECT") {
+        Array.from(alvo.options).forEach((opcao) => {
+          if (ids.includes(opcao.value)) opcao.selected = true;
+        });
+        alvo.dispatchEvent(new Event("change", { bubbles: true }));
+        return;
+      }
+      alvo.querySelectorAll('input[type="checkbox"]').forEach((caixinha) => {
+        if (!ids.includes(caixinha.value) || caixinha.checked) return;
+        caixinha.checked = true;
+        caixinha.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+  });
+
+  // Edição: lista de conferência dos membros da equipe escolhida; quem já
+  // está no alvo aparece marcado e desabilitado.
+  document.querySelectorAll("[data-equipe-checklist]").forEach((form) => {
+    const select = form.querySelector("[data-equipe-select]");
+    const painel = form.querySelector("[data-equipe-painel]");
+    const lista = form.querySelector("[data-equipe-lista]");
+    const confirmar = form.querySelector("[data-equipe-confirmar]");
+    if (!select || !painel || !lista || !confirmar) return;
+    const presentes = new Set((dados.presentes || []).map(String));
+
+    function atualizarConfirmar() {
+      confirmar.disabled = !lista.querySelector('input[name="usuarios"]:checked:not(:disabled)');
+    }
+
+    select.addEventListener("change", () => {
+      lista.replaceChildren();
+      const equipe = dados.equipes[select.value];
+      painel.classList.toggle("hidden", !equipe);
+      if (!equipe) return;
+      if (!equipe.membros.length) {
+        const aviso = document.createElement("p");
+        aviso.className = "text-xs text-gray-400";
+        aviso.textContent = "Esta equipe não tem membros ativos disponíveis.";
+        lista.appendChild(aviso);
+      }
+      equipe.membros.forEach((membro) => {
+        const rotulo = document.createElement("label");
+        rotulo.className = "flex items-center gap-2 text-sm text-gray-700 texto-quebra";
+        const caixinha = document.createElement("input");
+        caixinha.type = "checkbox";
+        caixinha.name = "usuarios";
+        caixinha.value = membro.id;
+        caixinha.className = "rounded border-gray-300";
+        caixinha.checked = true;
+        const jaPresente = presentes.has(String(membro.id));
+        caixinha.disabled = jaPresente;
+        rotulo.append(caixinha, jaPresente ? `${membro.nome} (já adicionado)` : membro.nome);
+        lista.appendChild(rotulo);
+      });
+      atualizarConfirmar();
+    });
+    lista.addEventListener("change", atualizarConfirmar);
+  });
+});

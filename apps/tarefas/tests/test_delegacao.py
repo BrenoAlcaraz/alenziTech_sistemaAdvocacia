@@ -60,6 +60,7 @@ class TestCriacaoComDelegacao(TarefasDelegacaoBase):
                 "prazo": "",
                 "cliente": "",
                 "processo": "",
+                "atribuidos": [self.destinatario.pk],
                 "destinatario": self.destinatario.pk,
             },
             HTTP_HOST=self.http_host,
@@ -71,7 +72,7 @@ class TestCriacaoComDelegacao(TarefasDelegacaoBase):
         self.assertEqual(tarefa.responsavel_id, self.destinatario.pk)
         self.assertIsNotNone(tarefa.atribuido_em)
 
-    def test_criar_sem_destinatario_atribui_ao_proprio_criador(self):
+    def test_criar_sem_responsavel_e_rejeitado(self):
         resposta = self.client.post(
             "/tarefas/nova/",
             {
@@ -81,15 +82,32 @@ class TestCriacaoComDelegacao(TarefasDelegacaoBase):
                 "prazo": "",
                 "cliente": "",
                 "processo": "",
+                "atribuidos": [self.criador.pk],
                 "destinatario": "",
             },
             HTTP_HOST=self.http_host,
         )
-        self.assertEqual(resposta.status_code, 302)
-        tarefa = Tarefa.objects.get(titulo="Revisar contrato")
-        self.assertEqual(tarefa.criador_id, self.criador.pk)
-        self.assertEqual(tarefa.atribuidor_id, self.criador.pk)
-        self.assertEqual(tarefa.responsavel_id, self.criador.pk)
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("destinatario", resposta.context["form"].errors)
+        self.assertFalse(Tarefa.objects.filter(titulo="Revisar contrato").exists())
+
+    def test_criar_sem_atribuidos_e_rejeitado(self):
+        resposta = self.client.post(
+            "/tarefas/nova/",
+            {"titulo": "Sem atribuídos", "prioridade": "media", "destinatario": self.criador.pk},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(resposta.status_code, 200)
+        self.assertIn("atribuidos", resposta.context["form"].errors)
+        self.assertFalse(Tarefa.objects.filter(titulo="Sem atribuídos").exists())
+
+    def test_formulario_novo_preseleciona_o_usuario_logado(self):
+        resposta = self.client.get("/tarefas/nova/", HTTP_HOST=self.http_host)
+        form = resposta.context["form"]
+        self.assertEqual(form["atribuidos"].value(), [self.criador.pk])
+        self.assertEqual(form["destinatario"].value(), self.criador.pk)
+        self.assertIsNone(form.fields["destinatario"].empty_label)
+        self.assertNotContains(resposta, "Eu mesmo")
 
 
 class TestReatribuicao(TarefasDelegacaoBase):

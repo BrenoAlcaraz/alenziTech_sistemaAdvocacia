@@ -6,7 +6,7 @@ Cobre: criar com vários atribuídos exige escolher o responsável entre
 eles; os demais entram como `participantes` (não como responsável);
 visibilidade da tarefa passa a incluir quem é participante; conclusão
 continua exclusiva do responsável; gestão de participantes e de Equipe
-como participante (specs/grupo-integrante-participante-dinamico.md)
+como atalho de seleção (PDR-0028)
 exige a mesma `tarefas_atribuir_outros` de sempre, sem habilitação
 nova.
 """
@@ -105,10 +105,10 @@ class TestCriarComMultiplosAtribuidos(MultiplosParticipantesBase):
         self.assertIn("destinatario", r.context["form"].errors)
         self.assertEqual(Tarefa.objects.count(), antes)
 
-    def test_um_unico_atribuido_dispensa_escolha_explicita(self):
+    def test_um_unico_atribuido_e_o_responsavel(self):
         r = self.client.post(
             "/tarefas/nova/",
-            self._payload(atribuidos=[self.bob.pk]),
+            self._payload(atribuidos=[self.bob.pk], destinatario=self.bob.pk),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
@@ -121,6 +121,72 @@ class TestCriarComMultiplosAtribuidos(MultiplosParticipantesBase):
         r = self.client.post(
             "/tarefas/nova/",
             self._payload(atribuidos=[self.bob.pk], destinatario=self.carol.pk),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("destinatario", r.context["form"].errors)
+        self.assertEqual(Tarefa.objects.count(), antes)
+
+    def test_responsavel_e_obrigatorio_mesmo_com_um_atribuido(self):
+        antes = Tarefa.objects.count()
+        r = self.client.post(
+            "/tarefas/nova/",
+            self._payload(atribuidos=[self.bob.pk]),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("destinatario", r.context["form"].errors)
+        self.assertEqual(Tarefa.objects.count(), antes)
+
+    def test_atribuidos_e_obrigatorio(self):
+        antes = Tarefa.objects.count()
+        r = self.client.post(
+            "/tarefas/nova/",
+            self._payload(destinatario=self.bob.pk),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("atribuidos", r.context["form"].errors)
+        self.assertEqual(Tarefa.objects.count(), antes)
+
+    def test_formulario_novo_vem_com_usuario_logado_preselecionado(self):
+        r = self.client.get("/tarefas/nova/", HTTP_HOST=self.http_host)
+        form = r.context["form"]
+        self.assertEqual(form["atribuidos"].value(), [self.criador.pk])
+        self.assertEqual(form["destinatario"].value(), self.criador.pk)
+        self.assertIsNone(form.fields["destinatario"].empty_label)
+        self.assertNotContains(r, "Eu mesmo")
+
+    def test_sem_atribuir_outros_formulario_lista_so_o_proprio_usuario(self):
+        sem_habilitacao = self._user("sem_habilitacao_listas")
+        self._dar_modulo_tarefas(sem_habilitacao)
+        self.client.force_login(sem_habilitacao)
+        r = self.client.get("/tarefas/nova/", HTTP_HOST=self.http_host)
+        form = r.context["form"]
+        for nome in ("atribuidos", "destinatario"):
+            opcoes = [valor for valor, _ in form.fields[nome].widget.choices]
+            self.assertEqual(opcoes, [sem_habilitacao.pk])
+
+    def test_sem_atribuir_outros_criar_para_si_mesmo_e_permitido(self):
+        sem_habilitacao = self._user("sem_habilitacao_si_mesmo")
+        self._dar_modulo_tarefas(sem_habilitacao)
+        self.client.force_login(sem_habilitacao)
+        r = self.client.post(
+            "/tarefas/nova/",
+            self._payload(atribuidos=[sem_habilitacao.pk], destinatario=sem_habilitacao.pk),
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Tarefa.objects.get(titulo="Tarefa Multi").responsavel_id, sem_habilitacao.pk)
+
+    def test_responsavel_adulterado_fora_dos_atribuidos_sem_habilitacao_e_rejeitado(self):
+        sem_habilitacao = self._user("sem_habilitacao_adulterado")
+        self._dar_modulo_tarefas(sem_habilitacao)
+        self.client.force_login(sem_habilitacao)
+        antes = Tarefa.objects.count()
+        r = self.client.post(
+            "/tarefas/nova/",
+            self._payload(atribuidos=[sem_habilitacao.pk], destinatario=self.bob.pk),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 200)
@@ -265,14 +331,13 @@ class TestGerenciarParticipantesNaEdicao(MultiplosParticipantesBase):
         self.assertNotIn(self.candidato, self.tarefa.participantes.all())
 
 
-class TestEquipeComoParticipanteDaTarefa(MultiplosParticipantesBase):
-    """specs/grupo-integrante-participante-dinamico.md aplicado a
-    Tarefas — terceiro módulo, agora que a lista de participantes
-    existe."""
+class TestEquipeComoAtalhoDaTarefa(MultiplosParticipantesBase):
+    """Equipe como atalho de seleção (PDR-0028) aplicado a Tarefas: a
+    equipe só marca pessoas; nada dela fica gravado."""
 
     @classmethod
     def get_test_schema_name(cls):
-        return "tarefas_multi_equipe_participante"
+        return "tarefas_multi_equipe_atalho"
 
     def setUp(self):
         super().setUp()
@@ -280,6 +345,7 @@ class TestEquipeComoParticipanteDaTarefa(MultiplosParticipantesBase):
         self._dar_modulo_tarefas(self.responsavel, atribuir_outros=True)
         self.membro_a = self._user("membro_a_equipe_tarefa")
         self.membro_b = self._user("membro_b_equipe_tarefa")
+        self.fora = self._user("fora_equipe_tarefa")
         self.equipe = Equipe.objects.create(nome="Equipe Tarefa")
         MembroEquipe.objects.create(usuario=self.membro_a, equipe=self.equipe, ativo=True)
         MembroEquipe.objects.create(usuario=self.membro_b, equipe=self.equipe, ativo=True)
@@ -288,57 +354,85 @@ class TestEquipeComoParticipanteDaTarefa(MultiplosParticipantesBase):
         )
         self.client.force_login(self.responsavel)
 
-    def test_adicionar_equipe_inclui_todos_os_membros_atuais(self):
-        r = self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/adicionar/",
-            {"equipe": self.equipe.pk},
+    def _adicionar(self, equipe, usuarios, tarefa=None):
+        tarefa = tarefa or self.tarefa
+        return self.client.post(
+            f"/tarefas/{tarefa.pk}/participantes/equipe/adicionar/",
+            {"equipe": equipe.pk, "usuarios": [u.pk for u in usuarios]},
             HTTP_HOST=self.http_host,
         )
-        self.assertEqual(r.status_code, 302)
-        self.assertIn(self.membro_a, self.tarefa.participantes.all())
-        self.assertIn(self.membro_b, self.tarefa.participantes.all())
 
-    def test_novo_membro_da_equipe_entra_automaticamente(self):
-        self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/adicionar/",
-            {"equipe": self.equipe.pk},
-            HTTP_HOST=self.http_host,
-        )
+    def test_desmarcar_um_membro_inclui_todos_menos_ele(self):
+        r = self._adicionar(self.equipe, [self.membro_a])
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(list(self.tarefa.participantes.all()), [self.membro_a])
+
+    def test_nada_fica_ligado_a_equipe_depois(self):
+        self._adicionar(self.equipe, [self.membro_a, self.membro_b])
         novo = self._user("novo_membro_equipe_tarefa")
         MembroEquipe.objects.create(usuario=novo, equipe=self.equipe, ativo=True)
-
-        self.assertIn(novo, self.tarefa.participantes.all())
-
-    def test_membro_que_sai_perde_a_participacao(self):
-        self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/adicionar/",
-            {"equipe": self.equipe.pk},
-            HTTP_HOST=self.http_host,
+        MembroEquipe.objects.filter(usuario=self.membro_a, equipe=self.equipe).delete()
+        self.assertEqual(
+            set(self.tarefa.participantes.all()), {self.membro_a, self.membro_b}
         )
-        vinculo = MembroEquipe.objects.get(usuario=self.membro_a, equipe=self.equipe)
-        vinculo.delete()
 
-        self.assertNotIn(self.membro_a, self.tarefa.participantes.all())
-
-    def test_remover_equipe_desfaz_participacao_de_todos(self):
-        self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/adicionar/",
-            {"equipe": self.equipe.pk},
-            HTTP_HOST=self.http_host,
-        )
-        r = self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/{self.equipe.pk}/remover/",
-            HTTP_HOST=self.http_host,
-        )
-        self.assertEqual(r.status_code, 302)
-        self.assertNotIn(self.membro_a, self.tarefa.participantes.all())
-        self.assertNotIn(self.membro_b, self.tarefa.participantes.all())
+    def test_varias_equipes_sem_duplicar(self):
+        outra = Equipe.objects.create(nome="Outra Equipe Tarefa")
+        MembroEquipe.objects.create(usuario=self.membro_b, equipe=outra, ativo=True)
+        MembroEquipe.objects.create(usuario=self.fora, equipe=outra, ativo=True)
+        self._adicionar(self.equipe, [self.membro_a, self.membro_b])
+        self._adicionar(outra, [self.membro_b, self.fora])
+        self.assertEqual(self.tarefa.participantes.count(), 3)
 
     def test_responsavel_nao_vira_participante_mesmo_estando_na_equipe(self):
         MembroEquipe.objects.create(usuario=self.responsavel, equipe=self.equipe, ativo=True)
-        self.client.post(
-            f"/tarefas/{self.tarefa.pk}/participantes/equipe/adicionar/",
-            {"equipe": self.equipe.pk},
+        self._adicionar(self.equipe, [self.responsavel, self.membro_a])
+        self.assertNotIn(self.responsavel, self.tarefa.participantes.all())
+        self.assertIn(self.membro_a, self.tarefa.participantes.all())
+
+    def test_usuario_fora_da_equipe_informada_e_rejeitado(self):
+        r = self._adicionar(self.equipe, [self.membro_a, self.fora])
+        self.assertEqual(r.status_code, 404)
+        self.assertFalse(self.tarefa.participantes.exists())
+
+    def test_sem_habilitacao_e_negado_mesmo_com_post_direto(self):
+        sem_habilitacao = self._user("sem_hab_equipe_tarefa")
+        self._dar_modulo_tarefas(sem_habilitacao)
+        self.client.force_login(sem_habilitacao)
+        r = self._adicionar(self.equipe, [self.membro_a])
+        self.assertEqual(r.status_code, 403)
+        self.assertFalse(self.tarefa.participantes.exists())
+
+    def test_edicao_mostra_lista_de_conferencia_sem_equipes_vinculadas(self):
+        r = self.client.get(f"/tarefas/{self.tarefa.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "Adicionar pessoa")
+        self.assertContains(r, "Adicionar equipe")
+        self.assertContains(r, "Adicionar selecionados")
+        self.assertNotContains(r, "Equipes vinculadas")
+
+    def test_criacao_mostra_botao_da_equipe(self):
+        r = self.client.get("/tarefas/nova/", HTTP_HOST=self.http_host)
+        self.assertContains(r, 'data-equipe-atalho-id="%d"' % self.equipe.pk)
+        self.assertContains(r, "Equipe Tarefa")
+
+    def test_criacao_sem_equipe_cadastrada_mostra_aviso(self):
+        self.equipe.ativo = False
+        self.equipe.save()
+        r = self.client.get("/tarefas/nova/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "Nenhuma equipe cadastrada ainda")
+
+    def test_criacao_so_recebe_pessoas_individuais(self):
+        r = self.client.post(
+            "/tarefas/nova/",
+            {
+                "titulo": "Tarefa criada por atalho",
+                "prioridade": "media",
+                "atribuidos": [self.membro_a.pk, self.membro_b.pk],
+                "destinatario": self.membro_a.pk,
+            },
             HTTP_HOST=self.http_host,
         )
-        self.assertNotIn(self.responsavel, self.tarefa.participantes.all())
+        self.assertEqual(r.status_code, 302)
+        tarefa = Tarefa.objects.get(titulo="Tarefa criada por atalho")
+        self.assertEqual(tarefa.responsavel, self.membro_a)
+        self.assertEqual(list(tarefa.participantes.all()), [self.membro_b])

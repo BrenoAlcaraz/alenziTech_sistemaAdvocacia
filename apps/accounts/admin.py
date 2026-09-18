@@ -21,8 +21,8 @@ class PerfilUsuarioAdmin(admin.ModelAdmin):
 
 @admin.register(Equipe)
 class EquipeAdmin(admin.ModelAdmin):
-    list_display = ["nome", "equipe_pai", "ativo", "criado_em", "atualizado_em"]
-    list_filter = ["ativo", "equipe_pai"]
+    list_display = ["nome", "ativo", "criado_em", "atualizado_em"]
+    list_filter = ["ativo"]
     search_fields = ["nome", "descricao"]
     readonly_fields = ["criado_em", "atualizado_em"]
 

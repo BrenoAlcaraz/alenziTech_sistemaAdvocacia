@@ -125,33 +125,3 @@ def equipe_padrao_para_usuario(user):
         return equipes[0]
 
     return None
-
-
-# ---------------------------------------------------------------------------
-# Helper de hierarquia
-# ---------------------------------------------------------------------------
-
-def equipes_descendentes(equipe, incluir_proprio=False, somente_ativos=True):
-    """
-    Retorna lista de Equipe abaixo de uma equipe (recursivo).
-    Útil para consultas que devem incluir subequipes.
-    """
-    if not equipe:
-        return []
-
-    if somente_ativos and not equipe.ativo:
-        return []
-
-    resultado = [equipe] if incluir_proprio else []
-
-    filhos_qs = Equipe.objects.filter(equipe_pai=equipe)
-    if somente_ativos:
-        filhos_qs = filhos_qs.filter(ativo=True)
-
-    for filho in filhos_qs.order_by("nome"):
-        resultado.append(filho)
-        resultado.extend(
-            equipes_descendentes(filho, incluir_proprio=False, somente_ativos=somente_ativos)
-        )
-
-    return resultado

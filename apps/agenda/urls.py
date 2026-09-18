@@ -21,11 +21,6 @@ urlpatterns = [
         views.adicionar_equipe_participante,
         name="adicionar_equipe_participante",
     ),
-    path(
-        "agenda/<int:pk>/participantes/equipe/<int:equipe_pk>/remover/",
-        views.remover_equipe_participante,
-        name="remover_equipe_participante",
-    ),
     path("agenda/<int:pk>/confirmar-presenca/", views.confirmar_presenca, name="confirmar_presenca"),
     path("agenda/<int:pk>/recusar-presenca/", views.recusar_presenca, name="recusar_presenca"),
 ]

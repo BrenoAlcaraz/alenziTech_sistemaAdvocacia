@@ -26,7 +26,6 @@
       <thead>
         <tr class="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
           <th class="text-left px-5 py-3 font-medium">Nome</th>
-          <th class="text-left px-5 py-3 font-medium">Equipe pai</th>
           <th class="text-center px-5 py-3 font-medium">Membros</th>
           <th class="text-center px-5 py-3 font-medium">Gerentes</th>
           <th class="text-center px-5 py-3 font-medium">Status</th>
@@ -40,13 +39,6 @@
             <p class="font-medium text-gray-900">{{ item.equipe.nome }}</p>
             {% if item.equipe.descricao %}
               <p class="text-xs text-gray-400 mt-0.5">{{ item.equipe.descricao }}</p>
-            {% endif %}
-          </td>
-          <td class="px-5 py-4 text-gray-500">
-            {% if item.equipe.equipe_pai %}
-              {{ item.equipe.equipe_pai.nome }}
-            {% else %}
-              <span class="text-gray-300">—</span>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center text-gray-700">

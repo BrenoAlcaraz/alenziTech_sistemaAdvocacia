@@ -109,7 +109,7 @@ class TestGerenciarIntegrantesComHabilitacao(IntegrantesBase):
         )
         self.assertRedirects(
             resposta,
-            f"/processos/{self.processo.pk}/?aba=integrantes",
+            f"/processos/{self.processo.pk}/",
             fetch_redirect_response=False,
         )
         self.assertIn(self.candidato, self.processo.integrantes_habilitados.all())
@@ -131,7 +131,7 @@ class TestGerenciarIntegrantesComHabilitacao(IntegrantesBase):
         )
         self.assertRedirects(
             resposta,
-            f"/processos/{self.processo.pk}/?aba=integrantes",
+            f"/processos/{self.processo.pk}/",
             fetch_redirect_response=False,
         )
         self.assertNotIn(self.candidato, self.processo.integrantes_habilitados.all())

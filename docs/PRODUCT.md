@@ -147,39 +147,54 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
   quem já tem a habilitação de atribuir tarefa a terceiros — mesma
   habilitação nas duas, nenhuma habilitação nova.
 - Múltiplos participantes: "Atribuir a" aceita vários usuários de uma
-  vez (botão "Atribuir a todos" marca todos de uma vez); com mais de um
-  atribuído, quem cria escolhe explicitamente o responsável entre eles
-  (um só atribuído dispensa a escolha). Continua existindo um único
+  vez (botão "Atribuir a todos" marca todos de uma vez). Na criação,
+  "Atribuir a" é obrigatório (mínimo um; o usuário logado já vem
+  pré-selecionado) e o "Responsável" é obrigatoriamente um dos
+  atribuídos — não há opção "Eu mesmo"; a lista de responsável mostra
+  só os marcados em "Atribuir a" e, com um único atribuído, ele já vem
+  selecionado. Quem não tem a habilitação de atribuir a terceiros vê
+  só o próprio nome nas duas listas. A regra vale no backend; a
+  reatribuição de tarefa já criada continua livre (qualquer usuário
+  ativo). Continua existindo um único
   responsável formal (`Tarefa.responsavel`) — os demais entram como
   `Tarefa.participantes`, sem responsabilidade formal: não concluem a
   tarefa (só o responsável/Administrador) e não recebem a notificação
   de conclusão. Participante consegue ver a tarefa (mesmo escopo de
   leitura do responsável), mas não aparece como quem a concluiu. Uma
-  Equipe inteira também pode ser adicionada como participante (na tela
-  de edição) — vínculo dinâmico, ver "Equipe como integrante/
-  participante/atribuído dinâmico" abaixo.
+  Equipe pode ser usada como atalho para selecionar vários atribuídos/
+  participantes de uma vez — ver "Equipe como atalho de seleção" abaixo.
 - Fora de escopo: aceite/recusa, gamificação, avaliação de desempenho.
 
-### Equipe como integrante/participante/atribuído dinâmico
+### Equipe como atalho de seleção
 
 Em Processos ("Integrantes habilitados", PDR-0014), Agenda
-(participantes do compromisso) e Tarefas (participantes), além de
-escolher pessoa por pessoa é possível escolher uma Equipe inteira —
-adiciona todos os seus membros efetivos atuais. O vínculo é dinâmico:
-um membro que entra na equipe depois passa a valer automaticamente
-onde ela foi adicionada; quem sai perde esse acesso automaticamente.
-Remover a equipe (não uma pessoa individual) desfaz o vínculo só de
-quem estava ali por causa dela — um usuário adicionado individualmente
-nunca é afetado por entrar/sair de uma equipe. Mesmo mecanismo de
-sincronização do grupo de chat automático por equipe (PDR-0026),
-reaproveitado (`apps/accounts/vinculo_equipe.py`), não duplicado por
-módulo. Em Processos não afeta o responsável principal; em Agenda cada
-membro passa pela confirmação de presença normal (PDR-0020, a equipe
-não pula a confirmação); em Tarefas a equipe nunca vira responsável.
-Nenhuma habilitação nova — cada módulo reaproveita a que já exige para
-gerenciar integrante/participante hoje. Equipe inativa/desativada:
-mesmo gap em aberto do grupo de chat (PDR-0026) — sem decisão própria
-divergente.
+(participantes do compromisso) e Tarefas (atribuídos/participantes),
+escolher uma Equipe só seleciona seus membros ativos como pessoas
+individuais — nenhum vínculo com a equipe é gravado (PDR-0028).
+Equipe inativa não é oferecida; sem equipe ativa cadastrada a tela
+mostra "Nenhuma equipe cadastrada ainda".
+
+- Criação (Tarefa: "Atribuir a"; Agenda: participantes): uma linha de
+  botões de equipe acima da lista marca as caixinhas dos membros
+  ativos (pode clicar em várias equipes; depois desmarca-se quem não
+  deve entrar). Em Tarefas, a lista de "Responsável" acompanha os
+  marcados; a equipe nunca é responsável.
+- Edição (Processos: card "Integrantes"; Tarefas e Agenda: card de
+  participantes): "Adicionar pessoa" e "Adicionar equipe" são
+  rotulados. Escolher a equipe abre a lista dos membros ativos,
+  todos marcados; quem já está no alvo aparece marcado e desabilitado.
+  Confirmar em "Adicionar selecionados" inclui só os marcados; dá para
+  repetir com outra equipe. Remoção é sempre individual.
+- Depois de adicionados, membros que entram, saem ou são desativados na
+  equipe não alteram integrantes/participantes já definidos: quem sai
+  da equipe não perde acesso automaticamente — a remoção é manual.
+- O servidor valida cada usuário (elegível no módulo e membro ativo da
+  equipe informada); não confia no JS.
+- Em Processos não afeta o responsável principal; em Agenda cada
+  participante passa pela confirmação de presença normal (PDR-0020).
+  Nenhuma habilitação nova — cada módulo exige a mesma que já exige
+  para gerenciar integrante/participante. O grupo de chat automático
+  por equipe (PDR-0026) não muda.
 
 ### Agenda
 

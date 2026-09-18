@@ -217,7 +217,6 @@ def equipes(request):
 
     deps = (
         Equipe.objects
-        .select_related("equipe_pai")
         .prefetch_related("membros", "membros__usuario")
         .order_by("nome")
     )
