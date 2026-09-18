@@ -590,10 +590,7 @@
   {% if custas_financeiras %}
   <div class="flex flex-col gap-3">
     {% for solicitacao in custas_financeiras %}
-      {# Sem link para o detalhe da solicitação em Financeiro de propósito:
-         essa aba mostra de qualquer solicitante, mas o detalhe/anexo em
-         Financeiro segue restrito por dados_proprios/dados_todos — a
-         visão compartilhada é só desta lista. #}
+      {# Sem link para o detalhe da solicitação em Financeiro de propósito: essa aba mostra de qualquer solicitante, mas o detalhe/anexo em Financeiro segue restrito por dados_proprios/dados_todos — a visão compartilhada é só desta lista. #}
       <div class="card px-5 py-4 flex items-center justify-between gap-4">
         <div class="min-w-0">
           <p class="text-sm font-medium text-gray-900 truncate">{{ solicitacao.descricao }}</p>
