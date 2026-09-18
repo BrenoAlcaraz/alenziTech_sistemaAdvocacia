@@ -111,38 +111,6 @@
   {% include "modelos/_repetitivas.html" %}
 {% else %}
   {# Aba "Meu estilo" #}
-  <div class="card p-6 max-w-2xl mb-6">
-    {% if pode_editar_estilo %}
-      <form method="post" action="{% url 'modelos:editar_estilo' %}">
-        {% csrf_token %}
-        <div class="mb-4">
-          <label class="label" for="{{ form_estilo.tom_voz.id_for_label }}">{{ form_estilo.tom_voz.label }}</label>
-          {{ form_estilo.tom_voz }}
-          {% if form_estilo.tom_voz.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form_estilo.tom_voz.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-        <div class="mb-4">
-          <label class="label" for="{{ form_estilo.instrucoes_gerais.id_for_label }}">{{ form_estilo.instrucoes_gerais.label }}</label>
-          {{ form_estilo.instrucoes_gerais }}
-          {% if form_estilo.instrucoes_gerais.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form_estilo.instrucoes_gerais.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-        <button type="submit" class="btn-primary">Salvar alterações</button>
-      </form>
-    {% else %}
-      <h2 class="font-semibold text-gray-900 mb-1">Tom de voz</h2>
-      <p class="text-sm text-gray-500 mb-4">
-        {{ estilo.tom_voz|default:"Nenhum tom de voz definido." }}
-      </p>
-      <h2 class="font-semibold text-gray-900 mb-1">Instruções gerais</h2>
-      <p class="text-sm text-gray-500">
-        {{ estilo.instrucoes_gerais|default:"Nenhuma instrução geral definida." }}
-      </p>
-    {% endif %}
-  </div>
-
   {% if pode_editar_estilo %}
     {{ config_documento|json_script:"me-config-data" }}
     {{ imagens_estilo_urls|json_script:"me-imagens-data" }}
@@ -292,8 +260,14 @@
               </div>
 
               <div class="me-page-signature-slot" id="me-slot-assinatura">
-                <div class="me-page-sig-line"></div>
-                <span id="me-slot-assinatura-texto" contenteditable="true"></span>
+                {% for assinatura in assinaturas_estilo %}
+                  <div class="me-page-sig-line"></div>
+                  {% if assinatura.modo == "imagem" %}
+                    <img src="{% url 'modelos:imagem_assinatura_estilo' assinatura.pk %}" style="width:{{ assinatura.largura }}%; display:block; margin-left:auto; margin-right:auto;" alt="">
+                  {% else %}
+                    <span>{{ assinatura.texto }}</span>
+                  {% endif %}
+                {% endfor %}
               </div>
 
               <div class="me-page-footer-slot" id="me-slot-rodape" contenteditable="true"></div>
@@ -303,10 +277,52 @@
           {# Painel lateral #}
           <div class="me-side-settings">
 
-            {% include "modelos/_estilo_secao_slot.html" with slot="cabecalho" titulo="Cabeçalho" campo_imagem=form_estilo_documento.imagem_cabecalho %}
-            {% include "modelos/_estilo_secao_slot.html" with slot="rodape" titulo="Rodapé" campo_imagem=form_estilo_documento.imagem_rodape %}
+            {% include "modelos/_estilo_secao_slot.html" with slot="cabecalho" titulo="Cabeçalho" campo_imagem=form_estilo_documento.imagem_cabecalho mostrar_replicacao=True %}
+            {% include "modelos/_estilo_secao_slot.html" with slot="rodape" titulo="Rodapé" campo_imagem=form_estilo_documento.imagem_rodape mostrar_replicacao=True %}
             {% include "modelos/_estilo_secao_slot.html" with slot="marca_dagua" titulo="Marca d'água" campo_imagem=form_estilo_documento.imagem_marca_dagua mostrar_input_texto=True %}
-            {% include "modelos/_estilo_secao_slot.html" with slot="assinatura" titulo="Assinatura" campo_imagem=form_estilo_documento.imagem_assinatura %}
+
+            {# Assinaturas — mais de um bloco, texto ou imagem, independentes entre si #}
+            <div class="me-opt-card">
+              <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-assinaturas">
+                <div class="me-opt-title">Assinaturas <span class="text-gray-400 font-normal text-xs">({{ assinaturas_estilo|length }})</span></div>
+                <svg class="me-opt-chevron" data-collapse-icon="me-body-assinaturas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="me-opt-body" id="me-body-assinaturas">
+                {% for assinatura in assinaturas_estilo %}
+                  <div class="flex items-center justify-between gap-2 py-1.5 border-b border-gray-50 last:border-0">
+                    <p class="text-sm text-gray-700 truncate">
+                      {% if assinatura.modo == "imagem" %}Imagem{% else %}{{ assinatura.texto|default:"(sem texto)" }}{% endif %}
+                    </p>
+                    <form method="post" action="{% url 'modelos:remover_assinatura_estilo' assinatura.pk %}">
+                      {% csrf_token %}
+                      <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
+                    </form>
+                  </div>
+                {% empty %}
+                  <p class="text-xs text-gray-400 mb-2">Nenhuma assinatura cadastrada.</p>
+                {% endfor %}
+                <form method="post" action="{% url 'modelos:adicionar_assinatura_estilo' %}" enctype="multipart/form-data" class="mt-3 flex flex-col gap-2">
+                  {% csrf_token %}
+                  {{ form_assinatura_estilo.modo }}
+                  {{ form_assinatura_estilo.texto }}
+                  <label class="block cursor-pointer text-xs text-gray-500">
+                    Imagem (se modo = Imagem)
+                    {{ form_assinatura_estilo.imagem }}
+                  </label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="text-xs text-gray-500 block mb-1">Tamanho (% da folha)</label>
+                      {{ form_assinatura_estilo.largura }}
+                    </div>
+                    <div>
+                      <label class="text-xs text-gray-500 block mb-1">Posição</label>
+                      {{ form_assinatura_estilo.alinhamento }}
+                    </div>
+                  </div>
+                  <button type="submit" class="btn-secondary text-xs">+ Adicionar assinatura</button>
+                </form>
+              </div>
+            </div>
 
             <div class="me-opt-card">
               <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-enderecamento">

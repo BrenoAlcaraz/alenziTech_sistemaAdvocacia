@@ -8,7 +8,6 @@ urlpatterns = [
     path("modelos/novo/", views.novo, name="novo"),
     path("modelos/importar/", views.importar, name="importar"),
     path("modelos/repetitivas/gerar/", views.gerar_pecas_repetitivas, name="gerar_pecas_repetitivas"),
-    path("modelos/estilo/editar/", views.editar_estilo, name="editar_estilo"),
     path(
         "modelos/estilo/documento/editar/",
         views.editar_estilo_documento,
@@ -18,6 +17,21 @@ urlpatterns = [
         "modelos/estilo/documento/imagem/<str:slot>/",
         views.imagem_estilo_documento,
         name="imagem_estilo_documento",
+    ),
+    path(
+        "modelos/estilo/assinaturas/adicionar/",
+        views.adicionar_assinatura_estilo,
+        name="adicionar_assinatura_estilo",
+    ),
+    path(
+        "modelos/estilo/assinaturas/<int:pk>/remover/",
+        views.remover_assinatura_estilo,
+        name="remover_assinatura_estilo",
+    ),
+    path(
+        "modelos/estilo/assinaturas/<int:pk>/imagem/",
+        views.imagem_assinatura_estilo,
+        name="imagem_assinatura_estilo",
     ),
     path("modelos/categorias/", views.categorias, name="categorias"),
     path("modelos/categorias/<int:pk>/editar/", views.categoria_editar, name="categoria_editar"),

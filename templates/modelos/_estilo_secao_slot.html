@@ -1,9 +1,10 @@
 {% comment %}
 Card do painel lateral para um slot ligável/desligável da folha
-(Cabeçalho, Rodapé, Marca d'água, Assinatura). Parâmetros: slot, titulo,
+(Cabeçalho, Rodapé, Marca d'água). Parâmetros: slot, titulo,
 campo_imagem (BoundField do FileField), mostrar_input_texto (opcional —
 só a Marca d'água tem um campo de texto dedicado, por ser difícil de
-editar direto no texto rotacionado da folha).
+editar direto no texto rotacionado da folha), mostrar_replicacao
+(opcional — só Cabeçalho/Rodapé escolhem em quais páginas aparecem).
 {% endcomment %}
 <div class="me-opt-card">
   <div class="me-opt-head me-opt-head-clickable" data-collapse-toggle="me-body-{{ slot }}">
@@ -14,6 +15,14 @@ editar direto no texto rotacionado da folha).
     </div>
   </div>
   <div class="me-opt-body" id="me-body-{{ slot }}">
+    {% if mostrar_replicacao %}
+      <label class="text-xs text-gray-500 block mb-1">Aparece em</label>
+      <select class="me-input mb-2" id="me-select-{{ slot }}-replicacao" data-replicacao-for="{{ slot }}">
+        <option value="todas">Todas as páginas</option>
+        <option value="primeira">Apenas na primeira</option>
+        <option value="ultima">Apenas na última</option>
+      </select>
+    {% endif %}
     <div class="me-mode-toggle">
       <div class="me-opt-mode-btn" data-slot="{{ slot }}" data-mode="texto">Texto</div>
       <div class="me-opt-mode-btn" data-slot="{{ slot }}" data-mode="imagem">Imagem</div>
@@ -26,6 +35,20 @@ editar direto no texto rotacionado da folha).
         Anexar imagem
         {{ campo_imagem }}
       </label>
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Tamanho (% da folha)</label>
+          <input type="number" min="10" max="100" class="me-input" id="me-input-{{ slot }}-largura" data-largura-for="{{ slot }}">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 block mb-1">Posição</label>
+          <select class="me-input" id="me-select-{{ slot }}-alinhamento" data-alinhamento-for="{{ slot }}">
+            <option value="left">Esquerda</option>
+            <option value="center">Centro</option>
+            <option value="right">Direita</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 </div>

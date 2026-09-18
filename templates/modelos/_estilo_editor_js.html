@@ -13,7 +13,6 @@
     cabecalho: "me-slot-cabecalho",
     rodape: "me-slot-rodape",
     marca_dagua: "me-slot-marca_dagua",
-    assinatura: "me-slot-assinatura",
   };
 
   function $(id) { return document.getElementById(id); }
@@ -44,32 +43,20 @@
 
     if (modo === "imagem") {
       if (attachBox) attachBox.style.display = "block";
-      if (slot === "assinatura") {
-        el.innerHTML = '<div class="me-page-sig-line"></div>';
-      }
       var url = imagens[slot];
-      var conteudo = url
+      el.innerHTML = url
         ? '<img src="' + url + '" alt="">'
         : '<span class="me-img-placeholder">Imagem — ' + slot.replace("_", " ") + "</span>";
-      if (slot === "assinatura") {
-        el.insertAdjacentHTML("beforeend", conteudo);
-      } else {
-        el.innerHTML = conteudo;
-      }
       el.setAttribute("contenteditable", "false");
+      aplicarTamanhoPosicaoSlot(slot);
       if (slot === "marca_dagua") {
         var inputTexto = $("me-input-marca_dagua-texto");
         if (inputTexto) inputTexto.style.display = "none";
       }
     } else {
       if (attachBox) attachBox.style.display = "none";
-      if (slot === "assinatura") {
-        el.innerHTML = '<div class="me-page-sig-line"></div><span id="me-slot-assinatura-texto" contenteditable="true"></span>';
-        $("me-slot-assinatura-texto").textContent = slotState.texto;
-      } else {
-        el.setAttribute("contenteditable", "true");
-        el.textContent = slotState.texto;
-      }
+      el.setAttribute("contenteditable", "true");
+      el.textContent = slotState.texto;
       if (slot === "marca_dagua") {
         var inputTexto2 = $("me-input-marca_dagua-texto");
         if (inputTexto2) {
@@ -80,6 +67,51 @@
     }
     slotState.modo = modo;
   }
+
+  // ===== Tamanho/posição da imagem de um slot (specs/modelos-estilo-
+  // simplificacao-imagens.md) — só tem efeito visível quando o slot está
+  // em modo imagem; os valores continuam salvos mesmo em modo texto,
+  // para não perder o ajuste ao alternar. =====
+  function aplicarTamanhoPosicaoSlot(slot) {
+    var el = $(SLOT_TO_ELEMENT_ID[slot]);
+    var img = el.querySelector("img");
+    var slotState = state.slots[slot];
+    if (img) {
+      img.style.width = slotState.largura + "%";
+      img.style.display = "block";
+      img.style.marginLeft = slotState.alinhamento === "left" ? "0" : "auto";
+      img.style.marginRight = slotState.alinhamento === "right" ? "0" : "auto";
+    }
+  }
+
+  Object.keys(SLOT_TO_ELEMENT_ID).forEach(function (slot) {
+    var inputLargura = $("me-input-" + slot + "-largura");
+    if (inputLargura) {
+      inputLargura.addEventListener("input", function () {
+        var valor = parseInt(this.value, 10);
+        if (isNaN(valor)) return;
+        state.slots[slot].largura = Math.max(10, Math.min(100, valor));
+        aplicarTamanhoPosicaoSlot(slot);
+      });
+    }
+    var selectAlinhamento = $("me-select-" + slot + "-alinhamento");
+    if (selectAlinhamento) {
+      selectAlinhamento.addEventListener("change", function () {
+        state.slots[slot].alinhamento = this.value;
+        aplicarTamanhoPosicaoSlot(slot);
+      });
+    }
+  });
+
+  // ===== Replicação de cabeçalho/rodapé por página =====
+  ["cabecalho", "rodape"].forEach(function (slot) {
+    var select = $("me-select-" + slot + "-replicacao");
+    if (select) {
+      select.addEventListener("change", function () {
+        state.slots[slot].replicacao = this.value;
+      });
+    }
+  });
 
   document.querySelectorAll(".me-opt-mode-btn").forEach(function (btn) {
     btn.addEventListener("click", function () { aplicarModoSlot(btn.dataset.slot, btn.dataset.mode); });
@@ -100,9 +132,6 @@
     $(SLOT_TO_ELEMENT_ID[slot]).addEventListener("input", function () {
       state.slots[slot].texto = this.textContent;
     });
-  });
-  $("me-slot-assinatura-texto").addEventListener("input", function () {
-    state.slots.assinatura.texto = this.textContent;
   });
   $("me-slot-marca_dagua").addEventListener("input", function () {
     if (this.getAttribute("contenteditable") === "true") {
@@ -365,6 +394,14 @@
       $(SLOT_TO_ELEMENT_ID[slot]).classList.toggle("show", !!slotState.ativo);
       var switchEl = document.querySelector('.me-switch[data-opt="' + slot + '"]');
       if (switchEl) switchEl.classList.toggle("on", !!slotState.ativo);
+
+      var inputLargura = $("me-input-" + slot + "-largura");
+      if (inputLargura) inputLargura.value = slotState.largura;
+      var selectAlinhamento = $("me-select-" + slot + "-alinhamento");
+      if (selectAlinhamento) selectAlinhamento.value = slotState.alinhamento;
+      var selectReplicacao = $("me-select-" + slot + "-replicacao");
+      if (selectReplicacao) selectReplicacao.value = slotState.replicacao;
+
       aplicarModoSlot(slot, slotState.modo || "texto");
     });
 

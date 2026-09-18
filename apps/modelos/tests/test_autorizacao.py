@@ -130,10 +130,10 @@ class TestModelosAutorizacaoModuloNegado(ModelosAutorizacaoBase):
         r = self.client.get("/modelos/importar/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 403)
 
-    def test_editar_estilo_negado(self):
+    def test_editar_estilo_documento_negado(self):
         r = self.client.post(
-            "/modelos/estilo/editar/",
-            {"tom_voz": "Formal", "instrucoes_gerais": "Direto"},
+            "/modelos/estilo/documento/editar/",
+            {"modo_estilo": "construir", "config_documento": "{}"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
@@ -430,8 +430,7 @@ class TestModelosAdminEdicaoExclusaoAlheiaIndependeDeHabilitacao(ModelosAutoriza
 class TestModelosEstiloSemHabilitacao(ModelosAutorizacaoBase):
     """
     Módulo `modelos` autorizado mas sem modelos_editar_estilo — aba "Meu
-    estilo" fica só leitura (sem formulário) e a rota de edição nega
-    GET e POST.
+    estilo" fica só leitura (sem formulário do editor visual).
     """
 
     @classmethod
@@ -453,20 +452,7 @@ class TestModelosEstiloSemHabilitacao(ModelosAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.context["pode_editar_estilo"])
-        self.assertIsNone(r.context["form_estilo"])
-
-    def test_editar_estilo_negado_get(self):
-        r = self.client.get("/modelos/estilo/editar/", HTTP_HOST=self.http_host)
-        self.assertEqual(r.status_code, 403)
-
-    def test_editar_estilo_negado_post(self):
-        r = self.client.post(
-            "/modelos/estilo/editar/",
-            {"tom_voz": "Formal", "instrucoes_gerais": "Direto"},
-            HTTP_HOST=self.http_host,
-        )
-        self.assertEqual(r.status_code, 403)
-        self.assertFalse(EstiloEscritorio.objects.exists())
+        self.assertIsNone(r.context["form_estilo_documento"])
 
 
 class TestModelosEstiloComHabilitacao(ModelosAutorizacaoBase):
@@ -491,22 +477,7 @@ class TestModelosEstiloComHabilitacao(ModelosAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.context["pode_editar_estilo"])
-        self.assertIsNotNone(r.context["form_estilo"])
-
-    def test_editar_estilo_ok(self):
-        r = self.client.post(
-            "/modelos/estilo/editar/",
-            {"tom_voz": "Formal e direto", "instrucoes_gerais": "Evitar gírias."},
-            HTTP_HOST=self.http_host,
-        )
-        self.assertEqual(r.status_code, 302)
-        estilo = EstiloEscritorio.objects.get(pk=1)
-        self.assertEqual(estilo.tom_voz, "Formal e direto")
-        self.assertEqual(estilo.instrucoes_gerais, "Evitar gírias.")
-
-    def test_editar_estilo_get_redireciona_para_aba(self):
-        r = self.client.get("/modelos/estilo/editar/", HTTP_HOST=self.http_host)
-        self.assertRedirects(r, "/modelos/?aba=estilo", fetch_redirect_response=False)
+        self.assertIsNotNone(r.context["form_estilo_documento"])
 
 
 class TestModelosEstiloAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
@@ -521,15 +492,15 @@ class TestModelosEstiloAdminIndependeDeHabilitacao(ModelosAutorizacaoBase):
         self.admin = self._admin("admin_modelos_estilo")
         self.client.force_login(self.admin)
 
-    def test_editar_estilo_ok(self):
+    def test_editar_estilo_documento_ok(self):
         r = self.client.post(
-            "/modelos/estilo/editar/",
-            {"tom_voz": "Institucional", "instrucoes_gerais": "Sempre citar lei."},
+            "/modelos/estilo/documento/editar/",
+            {"modo_estilo": "construir", "config_documento": "{}"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
         estilo = EstiloEscritorio.objects.get(pk=1)
-        self.assertEqual(estilo.tom_voz, "Institucional")
+        self.assertEqual(estilo.modo_estilo, "construir")
 
 
 class TestModelosCategoriasSemHabilitacao(ModelosAutorizacaoBase):

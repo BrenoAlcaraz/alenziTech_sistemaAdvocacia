@@ -6,7 +6,14 @@ from django import forms
 from django.forms import formset_factory
 
 from apps.clientes.models import Cliente
-from apps.modelos.models import CategoriaModeloPeca, EstiloEscritorio, ModeloPeca, config_documento_padrao
+from apps.modelos.models import (
+    REPLICACAO_CHOICES,
+    AssinaturaEstilo,
+    CategoriaModeloPeca,
+    EstiloEscritorio,
+    ModeloPeca,
+    config_documento_padrao,
+)
 from apps.processos.models import Processo
 
 TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -30,10 +37,28 @@ class ModeloPecaForm(forms.ModelForm):
         widget=forms.Select(attrs={"class": "select"}),
         label="Área do direito",
     )
+    # required=False + default "todas" no clean(): mantém o comportamento
+    # de sempre para quem não mexe nesse campo (inclusive POST antigo,
+    # sem essas duas chaves) — specs/modelos-estilo-simplificacao-imagens.md.
+    cabecalho_replicacao = forms.ChoiceField(
+        choices=REPLICACAO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Cabeçalho aparece em",
+    )
+    rodape_replicacao = forms.ChoiceField(
+        choices=REPLICACAO_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={"class": "select"}),
+        label="Rodapé aparece em",
+    )
 
     class Meta:
         model = ModeloPeca
-        fields = ["titulo", "categoria", "area_direito", "conteudo"]
+        fields = [
+            "titulo", "categoria", "area_direito", "conteudo",
+            "cabecalho_replicacao", "rodape_replicacao",
+        ]
         widgets = {
             "titulo": forms.TextInput(attrs={
                 "class": "input",
@@ -48,6 +73,12 @@ class ModeloPecaForm(forms.ModelForm):
             "titulo": "Título do modelo",
             "conteudo": "Conteúdo do modelo",
         }
+
+    def clean_cabecalho_replicacao(self):
+        return self.cleaned_data.get("cabecalho_replicacao") or "todas"
+
+    def clean_rodape_replicacao(self):
+        return self.cleaned_data.get("rodape_replicacao") or "todas"
 
 
 class ImportarModeloPecaForm(forms.Form):
@@ -99,26 +130,6 @@ class ImportarModeloPecaForm(forms.Form):
         return valor
 
 
-class EstiloEscritorioForm(forms.ModelForm):
-    class Meta:
-        model = EstiloEscritorio
-        fields = ["tom_voz", "instrucoes_gerais"]
-        widgets = {
-            "tom_voz": forms.Textarea(attrs={
-                "class": "input h-32 resize-y",
-                "placeholder": "Ex: Formal, direto, sem gírias.",
-            }),
-            "instrucoes_gerais": forms.Textarea(attrs={
-                "class": "input h-32 resize-y",
-                "placeholder": "Instruções gerais que a IA deve seguir ao redigir peças.",
-            }),
-        }
-        labels = {
-            "tom_voz": "Tom de voz",
-            "instrucoes_gerais": "Instruções gerais",
-        }
-
-
 FONTES_PERMITIDAS = {"Times New Roman", "Arial", "Calibri", "Georgia"}
 CORES_FOLHA_PERMITIDAS = {"#ffffff", "#faf6ee", "#f4f4f4", "#eef4ff"}
 TAMANHOS_FONTE_GERAL_PERMITIDOS = {10, 11, 12, 14, 16}
@@ -128,6 +139,8 @@ CAIXAS_PERMITIDAS = {"maiusculas", "capitalizado", "normal"}
 ALINHAMENTOS_PERMITIDOS = {"left", "center", "right", "justify"}
 RECUOS_TRECHO_PERMITIDOS = {"0", "20", "40", "60"}
 MODOS_SLOT_PERMITIDOS = {"texto", "imagem"}
+ALINHAMENTOS_IMAGEM_PERMITIDOS = {"left", "center", "right"}
+REPLICACOES_PERMITIDAS = {"todas", "primeira", "ultima"}
 _HEX_COR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
@@ -217,6 +230,17 @@ def sanitizar_config_documento(dados):
         if slot_entrada.get("modo") in MODOS_SLOT_PERMITIDOS:
             slot["modo"] = slot_entrada["modo"]
         slot["texto"] = _texto_seguro(slot_entrada.get("texto", slot_padrao["texto"]), maximo=300)
+        # Tamanho/posição só fazem sentido em modo imagem, mas ficam
+        # sempre validados/salvos — evita perder o ajuste ao alternar
+        # texto↔imagem (specs/modelos-estilo-simplificacao-imagens.md).
+        slot["largura"] = _inteiro_no_intervalo(
+            slot_entrada.get("largura", slot_padrao["largura"]), 10, 100, slot_padrao["largura"],
+        )
+        if slot_entrada.get("alinhamento") in ALINHAMENTOS_IMAGEM_PERMITIDOS:
+            slot["alinhamento"] = slot_entrada["alinhamento"]
+        if "replicacao" in slot_padrao:
+            if slot_entrada.get("replicacao") in REPLICACOES_PERMITIDAS:
+                slot["replicacao"] = slot_entrada["replicacao"]
         slots[nome] = slot
 
     secoes_entrada = dados.get("secoes") if isinstance(dados.get("secoes"), dict) else {}
@@ -245,14 +269,12 @@ class EstiloDocumentoForm(forms.ModelForm):
             "imagem_cabecalho",
             "imagem_rodape",
             "imagem_marca_dagua",
-            "imagem_assinatura",
         ]
         widgets = {
             "arquivo_referencia": forms.ClearableFileInput(attrs={"accept": ".pdf,.docx"}),
             "imagem_cabecalho": forms.ClearableFileInput(attrs={"accept": "image/*"}),
             "imagem_rodape": forms.ClearableFileInput(attrs={"accept": "image/*"}),
             "imagem_marca_dagua": forms.ClearableFileInput(attrs={"accept": "image/*"}),
-            "imagem_assinatura": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
 
     def clean_config_documento(self):
@@ -304,6 +326,50 @@ class EstiloDocumentoForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class AssinaturaEstiloForm(forms.ModelForm):
+    """Um bloco de assinatura do padrão de Meu Estilo — texto ou imagem
+    (specs/modelos-estilo-simplificacao-imagens.md)."""
+
+    class Meta:
+        model = AssinaturaEstilo
+        fields = ["modo", "texto", "imagem", "largura", "alinhamento"]
+        widgets = {
+            "modo": forms.Select(attrs={"class": "select"}),
+            "texto": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Ex: João Silva — OAB/SP 123.456",
+            }),
+            "imagem": forms.ClearableFileInput(attrs={"accept": "image/*"}),
+            "largura": forms.NumberInput(attrs={"class": "input", "min": 10, "max": 100}),
+            "alinhamento": forms.Select(attrs={"class": "select"}),
+        }
+
+    def clean_imagem(self):
+        arquivo = self.cleaned_data.get("imagem")
+        if not arquivo or not hasattr(arquivo, "size"):
+            return arquivo
+        if arquivo.size > TAMANHO_MAXIMO_BYTES:
+            raise forms.ValidationError("O arquivo deve ter no máximo 10 MB.")
+        if Path(arquivo.name).suffix.lower() not in EXTENSOES_IMAGEM_ACEITAS:
+            raise forms.ValidationError("Envie uma imagem PNG, JPG ou SVG.")
+        return arquivo
+
+    def clean_largura(self):
+        largura = self.cleaned_data.get("largura")
+        if largura is None:
+            return 30
+        return max(10, min(100, largura))
+
+    def clean(self):
+        cleaned = super().clean()
+        modo = cleaned.get("modo")
+        if modo == AssinaturaEstilo.MODO_TEXTO and not cleaned.get("texto"):
+            self.add_error("texto", "Informe o texto da assinatura.")
+        if modo == AssinaturaEstilo.MODO_IMAGEM and not cleaned.get("imagem"):
+            self.add_error("imagem", "Envie uma imagem para a assinatura.")
+        return cleaned
 
 
 class CategoriaModeloPecaForm(forms.ModelForm):

@@ -22,10 +22,10 @@ from apps.accounts.permissoes_constants import (
 from apps.modelos.forms import (
     AREAS_DIREITO,
     MODO_BASE_ACERVO,
+    AssinaturaEstiloForm,
     CasoRepetitivoFormSet,
     CategoriaModeloPecaForm,
     EstiloDocumentoForm,
-    EstiloEscritorioForm,
     ImportarModeloPecaForm,
     ModeloPecaForm,
     PecaBaseRepetitivaForm,
@@ -61,7 +61,6 @@ CAMPOS_ARQUIVO_ESTILO_DOCUMENTO = [
     "imagem_cabecalho",
     "imagem_rodape",
     "imagem_marca_dagua",
-    "imagem_assinatura",
 ]
 
 
@@ -94,7 +93,6 @@ CAMPOS_IMAGEM_SLOT_ESTILO = {
     "cabecalho": "imagem_cabecalho",
     "rodape": "imagem_rodape",
     "marca_dagua": "imagem_marca_dagua",
-    "assinatura": "imagem_assinatura",
 }
 
 
@@ -180,18 +178,20 @@ def lista(request):
 
     pode_editar_estilo = False
     estilo = None
-    form_estilo = None
     form_estilo_documento = None
     config_documento = None
     imagens_estilo_urls = None
+    assinaturas_estilo = None
+    form_assinatura_estilo = None
     if aba_ativa == "estilo":
         pode_editar_estilo = _pode_editar_estilo(request.user)
         estilo = _obter_estilo_escritorio()
         config_documento = estilo.config_documento
         imagens_estilo_urls = _imagens_estilo_urls(estilo)
+        assinaturas_estilo = list(estilo.assinaturas.all())
         if pode_editar_estilo:
-            form_estilo = EstiloEscritorioForm(instance=estilo)
             form_estilo_documento = EstiloDocumentoForm(instance=estilo)
+            form_assinatura_estilo = AssinaturaEstiloForm()
 
     pode_criar_modelo = _pode_criar_modelo(request.user)
     peca_base_form = None
@@ -223,10 +223,11 @@ def lista(request):
         "estilo": estilo,
         "pode_editar_estilo": pode_editar_estilo,
         "pode_gerir_categorias": _pode_gerir_categorias(request.user),
-        "form_estilo": form_estilo,
         "form_estilo_documento": form_estilo_documento,
         "config_documento": config_documento,
         "imagens_estilo_urls": imagens_estilo_urls,
+        "assinaturas_estilo": assinaturas_estilo,
+        "form_assinatura_estilo": form_assinatura_estilo,
     })
 
 
@@ -237,6 +238,7 @@ def novo(request):
     if not tem_habilitacao(request.user, MODULO_MODELOS, HAB_MODELOS_CRIAR):
         raise PermissionDenied
 
+    estilo = _obter_estilo_escritorio()
     if request.method == "POST":
         form = ModeloPecaForm(request.POST)
         if form.is_valid():
@@ -245,9 +247,16 @@ def novo(request):
             modelo.save()
             return redirect("modelos:detalhe", pk=modelo.pk)
     else:
-        form = ModeloPecaForm()
+        # Moldura de contexto no momento da criação (mesma lógica do
+        # resto do padrão de Meu Estilo): valor inicial vem do padrão do
+        # escritório, mas o modelo guarda sua própria escolha daí em
+        # diante (specs/modelos-estilo-simplificacao-imagens.md).
+        slots = estilo.config_documento.get("slots", {})
+        form = ModeloPecaForm(initial={
+            "cabecalho_replicacao": slots.get("cabecalho", {}).get("replicacao", "todas"),
+            "rodape_replicacao": slots.get("rodape", {}).get("replicacao", "todas"),
+        })
 
-    estilo = _obter_estilo_escritorio()
     return render(request, "modelos/form.html", {
         "form": form,
         "modo": "novo",
@@ -255,6 +264,7 @@ def novo(request):
         "item_ativo": "modelos",
         "config_documento": estilo.config_documento,
         "imagens_estilo_urls": _imagens_estilo_urls(estilo),
+        "assinaturas_estilo": list(estilo.assinaturas.all()),
     })
 
 
@@ -426,38 +436,6 @@ def excluir(request, pk):
 
 
 @login_required
-def editar_estilo(request):
-    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
-        raise PermissionDenied
-    if not _pode_editar_estilo(request.user):
-        raise PermissionDenied
-
-    destino = f"{reverse('modelos:lista')}?aba=estilo"
-
-    if request.method != "POST":
-        return redirect(destino)
-
-    estilo = _obter_estilo_escritorio()
-    form = EstiloEscritorioForm(request.POST, instance=estilo)
-    if form.is_valid():
-        form.save()
-        return redirect(destino)
-
-    return render(request, "modelos/lista.html", {
-        "modelos": _listar_modelos(""),
-        "aba_ativa": "estilo",
-        "busca": "",
-        "item_ativo": "modelos",
-        "estilo": estilo,
-        "pode_editar_estilo": True,
-        "form_estilo": form,
-        "form_estilo_documento": EstiloDocumentoForm(instance=estilo),
-        "config_documento": estilo.config_documento,
-        "imagens_estilo_urls": _imagens_estilo_urls(estilo),
-    })
-
-
-@login_required
 def editar_estilo_documento(request):
     if not tem_permissao_modulo(request.user, MODULO_MODELOS):
         raise PermissionDenied
@@ -485,10 +463,11 @@ def editar_estilo_documento(request):
         "item_ativo": "modelos",
         "estilo": estilo,
         "pode_editar_estilo": True,
-        "form_estilo": EstiloEscritorioForm(instance=estilo),
         "form_estilo_documento": form,
         "config_documento": config_documento_atual,
         "imagens_estilo_urls": _imagens_estilo_urls(estilo),
+        "assinaturas_estilo": list(estilo.assinaturas.all()),
+        "form_assinatura_estilo": AssinaturaEstiloForm(),
     })
 
 
@@ -507,6 +486,60 @@ def imagem_estilo_documento(request, slot):
         raise Http404
 
     return FileResponse(arquivo.open("rb"), as_attachment=False)
+
+
+@login_required
+def adicionar_assinatura_estilo(request):
+    """Mais de um bloco de assinatura no padrão de Meu Estilo
+    (specs/modelos-estilo-simplificacao-imagens.md) — texto ou imagem,
+    independente dos demais."""
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_editar_estilo(request.user):
+        raise PermissionDenied
+
+    destino = f"{reverse('modelos:lista')}?aba=estilo"
+    if request.method != "POST":
+        return redirect(destino)
+
+    estilo = _obter_estilo_escritorio()
+    form = AssinaturaEstiloForm(request.POST, request.FILES)
+    if form.is_valid():
+        assinatura = form.save(commit=False)
+        assinatura.estilo = estilo
+        proxima_ordem = estilo.assinaturas.count()
+        assinatura.ordem = proxima_ordem
+        assinatura.save()
+    return redirect(destino)
+
+
+@login_required
+def remover_assinatura_estilo(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_editar_estilo(request.user):
+        raise PermissionDenied
+
+    destino = f"{reverse('modelos:lista')}?aba=estilo"
+    if request.method == "POST":
+        estilo = _obter_estilo_escritorio()
+        assinatura = get_object_or_404(estilo.assinaturas, pk=pk)
+        if assinatura.imagem:
+            assinatura.imagem.storage.delete(assinatura.imagem.name)
+        assinatura.delete()
+    return redirect(destino)
+
+
+@login_required
+def imagem_assinatura_estilo(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    estilo = _obter_estilo_escritorio()
+    assinatura = get_object_or_404(estilo.assinaturas, pk=pk)
+    if not assinatura.imagem:
+        raise Http404
+    return FileResponse(assinatura.imagem.open("rb"), as_attachment=False)
 
 
 @login_required

@@ -1,3 +1,4 @@
+import base64
 from io import BytesIO
 from html.parser import HTMLParser
 from pathlib import Path
@@ -184,7 +185,29 @@ _TAGS_QUEBRA = {"br"}
 _TAGS_NEGRITO = {"b", "strong"}
 _TAGS_ITALICO = {"i", "em"}
 _TAGS_SUBLINHADO = {"u"}
+_TAGS_IMAGEM = {"img"}
 _ALINHAMENTOS_VALIDOS = {"left", "center", "right", "justify"}
+_LARGURA_IMAGEM_PADRAO = 50
+
+
+def _atributo(attrs, nome):
+    for chave, valor in attrs:
+        if chave == nome:
+            return valor
+    return None
+
+
+def _largura_do_style(attrs):
+    style = _atributo(attrs, "style") or ""
+    for declaracao in style.split(";"):
+        chave, _, resto = declaracao.partition(":")
+        if chave.strip() != "width":
+            continue
+        try:
+            return max(10, min(100, int(float(resto.strip().rstrip("%")))))
+        except ValueError:
+            pass
+    return _LARGURA_IMAGEM_PADRAO
 
 
 class _ParserConteudoPeca(HTMLParser):
@@ -228,6 +251,8 @@ class _ParserConteudoPeca(HTMLParser):
             if self._paragrafo_aberto:
                 self._fechar_paragrafo()
             self._abrir_paragrafo(self._alinhamento_do_style(attrs))
+        elif tag in _TAGS_IMAGEM:
+            self._adicionar_imagem(attrs)
         elif tag in _TAGS_NEGRITO:
             self._negrito += 1
         elif tag in _TAGS_ITALICO:
@@ -257,6 +282,22 @@ class _ParserConteudoPeca(HTMLParser):
             "sublinhado": self._sublinhado > 0,
         })
 
+    def _adicionar_imagem(self, attrs):
+        """Imagem inserida no conteúdo pelo editor (data-URL embutida,
+        `_nova_peca_editor_js.html`) — vira parágrafo próprio, nunca um
+        run de texto (specs/modelos-estilo-simplificacao-imagens.md)."""
+        src = _atributo(attrs, "src") or ""
+        if not src.startswith("data:image/"):
+            return
+        if self._paragrafo_aberto:
+            self._fechar_paragrafo()
+        self.paragrafos.append({
+            "tipo": "imagem",
+            "alinhamento": self._alinhamento_atual,
+            "src": src,
+            "largura": _largura_do_style(attrs),
+        })
+
     def handle_data(self, data):
         if data:
             self._adicionar_texto(data)
@@ -273,6 +314,9 @@ def _dividir_por_quebra_de_linha(paragrafos):
     verdade para não virar uma linha só no documento exportado."""
     resultado = []
     for paragrafo in paragrafos:
+        if paragrafo.get("tipo") == "imagem":
+            resultado.append(paragrafo)
+            continue
         atual = {"alinhamento": paragrafo["alinhamento"], "runs": []}
         for run in paragrafo["runs"]:
             partes = run["texto"].split("\n")
@@ -283,14 +327,15 @@ def _dividir_por_quebra_de_linha(paragrafos):
                 if parte:
                     atual["runs"].append({**run, "texto": parte})
         resultado.append(atual)
-    return [p for p in resultado if p["runs"]]
+    return [p for p in resultado if p.get("tipo") == "imagem" or p["runs"]]
 
 
 def extrair_paragrafos(conteudo):
-    """Converte `ModeloPeca.conteudo` numa lista de parágrafos
+    """Converte `ModeloPeca.conteudo` numa lista de parágrafos — texto
     (`{"alinhamento", "runs": [{"texto", "negrito", "italico",
-    "sublinhado"}]}`) — formato intermediário comum entre
-    `gerar_docx_modelo` e `gerar_pdf_modelo`."""
+    "sublinhado"}]}`) ou imagem inserida no conteúdo
+    (`{"tipo": "imagem", "alinhamento", "src", "largura"}`) — formato
+    intermediário comum entre `gerar_docx_modelo` e `gerar_pdf_modelo`."""
     parser = _ParserConteudoPeca()
     parser.feed(conteudo or "")
     parser.close()
@@ -307,6 +352,17 @@ def _cm(valor, padrao=0.0):
 def _bytes_do_arquivo(campo_arquivo):
     with campo_arquivo.open("rb") as arquivo:
         return BytesIO(arquivo.read())
+
+
+def _bytes_de_data_url(data_url):
+    """Decodifica a imagem inserida no conteúdo (data-URL base64 — ver
+    `_nova_peca_editor_js.html`); `None` se o valor não for uma data-URL
+    de imagem válida."""
+    try:
+        _cabecalho, dados_b64 = data_url.split(",", 1)
+        return BytesIO(base64.b64decode(dados_b64))
+    except (ValueError, TypeError, base64.binascii.Error):
+        return None
 
 
 def gerar_docx_modelo(modelo, estilo):
@@ -334,6 +390,7 @@ def gerar_docx_modelo(modelo, estilo):
     margem = Cm(_cm(geral.get("recuo_texto")))
     secao.left_margin = margem
     secao.right_margin = margem
+    largura_util = secao.page_width - secao.left_margin - secao.right_margin
 
     fonte_normal = documento.styles["Normal"].font
     fonte_normal.name = geral.get("fonte", "Times New Roman")
@@ -343,21 +400,47 @@ def gerar_docx_modelo(modelo, estilo):
         if slot.get("modo") == "imagem":
             arquivo = getattr(estilo, campo_imagem)
             if arquivo:
-                paragrafo.add_run().add_picture(_bytes_do_arquivo(arquivo), height=Cm(1.5))
+                largura_imagem = int(largura_util * (slot.get("largura", 30) / 100.0))
+                paragrafo.add_run().add_picture(_bytes_do_arquivo(arquivo), width=largura_imagem)
         else:
             paragrafo.add_run(slot.get("texto", ""))
 
-    slot_cabecalho = slots.get("cabecalho", {})
-    if slot_cabecalho.get("ativo"):
-        paragrafo = secao.header.paragraphs[0]
-        paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _slot_texto_ou_imagem(paragrafo, slot_cabecalho, "imagem_cabecalho")
+    def _alinhamento_do_slot(slot):
+        if slot.get("modo") == "imagem":
+            return alinhamento_docx.get(slot.get("alinhamento", "center"), WD_ALIGN_PARAGRAPH.CENTER)
+        return WD_ALIGN_PARAGRAPH.CENTER
 
-    slot_rodape = slots.get("rodape", {})
-    if slot_rodape.get("ativo"):
-        paragrafo = secao.footer.paragraphs[0]
-        paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _slot_texto_ou_imagem(paragrafo, slot_rodape, "imagem_rodape")
+    # "ultima" página não é suportável em DOCX: o formato não conhece a
+    # paginação no momento da geração (Word só calcula quebras de página
+    # ao abrir o arquivo) — mesma classe de limitação já aceita para a
+    # marca d'água rotacionada logo abaixo. Cabeçalho/rodapé com essa
+    # escolha simplesmente não aparecem no .docx (aparecem normalmente
+    # no PDF, que consegue calcular a página final).
+    usar_primeira_pagina_distinta = any(
+        slots.get(nome, {}).get("replicacao") == "primeira" for nome in ("cabecalho", "rodape")
+    )
+    if usar_primeira_pagina_distinta:
+        secao.different_first_page_header_footer = True
+
+    def _aplicar_cabecalho_ou_rodape(slot, campo_imagem, normal, primeira_pagina):
+        if not slot.get("ativo") or slot.get("replicacao") == "ultima":
+            return
+        replicacao = slot.get("replicacao", "todas")
+        if replicacao == "todas" or not usar_primeira_pagina_distinta:
+            paragrafo = normal.paragraphs[0]
+            paragrafo.alignment = _alinhamento_do_slot(slot)
+            _slot_texto_ou_imagem(paragrafo, slot, campo_imagem)
+        if replicacao in ("todas", "primeira") and usar_primeira_pagina_distinta:
+            paragrafo = primeira_pagina.paragraphs[0]
+            paragrafo.alignment = _alinhamento_do_slot(slot)
+            _slot_texto_ou_imagem(paragrafo, slot, campo_imagem)
+
+    _aplicar_cabecalho_ou_rodape(
+        slots.get("cabecalho", {}), "imagem_cabecalho", secao.header, secao.first_page_header,
+    )
+    _aplicar_cabecalho_ou_rodape(
+        slots.get("rodape", {}), "imagem_rodape", secao.footer, secao.first_page_footer,
+    )
 
     # Marca d'água rotacionada e atrás do texto exige injetar um shape VML
     # no XML do cabeçalho — desproporcional para o ganho aqui; aproxima com
@@ -365,11 +448,12 @@ def gerar_docx_modelo(modelo, estilo):
     slot_marca_dagua = slots.get("marca_dagua", {})
     if slot_marca_dagua.get("ativo"):
         paragrafo = secao.header.add_paragraph()
-        paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        paragrafo.alignment = _alinhamento_do_slot(slot_marca_dagua)
         if slot_marca_dagua.get("modo") == "imagem":
             arquivo = getattr(estilo, "imagem_marca_dagua")
             if arquivo:
-                paragrafo.add_run().add_picture(_bytes_do_arquivo(arquivo), height=Cm(1.2))
+                largura_imagem = int(largura_util * (slot_marca_dagua.get("largura", 30) / 100.0))
+                paragrafo.add_run().add_picture(_bytes_do_arquivo(arquivo), width=largura_imagem)
         else:
             run = paragrafo.add_run(slot_marca_dagua.get("texto", ""))
             run.font.size = Pt(28)
@@ -379,6 +463,15 @@ def gerar_docx_modelo(modelo, estilo):
     recuo_paragrafo = Cm(_cm(geral.get("recuo_paragrafo")))
     espacamento = espacamento_docx.get(geral.get("espacamento"), 1.15)
     for paragrafo_dado in extrair_paragrafos(modelo.conteudo):
+        if paragrafo_dado.get("tipo") == "imagem":
+            dados = _bytes_de_data_url(paragrafo_dado["src"])
+            if dados is None:
+                continue
+            paragrafo = documento.add_paragraph()
+            paragrafo.alignment = alinhamento_docx.get(paragrafo_dado["alinhamento"], WD_ALIGN_PARAGRAPH.CENTER)
+            largura_imagem = int(largura_util * (paragrafo_dado.get("largura", 50) / 100.0))
+            paragrafo.add_run().add_picture(dados, width=largura_imagem)
+            continue
         paragrafo = documento.add_paragraph()
         paragrafo.alignment = alinhamento_docx.get(paragrafo_dado["alinhamento"], WD_ALIGN_PARAGRAPH.JUSTIFY)
         paragrafo.paragraph_format.line_spacing = espacamento
@@ -389,14 +482,17 @@ def gerar_docx_modelo(modelo, estilo):
             run.italic = run_dado["italico"]
             run.underline = run_dado["sublinhado"]
 
-    slot_assinatura = slots.get("assinatura", {})
-    if slot_assinatura.get("ativo"):
+    for assinatura in estilo.assinaturas.all():
         documento.add_paragraph()
         paragrafo = documento.add_paragraph("_" * 30)
-        paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        paragrafo_texto = documento.add_paragraph()
-        paragrafo_texto.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _slot_texto_ou_imagem(paragrafo_texto, slot_assinatura, "imagem_assinatura")
+        paragrafo.alignment = alinhamento_docx.get(assinatura.alinhamento, WD_ALIGN_PARAGRAPH.CENTER)
+        paragrafo_conteudo = documento.add_paragraph()
+        paragrafo_conteudo.alignment = alinhamento_docx.get(assinatura.alinhamento, WD_ALIGN_PARAGRAPH.CENTER)
+        if assinatura.modo == "imagem" and assinatura.imagem:
+            largura_imagem = int(largura_util * (assinatura.largura / 100.0))
+            paragrafo_conteudo.add_run().add_picture(_bytes_do_arquivo(assinatura.imagem), width=largura_imagem)
+        elif assinatura.texto:
+            paragrafo_conteudo.add_run(assinatura.texto)
 
     buffer = BytesIO()
     documento.save(buffer)
@@ -427,6 +523,17 @@ def _runs_para_markup_reportlab(runs):
     return "".join(partes) or "&nbsp;"
 
 
+def _deve_mostrar_na_pagina(replicacao, numero_pagina, total_paginas):
+    """"todas"/"primeira"/"última" (specs/modelos-estilo-simplificacao-
+    imagens.md) — `total_paginas` só é conhecido (contagem em uma
+    primeira passada de build) quando algum slot pede "ultima"."""
+    if replicacao == "primeira":
+        return numero_pagina == 1
+    if replicacao == "ultima":
+        return total_paginas is not None and numero_pagina == total_paginas
+    return True
+
+
 def gerar_pdf_modelo(modelo, estilo):
     """Gera um PDF a partir de `modelo.conteudo` com o mesmo padrão de
     `EstiloEscritorio` aplicado em `gerar_docx_modelo` — mesmas
@@ -438,7 +545,7 @@ def gerar_pdf_modelo(modelo, estilo):
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib.utils import ImageReader
-    from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.platypus import HRFlowable, Image as ImagemPdf, Paragraph, SimpleDocTemplate, Spacer
 
     alinhamento_pdf = {"left": TA_LEFT, "center": TA_CENTER, "right": TA_RIGHT, "justify": TA_JUSTIFY}
 
@@ -448,8 +555,16 @@ def gerar_pdf_modelo(modelo, estilo):
     tamanho_fonte = geral.get("tamanho_fonte", 11)
     margem_lateral = _cm(geral.get("recuo_texto")) * cm
     cor_folha = HexColor(geral.get("cor_folha", "#ffffff"))
+    pagina_largura, pagina_altura = A4
 
-    def _desenhar_slot(canvas, slot, campo_imagem, y, tamanho_fonte_slot, pagina_largura):
+    def _x_para_alinhamento(alinhamento, largura_elemento):
+        if alinhamento == "left":
+            return margem_lateral
+        if alinhamento == "right":
+            return pagina_largura - margem_lateral - largura_elemento
+        return (pagina_largura - largura_elemento) / 2
+
+    def _desenhar_slot(canvas, slot, campo_imagem, y, tamanho_fonte_slot):
         if not slot.get("ativo"):
             return
         if slot.get("modo") == "imagem":
@@ -459,12 +574,10 @@ def gerar_pdf_modelo(modelo, estilo):
             try:
                 imagem = ImageReader(_bytes_do_arquivo(arquivo))
                 largura_original, altura_original = imagem.getSize()
-                altura = 1.2 * cm
-                largura = altura * largura_original / altura_original
-                canvas.drawImage(
-                    imagem, (pagina_largura - largura) / 2, y - altura,
-                    width=largura, height=altura, mask="auto",
-                )
+                largura = pagina_largura * (slot.get("largura", 30) / 100.0)
+                altura = largura * altura_original / largura_original
+                x = _x_para_alinhamento(slot.get("alinhamento", "center"), largura)
+                canvas.drawImage(imagem, x, y - altura, width=largura, height=altura, mask="auto")
             except Exception:
                 pass
         else:
@@ -472,12 +585,15 @@ def gerar_pdf_modelo(modelo, estilo):
             canvas.setFillColor(HexColor("#555555"))
             canvas.drawCentredString(pagina_largura / 2, y, slot.get("texto", ""))
 
-    def _desenhar_marca_dagua(canvas, pagina_largura, pagina_altura):
+    def _desenhar_marca_dagua(canvas):
         slot = slots.get("marca_dagua", {})
         if not slot.get("ativo"):
             return
         canvas.saveState()
-        canvas.translate(pagina_largura / 2, pagina_altura / 2)
+        deslocamento_x = {"left": -pagina_largura * 0.2, "right": pagina_largura * 0.2}.get(
+            slot.get("alinhamento", "center"), 0,
+        )
+        canvas.translate(pagina_largura / 2 + deslocamento_x, pagina_altura / 2)
         canvas.rotate(45)
         try:
             if slot.get("modo") == "imagem":
@@ -486,7 +602,7 @@ def gerar_pdf_modelo(modelo, estilo):
                     canvas.setFillAlpha(0.12)
                     imagem = ImageReader(_bytes_do_arquivo(arquivo))
                     largura_original, altura_original = imagem.getSize()
-                    largura = 8 * cm
+                    largura = pagina_largura * (slot.get("largura", 30) / 100.0)
                     altura = largura * altura_original / largura_original
                     canvas.drawImage(
                         imagem, -largura / 2, -altura / 2,
@@ -501,22 +617,21 @@ def gerar_pdf_modelo(modelo, estilo):
             pass
         canvas.restoreState()
 
-    def _fundo_e_moldura(canvas, doc):
-        pagina_largura, pagina_altura = A4
-        canvas.saveState()
-        canvas.setFillColor(cor_folha)
-        canvas.rect(0, 0, pagina_largura, pagina_altura, fill=1, stroke=0)
-        canvas.restoreState()
-        _desenhar_slot(canvas, slots.get("cabecalho", {}), "imagem_cabecalho", pagina_altura - 1.5 * cm, 9, pagina_largura)
-        _desenhar_slot(canvas, slots.get("rodape", {}), "imagem_rodape", 1.2 * cm, 8, pagina_largura)
-        _desenhar_marca_dagua(canvas, pagina_largura, pagina_altura)
-
-    buffer = BytesIO()
-    documento = SimpleDocTemplate(
-        buffer, pagesize=A4,
-        leftMargin=margem_lateral, rightMargin=margem_lateral,
-        topMargin=2.5 * cm, bottomMargin=2.5 * cm,
-    )
+    def _fundo_e_moldura(total_paginas):
+        def _desenhar(canvas, doc):
+            numero_pagina = canvas.getPageNumber()
+            canvas.saveState()
+            canvas.setFillColor(cor_folha)
+            canvas.rect(0, 0, pagina_largura, pagina_altura, fill=1, stroke=0)
+            canvas.restoreState()
+            slot_cabecalho = slots.get("cabecalho", {})
+            if _deve_mostrar_na_pagina(slot_cabecalho.get("replicacao", "todas"), numero_pagina, total_paginas):
+                _desenhar_slot(canvas, slot_cabecalho, "imagem_cabecalho", pagina_altura - 1.5 * cm, 9)
+            slot_rodape = slots.get("rodape", {})
+            if _deve_mostrar_na_pagina(slot_rodape.get("replicacao", "todas"), numero_pagina, total_paginas):
+                _desenhar_slot(canvas, slot_rodape, "imagem_rodape", 1.2 * cm, 8)
+            _desenhar_marca_dagua(canvas)
+        return _desenhar
 
     estilo_base = ParagraphStyle(
         "corpo-peca",
@@ -526,35 +641,87 @@ def gerar_pdf_modelo(modelo, estilo):
         firstLineIndent=_cm(geral.get("recuo_paragrafo")) * cm,
     )
 
-    fluxo = []
-    for paragrafo in extrair_paragrafos(modelo.conteudo):
-        estilo_paragrafo = ParagraphStyle(
-            "p", parent=estilo_base,
-            alignment=alinhamento_pdf.get(paragrafo["alinhamento"], TA_JUSTIFY),
-        )
-        fluxo.append(Paragraph(_runs_para_markup_reportlab(paragrafo["runs"]), estilo_paragrafo))
-        fluxo.append(Spacer(1, 6))
-
-    slot_assinatura = slots.get("assinatura", {})
-    if slot_assinatura.get("ativo"):
-        fluxo.append(Spacer(1, 24))
-        fluxo.append(HRFlowable(width="30%", thickness=1, color=HexColor("#333333"), hAlign="CENTER"))
-        if slot_assinatura.get("modo") == "imagem":
-            arquivo = getattr(estilo, "imagem_assinatura")
-            if arquivo:
-                from reportlab.platypus import Image as ImagemPdf
+    def _montar_fluxo():
+        fluxo = []
+        for paragrafo in extrair_paragrafos(modelo.conteudo):
+            if paragrafo.get("tipo") == "imagem":
+                dados = _bytes_de_data_url(paragrafo["src"])
+                if dados is None:
+                    continue
                 try:
-                    imagem = ImageReader(_bytes_do_arquivo(arquivo))
+                    imagem = ImageReader(dados)
                     largura_original, altura_original = imagem.getSize()
-                    altura = 1.5 * cm
-                    largura = altura * largura_original / altura_original
-                    fluxo.append(ImagemPdf(_bytes_do_arquivo(arquivo), width=largura, height=altura, hAlign="CENTER"))
+                    largura_img = (pagina_largura - 2 * margem_lateral) * (paragrafo.get("largura", 50) / 100.0)
+                    altura_img = largura_img * altura_original / largura_original
+                    alinhamento_img = paragrafo.get("alinhamento", "center")
+                    if alinhamento_img not in ("left", "center", "right"):
+                        alinhamento_img = "center"
+                    fluxo.append(ImagemPdf(
+                        _bytes_de_data_url(paragrafo["src"]), width=largura_img, height=altura_img,
+                        hAlign=alinhamento_img.upper(),
+                    ))
+                    fluxo.append(Spacer(1, 6))
                 except Exception:
                     pass
-        else:
-            estilo_assinatura = ParagraphStyle("assinatura", alignment=TA_CENTER, fontName=fonte_base, fontSize=10)
-            fluxo.append(Paragraph(escapar_xml(slot_assinatura.get("texto", "")), estilo_assinatura))
+                continue
+            estilo_paragrafo = ParagraphStyle(
+                "p", parent=estilo_base,
+                alignment=alinhamento_pdf.get(paragrafo["alinhamento"], TA_JUSTIFY),
+            )
+            fluxo.append(Paragraph(_runs_para_markup_reportlab(paragrafo["runs"]), estilo_paragrafo))
+            fluxo.append(Spacer(1, 6))
 
-    documento.build(fluxo, onFirstPage=_fundo_e_moldura, onLaterPages=_fundo_e_moldura)
+        for assinatura in estilo.assinaturas.all():
+            fluxo.append(Spacer(1, 24))
+            fluxo.append(HRFlowable(
+                width="30%", thickness=1, color=HexColor("#333333"),
+                hAlign=assinatura.alinhamento.upper(),
+            ))
+            if assinatura.modo == "imagem" and assinatura.imagem:
+                try:
+                    imagem = ImageReader(_bytes_do_arquivo(assinatura.imagem))
+                    largura_original, altura_original = imagem.getSize()
+                    largura_img = (pagina_largura - 2 * margem_lateral) * (assinatura.largura / 100.0)
+                    altura_img = largura_img * altura_original / largura_original
+                    fluxo.append(ImagemPdf(
+                        _bytes_do_arquivo(assinatura.imagem), width=largura_img, height=altura_img,
+                        hAlign=assinatura.alinhamento.upper(),
+                    ))
+                except Exception:
+                    pass
+            elif assinatura.texto:
+                estilo_assinatura = ParagraphStyle(
+                    "assinatura",
+                    alignment=alinhamento_pdf.get(assinatura.alinhamento, TA_CENTER),
+                    fontName=fonte_base, fontSize=10,
+                )
+                fluxo.append(Paragraph(escapar_xml(assinatura.texto), estilo_assinatura))
+        return fluxo
+
+    def _novo_documento(buffer_destino):
+        return SimpleDocTemplate(
+            buffer_destino, pagesize=A4,
+            leftMargin=margem_lateral, rightMargin=margem_lateral,
+            topMargin=2.5 * cm, bottomMargin=2.5 * cm,
+        )
+
+    # "ultima" página só é resolvível sabendo o total — uma passada extra
+    # de contagem (descartada), só quando cabeçalho ou rodapé pedem isso.
+    precisa_contar_paginas = any(
+        slots.get(nome, {}).get("replicacao") == "ultima" for nome in ("cabecalho", "rodape")
+    )
+    total_paginas = None
+    if precisa_contar_paginas:
+        contador = {"n": 0}
+
+        def _contar(canvas, doc):
+            contador["n"] = canvas.getPageNumber()
+
+        _novo_documento(BytesIO()).build(_montar_fluxo(), onFirstPage=_contar, onLaterPages=_contar)
+        total_paginas = contador["n"]
+
+    buffer = BytesIO()
+    desenhar_pagina = _fundo_e_moldura(total_paginas)
+    _novo_documento(buffer).build(_montar_fluxo(), onFirstPage=desenhar_pagina, onLaterPages=desenhar_pagina)
     buffer.seek(0)
     return buffer

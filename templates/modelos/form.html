@@ -49,6 +49,20 @@
             <p class="text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
           {% endif %}
         </div>
+        <div>
+          <label class="label" for="{{ form.cabecalho_replicacao.id_for_label }}">{{ form.cabecalho_replicacao.label }}</label>
+          {{ form.cabecalho_replicacao }}
+          {% if form.cabecalho_replicacao.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.cabecalho_replicacao.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.rodape_replicacao.id_for_label }}">{{ form.rodape_replicacao.label }}</label>
+          {{ form.rodape_replicacao }}
+          {% if form.rodape_replicacao.errors %}
+            <p class="text-xs text-red-600 mt-1">{{ form.rodape_replicacao.errors|join:", " }}</p>
+          {% endif %}
+        </div>
       </div>
 
       <div>
@@ -94,12 +108,40 @@
             </div>
           </div>
 
+          {# Painel de tamanho/posição da imagem selecionada no conteúdo #}
+          <div class="me-ribbon hidden" id="np-img-controls">
+            <div class="me-ribbon-group flex items-center gap-2 px-2">
+              <label class="text-xs text-gray-500">Tamanho</label>
+              <input type="range" min="10" max="100" id="np-img-largura">
+            </div>
+            <div class="me-ribbon-group me-ribbon-group-last">
+              <div class="me-ribbon-btn" data-align="left" title="Alinhar imagem à esquerda">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h15"/></svg>
+              </div>
+              <div class="me-ribbon-btn" data-align="center" title="Centralizar imagem">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M4 18h16"/></svg>
+              </div>
+              <div class="me-ribbon-btn" data-align="right" title="Alinhar imagem à direita">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M9 12h12M6 18h15"/></svg>
+              </div>
+            </div>
+          </div>
+
           <div class="me-editor-page-wrap" style="justify-content:flex-start;">
             <div class="me-word-page" id="np-word-page">
               <div class="me-page-watermark-slot" id="np-slot-marca_dagua"></div>
               <div class="me-page-header-slot" id="np-slot-cabecalho"></div>
               <div class="me-page-body" id="np-slot-corpo" contenteditable="true"></div>
-              <div class="me-page-signature-slot" id="np-slot-assinatura"></div>
+              <div class="me-page-signature-slot" id="np-slot-assinatura">
+                {% for assinatura in assinaturas_estilo %}
+                  <div class="me-page-sig-line"></div>
+                  {% if assinatura.modo == "imagem" %}
+                    <img src="{% url 'modelos:imagem_assinatura_estilo' assinatura.pk %}" style="width:{{ assinatura.largura }}%; display:block; margin-left:auto; margin-right:auto;" alt="">
+                  {% else %}
+                    <span>{{ assinatura.texto }}</span>
+                  {% endif %}
+                {% endfor %}
+              </div>
               <div class="me-page-footer-slot" id="np-slot-rodape"></div>
             </div>
           </div>

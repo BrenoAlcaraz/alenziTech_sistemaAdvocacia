@@ -15,7 +15,6 @@
     cabecalho: "np-slot-cabecalho",
     rodape: "np-slot-rodape",
     marca_dagua: "np-slot-marca_dagua",
-    assinatura: "np-slot-assinatura",
   };
 
   // ===== Aplica o padrão salvo em "Meu Estilo" como moldura só de leitura =====
@@ -32,20 +31,21 @@
     var slotState = config.slots[slot];
     if (!slotState || !slotState.ativo) return;
 
-    if (slot === "assinatura") {
-      el.innerHTML = '<div class="me-page-sig-line"></div>';
-    }
     if (slotState.modo === "imagem" && imagens[slot]) {
       var img = document.createElement("img");
       img.src = imagens[slot];
+      img.style.width = slotState.largura + "%";
+      img.style.display = "block";
+      img.style.marginLeft = slotState.alinhamento === "left" ? "0" : "auto";
+      img.style.marginRight = slotState.alinhamento === "right" ? "0" : "auto";
       el.appendChild(img);
-    } else if (slot === "assinatura") {
-      el.appendChild(document.createTextNode(slotState.texto));
     } else {
       el.textContent = slotState.texto;
     }
     el.classList.add("show");
   });
+  // Assinaturas (lista própria, fora do JSON de config_documento) já
+  // vêm renderizadas do servidor em "np-slot-assinatura" — ver form.html.
 
   // ===== Conteúdo do corpo: reidrata de uma submissão inválida, senão placeholder =====
   var conteudoInput = $("id_conteudo");
@@ -77,10 +77,61 @@
     });
   });
 
+  // ===== Imagem inserida no conteúdo — tamanho/posição ajustáveis
+  // (specs/modelos-estilo-simplificacao-imagens.md: "controles
+  // equivalentes" a arrastar/redimensionar). Vira data-URL embutida no
+  // próprio HTML salvo — sem endpoint de upload, sem objeto criado antes
+  // da peça existir. `_ParserConteudoPeca` (services.py) reconhece o
+  // <img> e o "text-align" do <div> que o envolve na exportação. =====
+  var imagemSelecionada = null;
+  var painelImagem = $("np-img-controls");
+
   $("np-insert-img").addEventListener("click", function () {
-    corpo.focus();
-    document.execCommand("insertHTML", false, '<span class="me-img-placeholder" contenteditable="false">Imagem inserida</span>&nbsp;');
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.addEventListener("change", function () {
+      var arquivo = input.files[0];
+      if (!arquivo) return;
+      var leitor = new FileReader();
+      leitor.onload = function () {
+        corpo.focus();
+        var html = '<div class="me-img-wrap" style="text-align:center;" contenteditable="false">' +
+          '<img src="' + leitor.result + '" style="width:50%;" class="me-img-inserted"></div><p><br></p>';
+        document.execCommand("insertHTML", false, html);
+        sincronizarConteudo();
+      };
+      leitor.readAsDataURL(arquivo);
+    });
+    input.click();
   });
+
+  corpo.addEventListener("click", function (e) {
+    if (e.target.tagName === "IMG" && e.target.classList.contains("me-img-inserted")) {
+      imagemSelecionada = e.target;
+      $("np-img-largura").value = parseInt(imagemSelecionada.style.width, 10) || 50;
+      painelImagem.classList.remove("hidden");
+    } else {
+      painelImagem.classList.add("hidden");
+      imagemSelecionada = null;
+    }
+  });
+
+  $("np-img-largura").addEventListener("input", function () {
+    if (!imagemSelecionada) return;
+    imagemSelecionada.style.width = this.value + "%";
+    sincronizarConteudo();
+  });
+
+  painelImagem.querySelectorAll("[data-align]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (!imagemSelecionada) return;
+      var wrap = imagemSelecionada.closest(".me-img-wrap");
+      if (wrap) wrap.style.textAlign = this.dataset.align;
+      sincronizarConteudo();
+    });
+  });
+
   $("np-insert-textbox").addEventListener("click", function () {
     corpo.focus();
     document.execCommand("insertHTML", false, '<div class="me-textbox-inserted" contenteditable="true">Digite aqui o texto da caixa...</div>');
