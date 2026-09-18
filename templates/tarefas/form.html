@@ -49,8 +49,19 @@
         </div>
         {% if modo == "novo" %}
         <div>
+          <div class="flex items-center justify-between">
+            <label class="label mb-0">{{ form.atribuidos.label }}</label>
+            {% if not usuario_travado %}
+            <button type="button" id="btn-atribuir-todos" class="text-xs text-juridico-verde hover:underline">Atribuir a todos</button>
+            {% endif %}
+          </div>
+          {{ form.atribuidos }}
+          <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um usuário.</p>
+        </div>
+        <div>
           <label class="label">{{ form.destinatario.label }}</label>
           {{ form.destinatario }}
+          <p class="text-xs text-gray-400 mt-1">Quem, entre os atribuídos, é o responsável formal pela tarefa.</p>
         </div>
         {% endif %}
       </div>
@@ -68,4 +79,59 @@
     </div>
   </form>
 </div>
+
+{% if modo == "novo" and not usuario_travado %}
+<script>
+  document.getElementById("btn-atribuir-todos").addEventListener("click", function () {
+    var campo = document.getElementById("id_atribuidos");
+    Array.prototype.forEach.call(campo.options, function (opcao) { opcao.selected = true; });
+  });
+</script>
+{% endif %}
+
+{% if modo == "editar" and pode_gerenciar_participantes %}
+<div class="card p-6 max-w-2xl mt-4">
+  <p class="text-sm font-semibold text-gray-900 mb-3">Participantes</p>
+
+  <form method="post" action="{% url 'tarefas:adicionar_participante' tarefa.pk %}" class="flex items-center gap-2 mb-2">
+    {% csrf_token %}
+    <div class="flex-1">{{ form_participante.usuario }}</div>
+    <button type="submit" class="btn-primary text-sm" {% if not tem_candidatos_participante %}disabled{% endif %}>Adicionar</button>
+  </form>
+  <form method="post" action="{% url 'tarefas:adicionar_equipe_participante' tarefa.pk %}" class="flex items-center gap-2 mb-3">
+    {% csrf_token %}
+    <div class="flex-1">{{ form_equipe_participante.equipe }}</div>
+    <button type="submit" class="btn-secondary text-sm" {% if not tem_candidatos_equipe_participante %}disabled{% endif %}>Adicionar equipe</button>
+  </form>
+
+  {% if equipes_da_tarefa %}
+  <p class="text-xs text-gray-400 mb-1">Equipes vinculadas — membros atuais entram/saem automaticamente:</p>
+  <div class="flex flex-wrap gap-2 mb-3">
+    {% for equipe in equipes_da_tarefa %}
+      <span class="badge-area inline-flex items-center gap-1.5">
+        {{ equipe.nome }}
+        <form method="post" action="{% url 'tarefas:remover_equipe_participante' tarefa.pk equipe.pk %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="text-red-600 hover:text-red-700" title="Remover equipe">×</button>
+        </form>
+      </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="flex flex-col gap-2">
+    {% for participante in participantes %}
+      <div class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0">
+        <p class="text-sm text-gray-900">{{ participante.get_full_name|default:participante.username }}</p>
+        <form method="post" action="{% url 'tarefas:remover_participante' tarefa.pk participante.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
+        </form>
+      </div>
+    {% empty %}
+      <p class="text-xs text-gray-400">Nenhum participante além do responsável.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

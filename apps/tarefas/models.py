@@ -31,6 +31,14 @@ class Tarefa(models.Model):
     atribuido_em = models.DateTimeField(null=True, blank=True)
     processo = models.ForeignKey(Processo, on_delete=models.SET_NULL, null=True, blank=True, related_name="tarefas")
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True, blank=True, related_name="tarefas")
+    # Participantes além do responsável (specs/tarefas-multiplos-
+    # participantes.md) — sem responsabilidade formal (não concluem a
+    # tarefa, não recebem a notificação de conclusão), só visibilidade.
+    # Individual ou via Equipe vinculada dinamicamente (specs/grupo-
+    # integrante-participante-dinamico.md, apps/accounts/vinculo_equipe.py).
+    participantes = models.ManyToManyField(
+        User, blank=True, related_name="tarefas_participante", verbose_name="Participantes",
+    )
     prazo = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 

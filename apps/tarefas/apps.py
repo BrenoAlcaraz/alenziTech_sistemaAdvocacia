@@ -5,3 +5,6 @@ class TarefasConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.tarefas"
     verbose_name = "Tarefas"
+
+    def ready(self):
+        import apps.tarefas.signals  # noqa: F401

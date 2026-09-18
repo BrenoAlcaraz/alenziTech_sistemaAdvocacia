@@ -9,6 +9,26 @@ urlpatterns = [
     path("tarefas/lista/", views.lista, name="lista"),
     path("tarefas/nova/", views.nova, name="nova"),
     path("tarefas/<int:pk>/editar/", views.editar, name="editar"),
+    path(
+        "tarefas/<int:pk>/participantes/adicionar/",
+        views.adicionar_participante,
+        name="adicionar_participante",
+    ),
+    path(
+        "tarefas/<int:pk>/participantes/<int:usuario_pk>/remover/",
+        views.remover_participante,
+        name="remover_participante",
+    ),
+    path(
+        "tarefas/<int:pk>/participantes/equipe/adicionar/",
+        views.adicionar_equipe_participante,
+        name="adicionar_equipe_participante",
+    ),
+    path(
+        "tarefas/<int:pk>/participantes/equipe/<int:equipe_pk>/remover/",
+        views.remover_equipe_participante,
+        name="remover_equipe_participante",
+    ),
     path("tarefas/<int:pk>/reatribuir/", views.reatribuir, name="reatribuir"),
     path("tarefas/<int:pk>/concluir/", views.concluir, name="concluir"),
     path("tarefas/<int:pk>/reabrir/", views.reabrir, name="reabrir"),
