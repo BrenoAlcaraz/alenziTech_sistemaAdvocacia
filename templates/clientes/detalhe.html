@@ -27,7 +27,7 @@
         </svg>
       {% endif %}
     </div>
-    <div class="flex-1">
+    <div class="flex-1 texto-quebra">
       <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
         {{ cliente.nome_razao_social }}
         {% include "components/selo_prioridade.html" with cliente=cliente %}
@@ -38,7 +38,7 @@
       </p>
       <div class="flex items-center gap-4 mt-2">
         {% if cliente.email %}
-          <span class="flex items-center gap-1 text-sm text-gray-500">
+          <span class="flex items-center gap-1 text-sm text-gray-500 texto-quebra">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
             </svg>
@@ -46,7 +46,7 @@
           </span>
         {% endif %}
         {% if cliente.telefone %}
-          <span class="flex items-center gap-1 text-sm text-gray-500">
+          <span class="flex items-center gap-1 text-sm text-gray-500 texto-quebra">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
             </svg>
@@ -84,38 +84,38 @@
   <p class="text-sm font-semibold text-gray-700 mb-3">Mais informações</p>
   {% if cliente.tipo == "PF" %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Estado civil</p>
         <p class="text-sm text-gray-700">{{ cliente.get_estado_civil_display|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Nacionalidade</p>
         <p class="text-sm text-gray-700">{{ cliente.nacionalidade|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Profissão</p>
         <p class="text-sm text-gray-700">{{ cliente.profissao|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Idade</p>
         <p class="text-sm text-gray-700">{% if cliente.idade is not None %}{{ cliente.idade }} anos{% else %}—{% endif %}</p>
       </div>
     </div>
   {% else %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_nome|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">CPF do representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_cpf|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cargo/qualificação</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_cargo|default:"—" }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Contato do representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_telefone|default:cliente.representante_email|default:"—" }}</p>
       </div>
@@ -135,7 +135,7 @@
     {% for tarefa in tarefas_relacionadas %}
       <a href="{% url 'tarefas:editar' tarefa.pk %}?next={% url 'clientes:detalhe' cliente.pk %}"
          class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
-        <p class="text-sm text-gray-900 truncate">{{ tarefa.titulo }}</p>
+        <p class="text-sm text-gray-900 truncate" title="{{ tarefa.titulo }}">{{ tarefa.titulo }}</p>
         <span class="badge-area flex-shrink-0">{{ tarefa.get_status_display }}</span>
       </a>
     {% empty %}
@@ -182,7 +182,7 @@
       <a href="{% url 'processos:detalhe' p.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
         <span class="badge-area">{{ p.area_direito }}</span>
         <div class="flex-1 min-w-0">
-          <p class="font-medium text-gray-900">{{ p.titulo }}</p>
+          <p class="font-medium text-gray-900 truncate" title="{{ p.titulo }}">{{ p.titulo }}</p>
           <p class="text-xs text-gray-400">{{ p.numero }}</p>
         </div>
         <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -201,7 +201,7 @@
     {% for c in clientes_relacionados %}
       <a href="{% url 'clientes:detalhe' c.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
         <div class="flex-1 min-w-0">
-          <p class="font-medium text-gray-900">{{ c.nome_razao_social }}</p>
+          <p class="font-medium text-gray-900 truncate" title="{{ c.nome_razao_social }}">{{ c.nome_razao_social }}</p>
           <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
         </div>
         <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,8 +240,8 @@
       <div class="card px-5 py-4 flex items-center justify-between gap-4">
         <div class="min-w-0">
           <span class="badge-area mb-1 inline-block">{{ documento.get_tipo_display }}</span>
-          <p class="text-sm font-medium text-gray-900 truncate">{{ documento.nome_do_documento }}</p>
-          {% if documento.descricao %}<p class="text-xs text-gray-500">{{ documento.descricao }}</p>{% endif %}
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ documento.nome_do_documento }}">{{ documento.nome_do_documento }}</p>
+          {% if documento.descricao %}<p class="text-xs text-gray-500 truncate" title="{{ documento.descricao }}">{{ documento.descricao }}</p>{% endif %}
           <p class="text-xs text-gray-400 mt-0.5">
             {{ documento.autor|default:"—" }} · {{ documento.enviado_em|date:"d/m/Y H:i" }}
           </p>

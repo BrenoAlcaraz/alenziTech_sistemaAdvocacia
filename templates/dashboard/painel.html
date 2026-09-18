@@ -160,7 +160,7 @@
 
   {% if acesso_tarefas %}
   {# Bloco 1 — Tarefas pendentes #}
-  <div class="card p-4 flex flex-col gap-3">
+  <div class="card p-4 flex flex-col gap-3 min-w-0">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Tarefas pendentes</h2>
       <a href="{% url 'tarefas:quadro' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver todas →</a>
@@ -169,7 +169,7 @@
       {% for t in tarefas_dashboard %}
         <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
           <div class="flex items-center justify-between gap-2">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ t.titulo }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate" title="{{ t.titulo }}">{{ t.titulo }}</p>
             {% if t.prazo_urgente %}
               <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{{ t.prazo_label }}</span>
             {% elif t.prazo %}
@@ -179,9 +179,9 @@
             {% endif %}
           </div>
           {% if t.cliente %}
-            <p class="text-xs text-gray-400 truncate">{{ t.cliente.nome_razao_social }}</p>
+            <p class="text-xs text-gray-400 truncate" title="{{ t.cliente.nome_razao_social }}">{{ t.cliente.nome_razao_social }}</p>
           {% elif t.processo %}
-            <p class="text-xs text-gray-400 truncate">{{ t.processo.titulo }}</p>
+            <p class="text-xs text-gray-400 truncate" title="{{ t.processo.titulo }}">{{ t.processo.titulo }}</p>
           {% endif %}
         </div>
       {% empty %}
@@ -193,7 +193,7 @@
 
   {% if acesso_agenda %}
   {# Bloco 2 — Agenda próxima: confirmados dos próximos 7 dias + pendentes de confirmação #}
-  <div class="card p-4 flex flex-col gap-3">
+  <div class="card p-4 flex flex-col gap-3 min-w-0">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Agenda próxima</h2>
       <a href="{% url 'agenda:index' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver agenda →</a>
@@ -209,7 +209,7 @@
         {% for participacao in compromissos_pendentes_dashboard %}
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ participacao.compromisso.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ participacao.compromisso.titulo }}">{{ participacao.compromisso.titulo }}</p>
               <p class="text-xs text-gray-400">{{ participacao.compromisso.data_hora_inicio|date:"d/m/Y H:i" }}</p>
             </div>
             <div class="flex items-center gap-1 flex-shrink-0">
@@ -234,7 +234,7 @@
       {% for c in compromissos_dashboard %}
         <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
           <div class="flex items-center justify-between gap-2">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ c.titulo }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate" title="{{ c.titulo }}">{{ c.titulo }}</p>
             <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ c.get_tipo_display }}</span>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
@@ -245,10 +245,10 @@
             {% endif %}
             {% if c.cliente %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate">{{ c.cliente.nome_razao_social }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ c.cliente.nome_razao_social }}">{{ c.cliente.nome_razao_social }}</p>
             {% elif c.processo %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate">{{ c.processo.titulo }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ c.processo.titulo }}">{{ c.processo.titulo }}</p>
             {% endif %}
           </div>
         </div>
@@ -261,7 +261,7 @@
 
   {% if acesso_financeiro %}
   {# Bloco 3 — Financeiro pendente #}
-  <div class="card p-4 flex flex-col gap-3">
+  <div class="card p-4 flex flex-col gap-3 min-w-0">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Financeiro pendente</h2>
       <a href="{% url 'financeiro:index' %}?filtro=pendentes" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver financeiro →</a>
@@ -270,7 +270,7 @@
       {% for l in financeiro_dashboard %}
         <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
           <div class="flex items-center justify-between gap-2">
-            <p class="text-sm font-medium text-gray-900 truncate">{{ l.descricao }}</p>
+            <p class="text-sm font-medium text-gray-900 truncate" title="{{ l.descricao }}">{{ l.descricao }}</p>
             {% if l.atrasado %}
               <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Atrasado</span>
             {% elif l.tipo == "receita" %}
@@ -285,10 +285,10 @@
             <p class="text-xs text-gray-400">{{ l.data_vencimento|date:"d/m/Y" }}</p>
             {% if l.cliente %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate">{{ l.cliente.nome_razao_social }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ l.cliente.nome_razao_social }}">{{ l.cliente.nome_razao_social }}</p>
             {% elif l.processo %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate">{{ l.processo.titulo }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ l.processo.titulo }}">{{ l.processo.titulo }}</p>
             {% endif %}
           </div>
         </div>
@@ -306,7 +306,7 @@
 <div class="card p-5 mt-6">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Movimentação processual</h2>
   <div class="grid grid-cols-2 gap-3">
-    <details class="rounded-xl bg-gray-50 p-4" {% if movimentacao.24h.total %}open{% endif %}>
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4" {% if movimentacao.24h.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.24h.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Movimentados nas últimas 24h</p>
@@ -315,7 +315,7 @@
         {% for item in movimentacao.24h.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
             <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
@@ -325,7 +325,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-gray-50 p-4" {% if not movimentacao.24h.total and movimentacao.7dias.total %}open{% endif %}>
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4" {% if not movimentacao.24h.total and movimentacao.7dias.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.7dias.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Movimentados nos últimos 7 dias</p>
@@ -334,7 +334,7 @@
         {% for item in movimentacao.7dias.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
             <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
@@ -351,7 +351,7 @@
 <div class="card p-5 mt-4">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos paralisados</h2>
   <div class="grid grid-cols-3 gap-3">
-    <details class="rounded-xl bg-amber-50 p-4" {% if paralisados.1mes.total %}open{% endif %}>
+    <details class="min-w-0 rounded-xl bg-amber-50 p-4" {% if paralisados.1mes.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-amber-600">{{ paralisados.1mes.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 1 mês</p>
@@ -360,7 +360,7 @@
         {% for item in paralisados.1mes.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
@@ -370,7 +370,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-red-50 p-4">
+    <details class="min-w-0 rounded-xl bg-red-50 p-4">
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-juridico-vermelho">{{ paralisados.3meses.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 3 meses</p>
@@ -379,7 +379,7 @@
         {% for item in paralisados.3meses.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
@@ -389,7 +389,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-red-50 p-4">
+    <details class="min-w-0 rounded-xl bg-red-50 p-4">
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-juridico-vermelho">{{ paralisados.6meses.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Sem movimento há mais de 6 meses</p>
@@ -398,7 +398,7 @@
         {% for item in paralisados.6meses.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
@@ -415,7 +415,7 @@
 <div class="card p-5 mt-4">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Prazos a vencer</h2>
   <div class="grid grid-cols-4 gap-3">
-    <details class="rounded-xl bg-red-50 p-4" {% if prazos.hoje.total %}open{% endif %}>
+    <details class="min-w-0 rounded-xl bg-red-50 p-4" {% if prazos.hoje.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-juridico-vermelho">{{ prazos.hoje.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Vencem hoje</p>
@@ -423,7 +423,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.hoje.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -431,7 +431,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-amber-50 p-4">
+    <details class="min-w-0 rounded-xl bg-amber-50 p-4">
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-amber-600">{{ prazos.amanha.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Vencem amanhã</p>
@@ -439,7 +439,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.amanha.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
             <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -447,7 +447,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-gray-50 p-4">
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-gray-700">{{ prazos.3dias.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Vencem em até 3 dias</p>
@@ -455,7 +455,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.3dias.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
             <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -463,7 +463,7 @@
         {% endfor %}
       </div>
     </details>
-    <details class="rounded-xl bg-gray-50 p-4">
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-gray-700">{{ prazos.5dias.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Vencem em até 5 dias</p>
@@ -471,7 +471,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.5dias.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
             <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -492,7 +492,7 @@
     {% for intimacao in intimacoes %}
       <div class="py-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-900 truncate">{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}</p>
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}">{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}</p>
           <p class="text-xs text-gray-400">Prazo para manifestação: {{ intimacao.prazo_manifestacao|date:"d/m/Y" }}</p>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">

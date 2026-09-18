@@ -30,16 +30,16 @@
     {% for s in saldo_clientes %}
       <a href="{% url 'financeiro:extrato_custas_cliente' s.cliente_id %}"
          class="flex items-center justify-between py-3 hover:bg-gray-50 -mx-2 px-2 rounded-lg">
-        <span class="flex items-center gap-3">
+        <span class="flex items-center gap-3 min-w-0">
           <span class="w-8 h-8 rounded-full bg-juridico-bege flex items-center justify-center text-xs font-semibold text-gray-600 flex-shrink-0">
             {{ s.cliente.iniciais }}
           </span>
-          <span class="text-sm">
+          <span class="text-sm min-w-0 truncate" title="{{ s.cliente.nome_razao_social }}">
             <span class="font-medium text-gray-800">{{ s.cliente.nome_razao_social }}</span>
             <span class="text-xs text-gray-400 ml-1">{{ s.cliente.cpf_cnpj|default:"—" }}</span>
           </span>
         </span>
-        <span class="flex items-center gap-2">
+        <span class="flex items-center gap-2 flex-shrink-0">
           <span class="text-sm font-semibold {% if s.credito %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">
             {{ s.saldo }}
           </span>
@@ -79,12 +79,12 @@
         {% endif %}
       </div>
       <div class="flex-1 min-w-0">
-        <p class="font-medium text-gray-900">{{ c.descricao }}</p>
-        <p class="text-xs text-gray-400">
+        <p class="font-medium text-gray-900 truncate" title="{{ c.descricao }}">{{ c.descricao }}</p>
+        <p class="text-xs text-gray-400 truncate" title="{{ c.get_tipo_display }}{% if c.cliente %} &bull; {{ c.cliente }}{% endif %}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}">
           {{ c.get_tipo_display }}{% if c.cliente %} &bull; {{ c.cliente }}{% endif %}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
         </p>
         {% if c.anexo %}
-          <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="text-xs text-juridico-verde hover:underline">
+          <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="block truncate text-xs text-juridico-verde hover:underline" title="{{ c.anexo.name }}">
             {{ c.anexo.name }}
           </a>
         {% endif %}

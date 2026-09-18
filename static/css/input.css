@@ -29,6 +29,14 @@
     @apply bg-white rounded-xl border border-gray-100 shadow-sm;
   }
 
+  /* ── Texto livre em card de detalhe: quebra linha, nada escondido.
+     min-width:0 permite encolher dentro de grid/flex; ver ARCHITECTURE.md.
+     Em listas/cards compactos usar `truncate` + title (sem classe nova). */
+  .texto-quebra {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   /* ── Badge de área do direito ─────────────────────────────── */
   .badge-area {
     @apply inline-block px-2 py-0.5 text-xs font-semibold tracking-wide rounded bg-juridico-bege text-gray-700;

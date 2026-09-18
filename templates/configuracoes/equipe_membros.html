@@ -4,7 +4,7 @@
 {% block content %}
 
 <div class="flex items-start justify-between mb-6">
-  <div>
+  <div class="texto-quebra">
     <p class="text-xs text-gray-400 mb-0.5">Equipe</p>
     <h1 class="text-2xl font-bold text-gray-900">{{ equipe.nome }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Membros da equipe</p>
@@ -75,16 +75,16 @@
         {% for membro in membros %}
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-5 py-4">
-            <p class="font-medium text-gray-900">
+            <p class="font-medium text-gray-900 truncate max-w-xs" title="{% if membro.usuario.perfil and membro.usuario.perfil.nome_completo %}{{ membro.usuario.perfil.nome_completo }}{% else %}{{ membro.usuario.get_full_name|default:membro.usuario.username }}{% endif %}">
               {% if membro.usuario.perfil and membro.usuario.perfil.nome_completo %}
                 {{ membro.usuario.perfil.nome_completo }}
               {% else %}
                 {{ membro.usuario.get_full_name|default:membro.usuario.username }}
               {% endif %}
             </p>
-            <p class="text-xs text-gray-400">@{{ membro.usuario.username }}</p>
+            <p class="text-xs text-gray-400 truncate max-w-xs" title="@{{ membro.usuario.username }}">@{{ membro.usuario.username }}</p>
             {% if membro.usuario.email %}
-              <p class="text-xs text-gray-400">{{ membro.usuario.email }}</p>
+              <p class="text-xs text-gray-400 truncate max-w-xs" title="{{ membro.usuario.email }}">{{ membro.usuario.email }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center">

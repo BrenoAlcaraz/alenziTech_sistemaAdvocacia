@@ -3,7 +3,7 @@
 
   {# Linha superior: título + badges #}
   <div class="flex items-start justify-between gap-4 mb-2">
-    <p class="font-semibold text-gray-900">{{ c.titulo }}</p>
+    <p class="font-semibold text-gray-900 truncate" title="{{ c.titulo }}">{{ c.titulo }}</p>
     <div class="flex items-center gap-2 flex-shrink-0">
 
       {# Badge de tipo — cores inline para evitar purge Tailwind #}
@@ -57,7 +57,7 @@
 
   {# Descrição, se existir #}
   {% if c.descricao %}
-    <p class="text-xs text-gray-500 mb-2">{{ c.descricao }}</p>
+    <p class="text-xs text-gray-500 mb-2 truncate" title="{{ c.descricao }}">{{ c.descricao }}</p>
   {% endif %}
 
   {# Metadados: data, vínculos, local — rótulos em negrito #}
@@ -81,26 +81,26 @@
     {% endif %}
 
     {% if c.responsavel %}
-      <span>
+      <span class="max-w-full truncate" title="{{ c.responsavel }}">
         <span class="font-semibold text-gray-900">Responsável:</span>
         {{ c.responsavel }}
       </span>
     {% endif %}
 
     {% if c.processo %}
-      <span>
+      <span class="max-w-full truncate" title="{{ c.processo }}">
         <span class="font-semibold text-gray-900">Processo:</span>
         {{ c.processo }}
       </span>
     {% elif c.cliente %}
-      <span>
+      <span class="max-w-full truncate" title="{{ c.cliente }}">
         <span class="font-semibold text-gray-900">Cliente:</span>
         {{ c.cliente }}
       </span>
     {% endif %}
 
     {% if c.local %}
-      <span>
+      <span class="max-w-full truncate" title="{{ c.local }}">
         <span class="font-semibold text-gray-900">Local:</span>
         {{ c.local }}
       </span>

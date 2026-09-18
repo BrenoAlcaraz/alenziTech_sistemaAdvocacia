@@ -723,6 +723,15 @@ body {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
 }
 
+/* ── Texto livre em card de detalhe: quebra linha, nada escondido.
+     min-width:0 permite encolher dentro de grid/flex; ver ARCHITECTURE.md.
+     Em listas/cards compactos usar `truncate` + title (sem classe nova). */
+
+.texto-quebra {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* ── Badge de área do direito ─────────────────────────────── */
 
 .badge-area {
@@ -1652,8 +1661,16 @@ body {
   max-width: 64rem;
 }
 
+.max-w-\[12rem\] {
+  max-width: 12rem;
+}
+
 .max-w-\[28px\] {
   max-width: 28px;
+}
+
+.max-w-full {
+  max-width: 100%;
 }
 
 .max-w-lg {
@@ -2199,6 +2216,11 @@ body {
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 
+.bg-yellow-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(254 249 195 / var(--tw-bg-opacity, 1));
+}
+
 .bg-cover {
   background-size: cover;
 }
@@ -2638,6 +2660,11 @@ body {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
+.text-yellow-800 {
+  --tw-text-opacity: 1;
+  color: rgb(133 77 14 / var(--tw-text-opacity, 1));
 }
 
 .underline {

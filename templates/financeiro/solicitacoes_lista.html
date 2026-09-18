@@ -35,13 +35,13 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-4">
-          <p class="font-medium text-gray-900">{{ s.descricao }}</p>
+          <p class="font-medium text-gray-900 truncate" title="{{ s.descricao }}">{{ s.descricao }}</p>
           <p class="font-semibold text-gray-900 flex-shrink-0">R$ {{ s.valor|moeda_br }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
           <span>{{ s.get_tipo_display }}</span>
-          {% if tem_acesso_dados %}<span>{{ s.solicitante }}</span>{% endif %}
-          {% if s.processo %}<span>{{ s.processo }}</span>{% elif s.cliente %}<span>{{ s.cliente }}</span>{% endif %}
+          {% if tem_acesso_dados %}<span class="max-w-full truncate" title="{{ s.solicitante }}">{{ s.solicitante }}</span>{% endif %}
+          {% if s.processo %}<span class="max-w-full truncate" title="{{ s.processo }}">{{ s.processo }}</span>{% elif s.cliente %}<span class="max-w-full truncate" title="{{ s.cliente }}">{{ s.cliente }}</span>{% endif %}
           <span>{{ s.criado_em|date:"d/m/Y" }}</span>
         </div>
       </div>

@@ -142,7 +142,7 @@
       {# Modo: anexar #}
       <div id="me-view-anexar" class="card p-6">
         {% if estilo.arquivo_referencia %}
-          <p class="text-sm text-gray-600 mb-3">
+          <p class="text-sm text-gray-600 mb-3 texto-quebra">
             Peça de referência atual: <span class="font-medium">{{ estilo.nome_do_arquivo_referencia }}</span>
           </p>
         {% endif %}
@@ -290,7 +290,7 @@
               <div class="me-opt-body" id="me-body-assinaturas">
                 {% for assinatura in assinaturas_estilo %}
                   <div class="flex items-center justify-between gap-2 py-1.5 border-b border-gray-50 last:border-0">
-                    <p class="text-sm text-gray-700 truncate">
+                    <p class="text-sm text-gray-700 truncate" title="{% if assinatura.modo != "imagem" %}{{ assinatura.texto }}{% endif %}">
                       {% if assinatura.modo == "imagem" %}Imagem{% else %}{{ assinatura.texto|default:"(sem texto)" }}{% endif %}
                     </p>
                     <form method="post" action="{% url 'modelos:remover_assinatura_estilo' assinatura.pk %}">

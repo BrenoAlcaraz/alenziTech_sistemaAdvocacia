@@ -61,13 +61,13 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
   {# ── Processos por natureza ─────────────────────────────────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por natureza</h2>
     <div class="flex flex-col gap-3">
       {% for barra in natureza_barras %}
         <details>
           <summary class="cursor-pointer list-none flex items-center gap-3">
-            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
             <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
               <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
             </span>
@@ -76,7 +76,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -89,7 +89,7 @@
   </div>
 
   {# ── Processos por localidade (Estado → Cidade → Comarca → Vara) ────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por localidade</h2>
 
     {% if loc_breadcrumb %}
@@ -155,7 +155,7 @@
         {% for barra in loc_vara_barras %}
           <details>
             <summary class="cursor-pointer list-none flex items-center gap-3">
-              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
               <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
               </span>
@@ -164,7 +164,7 @@
             <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
               {% for processo in barra.processos %}
                 <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                  <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                  <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
                   <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
                 </a>
               {% endfor %}
@@ -184,7 +184,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
   {# ── Processos por status ───────────────────────────────────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por status</h2>
     <div class="grid grid-cols-3 gap-3 mb-2">
       {% for barra in status_barras %}
@@ -200,7 +200,7 @@
         <div class="mt-2 flex flex-col divide-y divide-gray-100">
           {% for processo in barra.processos %}
             <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-              <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+              <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
               <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
             </a>
           {% endfor %}
@@ -210,13 +210,13 @@
   </div>
 
   {# ── Processos por patrocínio ───────────────────────────────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por patrocínio</h2>
     <div class="flex flex-col gap-3">
       {% for barra in patrocinio_barras %}
         <details>
           <summary class="cursor-pointer list-none flex items-center gap-3">
-            <span class="text-xs text-gray-700 w-44 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="text-xs text-gray-700 w-44 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
             <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
               <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
             </span>
@@ -225,7 +225,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -242,13 +242,13 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
   {# ── Processos por fase ───────────────────────────────────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por fase</h2>
     <div class="flex flex-col gap-3">
       {% for barra in fase_barras %}
         <details>
           <summary class="cursor-pointer list-none flex items-center gap-3">
-            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
             <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
               <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
             </span>
@@ -257,7 +257,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -270,13 +270,13 @@
   </div>
 
   {# ── Processos por fase do andamento atual ──────────────────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por fase do andamento atual</h2>
     <div class="flex flex-col gap-3">
       {% for barra in fase_andamento_barras %}
         <details>
           <summary class="cursor-pointer list-none flex items-center gap-3">
-            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
             <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
               <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
             </span>
@@ -285,7 +285,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -302,7 +302,7 @@
 <div class="grid grid-cols-1 gap-4 mb-4">
 
   {# ── Clientes por localidade (Estado → Cidade → Bairro) ─────────────────── #}
-  <div class="card p-5">
+  <div class="card p-5 min-w-0">
     <h2 class="text-sm font-semibold text-gray-700 mb-4">Clientes por localidade</h2>
 
     {% if cloc_breadcrumb %}
@@ -350,7 +350,7 @@
         {% for barra in cloc_bairro_barras %}
           <details>
             <summary class="cursor-pointer list-none flex items-center gap-3">
-              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate" title="{{ barra.label }}">{{ barra.label }}</span>
               <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
               </span>
@@ -359,7 +359,7 @@
             <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
               {% for cliente in barra.processos %}
                 <a href="{% url 'clientes:detalhe' cliente.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                  <p class="text-xs text-gray-800 truncate">{{ cliente.nome_razao_social }}</p>
+                  <p class="text-xs text-gray-800 truncate" title="{{ cliente.nome_razao_social }}">{{ cliente.nome_razao_social }}</p>
                   <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
                 </a>
               {% endfor %}
@@ -377,7 +377,7 @@
 </div>
 
 {# ── Tempo e resultados ───────────────────────────────────────────────────── #}
-<div class="card p-5">
+<div class="card p-5 min-w-0">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Tempo e resultados</h2>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <div class="rounded-xl bg-gray-50 p-4 text-center">

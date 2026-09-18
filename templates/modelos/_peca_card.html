@@ -7,7 +7,7 @@
   </a>
   <a href="{% url 'modelos:detalhe' modelo.pk %}" class="flex-1 min-w-0">
     <div class="flex items-center gap-2 flex-wrap">
-      <p class="font-semibold text-gray-900 group-hover:text-gray-700">{{ modelo.titulo }}</p>
+      <p class="font-semibold text-gray-900 group-hover:text-gray-700 max-w-full truncate" title="{{ modelo.titulo }}">{{ modelo.titulo }}</p>
       {% include "components/badge.html" with tipo="area" texto=modelo.categoria.nome %}
       {% include "components/badge.html" with tipo="area" texto=modelo.area_direito_label|default:modelo.area_direito %}
     </div>

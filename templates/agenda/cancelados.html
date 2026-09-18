@@ -30,7 +30,7 @@
   {% for c in compromissos %}
     <div class="card px-5 py-4">
       <div class="flex items-start justify-between gap-4 mb-2">
-        <p class="font-semibold text-gray-500">{{ c.titulo }}</p>
+        <p class="font-semibold text-gray-500 truncate" title="{{ c.titulo }}">{{ c.titulo }}</p>
         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-500">Cancelado</span>
       </div>
       <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
@@ -39,12 +39,12 @@
           {{ c.data_hora_inicio|date:"d/m/Y H:i" }}
         </span>
         {% if c.responsavel %}
-          <span>
+          <span class="max-w-full truncate" title="{{ c.responsavel }}">
             <span class="font-semibold text-gray-900">Responsável:</span>
             {{ c.responsavel }}
           </span>
         {% endif %}
-        <span>
+        <span class="max-w-full truncate" title="{% for participacao in c.participacoes.all %}{{ participacao.usuario.get_full_name|default:participacao.usuario.username }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}">
           <span class="font-semibold text-gray-900">Participantes:</span>
           {% for participacao in c.participacoes.all %}{{ participacao.usuario.get_full_name|default:participacao.usuario.username }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
         </span>

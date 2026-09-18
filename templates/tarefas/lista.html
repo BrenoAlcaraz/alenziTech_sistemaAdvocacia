@@ -70,16 +70,16 @@
 
       {# Título + processo/cliente com rótulo em negrito #}
       <div class="flex-1 min-w-0">
-        <p class="font-medium text-gray-900">{{ t.titulo }}</p>
+        <p class="font-medium text-gray-900 truncate" title="{{ t.titulo }}">{{ t.titulo }}</p>
         <div class="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-500">
           {% if t.descricao %}
-            <span>{{ t.descricao }}</span>
+            <span class="max-w-full truncate" title="{{ t.descricao }}">{{ t.descricao }}</span>
           {% endif %}
           {% if t.processo %}
-            <span><span class="font-semibold text-gray-900">Processo:</span> {{ t.processo }}</span>
+            <span class="max-w-full truncate" title="{{ t.processo }}"><span class="font-semibold text-gray-900">Processo:</span> {{ t.processo }}</span>
           {% elif t.cliente %}
-            <span class="inline-flex items-center gap-1">
-              <span class="font-semibold text-gray-900">Cliente:</span> {{ t.cliente }}
+            <span class="inline-flex items-center gap-1 max-w-full">
+              <span class="font-semibold text-gray-900">Cliente:</span> <span class="truncate" title="{{ t.cliente }}">{{ t.cliente }}</span>
               {% include "components/selo_prioridade.html" with cliente=t.cliente %}
             </span>
           {% endif %}
@@ -102,7 +102,7 @@
           </span>
         {% endif %}
 
-        <span>
+        <span class="max-w-[12rem] truncate" title="{% if t.responsavel %}{{ t.responsavel }}{% endif %}">
           <span class="font-semibold text-gray-900">Criado por:</span>
           {% if t.responsavel %}{{ t.responsavel }}{% else %}—{% endif %}
         </span>

@@ -446,6 +446,30 @@ inalterado e um caminho `websocket` próprio (rotas em
   feita na view HTTP equivalente (`tem_permissao_modulo` + posse) —
   nunca uma regra nova ou mais ampla só para o consumer.
 
+## Texto livre longo em cards e listas — padrão a reutilizar
+
+Campos de texto livre (nome, título, descrição, responsável, cliente…)
+não podem estourar o layout nem invadir a coluna vizinha em grade
+(`grid-cols-*`) ou `flex`. Regra única, só de apresentação:
+
+- **Detalhe (cards de detalhe, cabeçalhos em grade): quebrar linha,
+  nada escondido.** Classe `.texto-quebra` (`static/css/input.css`:
+  `min-width: 0` + `overflow-wrap: anywhere`). Aplicar na célula da
+  grade e, dentro de `flex`, também no item que contém o texto —
+  `min-width` não é herdado.
+- **Listas e cards compactos: cortar com reticências e mostrar o
+  texto inteiro em `title`.** Usa o `truncate` do Tailwind (não há
+  classe própria). O próprio elemento com `truncate` já encolhe em
+  `flex`; o wrapper que o contém precisa de `min-w-0` (item de
+  `flex`/`grid`, ex.: `<div class="flex-1 min-w-0">` ou célula de
+  `grid-cols-*`). Em `flex-wrap`, chip com rótulo usa
+  `max-w-full truncate`; em `<td>`, `truncate max-w-xs` no `<p>`
+  interno. Ex.: `<p class="truncate" title="{{ x }}">{{ x }}</p>`.
+- Nunca truncar em tela de detalhe nem quebrar linha em linha de tabela
+  ou lista de altura fixa. Vários valores na mesma linha (ex.:
+  clientes do processo) seguem em `flex-wrap`, cada item respeitando a
+  regra.
+
 ## Limites que não podem ser quebrados
 
 - **Backend é a autoridade.** Toda verificação relevante deve ser

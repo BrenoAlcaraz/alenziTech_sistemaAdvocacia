@@ -9,7 +9,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold text-gray-900">{{ solicitacao.descricao }}</h1>
+  <h1 class="text-xl font-bold text-gray-900 texto-quebra">{{ solicitacao.descricao }}</h1>
   {% include "components/estado_solicitacao.html" %}
   {% if solicitacao.status == "solicitada" or solicitacao.status == "em_analise" %}
     <a href="{% url 'financeiro:editar_solicitacao' solicitacao.pk %}" class="ml-auto btn-secondary">Editar</a>
@@ -18,64 +18,64 @@
 
 <div class="card p-6 max-w-2xl">
   <div class="grid grid-cols-2 gap-4 text-sm">
-    <div>
+    <div class="texto-quebra">
       <p class="text-xs text-gray-400">Tipo</p>
       <p class="text-gray-900">{{ solicitacao.get_tipo_display }}</p>
     </div>
-    <div>
+    <div class="texto-quebra">
       <p class="text-xs text-gray-400">Valor</p>
       <p class="text-gray-900 font-semibold">R$ {{ solicitacao.valor|moeda_br }}</p>
     </div>
-    <div>
+    <div class="texto-quebra">
       <p class="text-xs text-gray-400">Solicitante</p>
       <p class="text-gray-900">{{ solicitacao.solicitante|default:"—" }}</p>
     </div>
-    <div>
+    <div class="texto-quebra">
       <p class="text-xs text-gray-400">Criada em</p>
       <p class="text-gray-900">{{ solicitacao.criado_em|date:"d/m/Y H:i" }}</p>
     </div>
     {% if solicitacao.cliente %}
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Cliente</p>
         <p class="text-gray-900">{{ solicitacao.cliente }}</p>
       </div>
     {% endif %}
     {% if solicitacao.processo %}
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Processo</p>
         <p class="text-gray-900">{{ solicitacao.processo }}</p>
       </div>
     {% endif %}
     {% if solicitacao.vencimento %}
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Vencimento</p>
         <p class="text-gray-900">{{ solicitacao.vencimento|date:"d/m/Y" }}</p>
       </div>
     {% endif %}
     {% if solicitacao.data_gasto %}
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Data do gasto</p>
         <p class="text-gray-900">{{ solicitacao.data_gasto|date:"d/m/Y" }}</p>
       </div>
     {% endif %}
     {% if solicitacao.observacao %}
-      <div class="col-span-2">
+      <div class="col-span-2 texto-quebra">
         <p class="text-xs text-gray-400">Observação</p>
         <p class="text-gray-900">{{ solicitacao.observacao }}</p>
       </div>
     {% endif %}
-    <div class="col-span-2">
+    <div class="col-span-2 texto-quebra">
       <p class="text-xs text-gray-400">Anexo</p>
       <a href="{% url 'financeiro:anexo_solicitacao' solicitacao.pk %}" target="_blank" rel="noopener" class="text-juridico-ouro hover:underline">
         {{ solicitacao.anexo.name|default:"—" }}
       </a>
     </div>
     {% if solicitacao.status == "paga" and solicitacao.tipo == "pagamento" %}
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Paga por</p>
         <p class="text-gray-900">{{ solicitacao.get_pago_por_display }}</p>
       </div>
-      <div>
+      <div class="texto-quebra">
         <p class="text-xs text-gray-400">Comprovante de pagamento</p>
         <a href="{% url 'financeiro:comprovante_pagamento_solicitacao' solicitacao.pk %}" target="_blank" rel="noopener" class="text-juridico-ouro hover:underline">
           {{ solicitacao.comprovante_pagamento.name|default:"—" }}
