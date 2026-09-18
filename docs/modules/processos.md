@@ -185,6 +185,17 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   com um campo opcional no formulário de "Adicionar andamento"
   ("atualizar resultado da sentença"). O campo continua existindo em
   `Processo` e alimentando o indicador "Julgados" do Dashboard.
+- `fase_andamento_atual` (`Processo.FASE_ANDAMENTO_CHOICES`,
+  specs/painel-novos-recortes-analise.md, já apagada) segue o mesmo
+  padrão de `resultado_sentenca`: campo opcional no formulário de
+  "Adicionar andamento" ("atualizar fase do andamento atual"),
+  preenchido manualmente por quem lança o andamento — nunca no
+  formulário de criação/edição do processo. **Sem sugestão automática
+  por tipo de andamento nesta versão**: o mapeamento tipo→fase precisa
+  ser validado pelo sócio advogado antes de ativar (mesma exigência já
+  usada para os prazos automáticos da Agenda — ver OPEN item
+  correspondente em [STATUS.md](../STATUS.md)). Alimenta o bloco "Fase
+  do andamento atual" da Análise de dados do Dashboard.
 
 ### Catálogo de tipo de andamento, por área do direito
 

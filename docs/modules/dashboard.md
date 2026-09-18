@@ -31,6 +31,13 @@ com `status="arquivado"`.
 - O bloco financeiro do card de resumo mostra A receber, A pagar e
   Diferença (saldo = a_receber − a_pagar) num único card — mesma regra
   de acesso já existente (`dados_proprios`/`dados_todos`).
+- Quem só tem o nível `solicitacoes` no módulo Financeiro (sem acesso ao
+  caixa geral) não vê o card combinado — vê em vez disso o mini-card
+  "Minhas solicitações financeiras", com a contagem das próprias
+  `SolicitacaoFinanceira` em status aberto (`solicitada`/`em_analise`/
+  `aprovada` — exclui `rejeitada`/`paga`), levando para
+  `financeiro:solicitacoes_lista` (já filtrada ao próprio solicitante
+  para quem não tem acesso a dados).
 - "Usuários ativos" (contagem de `User` ativos, link para
   `configuracoes:index`) não depende do módulo Painel nem de
   Processos — aparece para quem tem a habilitação `gerir_criar_usuario`
@@ -43,16 +50,31 @@ dos painéis da Visão geral, **inclui processos arquivados** (mesma
 regra já registrada em [processos.md](processos.md): processo arquivado
 continua disponível em análise de dados).
 
-- Filtros compartilhados pelos 4 blocos (natureza/localidade/status/
-  patrocínio), todos por query string: Escopo (seletor só aparece
-  quando o nível máximo do usuário no módulo `processos` é `todos`),
-  Cliente, Equipe, e Usuário (só quando o escopo efetivo é `todos`).
+- Filtros compartilhados por todos os blocos (natureza/localidade/
+  status/fase/fase do andamento/patrocínio/clientes por localidade),
+  todos por query string: Escopo (seletor só aparece quando o nível
+  máximo do usuário no módulo `processos` é `todos`), Cliente, Equipe,
+  e Usuário (só quando o escopo efetivo é `todos`).
 - **Processos por localidade**: hierárquico Estado → Cidade → Comarca →
   Vara (`Processo.comarca`/`Processo.vara` — campo único `vara_juizo`
   separado em dois na reunião de 13/09), com auto-skip de nível quando o
   subconjunto filtrado tem só uma opção naquele nível (não renderiza uma
   lista de 1 item só). Usa os campos opcionais `Processo.estado`/`Processo.cidade`
   — ver [processos.md](processos.md).
+- **Processos por fase**: usa `Processo.fase` (Conhecimento/Recursal/
+  Cumprimento de Sentença/Execução/Outro), já existente — só expõe como
+  bloco novo, sem exigir preenchimento retroativo.
+- **Fase do andamento atual**: usa `Processo.fase_andamento_atual` (ver
+  [processos.md](processos.md)); inclui "Não informado" para quem ainda
+  não preencheu o campo. **Sem sugestão automática** por tipo de
+  andamento nesta versão — campo só é preenchido manualmente a partir
+  do formulário de "Adicionar andamento".
+- **Clientes por localidade**: mesmo padrão hierárquico de "Processos
+  por localidade", mas Estado → Cidade → Bairro e usando o endereço do
+  próprio `Cliente` (não a comarca do processo). Restrito aos clientes
+  vinculados (`processo.clientes`) aos processos já filtrados pelo
+  escopo/filtros da página — um cliente com vários processos no
+  subconjunto conta uma vez só.
 - **Processos por patrocínio**: best-effort — casa `Processo.cliente`
   com uma `ParteProcesso` do mesmo processo por CPF/CNPJ normalizado
   (`apps.processos.services.patrocinio_do_processo`); sem
