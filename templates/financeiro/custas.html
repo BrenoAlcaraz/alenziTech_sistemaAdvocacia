@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load financeiro_abas %}
 {% load moeda %}
 {% block title %}Custas Judiciais — Financeiro{% endblock %}
 
@@ -8,7 +9,7 @@
   <p class="text-sm text-gray-500 mt-0.5">Honorários, despesas e custas judiciais</p>
 </div>
 
-{% include "financeiro/_abas.html" %}
+{% abas_financeiro %}
 
 {# Card explicativo #}
 <div class="card px-5 py-4 mb-6 flex items-start gap-3 border-l-4 border-juridico-ouro-claro">

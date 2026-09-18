@@ -1,7 +1,9 @@
 {% comment %}
-Abas do módulo Financeiro, reaproveitada por index/grafico/custas/honorarios/solicitacoes.
-Espera aba_ativa no contexto: lancamentos, grafico, custas, honorarios ou solicitacoes.
+Abas do módulo Financeiro, renderizada por {% abas_financeiro %} (financeiro_abas)
+em index/grafico/custas/honorarios/solicitacoes. Espera aba_ativa no contexto:
+lancamentos, grafico, custas, honorarios ou solicitacoes.
 {% endcomment %}
+{% if mostrar %}
 <div class="border-b border-gray-200 mb-6">
   <nav class="-mb-px flex gap-6">
     <a href="{% url 'financeiro:index' %}"
@@ -38,6 +40,8 @@ Espera aba_ativa no contexto: lancamentos, grafico, custas, honorarios ou solici
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
       </svg>
       Solicitações
+      <span class="rounded-full px-1.5 text-xs font-medium {% if solicitacoes_pendentes %}bg-yellow-100 text-yellow-800{% else %}bg-gray-100 text-gray-500{% endif %}">({{ solicitacoes_pendentes }})</span>
     </a>
   </nav>
 </div>
+{% endif %}

@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load financeiro_abas %}
 {% load moeda %}
 {% block title %}Solicitações — Financeiro{% endblock %}
 
@@ -10,7 +11,7 @@
 
 {% if tem_acesso_dados %}
 {# Abas — só quem tem acesso ao caixa geral navega entre as áreas #}
-{% include "financeiro/_abas.html" %}
+{% abas_financeiro %}
 {% else %}
 <div class="border-b border-gray-200 mb-6 pb-3">
   <h2 class="text-sm font-semibold text-gray-700">Minhas solicitações</h2>

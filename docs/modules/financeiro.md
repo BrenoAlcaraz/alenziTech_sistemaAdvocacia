@@ -82,6 +82,12 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   está aberta (`solicitada`, `em_analise` ou `aprovada`) e o vencimento
   é anterior a hoje. Vencimento é opcional — sem data nunca é vencida;
   vencimento hoje não é vencida; `paga` e `rejeitada` nunca são vencidas.
+- Contagem na barra de abas: "Solicitações (n)" mostra o total do
+  escritório (todos os solicitantes, pagamento e reembolso) em estado
+  aberto (`solicitada`, `em_analise` ou `aprovada`); `rejeitada` e `paga`
+  não contam. Sempre exibida — cinza quando 0, amarelo quando maior que 0.
+  A barra só existe para quem tem acesso ao caixa geral, então o número
+  nunca chega a quem só tem nível `solicitacoes`.
 - Criar solicitação não gera despesa realizada; só o pagamento
   efetivamente processado altera o saldo realizado.
 - Reabrir lançamento pago exige habilitação própria; ao reabrir, o
