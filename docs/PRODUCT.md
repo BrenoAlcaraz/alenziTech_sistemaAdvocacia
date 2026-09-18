@@ -146,7 +146,40 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
   usuário; "Delegadas por mim" e "Ver tarefas de outra pessoa" só para
   quem já tem a habilitação de atribuir tarefa a terceiros — mesma
   habilitação nas duas, nenhuma habilitação nova.
+- Múltiplos participantes: "Atribuir a" aceita vários usuários de uma
+  vez (botão "Atribuir a todos" marca todos de uma vez); com mais de um
+  atribuído, quem cria escolhe explicitamente o responsável entre eles
+  (um só atribuído dispensa a escolha). Continua existindo um único
+  responsável formal (`Tarefa.responsavel`) — os demais entram como
+  `Tarefa.participantes`, sem responsabilidade formal: não concluem a
+  tarefa (só o responsável/Administrador) e não recebem a notificação
+  de conclusão. Participante consegue ver a tarefa (mesmo escopo de
+  leitura do responsável), mas não aparece como quem a concluiu. Uma
+  Equipe inteira também pode ser adicionada como participante (na tela
+  de edição) — vínculo dinâmico, ver "Equipe como integrante/
+  participante/atribuído dinâmico" abaixo.
 - Fora de escopo: aceite/recusa, gamificação, avaliação de desempenho.
+
+### Equipe como integrante/participante/atribuído dinâmico
+
+Em Processos ("Integrantes habilitados", PDR-0014), Agenda
+(participantes do compromisso) e Tarefas (participantes), além de
+escolher pessoa por pessoa é possível escolher uma Equipe inteira —
+adiciona todos os seus membros efetivos atuais. O vínculo é dinâmico:
+um membro que entra na equipe depois passa a valer automaticamente
+onde ela foi adicionada; quem sai perde esse acesso automaticamente.
+Remover a equipe (não uma pessoa individual) desfaz o vínculo só de
+quem estava ali por causa dela — um usuário adicionado individualmente
+nunca é afetado por entrar/sair de uma equipe. Mesmo mecanismo de
+sincronização do grupo de chat automático por equipe (PDR-0026),
+reaproveitado (`apps/accounts/vinculo_equipe.py`), não duplicado por
+módulo. Em Processos não afeta o responsável principal; em Agenda cada
+membro passa pela confirmação de presença normal (PDR-0020, a equipe
+não pula a confirmação); em Tarefas a equipe nunca vira responsável.
+Nenhuma habilitação nova — cada módulo reaproveita a que já exige para
+gerenciar integrante/participante hoje. Equipe inativa/desativada:
+mesmo gap em aberto do grupo de chat (PDR-0026) — sem decisão própria
+divergente.
 
 ### Agenda
 

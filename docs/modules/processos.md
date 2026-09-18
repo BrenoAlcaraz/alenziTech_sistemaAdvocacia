@@ -29,6 +29,12 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   `processos_atribuir_responsavel` ou a autoridade do Administrador do
   escritório. Gerenciar integrantes habilitados exige
   `gerir_habilitar_usuario_processos`.
+- Integrante habilitado também pode ser uma Equipe inteira (vínculo
+  dinâmico — ver "Equipe como integrante/participante/atribuído
+  dinâmico" em [PRODUCT.md](../PRODUCT.md)) — não é o mesmo mecanismo
+  do parágrafo acima ("Equipe não concede acesso nem filtra Processos"
+  continua valendo para `Processo.equipe`/escopo; isto é só sobre a
+  lista de integrantes habilitados, PDR-0014).
 
 ## Partes (PDR-0013 — modelo vigente; catálogo estendido por PDR-0023/PDR-0027)
 
