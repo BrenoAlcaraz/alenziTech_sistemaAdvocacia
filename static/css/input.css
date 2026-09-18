@@ -64,6 +64,24 @@
     @apply block text-sm font-medium text-gray-700 mb-1;
   }
 
+  /* ── Campo com erro ────────────────────────────────────────
+     Quando um campo tem mensagem de erro (.erro-campo) entre
+     seus irmãos — vazio ou preenchido incorretamente — realça a
+     borda do input/select e o label correspondente. O segundo
+     seletor de cada regra (`~ * .erro-campo`) cobre o caso de
+     inputs envolvidos por um wrapper extra (ex.: prefixo "R$"). */
+  .input:has(~ .erro-campo),
+  .input:has(~ * .erro-campo),
+  .select:has(~ .erro-campo),
+  .select:has(~ * .erro-campo) {
+    @apply border-red-400 focus:ring-red-500;
+  }
+
+  .label:has(~ .erro-campo),
+  .label:has(~ * .erro-campo) {
+    @apply text-red-600;
+  }
+
   /* ── Aba ativa ────────────────────────────────────────────── */
   .tab-active {
     @apply border-b-2 border-gray-900 text-gray-900 font-medium;

@@ -27,7 +27,7 @@
         <label class="label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
         {{ form.tipo }}
         {% if form.tipo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -35,7 +35,7 @@
         <label class="label" for="{{ form.descricao.id_for_label }}">{{ form.descricao.label }}</label>
         {{ form.descricao }}
         {% if form.descricao.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.descricao.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.descricao.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -44,28 +44,28 @@
           <label class="label" for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
           {{ form.valor }}
           {% if form.valor.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.valor.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.data.id_for_label }}">{{ form.data.label }}</label>
           {{ form.data }}
           {% if form.data.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.data.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }}</label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }}</label>
           {{ form.processo }}
           {% if form.processo.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>
@@ -78,7 +78,7 @@
                   data-anexo-limpar title="Remover arquivo selecionado">&times;</button>
         </div>
         {% if form.anexo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.anexo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.anexo.errors|join:", " }}</p>
         {% endif %}
       </div>
 

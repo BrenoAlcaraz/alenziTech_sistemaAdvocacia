@@ -27,7 +27,7 @@
         <label class="label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
         {{ form.tipo }}
         {% if form.tipo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -36,28 +36,28 @@
           <label class="label" for="{{ form.valor_estimado.id_for_label }}">{{ form.valor_estimado.label }}</label>
           {{ form.valor_estimado }}
           {% if form.valor_estimado.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.valor_estimado.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_estimado.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.data_prevista.id_for_label }}">{{ form.data_prevista.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.data_prevista }}
           {% if form.data_prevista.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.data_prevista.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_prevista.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.processo }}
           {% if form.processo.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>
@@ -66,7 +66,7 @@
         <label class="label" for="{{ form.observacoes.id_for_label }}">{{ form.observacoes.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
         {{ form.observacoes }}
         {% if form.observacoes.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.observacoes.errors|join:", " }}</p>
         {% endif %}
       </div>
 

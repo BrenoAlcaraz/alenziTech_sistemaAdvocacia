@@ -26,7 +26,7 @@
         <label class="label">{{ form.usuario.label }}</label>
         {{ form.usuario }}
         {% if form.usuario.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.usuario.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.usuario.errors|join:", " }}</p>
         {% endif %}
       </div>
     </div>

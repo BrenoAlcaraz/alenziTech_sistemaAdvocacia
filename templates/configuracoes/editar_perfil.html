@@ -35,7 +35,7 @@
         <label for="{{ form.avatar.id_for_label }}" class="label">Foto de perfil</label>
         {{ form.avatar }}
         {% if form.avatar.errors %}
-          <p class="mt-1 text-xs text-red-600">{{ form.avatar.errors.0 }}</p>
+          <p class="erro-campo mt-1 text-xs text-red-600">{{ form.avatar.errors.0 }}</p>
         {% endif %}
       </div>
     </div>
@@ -44,7 +44,7 @@
       <label for="{{ form.nome_completo.id_for_label }}" class="label">Nome completo</label>
       {{ form.nome_completo }}
       {% if form.nome_completo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -52,7 +52,7 @@
       <label for="{{ form.cargo.id_for_label }}" class="label">Cargo</label>
       {{ form.cargo }}
       {% if form.cargo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
       {% endif %}
     </div>
 

@@ -18,7 +18,7 @@
     <div class="flex-1">
       {{ form.nome }}
       {% if form.nome.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
+        <p class="erro-campo text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
       {% endif %}
     </div>
     <button type="submit" class="btn-primary flex-shrink-0">Adicionar</button>

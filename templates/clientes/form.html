@@ -51,46 +51,73 @@
       <div class="col-span-2">
         <label class="label">Nome / Razão social</label>
         {{ form.nome_razao_social }}
+        {% if form.nome_razao_social.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.nome_razao_social.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label" id="label-documento">CPF / CNPJ</label>
         {{ form.cpf_cnpj }}
+        {% if form.cpf_cnpj.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cpf_cnpj.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div id="campo-rg">
         <label class="label">RG</label>
         {{ form.rg }}
+        {% if form.rg.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.rg.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Telefone</label>
         {{ form.telefone }}
+        {% if form.telefone.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.telefone.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">E-mail</label>
         {{ form.email }}
+        {% if form.email.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.email.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div id="campo-nacionalidade">
         <label class="label">Nacionalidade</label>
         {{ form.nacionalidade }}
+        {% if form.nacionalidade.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.nacionalidade.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div id="campo-estado-civil">
         <label class="label">Estado civil</label>
         {{ form.estado_civil }}
+        {% if form.estado_civil.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.estado_civil.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div id="campo-profissao">
         <label class="label">Profissão</label>
         {{ form.profissao }}
+        {% if form.profissao.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.profissao.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div id="campo-data-nascimento">
         <label class="label">Data de nascimento</label>
         {{ form.data_nascimento }}
+        {% if form.data_nascimento.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_nascimento.errors|join:", " }}</p>
+        {% endif %}
       </div>
     </div>
 
@@ -100,22 +127,37 @@
         <div class="col-span-2">
           <label class="label">Nome completo</label>
           {{ form.representante_nome }}
+          {% if form.representante_nome.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.representante_nome.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">CPF</label>
           {{ form.representante_cpf }}
+          {% if form.representante_cpf.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.representante_cpf.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Cargo/qualificação</label>
           {{ form.representante_cargo }}
+          {% if form.representante_cargo.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.representante_cargo.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Telefone</label>
           {{ form.representante_telefone }}
+          {% if form.representante_telefone.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.representante_telefone.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">E-mail</label>
           {{ form.representante_email }}
+          {% if form.representante_email.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.representante_email.errors|join:", " }}</p>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -126,30 +168,51 @@
         <div>
           <label class="label">CEP</label>
           {{ form.cep }}
+          {% if form.cep.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cep.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div class="col-span-3">
           <label class="label">Logradouro</label>
           {{ form.logradouro }}
+          {% if form.logradouro.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.logradouro.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Número</label>
           {{ form.numero }}
+          {% if form.numero.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.numero.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div class="col-span-2">
           <label class="label">Complemento</label>
           {{ form.complemento }}
+          {% if form.complemento.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.complemento.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Bairro</label>
           {{ form.bairro }}
+          {% if form.bairro.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.bairro.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div class="col-span-2">
           <label class="label">Cidade</label>
           {{ form.cidade }}
+          {% if form.cidade.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cidade.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Estado</label>
           {{ form.estado }}
+          {% if form.estado.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.estado.errors|join:", " }}</p>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -158,6 +221,9 @@
       <div class="col-span-2">
         <label class="label">Observações</label>
         {{ form.observacoes }}
+        {% if form.observacoes.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div class="col-span-2">
@@ -171,12 +237,15 @@
             {{ responsavel_exibido.get_full_name|default:responsavel_exibido.username }}
           </div>
         {% endif %}
+        {% if form.responsavel.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+        {% endif %}
       </div>
     </div>
 
     {% if form.errors %}
     <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-      Verifique os campos obrigatórios antes de salvar.
+      Há campos com erro — confira os campos destacados.
     </div>
     {% endif %}
 

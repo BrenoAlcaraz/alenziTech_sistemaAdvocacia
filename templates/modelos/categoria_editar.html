@@ -25,7 +25,7 @@
       <label class="label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
       {{ form.nome }}
       {% if form.nome.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
+        <p class="erro-campo text-xs text-red-600 mt-1">{{ form.nome.errors|join:", " }}</p>
       {% endif %}
     </div>
 

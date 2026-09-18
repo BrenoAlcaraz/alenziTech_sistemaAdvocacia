@@ -37,7 +37,7 @@
           <p class="text-xs text-gray-400 mt-1">{{ form.arquivo.help_text }}</p>
         {% endif %}
         {% if form.arquivo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.arquivo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.arquivo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -46,7 +46,7 @@
         {{ form.titulo }}
         <p class="text-xs text-gray-400 mt-1">Deixe em branco para usar o nome do arquivo.</p>
         {% if form.titulo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -55,14 +55,14 @@
           <label class="label" for="{{ form.categoria.id_for_label }}">{{ form.categoria.label }}</label>
           {{ form.categoria }}
           {% if form.categoria.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.categoria.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.categoria.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.area_direito.id_for_label }}">{{ form.area_direito.label }}</label>
           {{ form.area_direito }}
           {% if form.area_direito.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>

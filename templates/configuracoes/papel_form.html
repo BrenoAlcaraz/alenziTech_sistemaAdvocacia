@@ -38,7 +38,7 @@
       <label for="{{ form.nome.id_for_label }}" class="label">Nome <span class="text-red-500">*</span></label>
       {{ form.nome }}
       {% if form.nome.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.nome.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.nome.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -46,7 +46,7 @@
       <label for="{{ form.descricao.id_for_label }}" class="label">Descrição</label>
       {{ form.descricao }}
       {% if form.descricao.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.descricao.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.descricao.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -56,7 +56,7 @@
         Papel ativo
       </label>
       {% if form.ativo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.ativo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.ativo.errors.0 }}</p>
       {% endif %}
     </div>
 

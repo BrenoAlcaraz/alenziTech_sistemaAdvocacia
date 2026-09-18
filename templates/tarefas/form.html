@@ -25,27 +25,45 @@
       <div>
         <label class="label">Título</label>
         {{ form.titulo }}
+        {% if form.titulo.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
+        {% endif %}
       </div>
       <div>
         <label class="label">Descrição</label>
         {{ form.descricao }}
+        {% if form.descricao.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.descricao.errors|join:", " }}</p>
+        {% endif %}
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="label">Prioridade</label>
           {{ form.prioridade }}
+          {% if form.prioridade.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.prioridade.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Prazo</label>
           {{ form.prazo }}
+          {% if form.prazo.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.prazo.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Cliente</label>
           {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">Processo vinculado</label>
           {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
         </div>
         {% if modo == "novo" %}
         <div>
@@ -57,11 +75,17 @@
           </div>
           {{ form.atribuidos }}
           <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um usuário.</p>
+          {% if form.atribuidos.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.atribuidos.errors|join:", " }}</p>
+          {% endif %}
         </div>
         <div>
           <label class="label">{{ form.destinatario.label }}</label>
           {{ form.destinatario }}
           <p class="text-xs text-gray-400 mt-1">Quem, entre os atribuídos, é o responsável formal pela tarefa.</p>
+          {% if form.destinatario.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.destinatario.errors|join:", " }}</p>
+          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -69,7 +93,7 @@
 
     {% if form.errors %}
     <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-      Verifique os campos obrigatórios antes de salvar.
+      Há campos com erro — confira os campos destacados.
     </div>
     {% endif %}
 

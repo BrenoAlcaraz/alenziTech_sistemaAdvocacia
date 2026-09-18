@@ -25,7 +25,7 @@
       <label for="{{ form.username.id_for_label }}" class="label">Nome de usuário</label>
       {{ form.username }}
       {% if form.username.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.username.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -33,7 +33,7 @@
       <label for="{{ form.email.id_for_label }}" class="label">E-mail</label>
       {{ form.email }}
       {% if form.email.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.email.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -41,7 +41,7 @@
       <label for="{{ form.nome_completo.id_for_label }}" class="label">Nome completo</label>
       {{ form.nome_completo }}
       {% if form.nome_completo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.nome_completo.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -49,7 +49,7 @@
       <label for="{{ form.cargo.id_for_label }}" class="label">Cargo <span class="text-gray-400 font-normal">(descritivo)</span></label>
       {{ form.cargo }}
       {% if form.cargo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -57,7 +57,7 @@
       <label for="{{ form.grupo.id_for_label }}" class="label">Papel no escritório</label>
       {{ form.grupo }}
       {% if form.grupo.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.grupo.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.grupo.errors.0 }}</p>
       {% endif %}
       <p class="mt-1 text-xs text-gray-400">
         Tipos de conta disponíveis: Limitado e Financeiro. O cargo profissional é informado separadamente.
@@ -69,7 +69,7 @@
       <label for="{{ form.password1.id_for_label }}" class="label">Senha inicial</label>
       {{ form.password1 }}
       {% if form.password1.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.password1.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -77,7 +77,7 @@
       <label for="{{ form.password2.id_for_label }}" class="label">Confirme a senha</label>
       {{ form.password2 }}
       {% if form.password2.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.password2.errors.0 }}</p>
       {% endif %}
     </div>
 

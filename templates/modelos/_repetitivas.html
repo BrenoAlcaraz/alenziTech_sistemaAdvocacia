@@ -40,7 +40,7 @@
       <label class="label" for="{{ peca_base_form.peca_base.id_for_label }}">{{ peca_base_form.peca_base.label }}</label>
       {{ peca_base_form.peca_base }}
       {% if peca_base_form.peca_base.errors %}
-        <p class="text-xs text-red-600 mt-1">{{ peca_base_form.peca_base.errors|join:", " }}</p>
+        <p class="erro-campo text-xs text-red-600 mt-1">{{ peca_base_form.peca_base.errors|join:", " }}</p>
       {% endif %}
     </div>
 
@@ -49,7 +49,7 @@
         <label class="label" for="{{ peca_base_form.arquivo_base.id_for_label }}">{{ peca_base_form.arquivo_base.label }}</label>
         {{ peca_base_form.arquivo_base }}
         {% if peca_base_form.arquivo_base.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ peca_base_form.arquivo_base.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ peca_base_form.arquivo_base.errors|join:", " }}</p>
         {% endif %}
       </div>
       <div class="grid grid-cols-2 gap-3">
@@ -57,14 +57,14 @@
           <label class="label" for="{{ peca_base_form.categoria.id_for_label }}">{{ peca_base_form.categoria.label }}</label>
           {{ peca_base_form.categoria }}
           {% if peca_base_form.categoria.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ peca_base_form.categoria.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ peca_base_form.categoria.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ peca_base_form.area_direito.id_for_label }}">{{ peca_base_form.area_direito.label }}</label>
           {{ peca_base_form.area_direito }}
           {% if peca_base_form.area_direito.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ peca_base_form.area_direito.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ peca_base_form.area_direito.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>

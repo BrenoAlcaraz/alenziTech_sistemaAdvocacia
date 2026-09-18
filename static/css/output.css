@@ -981,6 +981,87 @@ body {
   color: rgb(55 65 81 / var(--tw-text-opacity, 1));
 }
 
+/* ── Campo com erro ────────────────────────────────────────
+     Quando um campo tem mensagem de erro (.erro-campo) entre
+     seus irmãos — vazio ou preenchido incorretamente — realça a
+     borda do input/select e o label correspondente. O segundo
+     seletor de cada regra (`~ * .erro-campo`) cobre o caso de
+     inputs envolvidos por um wrapper extra (ex.: prefixo "R$"). */
+
+.\!input:has(~ .erro-campo),
+  .\!input:has(~ * .erro-campo) {
+  --tw-border-opacity: 1;
+  border-color: rgb(248 113 113 / var(--tw-border-opacity, 1));
+}
+
+.\!input:has(~ .erro-campo):focus,
+  .\!input:has(~ * .erro-campo):focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+.input:has(~ .erro-campo),
+  .input:has(~ * .erro-campo),
+  .select:has(~ .erro-campo),
+  .select:has(~ * .erro-campo) {
+  --tw-border-opacity: 1;
+  border-color: rgb(248 113 113 / var(--tw-border-opacity, 1));
+}
+
+.input:has(~ .erro-campo):focus,
+  .input:has(~ * .erro-campo):focus,
+  .select:has(~ .erro-campo):focus,
+  .select:has(~ * .erro-campo):focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+.\!input:has(~ .erro-campo),
+  .\!input:has(~ * .erro-campo) {
+  --tw-border-opacity: 1;
+  border-color: rgb(248 113 113 / var(--tw-border-opacity, 1));
+}
+
+.\!input:has(~ .erro-campo):focus,
+  .\!input:has(~ * .erro-campo):focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+
+  .\!select:has(~ .erro-campo),
+  .\!select:has(~ * .erro-campo) {
+  --tw-border-opacity: 1;
+  border-color: rgb(248 113 113 / var(--tw-border-opacity, 1));
+}
+
+
+  .\!select:has(~ .erro-campo):focus,
+  .\!select:has(~ * .erro-campo):focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+
+  .\!select:has(~ .erro-campo),
+  .\!select:has(~ * .erro-campo) {
+  --tw-border-opacity: 1;
+  border-color: rgb(248 113 113 / var(--tw-border-opacity, 1));
+}
+
+
+  .\!select:has(~ .erro-campo):focus,
+  .\!select:has(~ * .erro-campo):focus {
+  --tw-ring-opacity: 1;
+  --tw-ring-color: rgb(239 68 68 / var(--tw-ring-opacity, 1));
+}
+
+.label:has(~ .erro-campo),
+  .label:has(~ * .erro-campo) {
+  --tw-text-opacity: 1;
+  color: rgb(220 38 38 / var(--tw-text-opacity, 1));
+}
+
 /* ── Aba ativa ────────────────────────────────────────────── */
 
 .tab-active {
@@ -1185,6 +1266,10 @@ body {
   margin-top: -0.5rem;
 }
 
+.mb-0 {
+  margin-bottom: 0px;
+}
+
 .mb-0\.5 {
   margin-bottom: 0.125rem;
 }
@@ -1343,10 +1428,6 @@ body {
 
 .h-3\.5 {
   height: 0.875rem;
-}
-
-.h-32 {
-  height: 8rem;
 }
 
 .h-4 {
@@ -1709,6 +1790,11 @@ body {
 
 .gap-7 {
   gap: 1.75rem;
+}
+
+.gap-x-1 {
+  -moz-column-gap: 0.25rem;
+       column-gap: 0.25rem;
 }
 
 .gap-x-6 {
@@ -2849,6 +2935,10 @@ body {
 
   .md\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

@@ -30,7 +30,7 @@
         <label class="label" for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
         {{ form.titulo }}
         {% if form.titulo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -39,28 +39,28 @@
           <label class="label" for="{{ form.categoria.id_for_label }}">{{ form.categoria.label }}</label>
           {{ form.categoria }}
           {% if form.categoria.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.categoria.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.categoria.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.area_direito.id_for_label }}">{{ form.area_direito.label }}</label>
           {{ form.area_direito }}
           {% if form.area_direito.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.cabecalho_replicacao.id_for_label }}">{{ form.cabecalho_replicacao.label }}</label>
           {{ form.cabecalho_replicacao }}
           {% if form.cabecalho_replicacao.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.cabecalho_replicacao.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cabecalho_replicacao.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
           <label class="label" for="{{ form.rodape_replicacao.id_for_label }}">{{ form.rodape_replicacao.label }}</label>
           {{ form.rodape_replicacao }}
           {% if form.rodape_replicacao.errors %}
-            <p class="text-xs text-red-600 mt-1">{{ form.rodape_replicacao.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.rodape_replicacao.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>
@@ -152,7 +152,7 @@
         {% endif %}
 
         {% if form.conteudo.errors %}
-          <p class="text-xs text-red-600 mt-1">{{ form.conteudo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.conteudo.errors|join:", " }}</p>
         {% endif %}
       </div>
 

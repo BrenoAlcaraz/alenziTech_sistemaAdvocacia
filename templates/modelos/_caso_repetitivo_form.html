@@ -7,7 +7,7 @@
   <div class="mb-3">
     <label class="label" for="{{ caso_form.cliente.id_for_label }}">{{ caso_form.cliente.label }}</label>
     {{ caso_form.cliente }}
-    {% if caso_form.cliente.errors %}<p class="text-xs text-red-600 mt-1">{{ caso_form.cliente.errors|join:", " }}</p>{% endif %}
+    {% if caso_form.cliente.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ caso_form.cliente.errors|join:", " }}</p>{% endif %}
   </div>
 
   <div class="grid grid-cols-2 gap-3 mb-3">

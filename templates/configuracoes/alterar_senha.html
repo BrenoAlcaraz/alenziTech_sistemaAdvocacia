@@ -25,7 +25,7 @@
       <label for="{{ form.old_password.id_for_label }}" class="label">Senha atual</label>
       {{ form.old_password }}
       {% if form.old_password.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.old_password.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.old_password.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -33,7 +33,7 @@
       <label for="{{ form.new_password1.id_for_label }}" class="label">Nova senha</label>
       {{ form.new_password1 }}
       {% if form.new_password1.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.new_password1.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.new_password1.errors.0 }}</p>
       {% endif %}
     </div>
 
@@ -41,7 +41,7 @@
       <label for="{{ form.new_password2.id_for_label }}" class="label">Confirme a nova senha</label>
       {{ form.new_password2 }}
       {% if form.new_password2.errors %}
-        <p class="mt-1 text-xs text-red-600">{{ form.new_password2.errors.0 }}</p>
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.new_password2.errors.0 }}</p>
       {% endif %}
     </div>
 

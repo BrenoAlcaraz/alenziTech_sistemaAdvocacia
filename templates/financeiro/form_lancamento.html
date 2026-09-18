@@ -30,7 +30,7 @@
         <label class="label">{{ form.tipo.label }}</label>
         {{ form.tipo }}
         {% if form.tipo.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -39,7 +39,7 @@
         <label class="label">{{ form.descricao.label }}</label>
         {{ form.descricao }}
         {% if form.descricao.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -50,7 +50,7 @@
           <label class="label">Valor (R$)</label>
           {{ form.valor }}
           {% if form.valor.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.valor.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.valor.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -59,7 +59,7 @@
           <label class="label">{{ form.categoria.label }}</label>
           {{ form.categoria }}
           {% if form.categoria.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.categoria.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.categoria.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -68,7 +68,7 @@
           <label class="label">{{ form.status.label }}</label>
           {{ form.status }}
           {% if form.status.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.status.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.status.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -77,7 +77,7 @@
           <label class="label">Data de vencimento</label>
           {{ form.data_vencimento }}
           {% if form.data_vencimento.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.data_vencimento.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_vencimento.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -86,7 +86,7 @@
           <label class="label">Data de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.data_pagamento }}
           {% if form.data_pagamento.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.data_pagamento.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_pagamento.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -95,7 +95,7 @@
           <label class="label">Forma de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.forma_pagamento }}
           {% if form.forma_pagamento.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.forma_pagamento.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.forma_pagamento.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -104,7 +104,7 @@
           <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -113,7 +113,7 @@
           <label class="label">Processo <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.processo }}
           {% if form.processo.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -122,7 +122,7 @@
           <label class="label">Responsável <span class="text-gray-400 font-normal">(padrão: usuário logado)</span></label>
           {{ form.responsavel }}
           {% if form.responsavel.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
           {% endif %}
         </div>
 
@@ -133,7 +133,7 @@
         <label class="label">{{ form.classificacao.label }}</label>
         {{ form.classificacao }}
         {% if form.classificacao.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.classificacao.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.classificacao.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -141,7 +141,7 @@
         <label class="label">{{ form.numero_parcelas.label }}</label>
         {{ form.numero_parcelas }}
         {% if form.numero_parcelas.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
         {% endif %}
         <p class="text-xs text-gray-400 mt-1">Parcelas mensais a partir da data de vencimento acima.</p>
       </div>
@@ -152,14 +152,14 @@
             <label class="label">{{ form.periodicidade.label }}</label>
             {{ form.periodicidade }}
             {% if form.periodicidade.errors %}
-              <p class="text-xs text-red-500 mt-1">{{ form.periodicidade.errors|join:", " }}</p>
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.periodicidade.errors|join:", " }}</p>
             {% endif %}
           </div>
           <div>
             <label class="label">{{ form.duracao_tipo.label }}</label>
             {{ form.duracao_tipo }}
             {% if form.duracao_tipo.errors %}
-              <p class="text-xs text-red-500 mt-1">{{ form.duracao_tipo.errors|join:", " }}</p>
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_tipo.errors|join:", " }}</p>
             {% endif %}
           </div>
         </div>
@@ -167,14 +167,14 @@
           <label class="label">{{ form.duracao_quantidade.label }}</label>
           {{ form.duracao_quantidade }}
           {% if form.duracao_quantidade.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.duracao_quantidade.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_quantidade.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div data-toggle-panel="duracao_tipo" data-toggle-values="data_final" class="hidden">
           <label class="label">{{ form.duracao_data_final.label }}</label>
           {{ form.duracao_data_final }}
           {% if form.duracao_data_final.errors %}
-            <p class="text-xs text-red-500 mt-1">{{ form.duracao_data_final.errors|join:", " }}</p>
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_data_final.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>
@@ -184,7 +184,7 @@
         <label class="label">Observações <span class="text-gray-400 font-normal">(opcional)</span></label>
         {{ form.observacoes }}
         {% if form.observacoes.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.observacoes.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.observacoes.errors|join:", " }}</p>
         {% endif %}
       </div>
 
@@ -198,7 +198,7 @@
         {% endif %}
         {{ form.anexo }}
         {% if form.anexo.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.anexo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.anexo.errors|join:", " }}</p>
         {% endif %}
       </div>
 

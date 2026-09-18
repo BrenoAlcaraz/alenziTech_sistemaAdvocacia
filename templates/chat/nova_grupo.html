@@ -26,14 +26,14 @@
         <label class="label">{{ form.titulo.label }}</label>
         {{ form.titulo }}
         {% if form.titulo.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
         {% endif %}
       </div>
       <div>
         <label class="label">{{ form.participantes.label }} <span class="text-gray-400 font-normal">(selecione ao menos 2)</span></label>
         {{ form.participantes }}
         {% if form.participantes.errors %}
-          <p class="text-xs text-red-500 mt-1">{{ form.participantes.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.participantes.errors|join:", " }}</p>
         {% endif %}
       </div>
     </div>

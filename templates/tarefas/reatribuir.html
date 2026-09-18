@@ -19,6 +19,9 @@
     <div>
       <label class="label">{{ form.destinatario.label }}</label>
       {{ form.destinatario }}
+      {% if form.destinatario.errors %}
+        <p class="erro-campo text-xs text-red-600 mt-1">{{ form.destinatario.errors|join:", " }}</p>
+      {% endif %}
     </div>
 
     {% if form.errors %}

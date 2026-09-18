@@ -151,7 +151,7 @@
         </label>
         {{ form_estilo_documento.arquivo_referencia }}
         {% if form_estilo_documento.arquivo_referencia.errors %}
-          <p class="text-xs text-red-600 mt-2">{{ form_estilo_documento.arquivo_referencia.errors|join:", " }}</p>
+          <p class="erro-campo text-xs text-red-600 mt-2">{{ form_estilo_documento.arquivo_referencia.errors|join:", " }}</p>
         {% endif %}
         <div class="mt-4">
           <button type="submit" class="btn-primary">Usar esta peça como meu estilo</button>

@@ -20,7 +20,7 @@
         <label class="label">Processo</label>
         {{ form.processo }}
         {% if form.processo.errors %}
-          <p class="mt-1 text-xs text-red-600">{{ form.processo.errors.0 }}</p>
+          <p class="erro-campo mt-1 text-xs text-red-600">{{ form.processo.errors.0 }}</p>
         {% endif %}
       </div>
 
@@ -28,7 +28,7 @@
         <label class="label">Motivo</label>
         {{ form.motivo }}
         {% if form.motivo.errors %}
-          <p class="mt-1 text-xs text-red-600">{{ form.motivo.errors.0 }}</p>
+          <p class="erro-campo mt-1 text-xs text-red-600">{{ form.motivo.errors.0 }}</p>
         {% endif %}
       </div>
 
@@ -36,7 +36,7 @@
         <label class="label">Prazo para manifestação</label>
         {{ form.prazo_manifestacao }}
         {% if form.prazo_manifestacao.errors %}
-          <p class="mt-1 text-xs text-red-600">{{ form.prazo_manifestacao.errors.0 }}</p>
+          <p class="erro-campo mt-1 text-xs text-red-600">{{ form.prazo_manifestacao.errors.0 }}</p>
         {% endif %}
       </div>
     </div>

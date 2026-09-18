@@ -21,51 +21,81 @@
       <div class="col-span-2">
         <label class="label">Título do processo</label>
         {{ form.titulo }}
+        {% if form.titulo.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Número do processo</label>
         {{ form.numero }}
+        {% if form.numero.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.numero.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Área do direito</label>
         {{ form.area_direito }}
+        {% if form.area_direito.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.area_direito.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Fase processual</label>
         {{ form.fase }}
+        {% if form.fase.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.fase.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Gratuidade de justiça</label>
         {{ form.gratuidade_justica_status }}
+        {% if form.gratuidade_justica_status.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.gratuidade_justica_status.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Instância</label>
         {{ form.instancia }}
+        {% if form.instancia.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.instancia.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Vara</label>
         {{ form.vara }}
+        {% if form.vara.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.vara.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Comarca</label>
         {{ form.comarca }}
+        {% if form.comarca.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.comarca.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Estado</label>
         {{ form.estado }}
+        {% if form.estado.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.estado.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Cidade</label>
         {{ form.cidade }}
+        {% if form.cidade.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cidade.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
@@ -73,6 +103,9 @@
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-500">R$</span>
           {{ form.valor_causa }}
+          {% if form.valor_causa.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_causa.errors|join:", " }}</p>
+          {% endif %}
         </div>
       </div>
 
@@ -85,6 +118,9 @@
         </div>
         {{ form.clientes }}
         <p class="text-xs text-gray-400 mt-1">Segure Ctrl (ou Cmd) para selecionar mais de um cliente.</p>
+        {% if form.clientes.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.clientes.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
@@ -94,11 +130,17 @@
         {% else %}
           <p class="input bg-gray-50 text-gray-600">{{ responsavel_exibido }}</p>
         {% endif %}
+        {% if form.responsavel.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+        {% endif %}
       </div>
 
       <div>
         <label class="label">Data de distribuição</label>
         {{ form.data_distribuicao }}
+        {% if form.data_distribuicao.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_distribuicao.errors|join:", " }}</p>
+        {% endif %}
       </div>
     </div>
 
@@ -108,7 +150,7 @@
 
     {% if form.errors %}
     <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-      Verifique os campos obrigatórios antes de salvar.
+      Há campos com erro — confira os campos destacados.
     </div>
     {% endif %}
 

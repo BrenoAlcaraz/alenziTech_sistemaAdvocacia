@@ -34,7 +34,7 @@
           <label for="{{ form.usuario.id_for_label }}" class="label">Usuário</label>
           {{ form.usuario }}
           {% if form.usuario.errors %}
-            <p class="mt-1 text-xs text-red-600">{{ form.usuario.errors.0 }}</p>
+            <p class="erro-campo mt-1 text-xs text-red-600">{{ form.usuario.errors.0 }}</p>
           {% endif %}
         </div>
         <div class="flex items-center gap-2 mb-0.5">
