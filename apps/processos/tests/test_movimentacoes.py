@@ -198,6 +198,58 @@ class TestAdicionarMovimentacaoComPrazo(MovimentacoesBase):
         self.assertNotIn("atualizar_prazo_proximo", r.content.decode())
 
 
+class TestAtualizarFaseAndamento(MovimentacoesBase):
+    """Painel #2, specs/painel-novos-recortes-analise.md — campo
+    'fase do andamento atual' do Processo, preenchido manualmente a
+    partir do formulário de andamento, sem sugestão automática."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "movimentacoes_fase_andamento"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("resp_fase_andamento")
+        self._autorizar(self.user)
+        self.client.force_login(self.user)
+        self.processo = self._processo(responsavel=self.user, area_direito="CÍVEL")
+
+    def _post(self, **overrides):
+        dados = {
+            "tipo": "despacho",
+            "data": "2026-03-01T09:00",
+            "descricao": "Andamento de teste",
+        }
+        dados.update(overrides)
+        return self.client.post(
+            f"/processos/{self.processo.pk}/movimentacoes/nova/",
+            dados,
+            HTTP_HOST=self.http_host,
+        )
+
+    def test_atualiza_fase_andamento_quando_informada(self):
+        r = self._post(atualizar_fase_andamento="prazo_contestacao")
+        self.assertEqual(r.status_code, 302)
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.fase_andamento_atual, "prazo_contestacao")
+
+    def test_nao_altera_fase_andamento_quando_nao_informada(self):
+        self.processo.fase_andamento_atual = "aguardando_sentenca"
+        self.processo.save(update_fields=["fase_andamento_atual"])
+        self._post()
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.fase_andamento_atual, "aguardando_sentenca")
+
+    def test_campo_nao_e_preenchido_automaticamente_por_tipo_de_andamento(self):
+        # Sem sugestão automática — mesmo enviando um `tipo` que "sugeriria"
+        # uma fase, o campo só muda se `atualizar_fase_andamento` vier
+        # explicitamente no POST.
+        r = self._post(tipo="peticao")
+        self.assertEqual(r.status_code, 302)
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.fase_andamento_atual, "")
+
+
 class TestRecalcularPrazoProximo(MovimentacoesBase):
     """Unidade de apps.processos.services.recalcular_prazo_proximo —
     prazo futuro mais próximo; se todos venceram, o vencido mais

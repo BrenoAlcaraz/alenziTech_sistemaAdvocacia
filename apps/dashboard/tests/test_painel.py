@@ -21,9 +21,10 @@ from apps.accounts.permissoes_constants import (
     MODULO_PROCESSOS,
     MODULO_TAREFAS,
     NIVEL_DADOS_TODOS,
+    NIVEL_SOLICITACOES,
     NIVEL_TODOS,
 )
-from apps.financeiro.models import LancamentoFinanceiro
+from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.tarefas.models import Tarefa
 
 
@@ -145,6 +146,68 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         self.assertIn("a_receber", resposta.context["resumo"])
         self.assertEqual(len(resposta.context["financeiro_dashboard"]), 1)
         self.assertContains(resposta, "Honorário Pendente")
+
+
+class TestPainelFinanceiroSolicitacoes(TenantTestCase):
+    """Painel #4, specs/painel-novos-recortes-analise.md — mini-card
+    "Minhas solicitações financeiras" para o perfil NIVEL_SOLICITACOES,
+    que não tem acesso aos dados do caixa geral (não deve ganhar o card
+    combinado a_receber/a_pagar/saldo, só a contagem das suas próprias
+    solicitações abertas)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_financeiro_solicitacoes"
+
+    def setUp(self):
+        super().setUp()
+        from apps.saas_tenants.models import Dominio
+
+        dominio = Dominio.objects.filter(tenant=self.tenant).first()
+        self.http_host = dominio.domain if dominio else "localhost"
+        self.usuario = User.objects.create_user("solicitante_painel", password="testpass")
+        papel = PapelAcesso.objects.create(nome="Papel Solicitacoes Painel", ativo=True)
+        UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True,
+            nivel=NIVEL_SOLICITACOES,
+        )
+        PermissaoPapel.objects.create(
+            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+        )
+        self.client.force_login(self.usuario)
+
+    def test_mostra_mini_card_com_contagem_das_proprias_solicitacoes_abertas(self):
+        outro = User.objects.create_user("outro_solicitante", password="testpass")
+        SolicitacaoFinanceira.objects.create(
+            tipo="reembolso", descricao="Minha 1", valor="100.00",
+            status="solicitada", solicitante=self.usuario,
+        )
+        SolicitacaoFinanceira.objects.create(
+            tipo="reembolso", descricao="Minha 2", valor="200.00",
+            status="em_analise", solicitante=self.usuario,
+        )
+        SolicitacaoFinanceira.objects.create(
+            tipo="reembolso", descricao="Minha paga", valor="50.00",
+            status="paga", solicitante=self.usuario,
+        )
+        SolicitacaoFinanceira.objects.create(
+            tipo="reembolso", descricao="De outro usuário", valor="300.00",
+            status="solicitada", solicitante=outro,
+        )
+
+        resposta = self.client.get("/", HTTP_HOST=self.http_host)
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertTrue(resposta.context["acesso_financeiro_solicitacoes"])
+        self.assertFalse(resposta.context["acesso_financeiro"])
+        self.assertEqual(resposta.context["resumo"]["minhas_solicitacoes_abertas"], 2)
+
+    def test_nao_recebe_card_combinado_do_caixa_geral(self):
+        resposta = self.client.get("/", HTTP_HOST=self.http_host)
+
+        self.assertNotIn("a_receber", resposta.context["resumo"])
+        self.assertNotContains(resposta, "Diferença (saldo)")
 
 
 class TestPainelClientesProcessosAgendaSemAcesso(TenantTestCase):

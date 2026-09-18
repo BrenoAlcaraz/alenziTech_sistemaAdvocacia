@@ -169,6 +169,138 @@ class TestAnaliseLocalidade(AnaliseBase):
         self.assertEqual(varas["1ª Vara Cível"], 1)
 
 
+class TestAnaliseFaseEFaseAndamento(AnaliseBase):
+    """Painel #2 e #3, specs/painel-novos-recortes-analise.md."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_analise_fase"
+
+    def setUp(self):
+        super().setUp()
+        self._autorizar_processos(NIVEL_TODOS)
+        self.client.force_login(self.usuario)
+
+    def test_agrupa_por_fase_do_processo(self):
+        self._processo("P1", fase="conhecimento")
+        self._processo("P2", fase="conhecimento")
+        self._processo("P3", fase="recursal")
+
+        resposta = self._get()
+
+        fase = {b["label"]: b["total"] for b in resposta.context["fase_barras"]}
+        self.assertEqual(fase["Conhecimento"], 2)
+        self.assertEqual(fase["Recursal"], 1)
+
+    def test_agrupa_por_fase_do_andamento_atual_incluindo_nao_informado(self):
+        self._processo("P1", fase_andamento_atual="prazo_contestacao")
+        self._processo("P2", fase_andamento_atual="prazo_contestacao")
+        self._processo("P3")  # sem fase de andamento preenchida
+
+        resposta = self._get()
+
+        fase_andamento = {b["label"]: b["total"] for b in resposta.context["fase_andamento_barras"]}
+        self.assertEqual(fase_andamento["Em prazo de contestação"], 2)
+        self.assertEqual(fase_andamento["Não informado"], 1)
+
+    def test_fase_andamento_e_preenchida_manualmente_sem_sugestao_automatica(self):
+        processo = self._processo("P1")
+        self.assertEqual(processo.fase_andamento_atual, "")
+
+        processo.fase_andamento_atual = "aguardando_sentenca"
+        processo.save(update_fields=["fase_andamento_atual"])
+        processo.refresh_from_db()
+
+        self.assertEqual(processo.fase_andamento_atual, "aguardando_sentenca")
+
+
+class TestAnaliseClientesPorLocalidade(AnaliseBase):
+    """Painel #1, specs/painel-novos-recortes-analise.md — espelha o
+    padrão de "Processos por localidade" (TestAnaliseLocalidade), mas
+    agrupa Clientes (Estado→Cidade→Bairro) restritos aos vinculados aos
+    processos já filtrados pelo escopo/filtros da página."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "wi_dashboard_analise_clientes_localidade"
+
+    def setUp(self):
+        super().setUp()
+        self._autorizar_processos(NIVEL_TODOS)
+        self.client.force_login(self.usuario)
+
+    def _cliente(self, nome, **extra):
+        return Cliente.objects.create(
+            nome_razao_social=nome, tipo="PF", responsavel=self.usuario, **extra
+        )
+
+    def test_pula_nivel_estado_quando_so_ha_uma_opcao(self):
+        c1 = self._cliente("C1", estado="SP", cidade="Campinas", bairro="Centro")
+        c2 = self._cliente("C2", estado="SP", cidade="São Paulo", bairro="Pinheiros")
+        self._processo("P1", cliente=c1)
+        self._processo("P2", cliente=c2)
+
+        resposta = self._get()
+
+        self.assertFalse(resposta.context["cloc_mostrando_estados"])
+        self.assertTrue(resposta.context["cloc_mostrando_cidades"])
+        self.assertEqual(resposta.context["cloc_estado_ativo"], "SP")
+
+    def test_mostra_estados_quando_ha_mais_de_um(self):
+        c1 = self._cliente("C1", estado="SP")
+        c2 = self._cliente("C2", estado="RJ")
+        self._processo("P1", cliente=c1)
+        self._processo("P2", cliente=c2)
+
+        resposta = self._get()
+
+        self.assertTrue(resposta.context["cloc_mostrando_estados"])
+        opcoes = {o["valor"]: o["total"] for o in resposta.context["cloc_estado_opcoes"]}
+        self.assertEqual(opcoes["SP"], 1)
+        self.assertEqual(opcoes["RJ"], 1)
+
+    def test_drill_down_ate_bairro_por_query_param(self):
+        c1 = self._cliente("C1", estado="SP", cidade="Campinas", bairro="Centro")
+        c2 = self._cliente("C2", estado="RJ", cidade="Niterói", bairro="Icaraí")
+        self._processo("P1", cliente=c1)
+        self._processo("P2", cliente=c2)
+
+        resposta = self._get(cloc_estado="SP")
+
+        self.assertTrue(resposta.context["cloc_mostrando_bairros"])
+        bairros = {b["label"]: b["total"] for b in resposta.context["cloc_bairro_barras"]}
+        self.assertEqual(bairros["Centro"], 1)
+
+    def test_cliente_sem_processo_no_escopo_nao_aparece(self):
+        self._cliente("Sem processo algum", estado="BA")
+        c1 = self._cliente("Com processo", estado="MG")
+        self._processo("P1", cliente=c1)
+
+        resposta = self._get()
+
+        self.assertEqual(resposta.context["total_clientes_localidade"], 1)
+
+    def test_respeita_escopo_somente_meus(self):
+        outro = User.objects.create_user("outro_resp3", password="testpass")
+        cliente_meu = self._cliente("Meu cliente", estado="MG")
+        cliente_de_outro = self._cliente("Cliente de outro", estado="BA")
+        self._processo("Meu processo", cliente=cliente_meu)
+        self._processo("Processo de outro", responsavel=outro, cliente=cliente_de_outro)
+
+        resposta = self._get(escopo="somente_seus")
+
+        self.assertEqual(resposta.context["total_clientes_localidade"], 1)
+
+    def test_mesmo_cliente_em_varios_processos_conta_uma_vez(self):
+        cliente = self._cliente("C1", estado="SP")
+        self._processo("P1", cliente=cliente)
+        self._processo("P2", cliente=cliente)
+
+        resposta = self._get()
+
+        self.assertEqual(resposta.context["total_clientes_localidade"], 1)
+
+
 class TestAnalisePatrocinio(AnaliseBase):
     @classmethod
     def get_test_schema_name(cls):

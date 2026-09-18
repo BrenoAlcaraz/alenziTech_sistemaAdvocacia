@@ -623,6 +623,10 @@ def adicionar_movimentacao(request, pk):
             if novo_resultado:
                 processo.resultado_sentenca = novo_resultado
                 campos_processo_atualizados.append("resultado_sentenca")
+            nova_fase_andamento = form.cleaned_data.get("atualizar_fase_andamento")
+            if nova_fase_andamento:
+                processo.fase_andamento_atual = nova_fase_andamento
+                campos_processo_atualizados.append("fase_andamento_atual")
             if campos_processo_atualizados:
                 processo.save(update_fields=campos_processo_atualizados)
             registrar_atividade(

@@ -38,7 +38,7 @@ from apps.processos.models import Intimacao, MovimentacaoProcessual, Processo
 from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
 from apps.tarefas.models import Tarefa
 from apps.agenda.models import Compromisso, ParticipanteCompromisso
-from apps.financeiro.models import LancamentoFinanceiro
+from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 
 
 User = get_user_model()
@@ -186,6 +186,14 @@ def painel(request):
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and _tem_acesso_dados_financeiro(request.user)
     )
+    # Perfil "solicitações" (Painel #4, specs/painel-novos-recortes-
+    # analise.md): sem acesso ao caixa geral, mas com um mini-card próprio
+    # das solicitações financeiras que ele mesmo abriu.
+    acesso_financeiro_solicitacoes = (
+        tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
+        and not acesso_financeiro
+        and _nivel_financeiro(request.user) == NIVEL_SOLICITACOES
+    )
     acesso_usuarios_ativos = tem_habilitacao(request.user, MODULO_GERIR, HAB_GERIR_CRIAR_USUARIO)
 
     resumo = {}
@@ -232,6 +240,12 @@ def painel(request):
         resumo["a_pagar"] = _formatar_moeda(a_pagar)
         resumo["saldo"] = _formatar_moeda(abs(saldo))
         resumo["saldo_negativo"] = saldo < 0
+
+    if acesso_financeiro_solicitacoes:
+        resumo["minhas_solicitacoes_abertas"] = SolicitacaoFinanceira.objects.filter(
+            solicitante=request.user,
+            status__in=["solicitada", "em_analise", "aprovada"],
+        ).count()
 
     if acesso_usuarios_ativos:
         resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
@@ -300,6 +314,7 @@ def painel(request):
         "acesso_tarefas": acesso_tarefas,
         "acesso_agenda": acesso_agenda,
         "acesso_financeiro": acesso_financeiro,
+        "acesso_financeiro_solicitacoes": acesso_financeiro_solicitacoes,
         "acesso_usuarios_ativos": acesso_usuarios_ativos,
         "acesso_gestor": _pode_ver_painel_gestor(request.user),
         "plano_nome": plano_nome,
@@ -418,6 +433,25 @@ def analise(request):
         total,
     )
 
+    # Fase do processo (Processo.fase já existente — Painel #3, specs/
+    # painel-novos-recortes-analise.md — só expõe como bloco novo aqui).
+    grupos_fase = _agrupar_por_campo(processos, "fase")
+    fase_barras = _barras(
+        grupos_fase,
+        lambda v: dict(Processo.FASE_CHOICES).get(v, v),
+        total,
+    )
+
+    # Fase do andamento atual (Painel #2) — só o campo manual; sugestão
+    # automática por tipo de andamento fica pendente de validação do
+    # sócio advogado (ver "Retomada desta spec" no arquivo da spec).
+    grupos_fase_andamento = _agrupar_por_campo(processos, "fase_andamento_atual")
+    fase_andamento_barras = _barras(
+        grupos_fase_andamento,
+        lambda v: "Não informado" if v == _NAO_INFORMADO else dict(Processo.FASE_ANDAMENTO_CHOICES).get(v, v),
+        total,
+    )
+
     # Patrocínio (best-effort por CPF/CNPJ)
     grupos_patrocinio = defaultdict(list)
     for processo in processos:
@@ -490,6 +524,64 @@ def analise(request):
             "clicavel": len(grupos_comarca) > 1,
         })
 
+    # Clientes por localidade: Estado → Cidade → Bairro, com auto-skip
+    # (Painel #1, specs/painel-novos-recortes-analise.md) — espelha o
+    # padrão de "Processos por localidade" acima, mas usa o endereço do
+    # Cliente e fica restrito aos clientes vinculados aos processos já
+    # filtrados pelo escopo/filtros desta página.
+    clientes_vistos = {}
+    for processo in processos:
+        for cliente in processo.clientes.all():
+            clientes_vistos[cliente.pk] = cliente
+    clientes_localidade = list(clientes_vistos.values())
+    total_clientes_localidade = len(clientes_localidade)
+
+    cloc_estado_qs = request.GET.get("cloc_estado")
+    cloc_cidade_qs = request.GET.get("cloc_cidade")
+
+    grupos_cliente_estado = _agrupar_por_campo(clientes_localidade, "estado")
+    cliente_estado_opcoes = None
+    if len(grupos_cliente_estado) <= 1:
+        cliente_estado_ativo = next(iter(grupos_cliente_estado), None)
+    elif cloc_estado_qs in grupos_cliente_estado:
+        cliente_estado_ativo = cloc_estado_qs
+    else:
+        cliente_estado_ativo = None
+        cliente_estado_opcoes = _barras(grupos_cliente_estado, _rotulo_estado, total_clientes_localidade)
+
+    cliente_cidade_opcoes = None
+    cliente_cidade_ativa = None
+    grupos_cliente_cidade = {}
+    if cliente_estado_ativo is not None:
+        grupos_cliente_cidade = _agrupar_por_campo(grupos_cliente_estado[cliente_estado_ativo], "cidade")
+        if len(grupos_cliente_cidade) <= 1:
+            cliente_cidade_ativa = next(iter(grupos_cliente_cidade), None)
+        elif cloc_cidade_qs in grupos_cliente_cidade:
+            cliente_cidade_ativa = cloc_cidade_qs
+        else:
+            cliente_cidade_opcoes = _barras(
+                grupos_cliente_cidade, _rotulo_simples, len(grupos_cliente_estado[cliente_estado_ativo])
+            )
+
+    cliente_bairro_barras = []
+    if cliente_cidade_ativa is not None:
+        grupos_cliente_bairro = _agrupar_por_campo(grupos_cliente_cidade[cliente_cidade_ativa], "bairro")
+        cliente_bairro_barras = _barras(
+            grupos_cliente_bairro, _rotulo_simples, len(grupos_cliente_cidade[cliente_cidade_ativa])
+        )
+
+    cliente_loc_breadcrumb = []
+    if cliente_estado_ativo is not None:
+        cliente_loc_breadcrumb.append({
+            "label": _rotulo_estado(cliente_estado_ativo),
+            "clicavel": len(grupos_cliente_estado) > 1,
+        })
+    if cliente_cidade_ativa is not None:
+        cliente_loc_breadcrumb.append({
+            "label": _rotulo_simples(cliente_cidade_ativa),
+            "clicavel": len(grupos_cliente_cidade) > 1,
+        })
+
     # Tempo e resultados
     processos_ativos_tempo_vida = [
         p for p in processos if p.status == "ativo" and p.data_distribuicao
@@ -539,6 +631,8 @@ def analise(request):
         "total_processos": total,
         "natureza_barras": natureza_barras,
         "status_barras": status_barras,
+        "fase_barras": fase_barras,
+        "fase_andamento_barras": fase_andamento_barras,
         "patrocinio_barras": patrocinio_barras,
         "loc_breadcrumb": breadcrumb,
         "loc_estado_ativo": estado_ativo,
@@ -551,6 +645,16 @@ def analise(request):
         "loc_mostrando_cidades": estado_ativo is not None and cidade_opcoes is not None,
         "loc_mostrando_comarcas": cidade_ativa is not None and comarca_opcoes is not None,
         "loc_mostrando_varas": comarca_ativa is not None,
+        "total_clientes_localidade": total_clientes_localidade,
+        "cloc_breadcrumb": cliente_loc_breadcrumb,
+        "cloc_estado_ativo": cliente_estado_ativo,
+        "cloc_cidade_ativa": cliente_cidade_ativa,
+        "cloc_estado_opcoes": cliente_estado_opcoes,
+        "cloc_cidade_opcoes": cliente_cidade_opcoes,
+        "cloc_bairro_barras": cliente_bairro_barras,
+        "cloc_mostrando_estados": cliente_estado_opcoes is not None,
+        "cloc_mostrando_cidades": cliente_estado_ativo is not None and cliente_cidade_opcoes is not None,
+        "cloc_mostrando_bairros": cliente_cidade_ativa is not None,
         "filtros_querystring": filtros_querystring,
         "tempo_vida_medio": _formatar_periodo(media_dias_vida),
         "tempo_entre_andamentos": _formatar_periodo(media_geral_entre_andamentos),

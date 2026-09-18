@@ -310,6 +310,15 @@ class MovimentacaoProcessualForm(forms.ModelForm):
         choices=[("", "Não alterar")] + Processo.RESULTADO_SENTENCA_CHOICES,
         widget=forms.Select(attrs={"class": "select"}),
     )
+    # Sem sugestão automática por tipo de andamento nesta versão — ver
+    # comentário em Processo.FASE_ANDAMENTO_CHOICES
+    # (specs/painel-novos-recortes-analise.md).
+    atualizar_fase_andamento = forms.ChoiceField(
+        required=False,
+        label="Atualizar fase do andamento atual",
+        choices=[("", "Não alterar")] + Processo.FASE_ANDAMENTO_CHOICES,
+        widget=forms.Select(attrs={"class": "select"}),
+    )
 
     class Meta:
         model = MovimentacaoProcessual

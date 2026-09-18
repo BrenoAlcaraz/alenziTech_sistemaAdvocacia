@@ -48,6 +48,31 @@ class Processo(models.Model):
         ("outro", "Outro"),
     ]
 
+    # "Fase do andamento atual" (specs/painel-novos-recortes-analise.md,
+    # Painel #2) — sempre preenchida manualmente por quem lança o
+    # andamento; NÃO tem sugestão automática por tipo de andamento (essa
+    # parte fica pendente de validação do sócio advogado, mesma exigência
+    # já usada em agenda-prazos-processuais-automaticos.md — ver
+    # docs/STATUS.md).
+    FASE_ANDAMENTO_CHOICES = [
+        ("aguardando_retorno_citacao", "Aguardando retorno de citação"),
+        ("prazo_contestacao", "Em prazo de contestação"),
+        ("prazo_replica", "Em prazo de réplica"),
+        ("aguardando_decisao_tutela", "Aguardando decisão de tutela"),
+        ("aguardando_audiencia", "Aguardando audiência"),
+        ("alegacoes_finais", "Em alegações finais"),
+        ("aguardando_sentenca", "Aguardando sentença"),
+        ("aguardando_transito_julgado", "Aguardando trânsito em julgado"),
+        ("aguardando_expedicao_oficio", "Aguardando expedição de ofício"),
+        ("prazo_contrarrazoes", "Em prazo de contrarrazões"),
+        ("aguardando_decisao", "Aguardando decisão"),
+        ("aguardando_resultado_buscas", "Aguardando resultado de buscas"),
+        ("aguardando_restricao_bens", "Aguardando restrição de bens"),
+        ("aguardando_pericia", "Aguardando perícia"),
+        ("aguardando_laudo_pericial", "Aguardando laudo pericial"),
+        ("aguardando_alvara", "Aguardando alvará"),
+    ]
+
     GRATUIDADE_CHOICES = [
         ("nao_requerida", "Não Requerida"),
         ("requerida", "Requerida"),
@@ -85,6 +110,10 @@ class Processo(models.Model):
     valor_causa = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ativo")
     fase = models.CharField(max_length=30, choices=FASE_CHOICES, default="conhecimento")
+    fase_andamento_atual = models.CharField(
+        max_length=40, choices=FASE_ANDAMENTO_CHOICES, blank=True,
+        verbose_name="Fase do andamento atual",
+    )
     gratuidade_justica_status = models.CharField(max_length=20, choices=GRATUIDADE_CHOICES, default="nao_requerida")
     resultado_sentenca = models.CharField(
         max_length=30, choices=RESULTADO_SENTENCA_CHOICES, blank=True

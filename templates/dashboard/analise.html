@@ -239,6 +239,143 @@
 
 </div>
 
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+  {# ── Processos por fase ───────────────────────────────────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por fase</h2>
+    <div class="flex flex-col gap-3">
+      {% for barra in fase_barras %}
+        <details>
+          <summary class="cursor-pointer list-none flex items-center gap-3">
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+            </span>
+            <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+          </summary>
+          <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+            {% for processo in barra.processos %}
+              <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% empty %}
+        <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Processos por fase do andamento atual ──────────────────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos por fase do andamento atual</h2>
+    <div class="flex flex-col gap-3">
+      {% for barra in fase_andamento_barras %}
+        <details>
+          <summary class="cursor-pointer list-none flex items-center gap-3">
+            <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+            <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+            </span>
+            <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+          </summary>
+          <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+            {% for processo in barra.processos %}
+              <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                <p class="text-xs text-gray-800 truncate">{{ processo.titulo }}</p>
+                <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+              </a>
+            {% endfor %}
+          </div>
+        </details>
+      {% empty %}
+        <p class="text-sm text-gray-400">Nenhum processo no filtro atual.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<div class="grid grid-cols-1 gap-4 mb-4">
+
+  {# ── Clientes por localidade (Estado → Cidade → Bairro) ─────────────────── #}
+  <div class="card p-5">
+    <h2 class="text-sm font-semibold text-gray-700 mb-4">Clientes por localidade</h2>
+
+    {% if cloc_breadcrumb %}
+    <div class="text-xs text-gray-500 mb-3 flex items-center gap-1.5 flex-wrap">
+      {% with crumb0=cloc_breadcrumb.0 crumb1=cloc_breadcrumb.1 %}
+        {% if crumb0.clicavel %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb0.label }}</a>
+        {% else %}
+          <span>{{ crumb0.label }}</span>
+        {% endif %}
+        {% if crumb1 %}
+          <span class="text-gray-300">/</span>
+          {% if crumb1.clicavel %}
+            <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&cloc_estado={{ cloc_estado_ativo }}" class="text-juridico-ouro font-medium hover:underline">{{ crumb1.label }}</a>
+          {% else %}
+            <span>{{ crumb1.label }}</span>
+          {% endif %}
+        {% endif %}
+      {% endwith %}
+    </div>
+    {% endif %}
+
+    {% if cloc_mostrando_estados %}
+      <div class="flex flex-col gap-2">
+        {% for opcao in cloc_estado_opcoes %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&cloc_estado={{ opcao.valor }}"
+             class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
+            <span class="text-xs text-gray-700">{{ opcao.label }}</span>
+            <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% elif cloc_mostrando_cidades %}
+      <div class="flex flex-col gap-2">
+        {% for opcao in cloc_cidade_opcoes %}
+          <a href="{% url 'dashboard:analise' %}?{{ filtros_querystring }}&cloc_estado={{ cloc_estado_ativo }}&cloc_cidade={{ opcao.valor }}"
+             class="flex items-center justify-between gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-gray-50">
+            <span class="text-xs text-gray-700">{{ opcao.label }}</span>
+            <span class="text-xs text-gray-500">{{ opcao.total }} ({{ opcao.pct }}%)</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% elif cloc_mostrando_bairros %}
+      <div class="flex flex-col gap-3">
+        {% for barra in cloc_bairro_barras %}
+          <details>
+            <summary class="cursor-pointer list-none flex items-center gap-3">
+              <span class="text-xs text-gray-700 w-32 flex-shrink-0 truncate">{{ barra.label }}</span>
+              <span class="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <span class="block h-full bg-juridico-ouro rounded-full" style="width: {{ barra.pct }}%;"></span>
+              </span>
+              <span class="text-xs text-gray-500 w-16 text-right flex-shrink-0">{{ barra.total }} ({{ barra.pct }}%)</span>
+            </summary>
+            <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
+              {% for cliente in barra.processos %}
+                <a href="{% url 'clientes:detalhe' cliente.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
+                  <p class="text-xs text-gray-800 truncate">{{ cliente.nome_razao_social }}</p>
+                  <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
+                </a>
+              {% endfor %}
+            </div>
+          </details>
+        {% empty %}
+          <p class="text-sm text-gray-400">Nenhum cliente no filtro atual.</p>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-sm text-gray-400">Nenhum cliente no filtro atual.</p>
+    {% endif %}
+  </div>
+
+</div>
+
 {# ── Tempo e resultados ───────────────────────────────────────────────────── #}
 <div class="card p-5">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Tempo e resultados</h2>

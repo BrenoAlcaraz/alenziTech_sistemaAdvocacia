@@ -270,6 +270,15 @@
         </div>
       </div>
     </details>
+    <details class="mb-3">
+      <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar fase do andamento atual (opcional)</summary>
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="label">{{ form_movimentacao.atualizar_fase_andamento.label }}</label>
+          {{ form_movimentacao.atualizar_fase_andamento }}
+        </div>
+      </div>
+    </details>
     <button type="submit" class="btn-primary text-sm">+ Adicionar andamento</button>
   </form>
   {% endif %}
