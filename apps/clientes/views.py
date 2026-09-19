@@ -26,7 +26,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
-from apps.modelos.services import montar_conteudo_procuracao, titulo_peca_procuracao
+from apps.modelos.services import gerar_peca_procuracao
 from .models import Cliente, Documento
 from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
 from .services import clientes_relacionados
@@ -156,6 +156,11 @@ def detalhe(request, pk):
         or cliente.responsavel_id == request.user.pk
     )
     documentos = list(cliente.documentos.select_related("autor"))
+    pode_ver_procuracoes = tem_permissao_modulo(request.user, MODULO_MODELOS)
+    procuracoes_geradas = (
+        list(cliente.pecas_geradas.select_related("criado_por").order_by("-criado_em"))
+        if pode_ver_procuracoes else []
+    )
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
         "processos": processos,
@@ -167,6 +172,8 @@ def detalhe(request, pk):
         ),
         "documentos": documentos,
         "documentos_total": len(documentos),
+        "pode_ver_procuracoes": pode_ver_procuracoes,
+        "procuracoes_geradas": procuracoes_geradas,
         "form_documento": DocumentoForm(),
         "pode_adicionar_documento": pode_modificar and _pode_adicionar_documento(request.user),
         "pode_excluir_documento": pode_modificar and _pode_excluir_documento(request.user),
@@ -284,7 +291,8 @@ def excluir(request, pk):
     """Exclusão definitiva — distinta de Desativar. Remove o Cliente;
     lançamentos, custas, honorários, tarefas e compromissos vinculados
     permanecem no sistema, só perdem a referência (`on_delete=SET_NULL`,
-    já é o padrão hoje nesses modelos)."""
+    já é o padrão hoje nesses modelos). As procurações geradas para o
+    cliente (`ModeloPeca.cliente`, CASCADE) saem junto com ele."""
     if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
         raise PermissionDenied
     if not tem_habilitacao(request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR):
@@ -380,20 +388,15 @@ def gerar_procuracao(request, pk):
     cliente = get_object_or_404(_clientes_no_escopo(request, escopo, ativo=True), pk=pk)
 
     categoria_procuracao = CategoriaModeloPeca.objects.filter(nome="Procuração").first()
+    # Peça já gerada para um cliente (`cliente` preenchido) nunca é modelo-base.
     modelos_procuracao = (
-        categoria_procuracao.modelos.order_by("-criado_em")
+        categoria_procuracao.modelos.filter(cliente__isnull=True).order_by("-criado_em")
         if categoria_procuracao else ModeloPeca.objects.none()
     )
 
     if request.method == "POST" and modelos_procuracao.exists():
         modelo_base = get_object_or_404(modelos_procuracao, pk=request.POST.get("modelo_base"))
-        peca = ModeloPeca.objects.create(
-            titulo=titulo_peca_procuracao(modelo_base.titulo, cliente),
-            categoria=modelo_base.categoria,
-            area_direito=modelo_base.area_direito,
-            conteudo=montar_conteudo_procuracao(modelo_base.conteudo, cliente),
-            criado_por=request.user,
-        )
+        peca = gerar_peca_procuracao(modelo_base, cliente, request.user)
         return redirect("modelos:detalhe", pk=peca.pk)
 
     return render(request, "clientes/gerar_procuracao.html", {

@@ -107,7 +107,9 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   não altera ordenação de fila, prazo ou notificação.
 - Exclusão definitiva (PDR-0025), distinta de desativar — lançamentos
   financeiros, tarefas e compromissos vinculados permanecem, só perdem
-  a referência.
+  a referência. Exceção: as procurações geradas para o cliente
+  (`ModeloPeca.cliente`) são excluídas junto com ele, para nunca virarem
+  modelo-base com os dados dele.
 - "Clientes relacionados": dois clientes aparecem vinculados um ao
   outro quando estão do mesmo polo (ambos ativo, ou ambos passivo) de
   algum processo em comum — depende de os dois terem sido cadastrados
@@ -379,6 +381,16 @@ Repositório de modelos de peças/documentos reutilizáveis.
   PJ), virando um novo `ModeloPeca` no acervo sem alterar o modelo
   original. Sem nenhum modelo cadastrado nessa categoria, o botão
   orienta a criar um em vez de gerar um texto genérico não revisável.
+  A peça gerada fica vinculada ao cliente (`ModeloPeca.cliente`) e
+  nunca é oferecida como modelo-base: só peças sem cliente entram na
+  lista de modelos-base — a procuração de um cliente não serve de base
+  para a de outro. Procurações geradas antes desse vínculo continuam
+  sem cliente (o cliente não é adivinhado pelo título) e seguem na lista
+  de modelos-base até alguém apagá-las. A aba Documentos do cliente
+  ganha a seção "Procurações geradas" (título, data, autor e link para a
+  peça, sem exibir o conteúdo), visível só a quem tem acesso ao módulo
+  Modelos, além do escopo de leitura do cliente; o contador
+  "Documentos (n)" conta só arquivos anexados.
 - Fora de escopo: dedup automática, geração em massa assistida por IA
   (Fase 2 do fluxo de peças repetitivas), edição colaborativa em tempo
   real, categorias hierárquicas, diff visual entre versões de peça.

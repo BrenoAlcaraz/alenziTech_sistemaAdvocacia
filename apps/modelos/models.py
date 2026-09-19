@@ -106,6 +106,13 @@ class ModeloPeca(models.Model):
     cabecalho_replicacao = models.CharField(max_length=10, choices=REPLICACAO_CHOICES, default="todas")
     rodape_replicacao = models.CharField(max_length=10, choices=REPLICACAO_CHOICES, default="todas")
     criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    # Peça gerada para um cliente (ex.: procuração) — nunca é oferecida como
+    # modelo-base. CASCADE (não SET_NULL): a exclusão definitiva do cliente
+    # (PDR-0025) não pode transformar a peça, com os dados dele, em modelo-base.
+    cliente = models.ForeignKey(
+        "clientes.Cliente", on_delete=models.CASCADE, null=True, blank=True,
+        related_name="pecas_geradas",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     # Futuramente: IA usará esses modelos como exemplos para geração de peças.

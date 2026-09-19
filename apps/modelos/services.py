@@ -171,6 +171,23 @@ def titulo_peca_procuracao(titulo_base, cliente):
     return f"{titulo_base} — {cliente.nome_razao_social}"[:255]
 
 
+def gerar_peca_procuracao(modelo_base, cliente, autor):
+    """Nova peça de Procuração do cliente a partir de um modelo-base, sem
+    alterar o modelo; a peça fica vinculada ao cliente (nunca vira
+    modelo-base). Único ponto de geração — reaproveitado por todo fluxo
+    que gera procuração."""
+    from .models import ModeloPeca
+
+    return ModeloPeca.objects.create(
+        titulo=titulo_peca_procuracao(modelo_base.titulo, cliente),
+        categoria=modelo_base.categoria,
+        area_direito=modelo_base.area_direito,
+        conteudo=montar_conteudo_procuracao(modelo_base.conteudo, cliente),
+        criado_por=autor,
+        cliente=cliente,
+    )
+
+
 # ── Exportação em PDF/DOCX ──────────────────────────────────────────────────
 # `ModeloPeca.conteudo` vem tanto do editor visual (HTML só com <p>/<div>,
 # <b>/<i>/<u> e `text-align` inline — ver `_nova_peca_editor_js.html`) quanto

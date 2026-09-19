@@ -267,6 +267,27 @@
     {% include "components/empty_state.html" with mensagem="Nenhum documento anexado." %}
   {% endif %}
 
+  {% if pode_ver_procuracoes %}
+  <h2 class="text-sm font-semibold text-gray-700 mt-6 mb-3">Procurações geradas <span class="text-gray-400">({{ procuracoes_geradas|length }})</span></h2>
+  {% if procuracoes_geradas %}
+  <div class="flex flex-col gap-3">
+    {% for peca in procuracoes_geradas %}
+      <div class="card px-5 py-4 flex items-center justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ peca.titulo }}">{{ peca.titulo }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            {{ peca.criado_por|default:"—" }} · {{ peca.criado_em|date:"d/m/Y H:i" }}
+          </p>
+        </div>
+        <a href="{% url 'modelos:detalhe' peca.pk %}" class="text-xs text-juridico-verde hover:underline flex-shrink-0">Abrir</a>
+      </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% include "components/empty_state.html" with mensagem="Nenhuma procuração gerada para este cliente." %}
+  {% endif %}
+  {% endif %}
+
 {% endif %}
 
 {% endblock %}
