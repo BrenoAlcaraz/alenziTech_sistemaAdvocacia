@@ -203,13 +203,23 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   catálogo agrupado pela área do processo (`Processo.area_direito`):
   Cível, Trabalhista e Penal têm listas próprias; todas as demais áreas
   do catálogo (Consumidor, Sucessões, Administrativo, Tributário,
-  Família, Empresarial, Eleitoral, Médico, Previdenciário, Digital,
+  Família, Empresarial, Médico, Previdenciário, Digital,
   Propriedade Intelectual, Imobiliário, Desportivo, Direito
   Internacional, Outro) caem no catálogo Cível como padrão (sem
   catálogo próprio) — decisão deliberada para manter o escopo pequeno;
   catálogo específico para alguma dessas áreas é spec futura própria,
   não extensão silenciosa. Um grupo "Genéricos" (Despacho, Decisão
   interlocutória, Perícia) aparece sempre, em qualquer área.
+- "Eleitoral" não faz parte do catálogo de área do direito (removido na
+  revisão do sócio de 2026-09-17); processos e peças que a tinham foram
+  convertidos para "Outro".
+
+### Criação automática por IA (reservada)
+
+- `processos:novo` exibe o botão "Criar automaticamente" desabilitado
+  ("em breve"), só na criação. É ponto de entrada reservado para a IA
+  jurídica (PDR-0008): inerte, sem endpoint e sem gate por
+  `processos_usar_ia`. A criação manual é o único caminho hoje.
 - `Processo.AREAS_CHOICES` é a fonte única do catálogo de área do
   direito — Modelo de Peças (`apps/modelos/forms.py`) reusa a mesma
   lista em vez de manter um catálogo próprio divergente.

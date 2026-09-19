@@ -11,6 +11,13 @@
   <h1 class="text-xl font-bold text-gray-900">
     {% if modo == "novo" %}Novo processo{% else %}Editar processo{% endif %}
   </h1>
+  {% if modo == "novo" %}
+  {# Ponto de entrada reservado para a IA jurídica (PDR-0008) — inerte, sem endpoint. #}
+  <button type="button" class="btn-secondary ml-auto opacity-50 cursor-not-allowed" disabled
+          title="Em breve" data-criar-automaticamente>
+    Criar automaticamente <span class="text-xs text-gray-500">(em breve)</span>
+  </button>
+  {% endif %}
 </div>
 
 <div class="card p-6 max-w-2xl">

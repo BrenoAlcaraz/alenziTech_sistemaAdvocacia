@@ -29,7 +29,6 @@ class Processo(models.Model):
         ("TRIBUTÁRIO", "Tributário"),
         ("FAMÍLIA", "Família"),
         ("EMPRESARIAL", "Empresarial"),
-        ("ELEITORAL", "Eleitoral"),
         ("MÉDICO", "Médico"),
         ("PREVIDENCIÁRIO", "Previdenciário"),
         ("DIGITAL", "Digital"),
