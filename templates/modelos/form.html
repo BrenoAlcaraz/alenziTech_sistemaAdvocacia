@@ -158,12 +158,21 @@
 
     </div>
 
-    <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
+    <div class="flex flex-wrap gap-3 pt-5 border-t border-gray-100 mt-5">
+      {% if cliente_origem %}
+      {# Fluxo "Criar modelo de Procuração" (vindo de Clientes): mesmo POST, o segundo botão também gera a procuração do cliente. #}
+      <button type="submit" class="btn-secondary">Salvar modelo</button>
+      <button type="submit" name="criar_procuracao" value="1" class="btn-primary text-left texto-quebra">
+        Salvar e criar procuração para {{ cliente_origem.nome_razao_social }}
+      </button>
+      <a href="{% url 'clientes:gerar_procuracao' cliente_origem.pk %}" class="btn-secondary">Cancelar</a>
+      {% else %}
       <button type="submit" class="btn-primary">
         {% if modo == "novo" %}Criar modelo{% else %}Salvar alterações{% endif %}
       </button>
       <a href="{% if modo == 'editar' and modelo %}{% url 'modelos:detalhe' modelo.pk %}{% else %}{% url 'modelos:lista' %}{% endif %}"
          class="btn-secondary">Cancelar</a>
+      {% endif %}
     </div>
   </form>
 </div>

@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import ProtectedError, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -19,6 +20,7 @@ from apps.accounts.permissoes_constants import (
     HAB_MODELOS_GERIR_CATEGORIAS,
     MODULO_MODELOS,
 )
+from apps.clientes.views import resolver_cliente_para_procuracao
 from apps.modelos.forms import (
     AREAS_DIREITO,
     MODO_BASE_ACERVO,
@@ -37,6 +39,7 @@ from apps.modelos.models import (
     VersaoModeloPeca,
 )
 from apps.modelos.services import (
+    gerar_peca_procuracao,
     ErroImportacaoDocumento,
     extrair_texto_documento,
     gerar_docx_modelo,
@@ -239,12 +242,27 @@ def novo(request):
         raise PermissionDenied
 
     estilo = _obter_estilo_escritorio()
+    # Fluxo "Criar modelo de Procuração" (vindo de Clientes): só ativo com
+    # cliente válido no escopo E categoria Procuração existente.
+    categoria_procuracao = CategoriaModeloPeca.objects.filter(nome="Procuração").first()
+    cliente_origem = resolver_cliente_para_procuracao(request) if categoria_procuracao else None
+
     if request.method == "POST":
-        form = ModeloPecaForm(request.POST)
+        form = ModeloPecaForm(request.POST, initial=_initial_fluxo_procuracao(cliente_origem, categoria_procuracao))
+        if cliente_origem:
+            # `disabled` faz o Django ignorar o valor postado e usar o initial.
+            form.fields["categoria"].disabled = True
         if form.is_valid():
-            modelo = form.save(commit=False)
-            modelo.criado_por = request.user
-            modelo.save()
+            criar_procuracao = cliente_origem is not None and "criar_procuracao" in request.POST
+            with transaction.atomic():
+                modelo = form.save(commit=False)
+                modelo.criado_por = request.user
+                modelo.save()
+                if criar_procuracao:
+                    gerar_peca_procuracao(modelo, cliente_origem, request.user)
+            if criar_procuracao:
+                messages.success(request, "Procuração criada")
+                return redirect(f"{reverse('clientes:detalhe', args=[cliente_origem.pk])}?aba=documentos")
             return redirect("modelos:detalhe", pk=modelo.pk)
     else:
         # Moldura de contexto no momento da criação (mesma lógica do
@@ -255,7 +273,10 @@ def novo(request):
         form = ModeloPecaForm(initial={
             "cabecalho_replicacao": slots.get("cabecalho", {}).get("replicacao", "todas"),
             "rodape_replicacao": slots.get("rodape", {}).get("replicacao", "todas"),
+            **_initial_fluxo_procuracao(cliente_origem, categoria_procuracao),
         })
+        if cliente_origem:
+            form.fields["categoria"].disabled = True
 
     return render(request, "modelos/form.html", {
         "form": form,
@@ -265,7 +286,12 @@ def novo(request):
         "config_documento": estilo.config_documento,
         "imagens_estilo_urls": _imagens_estilo_urls(estilo),
         "assinaturas_estilo": list(estilo.assinaturas.all()),
+        "cliente_origem": cliente_origem,
     })
+
+
+def _initial_fluxo_procuracao(cliente_origem, categoria_procuracao):
+    return {"categoria": categoria_procuracao.pk} if cliente_origem else {}
 
 
 # `editar`/`excluir` repetem "dono OU habilitação alheia" (2 ocorrências,

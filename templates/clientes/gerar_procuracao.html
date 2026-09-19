@@ -18,7 +18,7 @@
       crie primeiro um modelo na categoria <b>Procuração</b> — o texto de poderes vem desse modelo,
       esta tela nunca gera um texto de procuração do zero.
     </p>
-    <a href="{% url 'modelos:novo' %}" class="btn-primary text-sm">+ Criar modelo de Procuração</a>
+    <a href="{% url 'modelos:novo' %}?cliente={{ cliente.pk }}" class="btn-primary text-sm">+ Criar modelo de Procuração</a>
   {% else %}
     <p class="text-sm text-gray-500 mb-4">
       Nome, CPF/CNPJ e endereço do cliente

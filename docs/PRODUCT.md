@@ -380,7 +380,17 @@ Repositório de modelos de peças/documentos reutilizáveis.
   frente (nome/CPF-CNPJ/endereço, e nome/CPF/cargo do representante se
   PJ), virando um novo `ModeloPeca` no acervo sem alterar o modelo
   original. Sem nenhum modelo cadastrado nessa categoria, o botão
-  orienta a criar um em vez de gerar um texto genérico não revisável.
+  orienta a criar um em vez de gerar um texto genérico não revisável:
+  "+ Criar modelo de Procuração" abre o formulário de modelo com o
+  cliente de origem (`modelos:novo?cliente=<id>`, resolvido no mesmo
+  escopo/autorização de "Gerar procuração"; cliente inválido ou fora do
+  escopo é ignorado e o formulário abre normal). Nesse caminho "Tipo de
+  peça" vem como Procuração e travado (também no backend) e o rodapé
+  tem "Salvar modelo" (vai ao detalhe do modelo) e "Salvar e criar
+  procuração para <cliente>" (salva o modelo e gera a procuração do
+  cliente na mesma transação, voltando à aba Documentos com "Procuração
+  criada"). Sem a categoria Procuração cadastrada, o formulário é o
+  normal.
   A peça gerada fica vinculada ao cliente (`ModeloPeca.cliente`) e
   nunca é oferecida como modelo-base: só peças sem cliente entram na
   lista de modelos-base — a procuração de um cliente não serve de base

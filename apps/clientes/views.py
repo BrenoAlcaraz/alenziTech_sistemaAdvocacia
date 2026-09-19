@@ -36,6 +36,11 @@ User = get_user_model()
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 
 
+def _nivel_maximo_leitura(user):
+    nivel_maximo = nivel_acesso_modulo(user, MODULO_CLIENTES)
+    return nivel_maximo if nivel_maximo in _ESCOPOS_VALIDOS else NIVEL_SOMENTE_SEUS
+
+
 def _resolver_escopo(request):
     """
     Resolve o escopo efetivo de LEITURA (somente_seus/todos) desta
@@ -51,9 +56,7 @@ def _resolver_escopo(request):
     equivalentes.
     Retorna (escopo_efetivo, nivel_maximo).
     """
-    nivel_maximo = nivel_acesso_modulo(request.user, MODULO_CLIENTES)
-    if nivel_maximo not in _ESCOPOS_VALIDOS:
-        nivel_maximo = NIVEL_SOMENTE_SEUS
+    nivel_maximo = _nivel_maximo_leitura(request.user)
 
     solicitado = request.GET.get("escopo")
     if solicitado is None:
@@ -366,6 +369,22 @@ def excluir_documento(request, pk, documento_pk):
     documento = get_object_or_404(cliente.documentos, pk=documento_pk)
     documento.delete()
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
+
+
+def resolver_cliente_para_procuracao(request):
+    """Cliente do parâmetro `?cliente=` de `modelos:novo` (fluxo "Criar
+    modelo de Procuração"), ou None. Mesma autorização e mesmo escopo de
+    `gerar_procuracao`; valor ausente, inválido, fora do escopo ou sem a
+    autorização é simplesmente ignorado (o formulário abre normal)."""
+    valor = request.GET.get("cliente", "")
+    if not valor.isdigit():
+        return None
+    if not tem_permissao_modulo(request.user, MODULO_CLIENTES):
+        return None
+    if not _pode_gerar_procuracao(request.user):
+        return None
+    escopo = _nivel_maximo_leitura(request.user)
+    return _clientes_no_escopo(request, escopo, ativo=True).filter(pk=int(valor)).first()
 
 
 @login_required
