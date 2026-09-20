@@ -224,13 +224,13 @@ class TestClientesEscopoSomenteSeus(ClientesEscopoBase):
             "/clientes/novo/",
             {
                 "tipo": "PF",
-                "nome_razao_social": "Cliente Criado Limitado",
+                "nome_razao_social": "CLIENTE CRIADO LIMITADO",
                 "responsavel": self.outro_user.pk,  # tentativa de adulteração
             },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/clientes/", fetch_redirect_response=False)
-        cliente = Cliente.objects.get(nome_razao_social="Cliente Criado Limitado")
+        cliente = Cliente.objects.get(nome_razao_social="CLIENTE CRIADO LIMITADO")
         self.assertEqual(cliente.responsavel_id, self.user.pk)
 
     def test_post_adulterado_em_editar_nao_troca_responsavel(self):
@@ -445,13 +445,13 @@ class TestClientesEscopoAdmin(ClientesEscopoBase):
             "/clientes/novo/",
             {
                 "tipo": "PF",
-                "nome_razao_social": "Cliente Criado Pelo Admin",
+                "nome_razao_social": "CLIENTE CRIADO PELO ADMIN",
                 "responsavel": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/clientes/", fetch_redirect_response=False)
-        cliente = Cliente.objects.get(nome_razao_social="Cliente Criado Pelo Admin")
+        cliente = Cliente.objects.get(nome_razao_social="CLIENTE CRIADO PELO ADMIN")
         self.assertEqual(cliente.responsavel_id, self.outro_user.pk)
 
 

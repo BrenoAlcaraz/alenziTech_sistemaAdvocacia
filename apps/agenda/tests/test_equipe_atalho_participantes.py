@@ -155,3 +155,41 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
             set(compromisso.participacoes.values_list("usuario__username", flat=True)),
             {"membro_a_agenda_atalho", "membro_b_agenda_atalho"},
         )
+
+    def test_criacao_oferece_botao_adicionar_todos(self):
+        r = self.client.get("/agenda/novo/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'data-marcar-todos="#participantes-lista"')
+
+    def test_edicao_oferece_convidar_todos(self):
+        r = self.client.get(f"/agenda/{self.compromisso.pk}/editar/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "Convidar todos os usuários")
+
+    def _convidar_todos(self):
+        return self.client.post(
+            f"/agenda/{self.compromisso.pk}/participantes/todos/adicionar/",
+            HTTP_HOST=self.http_host,
+        )
+
+    def test_convidar_todos_cria_participacao_pendente_para_cada_elegivel(self):
+        ParticipanteCompromisso.objects.create(compromisso=self.compromisso, usuario=self.fora)
+        r = self._convidar_todos()
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(
+            self._participantes(),
+            {"membro_a_agenda_atalho", "membro_b_agenda_atalho", "fora_agenda_atalho"},
+        )
+        self.assertNotIn("responsavel_agenda_atalho", self._participantes())
+
+    def test_convidar_todos_e_idempotente(self):
+        self._convidar_todos()
+        self._convidar_todos()
+        self.assertEqual(
+            ParticipanteCompromisso.objects.filter(compromisso=self.compromisso).count(), 3
+        )
+
+    def test_convidar_todos_exige_poder_editar_o_compromisso(self):
+        self.client.force_login(self.membro_a)
+        r = self._convidar_todos()
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(self._participantes(), set())

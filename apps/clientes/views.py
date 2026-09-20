@@ -1,5 +1,6 @@
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import Http404
+from apps.saas_tenants.storage import resposta_de_arquivo
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -167,7 +168,9 @@ def detalhe(request, pk):
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
         "processos": processos,
-        "clientes_relacionados": clientes_relacionados(cliente),
+        "clientes_relacionados": clientes_relacionados(
+            cliente, base=_clientes_no_escopo(request, escopo, ativo=True),
+        ),
         "tarefas_relacionadas": tarefas_relacionadas,
         "tarefas_relacionadas_total": tarefas_relacionadas_total,
         "pode_excluir_cliente": pode_modificar and tem_habilitacao(
@@ -436,4 +439,4 @@ def baixar_documento(request, documento_pk):
     )
     if not documento.arquivo:
         raise Http404
-    return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())
+    return resposta_de_arquivo(request, documento.arquivo, documento.nome_do_documento())

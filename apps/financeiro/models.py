@@ -63,6 +63,24 @@ class LancamentoFinanceiro(models.Model):
         ("outro", "Outro"),
     ]
 
+    # Categorias próprias de cada tipo — o formulário só oferece as do tipo
+    # escolhido e o backend recusa a combinação inválida. "reembolso" como
+    # receita é o cliente devolvendo custa adiantada (credita nas custas
+    # judiciais dele); como despesa é o escritório reembolsando alguém.
+    CATEGORIAS_POR_TIPO = {
+        "receita": ("honorario", "exito", "reembolso", "outro"),
+        "despesa": (
+            "reembolso", "solicitacao_pagamento", "custa_judicial", "diligencia",
+            "pericia", "taxa", "salario", "aluguel", "software", "imposto",
+            "despesa_escritorio", "outro",
+        ),
+    }
+
+    # Despesas com estas categorias e cliente vinculado são custas do
+    # cliente: entram nos totais só pelo saldo devedor dele (ver
+    # `services.custas_a_recuperar`), nunca pelo lançamento em si.
+    CATEGORIAS_CUSTA_DO_CLIENTE = ("custa_judicial", "solicitacao_pagamento")
+
     FORMA_PAGAMENTO_CHOICES = [
         ("pix", "Pix"),
         ("boleto", "Boleto"),
@@ -173,6 +191,19 @@ class CustaJudicial(models.Model):
     )
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    # Crédito nascido de uma receita "Reembolso" do financeiro geral: o
+    # lançamento é a origem e o crédito some junto com ele.
+    lancamento = models.OneToOneField(
+        "LancamentoFinanceiro", on_delete=models.CASCADE, null=True, blank=True,
+        related_name="credito_custa",
+    )
+    # Só em `adiantamento`: o crédito que o cliente depositou/reembolsou
+    # para cobrir esta custa.
+    reembolsada_por = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="reembolsa",
+    )
+
     class Meta:
         verbose_name = "Custa Judicial"
         verbose_name_plural = "Custas Judiciais"
@@ -184,6 +215,14 @@ class CustaJudicial(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
+    @property
+    def reembolsada(self):
+        return self.reembolsada_por_id is not None
+
+    @property
+    def pode_reembolsar(self):
+        return self.tipo == "adiantamento" and self.cliente_id is not None and not self.reembolsada
 
 
 class Honorario(models.Model):
@@ -223,6 +262,40 @@ class Honorario(models.Model):
     taxa_mensal = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     data_termo = models.DateField(null=True, blank=True)
 
+    # Honorário sucumbencial calculado (PDR-0029): valor-base por
+    # percentual sobre a causa ou valor fixo, corrigido conforme o devedor
+    # e o índice. O total nunca é gravado — é recalculado a cada leitura
+    # (`services.calcular_honorario_sucumbencial`). `forma_condenacao`
+    # vazio = honorário no modelo simples (valor estimado informado).
+    FORMA_CONDENACAO_CHOICES = [
+        ("percentual", "Percentual sobre o valor da causa"),
+        ("fixo", "Valor fixo predeterminado"),
+    ]
+    DEVEDOR_CHOICES = [
+        ("pessoa", "Pessoa física ou jurídica"),
+        ("ente_estatal", "Ente estatal (União/Estado/Município)"),
+    ]
+    INDICE_CHOICES = [
+        ("inpc", "INPC (padrão legal)"),
+        ("igpm", "IGP-M (se previsto em contrato/sentença)"),
+        ("selic", "Taxa Selic (se previsto em contrato/sentença)"),
+    ]
+    forma_condenacao = models.CharField(max_length=12, choices=FORMA_CONDENACAO_CHOICES, blank=True)
+    percentual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    valor_causa = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    valor_fixo = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    devedor_tipo = models.CharField(max_length=14, choices=DEVEDOR_CHOICES, blank=True)
+    indice_correcao = models.CharField(max_length=6, choices=INDICE_CHOICES, blank=True)
+    taxa_indice_mensal = models.DecimalField(
+        max_digits=6, decimal_places=4, null=True, blank=True,
+        help_text="Taxa mensal (%) do índice escolhido, informada manualmente.",
+    )
+    data_correcao = models.DateField(null=True, blank=True)
+    data_juros = models.DateField(null=True, blank=True)
+    exito_percentual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    exito_valor_ganho = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    exito_data_correcao = models.DateField(null=True, blank=True)
+
     class Meta:
         verbose_name = "Honorário"
         verbose_name_plural = "Honorários"
@@ -230,6 +303,10 @@ class Honorario(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.valor_estimado}"
+
+    @property
+    def calculado(self):
+        return bool(self.forma_condenacao)
 
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
@@ -299,6 +376,11 @@ class SolicitacaoFinanceira(models.Model):
         LancamentoFinanceiro, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="solicitacao_origem",
     )
+    data_pagamento = models.DateField(null=True, blank=True)
+    pagamento_realizado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="solicitacoes_pagas",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -324,7 +406,7 @@ class SolicitacaoFinanceira(models.Model):
     def pode_transicionar_para(self, novo_status):
         return novo_status in self.TRANSICOES_VALIDAS.get(self.status, set())
 
-    def avancar_para(self, novo_status, *, pago_por=None, comprovante_pagamento=None):
+    def avancar_para(self, novo_status, *, pago_por=None, comprovante_pagamento=None, usuario=None):
         """Move a solicitação para o próximo estado do fluxo (PDR-0015).
 
         Ao atingir 'paga', gera o único LancamentoFinanceiro realizado
@@ -369,7 +451,9 @@ class SolicitacaoFinanceira(models.Model):
                 responsavel=self.solicitante,
             )
             self.status = novo_status
-            update_fields = ["status", "lancamento"]
+            self.data_pagamento = timezone.localdate()
+            self.pagamento_realizado_por = usuario
+            update_fields = ["status", "lancamento", "data_pagamento", "pagamento_realizado_por"]
             if exige_pagamento_de_custa:
                 self.pago_por = pago_por
                 self.comprovante_pagamento = comprovante_pagamento

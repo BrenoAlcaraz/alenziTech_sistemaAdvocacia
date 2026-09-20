@@ -1,7 +1,9 @@
+import mimetypes
 from pathlib import PurePosixPath
 
 from django.core.files.storage import FileSystemStorage
 from django.db import connection
+from django.http import FileResponse
 from django.urls import reverse
 from django.utils.deconstruct import deconstructible
 
@@ -15,6 +17,26 @@ def nome_do_arquivo(campo_arquivo):
     """Nome de exibição de um arquivo a partir do path armazenado num
     FileField — "" se não houver arquivo."""
     return campo_arquivo.name.rsplit("/", 1)[-1] if campo_arquivo else ""
+
+
+_TIPOS_PREVISUALIZAVEIS = ("application/pdf", "text/plain")
+
+
+def resposta_de_arquivo(request, campo_arquivo, nome=None):
+    """Entrega um arquivo protegido: por padrão abre para pré-visualizar
+    (botão de olho); `?baixar=1` força o download. Só PDF, imagem e texto
+    puro abrem no navegador — qualquer outro tipo (ex.: HTML enviado por
+    um usuário) é sempre baixado, nunca renderizado na origem do sistema."""
+    nome = nome or nome_do_arquivo(campo_arquivo)
+    tipo, _ = mimetypes.guess_type(nome)
+    previsualizavel = bool(tipo) and (
+        tipo in _TIPOS_PREVISUALIZAVEIS
+        or (tipo.startswith("image/") and tipo != "image/svg+xml")
+    )
+    baixar = request.GET.get("baixar") == "1" or not previsualizavel
+    resposta = FileResponse(campo_arquivo.open("rb"), filename=nome, as_attachment=baixar)
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
 
 
 def _schema_name_do_tenant(instance):

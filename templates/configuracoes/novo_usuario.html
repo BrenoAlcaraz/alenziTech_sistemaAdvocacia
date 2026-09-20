@@ -54,7 +54,18 @@
     </div>
 
     <div class="mb-4">
-      <label for="{{ form.grupo.id_for_label }}" class="label">Papel no escritório</label>
+      <label for="{{ form.papel.id_for_label }}" class="label">Papel de acesso</label>
+      {{ form.papel }}
+      {% if form.papel.errors %}
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.papel.errors.0 }}</p>
+      {% endif %}
+      <p class="mt-1 text-xs text-gray-400">
+        Papéis pré-definidos (Advogado Associado, Estagiário/Paralegal, Gestor Financeiro, Secretaria/Recepção...) e os criados pelo escritório. As permissões vêm do papel; ajustes individuais ficam em Permissões.
+      </p>
+    </div>
+
+    <div class="mb-4">
+      <label for="{{ form.grupo.id_for_label }}" class="label">Tipo de conta</label>
       {{ form.grupo }}
       {% if form.grupo.errors %}
         <p class="erro-campo mt-1 text-xs text-red-600">{{ form.grupo.errors.0 }}</p>

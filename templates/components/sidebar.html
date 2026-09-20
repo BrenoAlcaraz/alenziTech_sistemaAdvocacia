@@ -4,16 +4,22 @@
 {% load static %}
 
 <nav id="sidebar"
-     class="w-16 bg-gray-950 flex flex-col items-center py-4 gap-1 flex-shrink-0 h-screen overflow-y-auto">
+     class="w-16 bg-primaria flex flex-col items-center py-4 gap-1 flex-shrink-0 h-screen overflow-y-auto">
 
   {# Logo / ícone do sistema #}
   <a href="{% url 'dashboard:painel' %}" class="mb-4 p-2">
+    {% if config_visual.logo %}
+    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center p-1">
+      <img src="{% url 'saas_tenants:arquivo_identidade_visual' 'logo' %}" alt="Logo do escritório" class="max-w-full max-h-full object-contain">
+    </div>
+    {% else %}
     <div class="w-8 h-8 rounded-lg bg-juridico-ouro flex items-center justify-center">
       <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
       </svg>
     </div>
+    {% endif %}
   </a>
 
   {# ── Itens de navegação ──────────────────────────────────────────────── #}

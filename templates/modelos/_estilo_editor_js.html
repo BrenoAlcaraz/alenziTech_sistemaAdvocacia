@@ -72,17 +72,145 @@
   // simplificacao-imagens.md) — só tem efeito visível quando o slot está
   // em modo imagem; os valores continuam salvos mesmo em modo texto,
   // para não perder o ajuste ao alternar. =====
+  // ----- Manipulação direta na folha: arrastar para mover (esquerda/centro/
+  // direita) e alça no canto para redimensionar (% da largura da folha). -----
+  function limitar(valor, minimo, maximo) { return Math.max(minimo, Math.min(maximo, valor)); }
+
+  function envolverImagem(img) {
+    if (img.parentElement && img.parentElement.classList.contains("me-img-manip")) return img.parentElement;
+    var wrap = document.createElement("div");
+    wrap.className = "me-img-manip";
+    img.parentNode.insertBefore(wrap, img);
+    wrap.appendChild(img);
+    var alca = document.createElement("span");
+    alca.className = "me-img-handle";
+    alca.title = "Arraste para redimensionar";
+    wrap.appendChild(alca);
+    return wrap;
+  }
+
+  function posicionarImagem(wrap, largura, alinhamento) {
+    wrap.style.width = largura + "%";
+    wrap.style.marginLeft = alinhamento === "left" ? "0" : "auto";
+    wrap.style.marginRight = alinhamento === "right" ? "0" : "auto";
+    wrap.dataset.alinhamento = alinhamento;
+  }
+
+  // opcoes: get() -> {largura, alinhamento}; set(largura, alinhamento);
+  // fim() ao soltar; mover (bool); rotacao (graus, só marca d'água).
+  function ativarManipulacao(wrap, opcoes) {
+    if (wrap.dataset.manipulavel) return;
+    wrap.dataset.manipulavel = "1";
+    var alca = wrap.querySelector(".me-img-handle");
+
+    function arrastar(evento, aoMover) {
+      evento.preventDefault();
+      var alvo = evento.currentTarget;
+      alvo.setPointerCapture(evento.pointerId);
+      wrap.classList.add("me-img-ativa");
+      function soltar() {
+        alvo.removeEventListener("pointermove", aoMover);
+        alvo.removeEventListener("pointerup", soltar);
+        alvo.removeEventListener("pointercancel", soltar);
+        wrap.classList.remove("me-img-ativa");
+        if (opcoes.fim) opcoes.fim();
+      }
+      alvo.addEventListener("pointermove", aoMover);
+      alvo.addEventListener("pointerup", soltar);
+      alvo.addEventListener("pointercancel", soltar);
+    }
+
+    alca.addEventListener("pointerdown", function (evento) {
+      evento.stopPropagation();
+      var contenedor = wrap.parentElement.clientWidth || 1;
+      arrastar(evento, function (mov) {
+        var r = wrap.getBoundingClientRect();
+        var atual = opcoes.get();
+        var px;
+        if (opcoes.rotacao) {
+          var rad = opcoes.rotacao * Math.PI / 180;
+          var local = (mov.clientX - (r.left + r.width / 2)) * Math.cos(rad) + (mov.clientY - (r.top + r.height / 2)) * Math.sin(rad);
+          px = 2 * Math.abs(local);
+        } else if (atual.alinhamento === "right") {
+          px = r.right - mov.clientX;
+        } else if (atual.alinhamento === "center") {
+          px = 2 * Math.abs(mov.clientX - (r.left + r.width / 2));
+        } else {
+          px = mov.clientX - r.left;
+        }
+        opcoes.set(limitar(Math.round(px / contenedor * 100), 10, 100), atual.alinhamento);
+      });
+    });
+
+    if (opcoes.mover) {
+      wrap.addEventListener("pointerdown", function (evento) {
+        if (evento.target === alca) return;
+        arrastar(evento, function (mov) {
+          var c = wrap.parentElement.getBoundingClientRect();
+          var fracao = (mov.clientX - c.left) / (c.width || 1);
+          var alinhamento = fracao < 0.34 ? "left" : (fracao > 0.66 ? "right" : "center");
+          opcoes.set(opcoes.get().largura, alinhamento);
+        });
+      });
+    }
+  }
+
+  function sincronizarCamposSlot(slot) {
+    var inputLargura = $("me-input-" + slot + "-largura");
+    if (inputLargura) inputLargura.value = state.slots[slot].largura;
+    var selectAlinhamento = $("me-select-" + slot + "-alinhamento");
+    if (selectAlinhamento) selectAlinhamento.value = state.slots[slot].alinhamento;
+  }
+
   function aplicarTamanhoPosicaoSlot(slot) {
     var el = $(SLOT_TO_ELEMENT_ID[slot]);
     var img = el.querySelector("img");
     var slotState = state.slots[slot];
     if (img) {
-      img.style.width = slotState.largura + "%";
-      img.style.display = "block";
-      img.style.marginLeft = slotState.alinhamento === "left" ? "0" : "auto";
-      img.style.marginRight = slotState.alinhamento === "right" ? "0" : "auto";
+      var marcaDagua = slot === "marca_dagua";
+      el.classList.toggle("me-com-imagem", marcaDagua);
+      var wrap = envolverImagem(img);
+      posicionarImagem(wrap, slotState.largura, slotState.alinhamento);
+      ativarManipulacao(wrap, {
+        get: function () { return state.slots[slot]; },
+        set: function (largura, alinhamento) {
+          state.slots[slot].largura = largura;
+          state.slots[slot].alinhamento = alinhamento;
+          sincronizarCamposSlot(slot);
+          aplicarTamanhoPosicaoSlot(slot);
+        },
+        mover: !marcaDagua,
+        rotacao: marcaDagua ? -30 : 0,
+      });
     }
   }
+
+  // Assinaturas (lista própria): cada imagem se ajusta na folha e o ajuste
+  // é salvo ao soltar, sem precisar do botão "Salvar" do estilo.
+  document.querySelectorAll("#me-slot-assinatura img[data-assinatura-ajustar]").forEach(function (img) {
+    var url = img.dataset.assinaturaAjustar;
+    var estado = { largura: parseInt(img.dataset.largura, 10) || 30, alinhamento: img.dataset.alinhamento || "center" };
+    var wrap = envolverImagem(img);
+    posicionarImagem(wrap, estado.largura, estado.alinhamento);
+    var token = document.querySelector("[name=csrfmiddlewaretoken]");
+    ativarManipulacao(wrap, {
+      get: function () { return estado; },
+      set: function (largura, alinhamento) {
+        estado.largura = largura;
+        estado.alinhamento = alinhamento;
+        posicionarImagem(wrap, largura, alinhamento);
+      },
+      mover: true,
+      fim: function () {
+        var corpo = new URLSearchParams({ largura: estado.largura, alinhamento: estado.alinhamento });
+        fetch(url, {
+          method: "POST",
+          headers: { "X-CSRFToken": token ? token.value : "" },
+          body: corpo,
+        });
+      },
+    });
+  });
 
   Object.keys(SLOT_TO_ELEMENT_ID).forEach(function (slot) {
     var inputLargura = $("me-input-" + slot + "-largura");

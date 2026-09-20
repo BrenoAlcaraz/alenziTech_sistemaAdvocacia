@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import ProtectedError, Q
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -33,6 +33,8 @@ from apps.modelos.forms import (
     PecaBaseRepetitivaForm,
 )
 from apps.modelos.models import (
+    AnexoPecaGerada,
+    AssinaturaEstilo,
     CategoriaModeloPeca,
     EstiloEscritorio,
     ModeloPeca,
@@ -48,6 +50,7 @@ from apps.modelos.services import (
     titulo_peca_caso_repetitivo,
 )
 from apps.notificacoes.models import Notificacao
+from apps.saas_tenants.storage import resposta_de_arquivo
 
 
 def _obter_estilo_escritorio():
@@ -337,9 +340,21 @@ def detalhe(request, pk):
         "modelo": modelo,
         "item_ativo": "modelos",
         "versoes": modelo.versoes.select_related("categoria", "editado_por"),
+        "anexos": modelo.anexos.all(),
         "pode_editar": eh_dono or _pode_editar_alheio(request.user),
         "pode_excluir": eh_dono or _pode_excluir_alheio(request.user),
     })
+
+
+@login_required
+def anexo_peca(request, pk, anexo_pk):
+    """Documento anexado a uma peça gerada — mesmo acesso da peça (banco
+    compartilhado do módulo). `?baixar=1` baixa; sem, pré-visualiza."""
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+
+    anexo = get_object_or_404(AnexoPecaGerada, pk=anexo_pk, modelo_id=pk)
+    return resposta_de_arquivo(request, anexo.arquivo)
 
 
 def _nome_arquivo_download(modelo, extensao):
@@ -540,6 +555,31 @@ def adicionar_assinatura_estilo(request):
 
 
 @login_required
+def ajustar_assinatura_estilo(request, pk):
+    """Tamanho e posição da imagem da assinatura, ajustados arrastando na
+    própria folha do editor (salvo ao soltar)."""
+    if not tem_permissao_modulo(request.user, MODULO_MODELOS):
+        raise PermissionDenied
+    if not _pode_editar_estilo(request.user):
+        raise PermissionDenied
+    if request.method != "POST":
+        raise Http404
+
+    assinatura = get_object_or_404(_obter_estilo_escritorio().assinaturas, pk=pk)
+    try:
+        largura = int(request.POST.get("largura", ""))
+    except ValueError:
+        return JsonResponse({"erro": "largura inválida"}, status=400)
+    alinhamento = request.POST.get("alinhamento", "")
+    if alinhamento not in dict(AssinaturaEstilo.ALINHAMENTO_CHOICES):
+        return JsonResponse({"erro": "alinhamento inválido"}, status=400)
+    assinatura.largura = max(10, min(100, largura))
+    assinatura.alinhamento = alinhamento
+    assinatura.save(update_fields=["largura", "alinhamento"])
+    return JsonResponse({"largura": assinatura.largura, "alinhamento": assinatura.alinhamento})
+
+
+@login_required
 def remover_assinatura_estilo(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_MODELOS):
         raise PermissionDenied
@@ -649,7 +689,7 @@ def gerar_pecas_repetitivas(request):
         return redirect(destino)
 
     peca_base_form = PecaBaseRepetitivaForm(request.POST, request.FILES)
-    formset_casos = CasoRepetitivoFormSet(request.POST, prefix="casos")
+    formset_casos = CasoRepetitivoFormSet(request.POST, request.FILES, prefix="casos")
 
     if peca_base_form.is_valid() and formset_casos.is_valid():
         casos_preenchidos = [caso for caso in formset_casos.forms if caso.tem_dados()]
@@ -661,6 +701,7 @@ def gerar_pecas_repetitivas(request):
                 pecas_criadas = []
                 for indice, caso_form in enumerate(casos_preenchidos, start=1):
                     dados_caso = caso_form.cleaned_data
+                    documentos = dados_caso.get("documentos") or []
                     modelo = ModeloPeca.objects.create(
                         titulo=titulo_peca_caso_repetitivo(base["titulo"], dados_caso.get("cliente"), indice),
                         categoria=base["categoria"],
@@ -668,12 +709,13 @@ def gerar_pecas_repetitivas(request):
                         conteudo=montar_conteudo_caso_repetitivo(
                             base["conteudo"],
                             cliente=dados_caso.get("cliente"),
-                            valor=dados_caso.get("valor", ""),
-                            endereco_caso=dados_caso.get("endereco_caso", ""),
-                            particularidades=dados_caso.get("particularidades", ""),
+                            observacoes=dados_caso.get("observacoes", ""),
+                            nomes_documentos=[documento.name for documento in documentos],
                         ),
                         criado_por=request.user,
                     )
+                    for documento in documentos:
+                        AnexoPecaGerada.objects.create(modelo=modelo, arquivo=documento)
                     pecas_criadas.append(modelo.pk)
                 ids = ",".join(str(pk) for pk in pecas_criadas)
                 return redirect(f"{destino}&geradas={ids}")

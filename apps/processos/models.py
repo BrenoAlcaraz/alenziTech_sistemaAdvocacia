@@ -15,6 +15,7 @@ class Processo(models.Model):
     STATUS_CHOICES = [
         ("ativo", "Ativo"),
         ("suspenso", "Suspenso"),
+        ("sobrestado", "Sobrestado"),
         ("encerrado", "Encerrado"),
         ("arquivado", "Arquivado"),
     ]

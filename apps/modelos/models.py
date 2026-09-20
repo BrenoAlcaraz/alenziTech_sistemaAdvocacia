@@ -130,6 +130,30 @@ class ModeloPeca(models.Model):
         return self.conteudo[:120] + "..." if len(self.conteudo) > 120 else self.conteudo
 
 
+class AnexoPecaGerada(models.Model):
+    """Documento que embasa uma peça gerada em lote (peças repetitivas):
+    fica guardado junto da peça para revisão e para a IA futura
+    (PDR-0008), que vai ajustar a peça base a partir dele."""
+
+    modelo = models.ForeignKey(ModeloPeca, on_delete=models.CASCADE, related_name="anexos")
+    arquivo = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "modelos/pecas-geradas"),
+        storage=StorageProtegido(),
+    )
+    enviado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Anexo de peça gerada"
+        verbose_name_plural = "Anexos de peças geradas"
+        ordering = ["enviado_em", "pk"]
+
+    def __str__(self):
+        return self.nome_do_anexo()
+
+    def nome_do_anexo(self):
+        return nome_do_arquivo(self.arquivo)
+
+
 class VersaoModeloPeca(models.Model):
     """Snapshot do estado de um ModeloPeca imediatamente antes de uma edição/reversão."""
 

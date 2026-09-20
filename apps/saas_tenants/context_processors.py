@@ -1,3 +1,6 @@
+from .cores import tema
+
+
 def tenant_config(request):
     """
     Injeta dados do tenant atual e sua configuração visual em todos os templates.
@@ -15,4 +18,7 @@ def tenant_config(request):
     return {
         "tenant": tenant,
         "config_visual": config,
+        "tema": tema(
+            getattr(config, "cor_primaria", ""), getattr(config, "cor_secundaria", ""),
+        ),
     }

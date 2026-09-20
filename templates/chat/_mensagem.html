@@ -1,10 +1,13 @@
+{% load chat_extras %}
 <div class="flex {% if mensagem.autor_id == usuario_atual.id %}justify-end{% endif %} gap-2 items-end">
 
   {# Avatar — somente para mensagens alheias #}
   {% if mensagem.autor_id != usuario_atual.id %}
-    <div class="w-8 h-8 rounded-full bg-stone-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-      {% if mensagem.autor %}{{ mensagem.autor.username|first|upper }}{% else %}?{% endif %}
-    </div>
+    {% if mensagem.autor %}
+      {% include "components/avatar_usuario.html" with usuario=mensagem.autor %}
+    {% else %}
+      <div class="w-8 h-8 rounded-full bg-stone-500 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">?</div>
+    {% endif %}
   {% endif %}
 
   <div class="max-w-sm">
@@ -24,7 +27,7 @@
     <div style="overflow-wrap: break-word;" class="px-4 py-2.5 rounded-2xl text-sm
                 {% if mensagem.autor_id == usuario_atual.id %}bg-gray-900 text-white rounded-tr-sm{% else %}bg-white border border-gray-100 text-gray-900 rounded-tl-sm{% endif %}">
       {% if mensagem.conteudo %}
-        <p>{{ mensagem.conteudo }}</p>
+        <p>{{ mensagem.conteudo|com_mencoes }}</p>
       {% endif %}
       {% if mensagem.anexo %}
         <a href="{% url 'chat:anexo_mensagem' mensagem.pk %}"

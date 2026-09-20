@@ -56,3 +56,4 @@ serem efetivamente decididas.
 | PDR-0026 | Grupo automático de Chat por Equipe | accepted | [PDR-0026-grupo-automatico-chat-por-equipe.md](PDR-0026-grupo-automatico-chat-por-equipe.md) |
 | PDR-0027 | Sugestão automática de contraparte e novos papéis em Outros | accepted | [PDR-0027-sugestao-contraparte-e-papeis-outros.md](PDR-0027-sugestao-contraparte-e-papeis-outros.md) |
 | PDR-0028 | Equipe como atalho de seleção (substitui o vínculo dinâmico de Equipe) | accepted | [PDR-0028-equipe-como-atalho-de-selecao.md](PDR-0028-equipe-como-atalho-de-selecao.md) |
+| PDR-0029 | Financeiro líquido de custas do cliente e honorário sucumbencial calculado | accepted | [PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md](PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md) |

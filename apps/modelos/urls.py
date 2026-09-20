@@ -24,6 +24,11 @@ urlpatterns = [
         name="adicionar_assinatura_estilo",
     ),
     path(
+        "modelos/estilo/assinaturas/<int:pk>/ajustar/",
+        views.ajustar_assinatura_estilo,
+        name="ajustar_assinatura_estilo",
+    ),
+    path(
         "modelos/estilo/assinaturas/<int:pk>/remover/",
         views.remover_assinatura_estilo,
         name="remover_assinatura_estilo",
@@ -39,6 +44,7 @@ urlpatterns = [
     path("modelos/<int:pk>/editar/", views.editar, name="editar"),
     path("modelos/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("modelos/<int:pk>/reverter/<int:versao_pk>/", views.reverter, name="reverter"),
+    path("modelos/<int:pk>/anexos/<int:anexo_pk>/", views.anexo_peca, name="anexo_peca"),
     path("modelos/<int:pk>/baixar/pdf/", views.baixar_pdf, name="baixar_pdf"),
     path("modelos/<int:pk>/baixar/docx/", views.baixar_docx, name="baixar_docx"),
     path("modelos/<int:pk>/", views.detalhe, name="detalhe"),

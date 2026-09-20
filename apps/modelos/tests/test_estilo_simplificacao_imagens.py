@@ -339,3 +339,63 @@ class TestExportacaoComEstiloCompleto(ModelosAutorizacaoBase):
         self.estilo.assinaturas.all().delete()
         buffer = gerar_pdf_modelo(self._modelo(), self.estilo)
         self.assertTrue(buffer.read().startswith(b"%PDF"))
+
+
+class TestAjustarAssinaturaNaFolha(ModelosAutorizacaoBase):
+    """Revisão de 2026-09-19: tamanho/posição da imagem se ajustam
+    arrastando na própria folha; a assinatura salva ao soltar."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "estilo_ajustar_assinatura"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("ajusta_assinatura")
+        papel = self._new_papel("Papel Ajusta Assinatura")
+        self._assign_papel(self.user, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self._hp(papel, MODULO_MODELOS, HAB_MODELOS_EDITAR_ESTILO)
+        self.client.force_login(self.user)
+        estilo, _ = EstiloEscritorio.objects.get_or_create(pk=1)
+        self.assinatura = AssinaturaEstilo.objects.create(
+            estilo=estilo, modo="imagem", largura=30, alinhamento="center",
+            imagem=SimpleUploadedFile("sig.png", base64.b64decode(_PIXEL_PNG_BASE64), content_type="image/png"),
+        )
+        self.url = f"/modelos/estilo/assinaturas/{self.assinatura.pk}/ajustar/"
+
+    def _post(self, **dados):
+        return self.client.post(self.url, dados, HTTP_HOST=self.http_host)
+
+    def test_salva_largura_e_alinhamento(self):
+        r = self._post(largura="55", alinhamento="right")
+        self.assertEqual(r.status_code, 200)
+        self.assinatura.refresh_from_db()
+        self.assertEqual((self.assinatura.largura, self.assinatura.alinhamento), (55, "right"))
+
+    def test_largura_e_limitada_ao_intervalo(self):
+        self._post(largura="900", alinhamento="left")
+        self.assinatura.refresh_from_db()
+        self.assertEqual(self.assinatura.largura, 100)
+
+    def test_valores_invalidos_sao_recusados(self):
+        self.assertEqual(self._post(largura="abc", alinhamento="left").status_code, 400)
+        self.assertEqual(self._post(largura="40", alinhamento="topo").status_code, 400)
+        self.assinatura.refresh_from_db()
+        self.assertEqual((self.assinatura.largura, self.assinatura.alinhamento), (30, "center"))
+
+    def test_sem_habilitacao_de_estilo_e_negado(self):
+        outro = self._user("sem_hab_estilo")
+        papel = self._new_papel("Papel Sem Hab Estilo")
+        self._assign_papel(outro, papel)
+        self._pp(papel, MODULO_MODELOS)
+        self.client.force_login(outro)
+        self.assertEqual(self._post(largura="50", alinhamento="left").status_code, 403)
+
+    def test_get_nao_altera(self):
+        self.assertEqual(self.client.get(self.url, HTTP_HOST=self.http_host).status_code, 404)
+
+    def test_folha_expoe_alca_de_ajuste_da_assinatura(self):
+        r = self.client.get("/modelos/?aba=estilo", HTTP_HOST=self.http_host)
+        self.assertContains(r, f'data-assinatura-ajustar="{self.url}"')
+        self.assertContains(r, "me-img-handle")

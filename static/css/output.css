@@ -629,7 +629,7 @@ body {
   gap: 0.5rem;
   border-radius: 0.75rem;
   --tw-bg-opacity: 1;
-  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-bg-opacity, 1));
   padding-left: 1rem;
   padding-right: 1rem;
   padding-top: 0.5rem;
@@ -646,7 +646,7 @@ body {
 
 .btn-primary:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--cor-primaria-hover-rgb, 42 42 42) / var(--tw-bg-opacity, 1));
 }
 
 /* ── Botão secundário (outline) ───────────────────────────── */
@@ -771,7 +771,7 @@ body {
   line-height: 1rem;
   font-weight: 500;
   --tw-text-opacity: 1;
-  color: rgb(139 115 85 / var(--tw-text-opacity, 1));
+  color: rgb(var(--cor-secundaria-rgb, 139 115 85) / var(--tw-text-opacity, 1));
 }
 
 /* ── Badge urgente ────────────────────────────────────────── */
@@ -858,7 +858,7 @@ body {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(17 24 39 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-ring-opacity, 1));
 }
 
 .input {
@@ -903,7 +903,7 @@ body {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(17 24 39 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-ring-opacity, 1));
 }
 
 /* ── Select padrão ────────────────────────────────────────── */
@@ -940,7 +940,7 @@ body {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(17 24 39 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-ring-opacity, 1));
 }
 
 .select {
@@ -975,7 +975,7 @@ body {
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(17 24 39 / var(--tw-ring-opacity, 1));
+  --tw-ring-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-ring-opacity, 1));
 }
 
 /* ── Label de formulário ──────────────────────────────────── */
@@ -1076,7 +1076,7 @@ body {
 .tab-active {
   border-bottom-width: 2px;
   --tw-border-opacity: 1;
-  border-color: rgb(17 24 39 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-border-opacity, 1));
   font-weight: 500;
   --tw-text-opacity: 1;
   color: rgb(17 24 39 / var(--tw-text-opacity, 1));
@@ -1122,7 +1122,7 @@ body {
 
 .sidebar-item:hover {
   --tw-bg-opacity: 1;
-  background-color: rgb(31 41 55 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--cor-primaria-hover-rgb, 42 42 42) / var(--tw-bg-opacity, 1));
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
@@ -1496,6 +1496,10 @@ body {
   max-height: 15rem;
 }
 
+.max-h-full {
+  max-height: 100%;
+}
+
 .min-h-screen {
   min-height: 100vh;
 }
@@ -1762,6 +1766,10 @@ body {
   align-items: center;
 }
 
+.items-baseline {
+  align-items: baseline;
+}
+
 .justify-start {
   justify-content: flex-start;
 }
@@ -2011,7 +2019,7 @@ body {
 
 .border-juridico-ouro {
   --tw-border-opacity: 1;
-  border-color: rgb(139 115 85 / var(--tw-border-opacity, 1));
+  border-color: rgb(var(--cor-secundaria-rgb, 139 115 85) / var(--tw-border-opacity, 1));
 }
 
 .border-juridico-ouro-claro {
@@ -2088,11 +2096,6 @@ body {
   background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
 }
 
-.bg-gray-950 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(3 7 18 / var(--tw-bg-opacity, 1));
-}
-
 .bg-green-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(220 252 231 / var(--tw-bg-opacity, 1));
@@ -2124,7 +2127,7 @@ body {
 
 .bg-juridico-ouro {
   --tw-bg-opacity: 1;
-  background-color: rgb(139 115 85 / var(--tw-bg-opacity, 1));
+  background-color: rgb(var(--cor-secundaria-rgb, 139 115 85) / var(--tw-bg-opacity, 1));
 }
 
 .bg-juridico-ouro-claro {
@@ -2155,6 +2158,11 @@ body {
 .bg-orange-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(255 247 237 / var(--tw-bg-opacity, 1));
+}
+
+.bg-primaria {
+  --tw-bg-opacity: 1;
+  background-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-bg-opacity, 1));
 }
 
 .bg-purple-50 {
@@ -2594,7 +2602,7 @@ body {
 
 .text-juridico-ouro {
   --tw-text-opacity: 1;
-  color: rgb(139 115 85 / var(--tw-text-opacity, 1));
+  color: rgb(var(--cor-secundaria-rgb, 139 115 85) / var(--tw-text-opacity, 1));
 }
 
 .text-juridico-urgente {

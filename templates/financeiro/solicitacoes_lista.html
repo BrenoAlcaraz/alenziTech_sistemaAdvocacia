@@ -24,6 +24,73 @@
   <a href="{% url 'financeiro:form_solicitacao' %}" class="btn-primary">+ Nova solicitação</a>
 </div>
 
+{# Pendentes / Pagas / Rejeitadas — os filtros valem para as três #}
+<div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-4">
+  <a href="?situacao=pendentes&{{ filtros_query }}"
+     class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'pendentes' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Pendentes <span class="text-xs text-gray-400">{{ contagens.pendentes }}</span></a>
+  <a href="?situacao=pagas&{{ filtros_query }}"
+     class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'pagas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Pagas <span class="text-xs text-gray-400">{{ contagens.pagas }}</span></a>
+  <a href="?situacao=rejeitadas&{{ filtros_query }}"
+     class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'rejeitadas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    Rejeitadas <span class="text-xs text-gray-400">{{ contagens.rejeitadas }}</span></a>
+</div>
+
+<form method="get" class="card p-4 mb-4 flex flex-wrap items-end gap-3">
+  <input type="hidden" name="situacao" value="{{ situacao }}">
+  <div>
+    <label for="f-cliente" class="text-xs font-medium text-gray-500">Cliente</label>
+    <select id="f-cliente" name="cliente" class="select">
+      <option value="">Todos</option>
+      {% for c in clientes_filtro %}<option value="{{ c.pk }}" {% if filtros.cliente == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="f-processo" class="text-xs font-medium text-gray-500">Processo</label>
+    <select id="f-processo" name="processo" class="select">
+      <option value="">Todos</option>
+      {% for p in processos_filtro %}<option value="{{ p.pk }}" {% if filtros.processo == p.pk|stringformat:"s" %}selected{% endif %}>{{ p }}</option>{% endfor %}
+    </select>
+  </div>
+  {% if tem_acesso_dados %}
+  <div>
+    <label for="f-solicitante" class="text-xs font-medium text-gray-500">Solicitado por</label>
+    <select id="f-solicitante" name="solicitante" class="select">
+      <option value="">Todos</option>
+      {% for u in solicitantes_filtro %}<option value="{{ u.pk }}" {% if filtros.solicitante == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div>
+    <label class="text-xs font-medium text-gray-500">Solicitada entre</label>
+    <div class="flex items-center gap-1">
+      <input type="date" name="solicitado_de" value="{{ filtros.solicitado_de }}" class="input">
+      <input type="date" name="solicitado_ate" value="{{ filtros.solicitado_ate }}" class="input">
+    </div>
+  </div>
+  {% if situacao == "pagas" %}
+  <div>
+    <label class="text-xs font-medium text-gray-500">Paga entre</label>
+    <div class="flex items-center gap-1">
+      <input type="date" name="pago_de" value="{{ filtros.pago_de }}" class="input">
+      <input type="date" name="pago_ate" value="{{ filtros.pago_ate }}" class="input">
+    </div>
+  </div>
+  {% if tem_acesso_dados %}
+  <div>
+    <label for="f-pagador" class="text-xs font-medium text-gray-500">Pagamento realizado por</label>
+    <select id="f-pagador" name="pago_por_usuario" class="select">
+      <option value="">Todos</option>
+      {% for u in pagadores_filtro %}<option value="{{ u.pk }}" {% if filtros.pago_por_usuario == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  {% endif %}
+  <button type="submit" class="btn-secondary text-sm">Filtrar</button>
+  <a href="?situacao={{ situacao }}" class="text-sm text-gray-500 underline">Limpar</a>
+</form>
+
 <div class="flex flex-col gap-2">
   {% for s in solicitacoes %}
     <a href="{% url 'financeiro:detalhe_solicitacao' s.pk %}" class="card relative overflow-hidden px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
@@ -42,13 +109,14 @@
           <span>{{ s.get_tipo_display }}</span>
           {% if tem_acesso_dados %}<span class="max-w-full truncate" title="{{ s.solicitante }}">{{ s.solicitante }}</span>{% endif %}
           {% if s.processo %}<span class="max-w-full truncate" title="{{ s.processo }}">{{ s.processo }}</span>{% elif s.cliente %}<span class="max-w-full truncate" title="{{ s.cliente }}">{{ s.cliente }}</span>{% endif %}
-          <span>{{ s.criado_em|date:"d/m/Y" }}</span>
+          <span>Solicitada em {{ s.criado_em|date:"d/m/Y" }}</span>
+          {% if s.data_pagamento %}<span>Paga em {{ s.data_pagamento|date:"d/m/Y" }}{% if tem_acesso_dados and s.pagamento_realizado_por %} por {{ s.pagamento_realizado_por.get_full_name|default:s.pagamento_realizado_por.username }}{% endif %}</span>{% endif %}
         </div>
       </div>
       {% include "components/estado_solicitacao.html" with solicitacao=s %}
     </a>
   {% empty %}
-    {% include "components/empty_state.html" with mensagem="Nenhuma solicitação registrada." %}
+    {% include "components/empty_state.html" with mensagem="Nenhuma solicitação nesta situação." %}
   {% endfor %}
 </div>
 {% endblock %}

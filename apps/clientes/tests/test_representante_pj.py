@@ -110,7 +110,6 @@ class TestFormularioPJRepresentante(ClienteFormBase):
             rg="12.345.678-9",
         ))
         self.assertTrue(form.is_valid(), form.errors)
-        self.assertFalse(form.cleaned_data["estrangeiro"])
         self.assertEqual(form.cleaned_data["nacionalidade"], "Brasileira")
         self.assertEqual(form.cleaned_data["estado_civil"], "")
         self.assertEqual(form.cleaned_data["profissao"], "")

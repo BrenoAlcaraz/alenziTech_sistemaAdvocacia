@@ -67,6 +67,12 @@
         <p class="font-semibold text-gray-900 mt-1">R$ {{ h.valor_total_exibido|moeda_br }}</p>
       {% endif %}
 
+      {% if h.calculado %}
+        <p class="text-xs text-gray-500 mt-2">
+          Sucumbência corrigida R$ {{ h.calculo.sucumbencia|moeda_br }}{% if h.calculo.exito %} &bull; Êxito R$ {{ h.calculo.exito|moeda_br }}{% endif %}
+          &bull; {% if h.devedor_tipo == "ente_estatal" %}Ente estatal (Selic){% else %}Devedor comum ({{ h.get_indice_correcao_display }} + juros 1% a.m.){% endif %}
+        </p>
+      {% endif %}
       <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
         {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
         {% if h.data_recebida %}<span>Última confirmação em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}

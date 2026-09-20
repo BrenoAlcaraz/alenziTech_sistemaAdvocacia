@@ -34,6 +34,29 @@
     <h2 class="font-semibold text-gray-900">Custas</h2>
     <a href="{% url 'financeiro:form_custa' %}?cliente={{ cliente.pk }}" class="btn-primary">+ Nova custa</a>
   </div>
+  <form method="get" class="flex flex-wrap items-end gap-3 mb-4">
+    <div>
+      <label for="filtro-processo" class="text-xs font-medium text-gray-500">Processo</label>
+      <select id="filtro-processo" name="processo" class="select">
+        <option value="">Todos</option>
+        {% for p in processos_do_extrato %}
+          <option value="{{ p.pk }}" {% if filtro_processo == p.pk|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filtro-pago-por" class="text-xs font-medium text-gray-500">Pago por</label>
+      <select id="filtro-pago-por" name="pago_por" class="select">
+        <option value="">Todos</option>
+        <option value="escritorio" {% if filtro_pago_por == "escritorio" %}selected{% endif %}>Adiantado pelo escritório</option>
+        <option value="cliente" {% if filtro_pago_por == "cliente" %}selected{% endif %}>Pago diretamente pelo cliente</option>
+      </select>
+    </div>
+    <button type="submit" class="btn-secondary text-sm">Filtrar</button>
+    {% if filtro_processo or filtro_pago_por %}
+      <a href="{% url 'financeiro:extrato_custas_cliente' cliente.pk %}" class="text-sm text-gray-500 underline">Limpar</a>
+    {% endif %}
+  </form>
   <div class="flex flex-col gap-2">
     {% for c in lancamentos %}
       <div class="card px-5 py-4 flex items-center gap-4">
@@ -43,14 +66,23 @@
             {{ c.get_tipo_display }}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
           </p>
           {% if c.anexo %}
-            <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="block truncate text-xs text-juridico-verde hover:underline" title="{{ c.anexo.name }}">
-              {{ c.anexo.name }}
-            </a>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
+              {% url 'financeiro:anexo_custa' c.pk as anexo_url %}
+              {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+            </div>
           {% endif %}
         </div>
-        <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-gray-500{% endif %}">
-          {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|moeda_br }}
-        </p>
+        <div class="flex flex-col items-end gap-1">
+          <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-gray-500{% endif %}">
+            {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|moeda_br }}
+          </p>
+          {% if c.reembolsada %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Reembolsada</span>
+          {% elif c.pode_reembolsar %}
+            <a href="{% url 'financeiro:form_reembolsar_custa' c.pk %}" class="text-xs text-juridico-verde hover:underline">Reembolso</a>
+          {% endif %}
+        </div>
       </div>
     {% empty %}
       {% include "components/empty_state.html" with mensagem="Nenhuma custa registrada para este cliente." %}
@@ -71,9 +103,11 @@
           <p class="font-medium text-gray-900 truncate" title="{{ c.descricao }}">{{ c.descricao }}</p>
           <p class="text-xs text-gray-400">{{ c.data|date:"d/m/Y" }}</p>
           {% if c.anexo %}
-            <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="block truncate text-xs text-juridico-verde hover:underline" title="{{ c.anexo.name }}">
-              {{ c.anexo.name }}
-            </a>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
+              {% url 'financeiro:anexo_custa' c.pk as anexo_url %}
+              {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+            </div>
           {% endif %}
         </div>
         <p class="font-semibold text-juridico-verde">+ R$ {{ c.valor|moeda_br }}</p>

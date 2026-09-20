@@ -43,7 +43,13 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
     grupo = GrupoPapelChoiceField(
         queryset=Group.objects.none(),
         required=True,
-        empty_label="Selecione um papel",
+        empty_label="Selecione o tipo de conta",
+        widget=forms.Select(attrs={"class": "input"}),
+    )
+    papel = forms.ModelChoiceField(
+        queryset=PapelAcesso.objects.none(),
+        required=False,
+        empty_label="Nenhum (só o tipo de conta)",
         widget=forms.Select(attrs={"class": "input"}),
     )
 
@@ -55,6 +61,7 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             "nome_completo",
             "cargo",
             "grupo",
+            "papel",
             "password1",
             "password2",
         ]
@@ -72,6 +79,7 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
         self.fields["grupo"].queryset = Group.objects.filter(
             name__in=GRUPOS_CRIACAO_USUARIO
         ).order_by("name")
+        self.fields["papel"].queryset = PapelAcesso.objects.filter(ativo=True).order_by("nome")
         self.fields["password1"].widget.attrs.update(
             {"class": "input", "placeholder": "Senha inicial"}
         )
@@ -103,6 +111,10 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             grupo = self.cleaned_data["grupo"]
             user.groups.clear()
             user.groups.add(grupo)
+
+            papel = self.cleaned_data.get("papel")
+            if papel is not None:
+                UsuarioPapel.objects.get_or_create(usuario=user, papel=papel, defaults={"ativo": True})
 
         return user
 

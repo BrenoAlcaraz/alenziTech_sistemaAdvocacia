@@ -3,13 +3,14 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Sum
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -26,7 +27,7 @@ from apps.clientes.models import Cliente
 from apps.notificacoes.models import Notificacao
 from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente, rotulo_processo
-from apps.saas_tenants.storage import nome_do_arquivo
+from apps.saas_tenants.storage import resposta_de_arquivo
 
 from .forms import (
     ConfirmarRecebimentoHonorarioForm,
@@ -34,10 +35,26 @@ from .forms import (
     CustaJudicialForm,
     HonorarioForm,
     LancamentoFinanceiroForm,
+    ReembolsoCustaForm,
     SolicitacaoFinanceiraForm,
 )
 from .models import CustaJudicial, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
-from .services import calcular_correcao_honorario, cancelar_ocorrencias_futuras, gerar_ocorrencias
+from .services import (
+    analise_de_dados,
+    calcular_correcao_honorario,
+    calcular_honorario_sucumbencial,
+    cancelar_ocorrencias_futuras,
+    custas_a_recuperar,
+    gerar_ocorrencias,
+    inicio_da_janela,
+    lancamentos_operacionais,
+    reembolsar_custa,
+    registrar_credito_cliente,
+    totais_do_mes,
+)
+
+
+User = get_user_model()
 
 
 def _redirect_seguro(request):
@@ -175,36 +192,15 @@ def index(request):
     elif filtro == "solicitados":
         lancamentos = lancamentos.filter(solicitacao_origem__isnull=False)
 
-    a_receber = (
-        escopo_mes.filter(tipo="receita", status="pendente")
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
+    # Reembolso/custas de cliente ficam fora de recebido/pago; as custas
+    # adiantadas e não reembolsadas entram em "pago" (dado global — só
+    # para quem vê todos os dados).
+    totais = totais_do_mes(
+        escopo, ano, mes,
+        incluir_custas=_nivel_financeiro(request.user) == NIVEL_DADOS_TODOS,
     )
-    a_pagar = (
-        escopo_mes.filter(tipo="despesa", status="pendente")
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
-    )
-    recebido_mes = (
-        escopo.filter(
-            tipo="receita",
-            status="pago",
-            data_pagamento__year=ano,
-            data_pagamento__month=mes,
-        )
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
-    )
-    pago_mes = (
-        escopo.filter(
-            tipo="despesa",
-            status="pago",
-            data_pagamento__year=ano,
-            data_pagamento__month=mes,
-        )
-        .aggregate(total=Sum("valor"))["total"]
-        or Decimal("0")
-    )
+    a_receber, a_pagar = totais["a_receber"], totais["a_pagar"]
+    recebido_mes, pago_mes = totais["recebido"], totais["pago"]
     saldo_atual_mes = recebido_mes - pago_mes
 
     resumo = {
@@ -212,7 +208,7 @@ def index(request):
         "a_pagar": _formatar_moeda(a_pagar),
         "recebido_mes": _formatar_moeda(recebido_mes),
         "pago_mes": _formatar_moeda(pago_mes),
-        "saldo_previsto": _formatar_moeda(a_receber - a_pagar),
+        "saldo_previsto": _formatar_moeda(a_receber + recebido_mes - a_pagar - pago_mes),
         "saldo_atual_mes": _formatar_saldo(saldo_atual_mes),
         "saldo_atual_mes_positivo": saldo_atual_mes >= 0,
     }
@@ -239,6 +235,7 @@ def index(request):
 
 
 PERIODOS_GRAFICO_VALIDOS = {"6meses", "12meses", "exercicio"}
+JANELAS_ANALISE_VALIDAS = {"sempre", "12meses", "exercicio"}
 
 
 def _normalizar_periodo_grafico(periodo):
@@ -264,7 +261,11 @@ def grafico(request):
         ano_inicio, mes_inicio = _mes_adjacente(hoje.year, hoje.month, -(meses - 1))
         data_inicio = date(ano_inicio, mes_inicio, 1)
 
-    escopo = _lancamentos_no_escopo(request.user).filter(status="pago", data_pagamento__gte=data_inicio)
+    lancamentos_escopo = _lancamentos_no_escopo(request.user)
+    incluir_custas = _nivel_financeiro(request.user) == NIVEL_DADOS_TODOS
+    escopo = lancamentos_operacionais(lancamentos_escopo).filter(
+        status="pago", data_pagamento__gte=data_inicio,
+    )
     agregados = (
         escopo.values("data_pagamento__year", "data_pagamento__month", "tipo")
         .annotate(total=Sum("valor"))
@@ -279,6 +280,18 @@ def grafico(request):
     while (ano_cursor, mes_cursor) <= (hoje.year, hoje.month):
         meses_intervalo.append((ano_cursor, mes_cursor))
         ano_cursor, mes_cursor = _mes_adjacente(ano_cursor, mes_cursor, 1)
+
+    if incluir_custas:
+        for ano_mes, mes_mes in meses_intervalo:
+            devedor = sum(
+                custas_a_recuperar(
+                    inicio=date(ano_mes, mes_mes, 1),
+                    fim=date(ano_mes, mes_mes, monthrange(ano_mes, mes_mes)[1]),
+                ).values(),
+                Decimal("0"),
+            )
+            if devedor:
+                por_mes[(ano_mes, mes_mes)]["despesa"] += devedor
 
     maior_valor = max(
         (v for dados in por_mes.values() for v in dados.values()), default=Decimal("0")
@@ -295,9 +308,18 @@ def grafico(request):
             "despesa_pct": int((dados["despesa"] / maior_valor) * 100),
         })
 
+    janela = request.GET.get("janela")
+    if janela not in JANELAS_ANALISE_VALIDAS:
+        janela = "sempre"
+    analise = analise_de_dados(
+        lancamentos_escopo, inicio=inicio_da_janela(janela, hoje), incluir_custas=incluir_custas,
+    )
+
     return render(request, "financeiro/grafico.html", {
         "barras": barras,
         "periodo": periodo,
+        "janela": janela,
+        "analise": analise,
         "ano_exercicio": hoje.year,
         "aba_ativa": "grafico",
         "item_ativo": "financeiro",
@@ -361,16 +383,33 @@ def extrato_custas_cliente(request, cliente_id):
     _exige_nivel_dados(request.user)
     cliente = get_object_or_404(Cliente, pk=cliente_id)
     custas_cliente = list(
-        CustaJudicial.objects.filter(cliente=cliente).select_related("processo").order_by("-data", "-criado_em")
+        CustaJudicial.objects.filter(cliente=cliente)
+        .select_related("processo", "reembolsada_por").order_by("-data", "-criado_em")
     )
     lancamentos = [c for c in custas_cliente if c.tipo in ("adiantamento", "paga_pelo_cliente")]
     creditos = [c for c in custas_cliente if c.tipo == "deposito_cliente"]
     saldo = _saldo_liquido_custas(custas_cliente)
 
+    # Filtros só da lista de lançamentos (custas), nunca do saldo.
+    processos_do_extrato = {c.processo_id: c.processo for c in lancamentos if c.processo_id}
+    filtro_processo = request.GET.get("processo") or ""
+    filtro_pago_por = request.GET.get("pago_por") or ""
+    if filtro_processo:
+        lancamentos = [c for c in lancamentos if str(c.processo_id) == filtro_processo]
+    if filtro_pago_por == "escritorio":
+        lancamentos = [c for c in lancamentos if c.tipo == "adiantamento"]
+    elif filtro_pago_por == "cliente":
+        lancamentos = [c for c in lancamentos if c.tipo == "paga_pelo_cliente"]
+    else:
+        filtro_pago_por = ""
+
     return render(request, "financeiro/extrato_custas_cliente.html", {
         "cliente": cliente,
         "lancamentos": lancamentos,
         "creditos": creditos,
+        "processos_do_extrato": list(processos_do_extrato.values()),
+        "filtro_processo": filtro_processo,
+        "filtro_pago_por": filtro_pago_por,
         "saldo": _formatar_saldo(saldo),
         "saldo_positivo": saldo >= 0,
         "aba_ativa": "custas",
@@ -534,7 +573,7 @@ def anexo_lancamento(request, pk):
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if not lancamento.anexo:
         raise Http404
-    return FileResponse(lancamento.anexo.open("rb"), filename=nome_do_arquivo(lancamento.anexo))
+    return resposta_de_arquivo(request, lancamento.anexo)
 
 
 @login_required
@@ -589,10 +628,14 @@ def form_creditar_custa(request, cliente_id):
     if request.method == "POST":
         form = CreditarCustaForm(request.POST, request.FILES, cliente=cliente)
         if form.is_valid():
-            custa = form.save(commit=False)
-            custa.cliente = cliente
-            custa.tipo = "deposito_cliente"
-            custa.save()
+            # Creditar é uma receita "Reembolso" no financeiro geral que
+            # já nasce com o crédito nas custas do cliente.
+            dados = form.cleaned_data
+            registrar_credito_cliente(
+                cliente=cliente, valor=dados["valor"], data=dados["data"],
+                descricao=dados["descricao"], processo=dados.get("processo"),
+                anexo=dados.get("anexo"), responsavel=request.user,
+            )
             return redirect("financeiro:extrato_custas_cliente", cliente_id=cliente.pk)
     else:
         form = CreditarCustaForm(cliente=cliente, initial={"data": timezone.localdate()})
@@ -613,7 +656,36 @@ def anexo_custa(request, pk):
     custa = get_object_or_404(CustaJudicial, pk=pk)
     if not custa.anexo:
         raise Http404
-    return FileResponse(custa.anexo.open("rb"), filename=nome_do_arquivo(custa.anexo))
+    return resposta_de_arquivo(request, custa.anexo)
+
+
+@login_required
+def form_reembolsar_custa(request, pk):
+    """Reembolso, pelo cliente, de uma custa adiantada pelo escritório —
+    anexa o comprovante e baixa o saldo devedor dele."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    custa = get_object_or_404(CustaJudicial.objects.select_related("cliente", "processo"), pk=pk)
+    if not custa.pode_reembolsar:
+        raise Http404
+    if request.method == "POST":
+        form = ReembolsoCustaForm(request.POST, request.FILES)
+        if form.is_valid():
+            reembolsar_custa(
+                custa, data=form.cleaned_data["data"],
+                comprovante=form.cleaned_data["comprovante"], responsavel=request.user,
+            )
+            return redirect("financeiro:extrato_custas_cliente", cliente_id=custa.cliente_id)
+    else:
+        form = ReembolsoCustaForm(initial={"data": timezone.localdate()})
+
+    return render(request, "financeiro/form_reembolsar_custa.html", {
+        "form": form,
+        "custa": custa,
+        "aba_ativa": "custas",
+        "item_ativo": "financeiro",
+    })
 
 
 def _honorarios_no_escopo():
@@ -628,6 +700,12 @@ def honorarios_lista(request):
     hoje = timezone.localdate()
     honorarios = list(_honorarios_no_escopo().order_by("-criado_em"))
     for h in honorarios:
+        if h.calculado:
+            # Total sempre recalculado dos parâmetros — nunca o valor gravado.
+            h.calculo = calcular_honorario_sucumbencial(h, hoje)
+            h.valor_total_exibido = h.calculo["total"]
+            h.valor_pendente_hoje = max(h.calculo["total"] - h.valor_recebido, Decimal("0"))
+            continue
         valor_efetivo = h.valor_efetivo or h.valor_estimado
         pendente_base = valor_efetivo - h.valor_recebido
         correcao = calcular_correcao_honorario(
@@ -705,7 +783,10 @@ def confirmar_recebimento_honorario(request, pk):
     # escreve os valores novos em `honorario` (mesma instância) durante
     # form.is_valid(), então ler `honorario.<campo>` depois disso
     # devolveria o valor recém-submetido, não o valor anterior.
-    valor_efetivo_antes = honorario.valor_efetivo or honorario.valor_estimado
+    if honorario.calculado:
+        valor_efetivo_antes = calcular_honorario_sucumbencial(honorario, timezone.localdate())["total"]
+    else:
+        valor_efetivo_antes = honorario.valor_efetivo or honorario.valor_estimado
     valor_recebido_antes = honorario.valor_recebido
     taxa_mensal_antes = honorario.taxa_mensal
     data_termo_antes = honorario.data_termo
@@ -775,7 +856,7 @@ def confirmar_recebimento_honorario(request, pk):
         form = ConfirmarRecebimentoHonorarioForm(
             instance=honorario,
             initial={
-                "valor_efetivo": honorario.valor_efetivo or honorario.valor_estimado,
+                "valor_efetivo": valor_efetivo_antes,
                 "data_recebida": timezone.localdate(),
             },
         )
@@ -825,13 +906,78 @@ _ACOES_SOLICITACAO = {
 }
 
 
+SITUACOES_SOLICITACAO = {
+    "pendentes": SolicitacaoFinanceira.STATUS_ABERTOS,
+    "pagas": ("paga",),
+    "rejeitadas": ("rejeitada",),
+}
+
+
+def _query_sem(params, *chaves):
+    restantes = params.copy()
+    for chave in chaves:
+        restantes.pop(chave, None)
+    return restantes.urlencode()
+
+
+def _data_ou_none(valor):
+    try:
+        return date.fromisoformat(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+def _filtrar_solicitacoes(qs, params, *, tem_acesso_dados):
+    """Filtros da lista de Solicitações. "Solicitado por" e "pagamento
+    realizado por" só existem para quem enxerga os dados de todos —
+    quem só tem nível `solicitacoes` já vê apenas as próprias."""
+    if params.get("cliente"):
+        qs = qs.filter(cliente_id=_parse_int(params["cliente"]) or 0)
+    if params.get("processo"):
+        qs = qs.filter(processo_id=_parse_int(params["processo"]) or 0)
+    if tem_acesso_dados:
+        if params.get("solicitante"):
+            qs = qs.filter(solicitante_id=_parse_int(params["solicitante"]) or 0)
+        if params.get("pago_por_usuario"):
+            qs = qs.filter(pagamento_realizado_por_id=_parse_int(params["pago_por_usuario"]) or 0)
+    intervalos = (
+        ("solicitado_de", "criado_em__date__gte"), ("solicitado_ate", "criado_em__date__lte"),
+        ("pago_de", "data_pagamento__gte"), ("pago_ate", "data_pagamento__lte"),
+    )
+    for parametro, campo in intervalos:
+        valor = _data_ou_none(params.get(parametro))
+        if valor:
+            qs = qs.filter(**{campo: valor})
+    return qs
+
+
 @login_required
 def solicitacoes_lista(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
+    tem_acesso_dados = _tem_acesso_dados(request.user)
+    base = _filtrar_solicitacoes(
+        _solicitacoes_no_escopo(request), request.GET, tem_acesso_dados=tem_acesso_dados,
+    )
+    situacao = request.GET.get("situacao")
+    if situacao not in SITUACOES_SOLICITACAO:
+        situacao = "pendentes"
+    contagens = {
+        chave: base.filter(status__in=status).count()
+        for chave, status in SITUACOES_SOLICITACAO.items()
+    }
+    escopo = _solicitacoes_no_escopo(request)
     return render(request, "financeiro/solicitacoes_lista.html", {
-        "solicitacoes": _solicitacoes_no_escopo(request),
-        "tem_acesso_dados": _tem_acesso_dados(request.user),
+        "solicitacoes": base.filter(status__in=SITUACOES_SOLICITACAO[situacao]),
+        "situacao": situacao,
+        "contagens": contagens,
+        "filtros": request.GET,
+        "filtros_query": _query_sem(request.GET, "situacao"),
+        "clientes_filtro": Cliente.objects.filter(pk__in=escopo.values("cliente_id")).order_by("nome_razao_social"),
+        "processos_filtro": Processo.objects.filter(pk__in=escopo.values("processo_id")),
+        "solicitantes_filtro": User.objects.filter(pk__in=escopo.values("solicitante_id")),
+        "pagadores_filtro": User.objects.filter(pk__in=escopo.values("pagamento_realizado_por_id")),
+        "tem_acesso_dados": tem_acesso_dados,
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })
@@ -955,7 +1101,7 @@ def anexo_solicitacao(request, pk):
     solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
     if not solicitacao.anexo:
         raise Http404
-    return FileResponse(solicitacao.anexo.open("rb"), filename=nome_do_arquivo(solicitacao.anexo))
+    return resposta_de_arquivo(request, solicitacao.anexo)
 
 
 @login_required
@@ -965,10 +1111,7 @@ def comprovante_pagamento_solicitacao(request, pk):
     solicitacao = get_object_or_404(_solicitacoes_no_escopo(request), pk=pk)
     if not solicitacao.comprovante_pagamento:
         raise Http404
-    return FileResponse(
-        solicitacao.comprovante_pagamento.open("rb"),
-        filename=nome_do_arquivo(solicitacao.comprovante_pagamento),
-    )
+    return resposta_de_arquivo(request, solicitacao.comprovante_pagamento)
 
 
 @login_required
@@ -992,7 +1135,9 @@ def processar_solicitacao(request, pk):
                     "se ela foi paga pelo escritório ou pelo cliente.",
                 )
                 return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)
-            solicitacao.avancar_para(novo_status, pago_por=pago_por, comprovante_pagamento=comprovante)
+            solicitacao.avancar_para(
+                novo_status, pago_por=pago_por, comprovante_pagamento=comprovante, usuario=request.user,
+            )
         else:
-            solicitacao.avancar_para(novo_status)
+            solicitacao.avancar_para(novo_status, usuario=request.user)
     return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)

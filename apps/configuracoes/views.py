@@ -50,12 +50,15 @@ from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.processos.services import (
+    AdministradorResponsavelIndisponivel,
     transferir_processos_de_usuarios_sem_acesso,
     usuarios_com_acesso_processos,
 )
 from apps.saas_tenants.storage import nome_do_arquivo
+from apps.saas_tenants.cores import cores_predominantes
+from apps.saas_tenants.models import ConfiguracaoVisual
 from .models import ConfiguracaoEscritorio
-from .forms import ConfiguracaoEscritorioForm
+from .forms import ConfiguracaoEscritorioForm, IdentidadeVisualForm
 
 
 def _obter_configuracao_escritorio():
@@ -108,6 +111,7 @@ def index(request):
             "papel": grupo.name if grupo else "",
             "papel_nome": nome_legivel_grupo(grupo.name) if grupo else "Sem papel definido",
             "membros_equipe": membros_equipe,
+            "e_admin": usuario_admin_escritorio(usuario),
         })
 
     configuracao_escritorio = _obter_configuracao_escritorio()
@@ -159,6 +163,20 @@ def foto_perfil(request):
     usa storage protegido (sem URL pública), por isso a entrega passa
     por uma view autenticada, mesmo padrão de `chat.anexo_mensagem`."""
     perfil, _ = PerfilUsuario.objects.get_or_create(user=request.user)
+    if not perfil.avatar:
+        raise Http404
+
+    return FileResponse(perfil.avatar.open("rb"), filename=nome_do_arquivo(perfil.avatar))
+
+
+@login_required
+def foto_usuario(request, user_pk):
+    """Avatar de qualquer usuário ativo do escritório — a foto aparece
+    para os colegas (chat, listas), então a entrega é aberta a qualquer
+    usuário autenticado do tenant; sem foto, 404 (a tela mostra iniciais)."""
+    perfil = get_object_or_404(
+        PerfilUsuario.objects.select_related("user"), user_id=user_pk, user__is_active=True,
+    )
     if not perfil.avatar:
         raise Http404
 
@@ -914,3 +932,76 @@ def editar_escritorio(request):
             "item_ativo": "configuracoes",
         },
     )
+
+
+@requer_admin_escritorio
+def identidade_visual(request):
+    """Logo e cores do escritório (white label) — o logo é aplicado na
+    barra lateral e as cores predominantes dele tingem o sistema."""
+    config, _ = ConfiguracaoVisual.objects.get_or_create(escritorio=request.tenant)
+
+    if request.method == "POST":
+        form = IdentidadeVisualForm(request.POST, request.FILES)
+        if form.is_valid():
+            dados = form.cleaned_data
+            logo = dados.get("logo")
+            if logo:
+                cores = [] if dados["manter_cores"] else cores_predominantes(logo)
+                logo.seek(0)
+                if config.logo:
+                    config.logo.delete(save=False)
+                config.logo = logo
+                if cores:
+                    config.cor_primaria = cores[0]
+                    if len(cores) > 1:
+                        config.cor_secundaria = cores[1]
+            elif dados["remover_logo"] and config.logo:
+                config.logo.delete(save=False)
+                config.logo = None
+            if not logo:
+                config.cor_primaria = dados["cor_primaria"] or config.cor_primaria
+                config.cor_secundaria = dados["cor_secundaria"] or config.cor_secundaria
+            config.save()
+            messages.success(request, "Identidade visual atualizada.")
+            return redirect("configuracoes:identidade_visual")
+    else:
+        form = IdentidadeVisualForm(initial={
+            "cor_primaria": config.cor_primaria, "cor_secundaria": config.cor_secundaria,
+        })
+
+    return render(request, "configuracoes/identidade_visual.html", {
+        "form": form,
+        "config": config,
+        "item_ativo": "configuracoes",
+    })
+
+
+@requer_admin_escritorio
+def excluir_usuario(request, user_pk):
+    """Exclui o usuário do escritório: a conta é inativada (não há como
+    apagar o registro — processos, clientes e tarefas o referenciam) e os
+    processos sob a responsabilidade dele passam ao Administrador
+    (PDR-0010). Não vale para si mesmo nem para o Administrador."""
+    if request.method != "POST":
+        raise Http404
+    alvo = get_object_or_404(User, pk=user_pk, is_active=True)
+    if alvo.pk == request.user.pk:
+        messages.error(request, "Você não pode excluir a própria conta.")
+        return redirect("configuracoes:index")
+    if usuario_admin_escritorio(alvo):
+        messages.error(request, "O Administrador do escritório não pode ser excluído.")
+        return redirect("configuracoes:index")
+
+    nome = alvo.get_full_name() or alvo.username
+    try:
+        with transaction.atomic():
+            alvo.is_active = False
+            alvo.save(update_fields=["is_active"])
+            MembroEquipe.objects.filter(usuario=alvo).delete()
+            transferir_processos_de_usuarios_sem_acesso([alvo.pk])
+    except AdministradorResponsavelIndisponivel as exc:
+        messages.error(request, str(exc))
+        return redirect("configuracoes:index")
+
+    messages.success(request, f"Usuário {nome} excluído.")
+    return redirect("configuracoes:index")

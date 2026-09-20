@@ -11,7 +11,7 @@ class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
         fields = [
-            "tipo", "nome_razao_social", "cpf_cnpj", "email", "telefone",
+            "tipo", "nome_razao_social", "nome_fantasia", "cpf_cnpj", "email", "telefone",
             "estrangeiro", "nacionalidade", "estado_civil", "profissao", "rg",
             "data_nascimento",
             "representante_nome", "representante_cpf", "representante_cargo",
@@ -23,7 +23,11 @@ class ClienteForm(forms.ModelForm):
             "tipo": forms.HiddenInput(),
             "nome_razao_social": forms.TextInput(attrs={
                 "class": "input",
-                "placeholder": "Nome completo ou razão social",
+                "placeholder": "Nome completo",
+            }),
+            "nome_fantasia": forms.TextInput(attrs={
+                "class": "input",
+                "placeholder": "Nome fantasia (opcional)",
             }),
             "cpf_cnpj": forms.TextInput(attrs={
                 "class": "input",
@@ -46,7 +50,7 @@ class ClienteForm(forms.ModelForm):
             }),
             "rg": forms.TextInput(attrs={
                 "class": "input",
-                "placeholder": "00.000.000-0",
+                "placeholder": "Número do RG",
             }),
             "data_nascimento": forms.DateInput(attrs={"class": "input", "type": "date"}),
             "representante_nome": forms.TextInput(attrs={
@@ -91,32 +95,47 @@ class ClienteForm(forms.ModelForm):
             }),
         }
 
+    def clean_nome_razao_social(self):
+        # Nome sempre em maiúsculas: evita o mesmo cliente/parte aparecer
+        # com grafias diferentes conforme quem digitou.
+        return (self.cleaned_data.get("nome_razao_social") or "").strip().upper()
+
+    def clean_cidade(self):
+        return (self.cleaned_data.get("cidade") or "").strip().upper()
+
+    def clean_bairro(self):
+        return (self.cleaned_data.get("bairro") or "").strip().upper()
+
+    def clean_nome_fantasia(self):
+        return (self.cleaned_data.get("nome_fantasia") or "").strip().upper()
+
     def clean(self):
         cleaned = super().clean()
         tipo = cleaned.get("tipo") or "PF"
         documento = (cleaned.get("cpf_cnpj") or "").strip()
 
         if tipo == "PJ":
-            # Estado civil, profissão, RG, nacionalidade e estrangeiro só
-            # fazem sentido para o próprio cliente Pessoa Física — trava/
-            # limpa mesmo que alguém manipule a requisição manualmente (os
-            # campos vêm ocultos na tela para PJ).
-            cleaned["estrangeiro"] = False
+            # Estado civil, profissão, RG e nacionalidade só fazem sentido
+            # para o próprio cliente Pessoa Física — trava/limpa mesmo que
+            # alguém manipule a requisição manualmente (os campos vêm
+            # ocultos na tela para PJ). `estrangeiro` vale para PJ como
+            # "empresa estrangeira": documento livre, sem validar CNPJ.
             cleaned["nacionalidade"] = "Brasileira"
             cleaned["estado_civil"] = ""
             cleaned["profissao"] = ""
             cleaned["rg"] = ""
             cleaned["data_nascimento"] = None
 
-            if documento and not cnpj_valido(documento):
+            if documento and not cleaned.get("estrangeiro") and not cnpj_valido(documento):
                 self.add_error("cpf_cnpj", "CNPJ inválido.")
 
             representante_cpf = (cleaned.get("representante_cpf") or "").strip()
             if representante_cpf and not cpf_valido(representante_cpf):
                 self.add_error("representante_cpf", "CPF inválido.")
         else:
-            # Representante é exclusivo de Pessoa Jurídica — trava/limpa
-            # pelo mesmo motivo acima.
+            # Representante e nome fantasia são exclusivos de Pessoa
+            # Jurídica — trava/limpa pelo mesmo motivo acima.
+            cleaned["nome_fantasia"] = ""
             cleaned["representante_nome"] = ""
             cleaned["representante_cpf"] = ""
             cleaned["representante_cargo"] = ""

@@ -332,3 +332,50 @@ class TestAbaPrazos(MovimentacoesBase):
             data_prazo=date.today() - timedelta(days=1),
         )
         self.assertTrue(vencido.prazo_vencido)
+
+
+class TestAtualizarSituacaoPorDecisaoJudicial(MovimentacoesBase):
+    """Suspenso/sobrestado vêm de decisão do juiz, lançada no andamento —
+    revisão de 2026-09-19 (Painel: processos por status)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "movimentacoes_situacao_judicial"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self._user("resp_situacao")
+        self._autorizar(self.user)
+        self.client.force_login(self.user)
+        self.processo = self._processo(responsavel=self.user, area_direito="CÍVEL")
+
+    def _post(self, **overrides):
+        dados = {"tipo": "decisao_interlocutoria", "data": "2026-03-01T09:00", "descricao": "Decisão"}
+        dados.update(overrides)
+        return self.client.post(
+            f"/processos/{self.processo.pk}/movimentacoes/nova/", dados, HTTP_HOST=self.http_host,
+        )
+
+    def test_decisao_pode_suspender_sobrestar_e_retomar(self):
+        for situacao in ("suspenso", "sobrestado", "ativo"):
+            self._post(atualizar_situacao=situacao)
+            self.processo.refresh_from_db()
+            self.assertEqual(self.processo.status, situacao)
+
+    def test_sem_situacao_informada_status_nao_muda(self):
+        self._post()
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.status, "ativo")
+
+    def test_processo_arquivado_nao_muda_de_situacao_por_andamento(self):
+        self.processo.status = "arquivado"
+        self.processo.save(update_fields=["status"])
+        self._post(atualizar_situacao="suspenso")
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.status, "arquivado")
+
+    def test_valor_fora_da_lista_e_rejeitado(self):
+        self._post(atualizar_situacao="encerrado")
+        self.processo.refresh_from_db()
+        self.assertEqual(self.processo.status, "ativo")
+        self.assertFalse(self.processo.movimentacoes.exists())

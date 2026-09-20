@@ -135,10 +135,10 @@ class TestNovoClienteComNextParaProcesso(CriacaoCruzadaBase):
     def test_post_com_next_redireciona_com_cliente_criado(self):
         r = self.client.post(
             "/clientes/novo/",
-            {"tipo": "PF", "nome_razao_social": "Novo Via Processo", "next": "/processos/novo/"},
+            {"tipo": "PF", "nome_razao_social": "NOVO VIA PROCESSO", "next": "/processos/novo/"},
             HTTP_HOST=self.http_host,
         )
-        criado = Cliente.objects.get(nome_razao_social="Novo Via Processo")
+        criado = Cliente.objects.get(nome_razao_social="NOVO VIA PROCESSO")
         self.assertRedirects(
             r, f"/processos/novo/?cliente_criado={criado.pk}", fetch_redirect_response=False
         )
@@ -171,10 +171,10 @@ class TestNovoClienteComNextParaProcesso(CriacaoCruzadaBase):
     def test_cliente_criado_via_fluxo_cruzado_aparece_selecionavel_no_processo(self):
         r_post = self.client.post(
             "/clientes/novo/",
-            {"tipo": "PF", "nome_razao_social": "Selecionavel Depois", "next": "/processos/novo/"},
+            {"tipo": "PF", "nome_razao_social": "SELECIONAVEL DEPOIS", "next": "/processos/novo/"},
             HTTP_HOST=self.http_host,
         )
-        criado = Cliente.objects.get(nome_razao_social="Selecionavel Depois")
+        criado = Cliente.objects.get(nome_razao_social="SELECIONAVEL DEPOIS")
         r = self.client.get(r_post.url, HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, f'value="{criado.pk}"')

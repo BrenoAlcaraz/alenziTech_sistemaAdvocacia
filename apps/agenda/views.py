@@ -803,6 +803,24 @@ def adicionar_equipe_participante(request, pk):
 
 
 @login_required
+def adicionar_todos_participantes(request, pk):
+    """Convida todos os usuários ativos ainda não convidados; cada um passa
+    pela confirmação de presença normal (PDR-0020). Mesma autorização de
+    `adicionar_participante`."""
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
+    if request.method == "POST":
+        for usuario in _usuarios_elegiveis_para_participante(compromisso):
+            participacao = ParticipanteCompromisso.objects.create(
+                compromisso=compromisso, usuario=usuario
+            )
+            _notificar_convite(participacao)
+    return redirect("agenda:editar", pk=pk)
+
+
+@login_required
 def confirmar_presenca(request, pk):
     """Confirmar/recusar presença é ação do próprio participante sobre o
     próprio registro — não passa pela autorização de edição do

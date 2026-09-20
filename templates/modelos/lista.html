@@ -263,7 +263,8 @@
                 {% for assinatura in assinaturas_estilo %}
                   <div class="me-page-sig-line"></div>
                   {% if assinatura.modo == "imagem" %}
-                    <img src="{% url 'modelos:imagem_assinatura_estilo' assinatura.pk %}" style="width:{{ assinatura.largura }}%; display:block; margin-left:auto; margin-right:auto;" alt="">
+                    <img src="{% url 'modelos:imagem_assinatura_estilo' assinatura.pk %}" style="width:{{ assinatura.largura }}%; display:block; margin-left:auto; margin-right:auto;" alt=""
+                         data-assinatura-ajustar="{% url 'modelos:ajustar_assinatura_estilo' assinatura.pk %}" data-largura="{{ assinatura.largura }}" data-alinhamento="{{ assinatura.alinhamento }}">
                   {% else %}
                     <span>{{ assinatura.texto }}</span>
                   {% endif %}

@@ -10,19 +10,15 @@
     {% if caso_form.cliente.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ caso_form.cliente.errors|join:", " }}</p>{% endif %}
   </div>
 
-  <div class="grid grid-cols-2 gap-3 mb-3">
-    <div>
-      <label class="label" for="{{ caso_form.valor.id_for_label }}">{{ caso_form.valor.label }}</label>
-      {{ caso_form.valor }}
-    </div>
-    <div>
-      <label class="label" for="{{ caso_form.endereco_caso.id_for_label }}">{{ caso_form.endereco_caso.label }}</label>
-      {{ caso_form.endereco_caso }}
-    </div>
+  <div class="mb-3">
+    <label class="label" for="{{ caso_form.documentos.id_for_label }}">{{ caso_form.documentos.label }}</label>
+    {{ caso_form.documentos }}
+    <p class="text-xs text-gray-400 mt-1">PDF, DOCX, PNG ou JPG — até 10 arquivos de 10 MB.</p>
+    {% if caso_form.documentos.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ caso_form.documentos.errors|join:", " }}</p>{% endif %}
   </div>
 
   <div>
-    <label class="label" for="{{ caso_form.particularidades.id_for_label }}">{{ caso_form.particularidades.label }}</label>
-    {{ caso_form.particularidades }}
+    <label class="label" for="{{ caso_form.observacoes.id_for_label }}">{{ caso_form.observacoes.label }}</label>
+    {{ caso_form.observacoes }}
   </div>
 </div>

@@ -84,9 +84,11 @@
           {{ c.get_tipo_display }}{% if c.cliente %} &bull; {{ c.cliente }}{% endif %}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
         </p>
         {% if c.anexo %}
-          <a href="{% url 'financeiro:anexo_custa' c.pk %}" target="_blank" rel="noopener" class="block truncate text-xs text-juridico-verde hover:underline" title="{{ c.anexo.name }}">
-            {{ c.anexo.name }}
-          </a>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
+            {% url 'financeiro:anexo_custa' c.pk as anexo_url %}
+            {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+          </div>
         {% endif %}
       </div>
       <div class="flex items-center gap-3">

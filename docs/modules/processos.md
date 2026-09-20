@@ -160,6 +160,14 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   endpoint de Financeiro porque aquele é restrito por
   dados_próprios/dados_todos, mais estreito que a visibilidade da aba.
 
+## Situação por decisão judicial
+
+- `status` do processo: ativo, suspenso, sobrestado, arquivado (e
+  `encerrado`, legado sem uso). Suspenso/sobrestado/retomada (volta a
+  ativo) são lançados por quem adiciona o andamento, num campo opcional
+  do formulário; processo arquivado não muda por aqui (arquivar/
+  desarquivar seguem seu fluxo).
+
 ## Apensos (PDR-0012)
 
 - Relação simétrica entre dois Processos existentes, sem hierarquia.

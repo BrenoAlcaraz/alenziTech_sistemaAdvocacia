@@ -100,3 +100,10 @@ class TestPainelGestorListaEDetalhe(PainelGestorBase):
         descricoes = [a.descricao for a in resposta.context["atividades"]]
         self.assertEqual(descricoes, ["Login no sistema", "Criou o processo X"])
         self.assertNotIn("Login de ontem", descricoes)
+
+    def test_detalhe_nao_oferece_atalho_separado_para_habilitacoes(self):
+        # Habilitações fazem parte de "Permissões" (`usuario_overrides`).
+        resposta = self.client.get(f"/gestor/{self.membro.pk}/", HTTP_HOST=self.http_host)
+        html = resposta.content.decode()
+        self.assertNotIn("Ir para Habilitações", html)
+        self.assertIn("Ir para Permissões", html)

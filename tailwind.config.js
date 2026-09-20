@@ -10,6 +10,12 @@ module.exports = {
     extend: {
       colors: {
         // Paleta principal — identidade jurídica premium
+        // Cores do escritório (white label): variáveis definidas em
+        // templates/base/base.html a partir de ConfiguracaoVisual.
+        primaria: {
+          DEFAULT: "rgb(var(--cor-primaria-rgb, 26 26 26) / <alpha-value>)",
+          hover: "rgb(var(--cor-primaria-hover-rgb, 42 42 42) / <alpha-value>)",
+        },
         sidebar: {
           DEFAULT: "#1a1a1a",
           hover: "#2a2a2a",
@@ -21,7 +27,7 @@ module.exports = {
           // Bege/areia — cards secundários, fundos de input
           bege: "#ede8e0",
           // Dourado/oliva — acentos premium, bordas ativas, badges
-          ouro: "#8B7355",
+          ouro: "rgb(var(--cor-secundaria-rgb, 139 115 85) / <alpha-value>)",
           "ouro-claro": "#c4a882",
           // Verde suave — crédito, sucesso
           verde: "#166534",

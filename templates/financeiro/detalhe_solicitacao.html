@@ -66,9 +66,13 @@
     {% endif %}
     <div class="col-span-2 texto-quebra">
       <p class="text-xs text-gray-400">Anexo</p>
-      <a href="{% url 'financeiro:anexo_solicitacao' solicitacao.pk %}" target="_blank" rel="noopener" class="text-juridico-ouro hover:underline">
-        {{ solicitacao.anexo.name|default:"—" }}
-      </a>
+      <div class="flex items-center gap-2">
+        <span class="truncate text-gray-900" title="{{ solicitacao.anexo.name }}">{{ solicitacao.anexo.name|default:"—" }}</span>
+        {% if solicitacao.anexo %}
+          {% url 'financeiro:anexo_solicitacao' solicitacao.pk as anexo_url %}
+          {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+        {% endif %}
+      </div>
     </div>
     {% if solicitacao.status == "paga" and solicitacao.tipo == "pagamento" %}
       <div class="texto-quebra">
@@ -77,9 +81,13 @@
       </div>
       <div class="texto-quebra">
         <p class="text-xs text-gray-400">Comprovante de pagamento</p>
-        <a href="{% url 'financeiro:comprovante_pagamento_solicitacao' solicitacao.pk %}" target="_blank" rel="noopener" class="text-juridico-ouro hover:underline">
-          {{ solicitacao.comprovante_pagamento.name|default:"—" }}
-        </a>
+        <div class="flex items-center gap-2">
+          <span class="truncate text-gray-900" title="{{ solicitacao.comprovante_pagamento.name }}">{{ solicitacao.comprovante_pagamento.name|default:"—" }}</span>
+          {% if solicitacao.comprovante_pagamento %}
+            {% url 'financeiro:comprovante_pagamento_solicitacao' solicitacao.pk as comprovante_url %}
+            {% include "components/anexo_acoes.html" with arquivo_url=comprovante_url %}
+          {% endif %}
+        </div>
       </div>
     {% endif %}
   </div>

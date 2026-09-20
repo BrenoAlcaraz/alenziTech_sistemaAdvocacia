@@ -33,9 +33,12 @@
         {% include "components/selo_prioridade.html" with cliente=cliente %}
       </h1>
       <p class="text-sm text-gray-500 mt-0.5">
-        {% if cliente.tipo == "PF" %}Pessoa Física &bull; CPF {% else %}Pessoa Jurídica &bull; CNPJ {% endif %}
+        {% if cliente.tipo == "PF" %}Pessoa Física{% if cliente.estrangeiro %} estrangeira &bull; Documento{% else %} &bull; CPF{% endif %}{% else %}Pessoa Jurídica{% if cliente.estrangeiro %} estrangeira &bull; Documento{% else %} &bull; CNPJ{% endif %}{% endif %}
         {{ cliente.cpf_cnpj }}
       </p>
+      {% if cliente.nome_fantasia %}
+      <p class="text-sm text-gray-500 texto-quebra">Nome fantasia: {{ cliente.nome_fantasia }}</p>
+      {% endif %}
       <div class="flex items-center gap-4 mt-2">
         {% if cliente.email %}
           <span class="flex items-center gap-1 text-sm text-gray-500 texto-quebra">
@@ -247,9 +250,8 @@
           </p>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
-          <a href="{% url 'clientes:baixar_documento' documento.pk %}" class="text-xs text-juridico-verde hover:underline">
-            Baixar
-          </a>
+          {% url 'clientes:baixar_documento' documento.pk as documento_url %}
+          {% include "components/anexo_acoes.html" with arquivo_url=documento_url %}
           {% if pode_excluir_documento %}
           <form method="post" action="{% url 'clientes:excluir_documento' cliente.pk documento.pk %}">
             {% csrf_token %}

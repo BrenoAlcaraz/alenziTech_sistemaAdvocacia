@@ -90,12 +90,14 @@ class Cliente(models.Model):
 
     tipo = models.CharField(max_length=2, choices=TIPO_CHOICES, default="PF")
     nome_razao_social = models.CharField(max_length=255)
+    nome_fantasia = models.CharField(max_length=255, blank=True, verbose_name="Nome fantasia")
     cpf_cnpj = models.CharField(max_length=18, blank=True)
     email = models.EmailField(blank=True)
     telefone = models.CharField(max_length=20, blank=True)
 
     # Brasileiro/Estrangeiro (reunião de 13/09) — documento, nacionalidade,
-    # RG e a busca automática de endereço por CEP dependem deste flag.
+    # RG e a busca automática de endereço por CEP dependem deste flag. Em
+    # Pessoa Jurídica significa "empresa estrangeira" (documento livre, sem CNPJ).
     estrangeiro = models.BooleanField(default=False, verbose_name="Estrangeiro")
     nacionalidade = models.CharField(
         max_length=100, choices=NACIONALIDADE_CHOICES, default="Brasileira", blank=True,

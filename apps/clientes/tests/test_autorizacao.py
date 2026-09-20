@@ -249,7 +249,7 @@ class TestClientesAutorizacaoModuloConcedido(ClientesAutorizacaoBase):
     def test_editar_post_autorizado_altera_cliente(self):
         r = self.client.post(
             f"/clientes/{self.cliente_ativo.pk}/editar/",
-            {"tipo": "PF", "nome_razao_social": "Nome Alterado Autorizado"},
+            {"tipo": "PF", "nome_razao_social": "NOME ALTERADO AUTORIZADO"},
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(
@@ -257,7 +257,7 @@ class TestClientesAutorizacaoModuloConcedido(ClientesAutorizacaoBase):
         )
         self.cliente_ativo.refresh_from_db()
         self.assertEqual(
-            self.cliente_ativo.nome_razao_social, "Nome Alterado Autorizado"
+            self.cliente_ativo.nome_razao_social, "NOME ALTERADO AUTORIZADO"
         )
 
     def test_desativar_get_autorizado_preserva_redirect_fallback(self):

@@ -12,7 +12,7 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
-  <form method="post">
+  <form method="post" id="form-honorario" data-hoje="{% now 'Y-m-d' %}">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -33,6 +33,24 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div>
+          <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }} <span class="text-gray-400 font-normal">(obrigatório na sucumbência)</span></label>
+          {{ form.processo }}
+          {% if form.processo.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }} <span class="text-gray-400 font-normal">(na sucumbência, vem do processo)</span></label>
+          {{ form.cliente }}
+          {% if form.cliente.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Modelo simples — contratual, êxito, outro #}
+      <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual,exito,outro" class="grid grid-cols-2 gap-4">
+        <div>
           <label class="label" for="{{ form.valor_estimado.id_for_label }}">{{ form.valor_estimado.label }}</label>
           {{ form.valor_estimado }}
           {% if form.valor_estimado.errors %}
@@ -46,19 +64,91 @@
             <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_prevista.errors|join:", " }}</p>
           {% endif %}
         </div>
+      </div>
+
+      {# Sucumbência calculada (PDR-0029) #}
+      <div data-toggle-panel="honorario_tipo" data-toggle-values="sucumbencial" class="flex flex-col gap-4">
         <div>
-          <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
-          {{ form.cliente }}
-          {% if form.cliente.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
-          {% endif %}
+          <label class="label" for="{{ form.forma_condenacao.id_for_label }}">{{ form.forma_condenacao.label }}</label>
+          {{ form.forma_condenacao }}
+          {% if form.forma_condenacao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.forma_condenacao.errors|join:", " }}</p>{% endif %}
         </div>
+        <div data-toggle-panel="forma" data-toggle-values="percentual" class="grid grid-cols-2 gap-4">
+          <div>
+          <label class="label" for="{{ form.percentual.id_for_label }}">{{ form.percentual.label }}</label>
+          {{ form.percentual }}
+          {% if form.percentual.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.percentual.errors|join:", " }}</p>{% endif %}
+        </div>
+          <div>
+          <label class="label" for="{{ form.valor_causa.id_for_label }}">{{ form.valor_causa.label }}</label>
+          {{ form.valor_causa }}
+          {% if form.valor_causa.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_causa.errors|join:", " }}</p>{% endif %}
+        </div>
+        </div>
+        <div data-toggle-panel="forma" data-toggle-values="fixo">
+          <div>
+          <label class="label" for="{{ form.valor_fixo.id_for_label }}">{{ form.valor_fixo.label }}</label>
+          {{ form.valor_fixo }}
+          {% if form.valor_fixo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_fixo.errors|join:", " }}</p>{% endif %}
+        </div>
+        </div>
+
         <div>
-          <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
-          {{ form.processo }}
-          {% if form.processo.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
-          {% endif %}
+          <label class="label" for="{{ form.devedor_tipo.id_for_label }}">{{ form.devedor_tipo.label }}</label>
+          {{ form.devedor_tipo }}
+          {% if form.devedor_tipo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.devedor_tipo.errors|join:", " }}</p>{% endif %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div data-toggle-panel="devedor" data-toggle-values="pessoa">
+            <label class="label" for="{{ form.indice_correcao.id_for_label }}">{{ form.indice_correcao.label }}</label>
+            {{ form.indice_correcao }}
+            {% if form.indice_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.indice_correcao.errors|join:", " }}</p>{% endif %}
+          </div>
+          <div>
+          <label class="label" for="{{ form.taxa_indice_mensal.id_for_label }}">{{ form.taxa_indice_mensal.label }}</label>
+          {{ form.taxa_indice_mensal }}
+          {% if form.taxa_indice_mensal.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.taxa_indice_mensal.errors|join:", " }}</p>{% endif %}
+        </div>
+          <div>
+          <label class="label" for="{{ form.data_correcao.id_for_label }}">{{ form.data_correcao.label }}</label>
+          {{ form.data_correcao }}
+          {% if form.data_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_correcao.errors|join:", " }}</p>{% endif %}
+        </div>
+          <div data-toggle-panel="devedor" data-toggle-values="pessoa">
+            <label class="label" for="{{ form.data_juros.id_for_label }}">{{ form.data_juros.label }}</label>
+            {{ form.data_juros }}
+            {% if form.data_juros.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_juros.errors|join:", " }}</p>{% endif %}
+          </div>
+        </div>
+        <p class="text-xs text-gray-400">Sem integração com índices externos: informe a taxa mensal do índice (ou da Selic, no ente estatal). Devedor comum: correção pelo índice + juros de 1% a.m.; ente estatal: só a Selic, sem juros à parte. As datas podem ser diferentes porque o juiz costuma fixar termos iniciais distintos.</p>
+
+        <div class="flex items-center gap-2">
+          {{ form.com_exito }}
+          <label for="id_com_exito" class="text-sm text-gray-700 cursor-pointer">{{ form.com_exito.label }}</label>
+        </div>
+        <div id="painel-exito" class="hidden grid grid-cols-2 gap-4">
+          <div>
+          <label class="label" for="{{ form.exito_percentual.id_for_label }}">{{ form.exito_percentual.label }}</label>
+          {{ form.exito_percentual }}
+          {% if form.exito_percentual.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_percentual.errors|join:", " }}</p>{% endif %}
+        </div>
+          <div>
+          <label class="label" for="{{ form.exito_valor_ganho.id_for_label }}">{{ form.exito_valor_ganho.label }}</label>
+          {{ form.exito_valor_ganho }}
+          {% if form.exito_valor_ganho.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_valor_ganho.errors|join:", " }}</p>{% endif %}
+        </div>
+          <div>
+          <label class="label" for="{{ form.exito_data_correcao.id_for_label }}">{{ form.exito_data_correcao.label }}</label>
+          {{ form.exito_data_correcao }}
+          {% if form.exito_data_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_data_correcao.errors|join:", " }}</p>{% endif %}
+        </div>
+          <p class="col-span-2 text-xs text-gray-400">O valor ganho pelo cliente também é corrigido (mesma regra da sucumbência), a partir da data própria do êxito; o percentual incide sobre o valor já corrigido.</p>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 p-4 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Sucumbência corrigida</span><span id="calc-sucumbencia" class="font-medium">R$ 0,00</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Honorários de êxito (contratual)</span><span id="calc-exito" class="font-medium">R$ 0,00</span></div>
+          <div class="flex justify-between border-t border-gray-200 mt-2 pt-2"><span class="font-semibold text-gray-900">Valor total do honorário</span><span id="calc-total" class="font-semibold text-gray-900">R$ 0,00</span></div>
         </div>
       </div>
 
@@ -78,4 +168,49 @@
     </div>
   </form>
 </div>
+
+<script>
+  // Prévia do total — mesma fórmula de services.calcular_honorario_sucumbencial
+  // (o valor gravado/exibido é sempre o recalculado no servidor).
+  (function () {
+    var form = document.getElementById("form-honorario");
+    var hoje = new Date(form.dataset.hoje + "T00:00:00");
+    function el(id) { return document.getElementById("id_" + id); }
+    function num(id) { return parseFloat(el(id).value) || 0; }
+    function meses(idData) {
+      var v = el(idData).value;
+      if (!v) return 0;
+      var d = new Date(v + "T00:00:00");
+      var m = (hoje.getFullYear() - d.getFullYear()) * 12 + (hoje.getMonth() - d.getMonth());
+      if (hoje.getDate() < d.getDate()) m -= 1;
+      return Math.max(0, m);
+    }
+    function corrigir(base, dataCorrecao, dataJuros) {
+      var taxa = num("taxa_indice_mensal") / 100;
+      var mesesCorrecao = meses(dataCorrecao);
+      if (el("devedor_tipo").value === "ente_estatal") return base * (1 + taxa * mesesCorrecao);
+      return base + base * taxa * mesesCorrecao + base * 0.01 * meses(dataJuros);
+    }
+    function brl(v) { return "R$ " + v.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+
+    var comExito = document.getElementById("id_com_exito");
+    var painelExito = document.getElementById("painel-exito");
+
+    function recalcular() {
+      painelExito.classList.toggle("hidden", !comExito.checked);
+      var base = el("forma_condenacao").value === "percentual"
+        ? num("percentual") / 100 * num("valor_causa") : num("valor_fixo");
+      var suc = corrigir(base, "data_correcao", "data_juros");
+      var exito = comExito.checked
+        ? num("exito_percentual") / 100 * corrigir(num("exito_valor_ganho"), "exito_data_correcao", "exito_data_correcao")
+        : 0;
+      document.getElementById("calc-sucumbencia").textContent = brl(suc);
+      document.getElementById("calc-exito").textContent = brl(exito);
+      document.getElementById("calc-total").textContent = brl(suc + exito);
+    }
+    form.addEventListener("input", recalcular);
+    form.addEventListener("change", recalcular);
+    recalcular();
+  })();
+</script>
 {% endblock %}

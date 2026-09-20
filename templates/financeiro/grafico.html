@@ -1,6 +1,6 @@
 {% extends "base/base_auth.html" %}
 {% load financeiro_abas %}
-{% block title %}Gráfico — Financeiro{% endblock %}
+{% block title %}Análise de dados — Financeiro{% endblock %}
 
 {% block content %}
 <div class="mb-6">
@@ -10,20 +10,20 @@
 
 {% abas_financeiro %}
 
-<div class="card p-6">
+<div class="card p-6 mb-6">
 
   <div class="flex items-center justify-between mb-6">
     <h2 class="font-semibold text-gray-900">Receita &times; despesa por mês</h2>
     <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
-      <a href="?periodo=6meses"
+      <a href="?periodo=6meses&janela={{ janela }}"
          class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == '6meses' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
         Últimos 6 meses
       </a>
-      <a href="?periodo=12meses"
+      <a href="?periodo=12meses&janela={{ janela }}"
          class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == '12meses' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
         Últimos 12 meses
       </a>
-      <a href="?periodo=exercicio"
+      <a href="?periodo=exercicio&janela={{ janela }}"
          class="px-3 py-1.5 rounded-lg text-sm font-medium {% if periodo == 'exercicio' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
         Exercício {{ ano_exercicio }}
       </a>
@@ -49,5 +49,25 @@
     <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-juridico-vermelho"></span>Despesas</span>
   </div>
 
+</div>
+
+{# Análises por fonte — só o realizado; reembolso de cliente não é receita e custas adiantadas não reembolsadas contam como despesa #}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+  <h2 class="font-semibold text-gray-900">Análises</h2>
+  <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+    <a href="?janela=sempre&periodo={{ periodo }}"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if janela == 'sempre' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">Sempre</a>
+    <a href="?janela=12meses&periodo={{ periodo }}"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if janela == '12meses' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">Últimos 12 meses</a>
+    <a href="?janela=exercicio&periodo={{ periodo }}"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if janela == 'exercicio' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">Exercício deste ano</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  {% include "financeiro/_analise_bloco.html" with titulo="Fontes de receita" dados=analise.fontes_receita cor="bg-juridico-verde" vazio="Nenhuma receita recebida no período." %}
+  {% include "financeiro/_analise_bloco.html" with titulo="Fontes de despesa" dados=analise.fontes_despesa cor="bg-juridico-vermelho" vazio="Nenhuma despesa paga no período." %}
+  {% include "financeiro/_analise_bloco.html" with titulo="Receita por área de atuação" dados=analise.receita_por_area cor="bg-juridico-verde" vazio="Nenhuma receita recebida no período." %}
+  {% include "financeiro/_analise_bloco.html" with titulo="Receita por cliente" dados=analise.receita_por_cliente cor="bg-juridico-verde" vazio="Nenhuma receita recebida no período." %}
 </div>
 {% endblock %}

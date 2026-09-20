@@ -58,6 +58,7 @@
         <div>
           <label class="label">{{ form.categoria.label }}</label>
           {{ form.categoria }}
+          <p id="dica-reembolso" class="hidden text-xs text-gray-500 mt-1">Reembolso de cliente: ao ser recebido, o valor é creditado nas custas judiciais do cliente e não conta como receita do escritório.</p>
           {% if form.categoria.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.categoria.errors|join:", " }}</p>
           {% endif %}
@@ -101,7 +102,7 @@
 
         {# Cliente #}
         <div>
-          <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label">Cliente <span class="text-gray-400 font-normal">(obrigatório em reembolso de cliente)</span></label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
@@ -192,9 +193,11 @@
       <div>
         <label class="label">{{ form.anexo.label }}</label>
         {% if lancamento.anexo %}
-          <p class="text-xs text-gray-500 mb-1">
-            Atual: <a href="{% url 'financeiro:anexo_lancamento' lancamento.pk %}" target="_blank" rel="noopener" class="text-juridico-verde hover:underline">{{ lancamento.anexo.name }}</a>
-          </p>
+          <div class="flex items-center gap-2 mb-1 text-xs text-gray-500">
+            <span class="truncate" title="{{ lancamento.anexo.name }}">Atual: {{ lancamento.anexo.name }}</span>
+            {% url 'financeiro:anexo_lancamento' lancamento.pk as anexo_url %}
+            {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+          </div>
         {% endif %}
         {{ form.anexo }}
         {% if form.anexo.errors %}
@@ -210,4 +213,39 @@
     </div>
   </form>
 </div>
+
+{{ form.categorias_por_tipo|json_script:"categorias-por-tipo" }}
+<script>
+  // Categoria acompanha o tipo: receita e despesa têm categorias próprias
+  // (o backend também recusa a combinação inválida).
+  (function () {
+    var tipo = document.getElementById("id_tipo");
+    var categoria = document.getElementById("id_categoria");
+    var porTipo = JSON.parse(document.getElementById("categorias-por-tipo").textContent);
+    var dicaReembolso = document.getElementById("dica-reembolso");
+
+    function atualizarCategorias() {
+      var validas = porTipo[tipo.value] || [];
+      var atual = categoria.value;
+      categoria.innerHTML = "";
+      validas.forEach(function (par) {
+        var opcao = document.createElement("option");
+        opcao.value = par[0];
+        opcao.textContent = par[1];
+        categoria.appendChild(opcao);
+      });
+      if (validas.some(function (par) { return par[0] === atual; })) categoria.value = atual;
+      atualizarDica();
+    }
+
+    function atualizarDica() {
+      if (!dicaReembolso) return;
+      dicaReembolso.classList.toggle("hidden", !(tipo.value === "receita" && categoria.value === "reembolso"));
+    }
+
+    tipo.addEventListener("change", atualizarCategorias);
+    categoria.addEventListener("change", atualizarDica);
+    atualizarCategorias();
+  })();
+</script>
 {% endblock %}

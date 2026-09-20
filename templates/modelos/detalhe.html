@@ -109,6 +109,21 @@
 </div>
 {% endif %}
 
+{% if anexos %}
+<div class="card p-5 mb-4">
+  <h2 class="text-sm font-semibold text-gray-700 mb-3">Documentos anexados</h2>
+  <div class="flex flex-col gap-2">
+    {% for anexo in anexos %}
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-sm text-gray-700 truncate" title="{{ anexo.nome_do_anexo }}">{{ anexo.nome_do_anexo }}</span>
+        {% url 'modelos:anexo_peca' modelo.pk anexo.pk as anexo_url %}
+        {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {# Conteúdo oculto para cópia #}
 <textarea id="conteudo-modelo-copia" hidden>{{ modelo.conteudo }}</textarea>
 

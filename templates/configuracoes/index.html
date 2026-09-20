@@ -11,9 +11,7 @@
   {# Perfil #}
   <div class="flex items-center justify-between gap-3 mb-5 pb-5 border-b border-gray-100">
     <div class="flex items-center gap-3">
-      <div class="w-12 h-12 rounded-full bg-stone-600 flex items-center justify-center text-white font-semibold text-sm">
-        {% if perfil_usuario %}{{ perfil_usuario.iniciais }}{% else %}{{ request.user.username|upper|slice:":2" }}{% endif %}
-      </div>
+      {% include "components/avatar_usuario.html" with usuario=request.user tamanho="w-12 h-12" texto="text-sm" %}
       <div>
         <p class="font-semibold text-gray-900">
           {% if perfil_usuario and perfil_usuario.nome_completo %}{{ perfil_usuario.nome_completo }}
@@ -89,9 +87,7 @@
     {% for item in usuarios_contexto %}
       {% with u=item.usuario %}
       <div class="flex items-center gap-3 py-3">
-        <div class="w-10 h-10 rounded-full bg-stone-500 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-          {% if u.perfil %}{{ u.perfil.iniciais }}{% else %}{{ u.username|upper|slice:":2" }}{% endif %}
-        </div>
+        {% include "components/avatar_usuario.html" with usuario=u tamanho="w-10 h-10" texto="text-sm" %}
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-900">
             {% if u.perfil and u.perfil.nome_completo %}{{ u.perfil.nome_completo }}
@@ -124,12 +120,16 @@
               Permissões individuais
             </a>
           {% endif %}
-          {% if u != request.user %}
-            <button class="text-gray-300 hover:text-red-400 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
-            </button>
+          {% if usuario_e_admin_escritorio and u != request.user and not item.e_admin %}
+            <form method="post" action="{% url 'configuracoes:excluir_usuario' u.pk %}"
+                  onsubmit="return confirm('Excluir este usuário? Ele perde o acesso e os processos sob a responsabilidade dele passam ao Administrador.');">
+              {% csrf_token %}
+              <button type="submit" title="Excluir usuário" aria-label="Excluir usuário" class="text-gray-300 hover:text-red-400 transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </form>
           {% endif %}
         </div>
       </div>
@@ -184,9 +184,12 @@
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-sm font-semibold text-gray-700">Dados do escritório</h2>
     {% if usuario_e_admin_escritorio %}
-    <a href="{% url 'configuracoes:editar_escritorio' %}" class="btn-secondary text-sm flex-shrink-0">
-      Editar dados do escritório
-    </a>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <a href="{% url 'configuracoes:identidade_visual' %}" class="btn-secondary text-sm">Logo e cores</a>
+      <a href="{% url 'configuracoes:editar_escritorio' %}" class="btn-secondary text-sm">
+        Editar dados do escritório
+      </a>
+    </div>
     {% endif %}
   </div>
 

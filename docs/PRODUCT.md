@@ -125,6 +125,16 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
 - Fora de escopo: dedup por CPF/CNPJ, cardinalidade de múltiplos
   endereços/contatos por cliente — sem decisão aprovada.
 
+- Formulário (revisão de 2026-09-19): PF pede só CPF e Nome; PJ pede só
+  CNPJ e Razão social/Firma, com Nome fantasia e opção "Empresa
+  estrangeira" (documento livre, sem validar CNPJ). PJ mostra primeiro
+  os dados e o endereço da empresa e, separado abaixo, os dados do
+  representante. RG sem máscara (não há padrão nacional). Nome, cidade e
+  bairro do cliente são sempre gravados em maiúsculas.
+- "Clientes relacionados" também considera clientes vinculados ao mesmo
+  processo (`Processo.clientes`), restritos ao escopo de leitura de quem
+  consulta.
+
 ### Tarefas
 
 Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
@@ -225,6 +235,9 @@ alternância dinâmica sem recarregar.
 - Fora de escopo: Google Calendar, múltiplos fusos, recorrência de
   evento.
 
+- Criar/editar compromisso: botão "Adicionar todos os usuários" como
+  participantes (cada um com confirmação de presença normal).
+
 ### Equipes
 
 Organização interna para distribuição de responsabilidade e escopo.
@@ -254,6 +267,12 @@ regras de agrupamento.
 - Fora de escopo: ranking/avaliação automática de desempenho,
   predição por IA, analytics avançado antes da consolidação do núcleo.
 
+- Painel: "Processos por status" = ativo, arquivado, suspenso,
+  sobrestado. Suspenso/sobrestado/retomada vêm de decisão do juiz,
+  lançada no formulário de andamento. Painel do gestor não tem atalho
+  separado para Habilitações (fazem parte de Permissões). Localidade
+  (cidade/comarca/vara) de processo é gravada em maiúsculas.
+
 ### Chat
 
 Comunicação interna dentro do mesmo tenant.
@@ -280,6 +299,11 @@ Comunicação interna dentro do mesmo tenant.
   leitura continuam funcionando normalmente por HTTP.
 - Fora de escopo: chamada de áudio/vídeo, integração com apps externos,
   IA dentro do chat.
+
+- Grupos avulsos podem ter nome e integrantes editados por quem
+  participa (grupo de equipe segue gerido pela Equipe). `@usuario`
+  numa mensagem notifica quem foi chamado (na sala global, qualquer
+  usuário do módulo); IA por `@` é direção futura.
 
 ### Modelos
 
@@ -405,6 +429,14 @@ Repositório de modelos de peças/documentos reutilizáveis.
   (Fase 2 do fluxo de peças repetitivas), edição colaborativa em tempo
   real, categorias hierárquicas, diff visual entre versões de peça.
 
+- Peças repetitivas: cada caso leva o cliente (nome/CPF-CNPJ), os
+  documentos que embasam a peça (PDF/DOCX/imagem, ficam guardados nela)
+  e observações; não há mais campos de valor nem endereço. A IA que
+  ajusta a peça base a esses dados depende do PDR-0008.
+- Meu estilo: imagens de cabeçalho, rodapé, marca d'água e assinatura se
+  ajustam arrastando na folha (mover entre esquerda/centro/direita e
+  alça de tamanho); a assinatura salva ao soltar.
+
 ### Configurações
 
 Perfil pessoal, gestão administrativa de usuários/papéis/habilitações/
@@ -430,6 +462,18 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   Administrador do escritório.
 - Fora de escopo: exclusão física de usuário, enforcement automático de
   limite de plano, upgrade/downgrade completo.
+
+- Identidade visual (admin): logo do escritório na barra lateral; as
+  cores predominantes do logo viram as cores do sistema (ajustáveis; a
+  cor principal é escurecida se for clara demais para leitura).
+- Excluir usuário (admin) = inativar a conta, remover das equipes e
+  passar os processos dele ao Administrador (PDR-0010); não vale para
+  si nem para o Administrador. Criação de usuário oferece todos os
+  papéis de acesso ativos, além do tipo de conta.
+- Foto de perfil visível aos colegas (lista de usuários, chat).
+- Documentos e anexos em qualquer módulo têm botões de visualizar
+  (olho) e baixar; só PDF, imagem e texto abrem no navegador.
+- Botão "Voltar" global no cabeçalho, para a tela de onde o usuário veio.
 
 ### Inteligência Artificial
 

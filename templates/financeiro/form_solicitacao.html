@@ -61,18 +61,18 @@
           {% endif %}
         </div>
 
-        {# Vencimento — obrigatório só para pagamento #}
-        <div>
-          <label class="label">Vencimento <span class="text-gray-400 font-normal">(pagamento)</span></label>
+        {# Vencimento — só existe em pagamento #}
+        <div data-toggle-panel="tipo" data-toggle-values="pagamento">
+          <label class="label">Vencimento</label>
           {{ form.vencimento }}
           {% if form.vencimento.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.vencimento.errors|join:", " }}</p>
           {% endif %}
         </div>
 
-        {# Data do gasto — obrigatório só para reembolso #}
-        <div>
-          <label class="label">Data do gasto <span class="text-gray-400 font-normal">(reembolso)</span></label>
+        {# Data do gasto — só existe em reembolso #}
+        <div data-toggle-panel="tipo" data-toggle-values="reembolso">
+          <label class="label">Data do gasto</label>
           {{ form.data_gasto }}
           {% if form.data_gasto.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_gasto.errors|join:", " }}</p>
@@ -93,7 +93,7 @@
 
         {# Processo #}
         <div>
-          <label class="label">Processo <span class="text-gray-400 font-normal">(obrigatório para pagamento)</span></label>
+          <label class="label">Processo <span class="text-gray-400 font-normal">(opcional)</span></label>
           {% if processo_fixo %}
             <p class="input bg-gray-50 text-gray-600">{{ processo_fixo }}</p>
           {% endif %}

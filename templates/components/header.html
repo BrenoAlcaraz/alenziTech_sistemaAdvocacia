@@ -1,12 +1,21 @@
 {# ─── Header superior — usuário logado, notificações, badge de plano ──────── #}
 <header class="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0">
 
-  <div class="flex items-center gap-2 text-sm text-gray-500">
+  <div class="flex items-center gap-3 text-sm text-gray-500">
+    {# Voltar global: leva à tela/módulo de onde o usuário veio (histórico). Só aparece quando há uma tela anterior do próprio sistema. #}
+    <button type="button" data-voltar-global hidden
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors cursor-pointer"
+            title="Voltar para a tela anterior">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Voltar
+    </button>
     {% with perfil=request.user.perfil %}
     <div class="flex items-center gap-1.5">
       <div class="w-7 h-7 rounded-full bg-stone-600 flex items-center justify-center text-white text-xs font-semibold overflow-hidden">
         {% if perfil.avatar %}
-          <img src="{% url 'configuracoes:foto_perfil' %}" alt="" class="w-full h-full object-cover">
+          <img src="{% url 'configuracoes:foto_usuario' request.user.pk %}" alt="" class="w-full h-full object-cover">
         {% elif perfil.iniciais %}
           {{ perfil.iniciais }}
         {% else %}

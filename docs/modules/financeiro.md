@@ -30,6 +30,13 @@ especificação não determina quantas tabelas existirão; modelagem física
   Pagamentos solicitados (lançamento originado de uma Solicitação
   Financeira) — mesmo conjunto do protótipo.
 
+- Categoria acompanha o tipo: receita (honorário, êxito, reembolso,
+  outro) e despesa têm categorias próprias; o backend recusa a
+  combinação inválida.
+- Saldo previsto = a receber + recebido − a pagar − pagos (PDR-0029).
+- Reembolso de cliente e custas do cliente não são receita/despesa —
+  ver [PDR-0029](../decisions/PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md).
+
 ## Previsto e realizado (PDR-0004)
 
 - Pendência entra em "a pagar"/"a receber" mas não altera o saldo
@@ -133,6 +140,16 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   (só histórico, sem afetar o saldo) — mesmo efeito do lançamento manual
   equivalente na aba Custas Judiciais do Financeiro.
 
+- Reembolso de custa adiantada pelo escritório: botão na custa, com
+  comprovante; gera o crédito do cliente e a custa fica "reembolsada".
+- Extrato do cliente filtra por processo e "pago por" (escritório ou
+  cliente).
+- Solicitações: lista dividida em Pendentes/Pagas/Rejeitadas, com
+  filtros de cliente, processo, solicitado por e pagamento realizado
+  por (só para quem vê todos os dados) e datas de solicitação/pagamento.
+  Reembolso não tem vencimento, pagamento não tem data do gasto, e o
+  processo é opcional nos dois.
+
 ## Honorários (PDR-0007, recebimento parcial e correção em PDR-0022)
 
 - Cadastro manual, anterior a qualquer IA. Campos: tipo, valor
@@ -153,18 +170,24 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   do Administrador do escritório, mesma restrição da confirmação de
   recebimento.
 
+- Honorário sucumbencial (PDR-0029): percentual sobre a causa ou valor
+  fixo, devedor pessoa/ente estatal, índice com taxa mensal informada à
+  mão, êxito contratual opcional; total recalculado a cada leitura.
+
 ## Relação com billing SaaS
 
 `saas_billing` (Plano/Assinatura) e o Financeiro do tenant são domínios
 distintos (PDR-0003) — sem espelhamento automático da assinatura como
 despesa. Integração futura mais ampla exigiria novo PDR.
 
-## Visão gráfica
+## Análise de dados (antes "Visão gráfica")
 
-- Aba própria com gráfico de barras receita × despesa por mês, com
+- Aba "Análise de dados": gráfico de barras receita × despesa por mês, com
   toggle de período (últimos 6 meses, últimos 12 meses, exercício
   corrente) — mesma fonte de dados dos cards de resumo, agregada por
-  mês em vez de por lançamento individual.
+  mês em vez de por lançamento individual. Abaixo, fontes de receita, fontes
+  de despesa, receita por área de atuação (área do processo) e por cliente,
+  filtráveis por Sempre / Últimos 12 meses / Exercício deste ano.
 
 ## Fora de escopo imediato
 

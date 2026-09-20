@@ -260,6 +260,17 @@
         </div>
       </div>
     </details>
+    {% if processo.status != "arquivado" %}
+    <details class="mb-3">
+      <summary class="text-xs text-juridico-verde cursor-pointer">Suspender, sobrestar ou retomar o processo por decisão judicial (opcional)</summary>
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="label">{{ form_movimentacao.atualizar_situacao.label }}</label>
+          {{ form_movimentacao.atualizar_situacao }}
+        </div>
+      </div>
+    </details>
+    {% endif %}
     <button type="submit" class="btn-primary text-sm">+ Adicionar andamento</button>
   </form>
   {% endif %}
@@ -421,9 +432,8 @@
           </p>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">
-          <a href="{% url 'processos:baixar_documento' documento.pk %}" class="text-xs text-juridico-verde hover:underline">
-            Baixar
-          </a>
+          {% url 'processos:baixar_documento' documento.pk as documento_url %}
+          {% include "components/anexo_acoes.html" with arquivo_url=documento_url %}
           {% if pode_excluir_documento %}
           <form method="post" action="{% url 'processos:excluir_documento' processo.pk documento.pk %}">
             {% csrf_token %}
@@ -584,7 +594,7 @@
           <p class="text-xs text-gray-400 mt-0.5">
             Pago pelo {{ solicitacao.get_pago_por_display|default:"—" }}
             {% if solicitacao.comprovante_pagamento %}
-              · <a href="{% url 'processos:baixar_comprovante_custa' solicitacao.pk %}" class="text-juridico-verde hover:underline">Ver comprovante</a>
+              · Comprovante {% url 'processos:baixar_comprovante_custa' solicitacao.pk as comprovante_url %}{% include "components/anexo_acoes.html" with arquivo_url=comprovante_url %}
             {% endif %}
           </p>
           {% endif %}

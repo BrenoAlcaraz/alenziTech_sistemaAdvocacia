@@ -17,6 +17,11 @@ urlpatterns = [
     path("agenda/<int:pk>/participantes/adicionar/", views.adicionar_participante, name="adicionar_participante"),
     path("agenda/<int:pk>/participantes/<int:usuario_pk>/remover/", views.remover_participante, name="remover_participante"),
     path(
+        "agenda/<int:pk>/participantes/todos/adicionar/",
+        views.adicionar_todos_participantes,
+        name="adicionar_todos_participantes",
+    ),
+    path(
         "agenda/<int:pk>/participantes/equipe/adicionar/",
         views.adicionar_equipe_participante,
         name="adicionar_equipe_participante",

@@ -98,6 +98,20 @@ class ProcessoForm(forms.ModelForm):
         # Processo não depende da permissão nem do escopo do módulo Clientes.
         self.fields["clientes"].queryset = Cliente.objects.filter(ativo=True)
 
+    # Localidade sempre em maiúsculas: "CABO FRIO" e "Cabo Frio" viravam
+    # duas cidades na Análise de dados.
+    def _maiusculas(self, campo):
+        return (self.cleaned_data.get(campo) or "").strip().upper()
+
+    def clean_cidade(self):
+        return self._maiusculas("cidade")
+
+    def clean_comarca(self):
+        return self._maiusculas("comarca")
+
+    def clean_vara(self):
+        return self._maiusculas("vara")
+
 
 class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
@@ -301,6 +315,20 @@ class MovimentacaoProcessualForm(forms.ModelForm):
         required=False,
         label="Atualizar fase do andamento atual",
         choices=[("", "Não alterar")] + Processo.FASE_ANDAMENTO_CHOICES,
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    # Suspenso/sobrestado vêm de decisão do juiz, registrada por quem lança
+    # o andamento — não são editáveis no formulário do processo.
+    atualizar_situacao = forms.ChoiceField(
+        required=False,
+        label="Situação do processo por decisão judicial",
+        choices=[
+            ("", "Não alterar"),
+            ("suspenso", "Suspenso"),
+            ("sobrestado", "Sobrestado"),
+            ("ativo", "Retomado (volta a ativo)"),
+        ],
         widget=forms.Select(attrs={"class": "select"}),
     )
 

@@ -120,6 +120,9 @@
       <div>
         <label class="label">Participantes <span class="text-gray-400 font-normal">(opcional)</span></label>
         {% include "components/equipe_botoes.html" with alvo="#participantes-lista" %}
+        <div class="mb-2">
+          <button type="button" class="btn-secondary text-xs" data-marcar-todos="#participantes-lista">Adicionar todos os usuários</button>
+        </div>
         <div id="participantes-lista" class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto flex flex-col gap-2"
              {% if pode_ver_disponibilidade %}data-disponibilidade-url="{% url 'agenda:disponibilidade_convidado' %}"{% endif %}>
           {% for checkbox in form.participantes %}
@@ -180,6 +183,13 @@
 
   {% url 'agenda:adicionar_equipe_participante' compromisso.pk as url_equipe %}
   {% include "components/equipe_checklist.html" with action=url_equipe %}
+
+  {% if form_participante.usuario.field.queryset %}
+  <form method="post" action="{% url 'agenda:adicionar_todos_participantes' compromisso.pk %}" class="mb-4">
+    {% csrf_token %}
+    <button type="submit" class="btn-secondary text-xs">Convidar todos os usuários</button>
+  </form>
+  {% endif %}
 
   <div class="flex flex-col gap-2">
     {% for participacao in participacoes %}

@@ -1,11 +1,13 @@
 from calendar import monthrange
+from collections import defaultdict
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
-from django.db.models import Q
+from django.db import transaction
+from django.db.models import Q, Sum
 from django.utils import timezone
 
-from .models import LancamentoFinanceiro
+from .models import CustaJudicial, LancamentoFinanceiro
 
 # Recorrência "indeterminado" não tem data final — gera um horizonte
 # fixo de ocorrências futuras (PDR-0021 só decidiu as periodicidades,
@@ -138,3 +140,263 @@ def calcular_correcao_honorario(*, valor_pendente, taxa_mensal, data_termo, refe
     if meses <= 0:
         return Decimal("0")
     return valor_pendente * (taxa_mensal / Decimal("100")) * meses
+
+
+# ── Integração Lançamentos ↔ Creditar (custas judiciais do cliente) ─────────
+
+def _deve_creditar_custas(lancamento):
+    return (
+        lancamento.tipo == "receita"
+        and lancamento.categoria == "reembolso"
+        and lancamento.status == "pago"
+        and lancamento.cliente_id is not None
+    )
+
+
+def sincronizar_credito_de_reembolso(lancamento):
+    """Receita "Reembolso" já recebida de um cliente vira crédito nas
+    custas judiciais dele; se deixa de valer (reaberta, cancelada, outra
+    categoria, sem cliente), o crédito some. O lançamento é a origem."""
+    existente = CustaJudicial.objects.filter(lancamento=lancamento).first()
+    if not _deve_creditar_custas(lancamento):
+        if existente:
+            existente.delete()
+        return
+    campos = {
+        "descricao": lancamento.descricao,
+        "valor": lancamento.valor,
+        "data": lancamento.data_pagamento or lancamento.data_vencimento,
+        "cliente": lancamento.cliente,
+        "processo": lancamento.processo,
+    }
+    if existente:
+        for nome, valor in campos.items():
+            setattr(existente, nome, valor)
+        existente.save(update_fields=list(campos))
+    else:
+        CustaJudicial.objects.create(tipo="deposito_cliente", lancamento=lancamento, **campos)
+
+
+def registrar_credito_cliente(*, cliente, valor, data, descricao, processo=None, anexo=None, responsavel=None):
+    """Creditar do cliente: uma única receita "Reembolso" no financeiro
+    geral que nasce já com o crédito correspondente nas custas dele.
+    Devolve o crédito (`CustaJudicial` de depósito)."""
+    with transaction.atomic():
+        lancamento = LancamentoFinanceiro.objects.create(
+            tipo="receita", categoria="reembolso", status="pago",
+            descricao=descricao, valor=valor,
+            data_vencimento=data, data_pagamento=data,
+            cliente=cliente, processo=processo, responsavel=responsavel,
+        )
+        credito = CustaJudicial.objects.get(lancamento=lancamento)
+        if anexo:
+            credito.anexo = anexo
+            credito.save(update_fields=["anexo"])
+    return credito
+
+
+def reembolsar_custa(custa, *, data, comprovante, responsavel=None):
+    """Cliente reembolsou uma custa adiantada pelo escritório: cria o
+    crédito correspondente (com o comprovante) e marca a custa como
+    reembolsada — o saldo devedor do cliente cai e o valor deixa de
+    contar como despesa do escritório."""
+    if not custa.pode_reembolsar:
+        raise ValueError("Só custa adiantada pelo escritório e ainda não reembolsada pode ser reembolsada.")
+    with transaction.atomic():
+        credito = registrar_credito_cliente(
+            cliente=custa.cliente, valor=custa.valor, data=data,
+            descricao=f"Reembolso — {custa.descricao}",
+            processo=custa.processo, anexo=comprovante, responsavel=responsavel,
+        )
+        custa.reembolsada_por = credito
+        custa.save(update_fields=["reembolsada_por"])
+    return credito
+
+
+# ── Totais e análises: reembolso/custas de cliente não são receita/despesa ─
+
+def sem_reembolso_de_cliente(lancamentos):
+    return lancamentos.exclude(tipo="receita", categoria="reembolso")
+
+
+def sem_custas_do_cliente(lancamentos):
+    return lancamentos.exclude(
+        tipo="despesa", cliente__isnull=False,
+        categoria__in=LancamentoFinanceiro.CATEGORIAS_CUSTA_DO_CLIENTE,
+    )
+
+
+def lancamentos_operacionais(lancamentos):
+    """Lançamentos que contam como receita/despesa do escritório. Reembolso
+    de cliente e custas do cliente ficam de fora: entram só como saldo
+    devedor (`custas_a_recuperar`)."""
+    return sem_custas_do_cliente(sem_reembolso_de_cliente(lancamentos))
+
+
+def custas_a_recuperar(*, inicio=None, fim=None):
+    """Saldo devedor dos clientes na janela — custas adiantadas pelo
+    escritório menos o que o cliente creditou/reembolsou. Custa paga
+    direto pelo cliente não entra. Devolve `{cliente_id: valor}` só dos
+    clientes devedores."""
+    custas = CustaJudicial.objects.filter(
+        cliente__isnull=False, tipo__in=("adiantamento", "deposito_cliente"),
+    )
+    if inicio:
+        custas = custas.filter(data__gte=inicio)
+    if fim:
+        custas = custas.filter(data__lte=fim)
+    saldo = defaultdict(Decimal)
+    for linha in custas.values("cliente_id", "tipo").annotate(total=Sum("valor")):
+        efeito = -1 if linha["tipo"] == "adiantamento" else 1
+        saldo[linha["cliente_id"]] += efeito * linha["total"]
+    return {cliente_id: -valor for cliente_id, valor in saldo.items() if valor < 0}
+
+
+def total_custas_a_recuperar(*, inicio=None, fim=None):
+    return sum(custas_a_recuperar(inicio=inicio, fim=fim).values(), Decimal("0"))
+
+
+def _soma(lancamentos):
+    return lancamentos.aggregate(total=Sum("valor"))["total"] or Decimal("0")
+
+
+def totais_do_mes(escopo, ano, mes, *, incluir_custas):
+    """Cards do mês: a receber, a pagar, recebido e pago. `incluir_custas`
+    soma ao "pago" as custas adiantadas ainda não reembolsadas do mês —
+    dado global do escritório, então só para quem enxerga todos os dados."""
+    primeiro = date(ano, mes, 1)
+    ultimo = date(ano, mes, monthrange(ano, mes)[1])
+    operacionais = lancamentos_operacionais(escopo)
+    no_mes = operacionais.filter(data_vencimento__gte=primeiro, data_vencimento__lte=ultimo)
+    pagos_no_mes = operacionais.filter(
+        status="pago", data_pagamento__year=ano, data_pagamento__month=mes,
+    )
+    pago = _soma(pagos_no_mes.filter(tipo="despesa"))
+    if incluir_custas:
+        pago += total_custas_a_recuperar(inicio=primeiro, fim=ultimo)
+    return {
+        "a_receber": _soma(no_mes.filter(tipo="receita", status="pendente")),
+        "a_pagar": _soma(no_mes.filter(tipo="despesa", status="pendente")),
+        "recebido": _soma(pagos_no_mes.filter(tipo="receita")),
+        "pago": pago,
+    }
+
+
+def inicio_da_janela(janela, hoje):
+    """Início da janela de análise: 'sempre' (None), '12meses' ou 'exercicio'."""
+    if janela == "exercicio":
+        return date(hoje.year, 1, 1)
+    if janela == "12meses":
+        indice = hoje.year * 12 + (hoje.month - 1) - 11
+        return date(indice // 12, indice % 12 + 1, 1)
+    return None
+
+
+def _ranking(linhas):
+    """[(rótulo, valor)] → barras ordenadas, com percentual sobre o maior."""
+    linhas = sorted(((r, v) for r, v in linhas if v), key=lambda x: -x[1])
+    maior = linhas[0][1] if linhas else Decimal("1")
+    total = sum((v for _, v in linhas), Decimal("0"))
+    return {
+        "total": total,
+        "linhas": [
+            {"rotulo": r, "valor": v, "pct": int(v / maior * 100)} for r, v in linhas
+        ],
+    }
+
+
+def analise_de_dados(escopo, *, inicio, incluir_custas):
+    """Fontes de receita/despesa, receita por área e por cliente — só o
+    realizado (pago), sem reembolso de cliente e com as custas adiantadas
+    não reembolsadas entrando como despesa (saldo devedor dos clientes)."""
+    from apps.processos.models import Processo
+
+    pagos = lancamentos_operacionais(escopo).filter(status="pago")
+    if inicio:
+        pagos = pagos.filter(data_pagamento__gte=inicio)
+    receitas = pagos.filter(tipo="receita")
+    despesas = pagos.filter(tipo="despesa")
+
+    categorias = dict(LancamentoFinanceiro.CATEGORIA_CHOICES)
+    fontes_receita = [
+        (categorias.get(linha["categoria"], linha["categoria"]), linha["total"])
+        for linha in receitas.values("categoria").annotate(total=Sum("valor"))
+    ]
+    fontes_despesa = [
+        (categorias.get(linha["categoria"], linha["categoria"]), linha["total"])
+        for linha in despesas.values("categoria").annotate(total=Sum("valor"))
+    ]
+    if incluir_custas:
+        devedor = total_custas_a_recuperar(inicio=inicio)
+        if devedor:
+            fontes_despesa.append(("Custas adiantadas (a reembolsar)", devedor))
+
+    areas = dict(Processo.AREAS_CHOICES)
+    por_area = [
+        (areas.get(linha["processo__area_direito"], linha["processo__area_direito"]) or "Sem processo vinculado",
+         linha["total"])
+        for linha in receitas.values("processo__area_direito").annotate(total=Sum("valor"))
+    ]
+    por_cliente = [
+        (linha["cliente__nome_razao_social"] or "Sem cliente", linha["total"])
+        for linha in receitas.values("cliente__nome_razao_social").annotate(total=Sum("valor"))
+    ]
+    return {
+        "fontes_receita": _ranking(fontes_receita),
+        "fontes_despesa": _ranking(fontes_despesa),
+        "receita_por_area": _ranking(por_area),
+        "receita_por_cliente": _ranking(por_cliente),
+    }
+
+
+# ── Honorário sucumbencial calculado (PDR-0029) ─────────────────────────────
+
+JUROS_MENSAL_PESSOA = Decimal("0.01")
+_CENTAVOS = Decimal("0.01")
+
+
+def _meses_decorridos(inicio, ate):
+    """Meses completos entre `inicio` e `ate`; sem data, não há correção."""
+    if not inicio:
+        return 0
+    return max(0, _meses_entre(inicio, ate))
+
+
+def _corrigir(valor_base, *, devedor_tipo, taxa_indice_mensal, data_correcao, data_juros, ate):
+    """Devedor comum: correção monetária pelo índice + juros de 1% a.m.,
+    cada um desde a sua data. Ente estatal: só a taxa (Selic), unificada,
+    desde a data de correção — sem juros à parte. Taxa informada à mão."""
+    taxa = (taxa_indice_mensal or Decimal("0")) / Decimal("100")
+    meses_correcao = _meses_decorridos(data_correcao, ate)
+    if devedor_tipo == "ente_estatal":
+        return valor_base * (1 + taxa * meses_correcao)
+    juros = valor_base * JUROS_MENSAL_PESSOA * _meses_decorridos(data_juros, ate)
+    return valor_base + valor_base * taxa * meses_correcao + juros
+
+
+def calcular_honorario_sucumbencial(honorario, ate):
+    """Total do honorário na data `ate`: sucumbência corrigida + êxito
+    contratual (percentual sobre o valor ganho, também corrigido). Nunca
+    é gravado — o valor exibido é sempre recalculado."""
+    if honorario.forma_condenacao == "percentual":
+        base = (honorario.percentual or Decimal("0")) / Decimal("100") * (honorario.valor_causa or Decimal("0"))
+    else:
+        base = honorario.valor_fixo or Decimal("0")
+    comum = {
+        "devedor_tipo": honorario.devedor_tipo,
+        "taxa_indice_mensal": honorario.taxa_indice_mensal,
+        "ate": ate,
+    }
+    sucumbencia = _corrigir(
+        base, data_correcao=honorario.data_correcao, data_juros=honorario.data_juros, **comum,
+    )
+    exito = Decimal("0")
+    if honorario.exito_percentual is not None:
+        ganho = _corrigir(
+            honorario.exito_valor_ganho or Decimal("0"),
+            data_correcao=honorario.exito_data_correcao, data_juros=honorario.exito_data_correcao, **comum,
+        )
+        exito = honorario.exito_percentual / Decimal("100") * ganho
+    sucumbencia = sucumbencia.quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+    exito = exito.quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+    return {"sucumbencia": sucumbencia, "exito": exito, "total": sucumbencia + exito}

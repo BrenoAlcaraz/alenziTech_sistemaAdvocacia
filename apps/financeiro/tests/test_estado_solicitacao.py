@@ -145,7 +145,11 @@ class TestCoresDoEstadoNasTelas(SolicitacaoFinanceiraBase):
     def test_lista_do_financeiro_usa_cor_do_estado(self):
         for status in COR_BADGE:
             self._solicitacao_no_processo(status, descricao=f"Custa {status}")
-        html = self._get("/financeiro/solicitacoes/")
+        # A lista separa pendentes/pagas/rejeitadas — junta as três.
+        html = "".join(
+            self._get(f"/financeiro/solicitacoes/?situacao={situacao}")
+            for situacao in ("pendentes", "pagas", "rejeitadas")
+        )
         for cor in {*COR_BADGE.values(), *COR_FAIXA.values()}:
             self.assertIn(cor, html)
 

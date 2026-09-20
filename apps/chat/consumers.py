@@ -11,7 +11,7 @@ from .realtime import grupo_conversa, grupo_global, grupo_lista, grupo_usuario
 
 def _renderizar_mensagem(mensagem_id, usuario_atual):
     try:
-        mensagem = Mensagem.objects.select_related("autor").get(pk=mensagem_id)
+        mensagem = Mensagem.objects.select_related("autor", "autor__perfil").get(pk=mensagem_id)
     except Mensagem.DoesNotExist:
         return None
     return render_to_string(

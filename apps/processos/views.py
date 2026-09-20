@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
@@ -30,7 +30,7 @@ from apps.accounts.permissoes_constants import (
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
-from apps.saas_tenants.storage import nome_do_arquivo
+from apps.saas_tenants.storage import resposta_de_arquivo
 from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -594,6 +594,10 @@ def adicionar_movimentacao(request, pk):
             if nova_fase_andamento:
                 processo.fase_andamento_atual = nova_fase_andamento
                 campos_processo_atualizados.append("fase_andamento_atual")
+            nova_situacao = form.cleaned_data.get("atualizar_situacao")
+            if nova_situacao and processo.status != "arquivado":
+                processo.status = nova_situacao
+                campos_processo_atualizados.append("status")
             if campos_processo_atualizados:
                 processo.save(update_fields=campos_processo_atualizados)
             registrar_atividade(
@@ -697,7 +701,7 @@ def baixar_documento(request, documento_pk):
     )
     if not documento.arquivo:
         raise Http404
-    return FileResponse(documento.arquivo.open("rb"), filename=documento.nome_do_documento())
+    return resposta_de_arquivo(request, documento.arquivo, documento.nome_do_documento())
 
 
 @login_required
@@ -716,10 +720,7 @@ def baixar_comprovante_custa(request, solicitacao_pk):
     )
     if not solicitacao.comprovante_pagamento:
         raise Http404
-    return FileResponse(
-        solicitacao.comprovante_pagamento.open("rb"),
-        filename=nome_do_arquivo(solicitacao.comprovante_pagamento),
-    )
+    return resposta_de_arquivo(request, solicitacao.comprovante_pagamento)
 
 
 # ── Intimações (specs/dashboard-intimacoes.md) ──────────────────────────────

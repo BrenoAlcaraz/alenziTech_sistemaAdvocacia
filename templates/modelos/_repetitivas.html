@@ -16,8 +16,8 @@
   <h2 class="text-lg font-semibold text-gray-900 mb-1">Peças repetitivas</h2>
   <p class="text-sm text-gray-500 mb-5">
     Escolha uma peça base e gere várias peças de uma vez, uma para cada caso — sem depender de IA
-    (fase manual). Cliente já cadastrado pré-preenche nome e CPF/CNPJ; valor, endereço do caso e
-    particularidades ficam num editor manual, por caso.
+    (fase manual). Em cada caso, escolha o cliente, anexe os documentos que embasam a nova peça e
+    anote observações — a IA usará a peça base, os documentos e as observações para ajustar os dados.
   </p>
 
   <form method="post" action="{% url 'modelos:gerar_pecas_repetitivas' %}" enctype="multipart/form-data" id="rep-form">

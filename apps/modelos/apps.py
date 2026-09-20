@@ -5,3 +5,6 @@ class ModelosConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.modelos"
     verbose_name = "Modelos de Peças"
+
+    def ready(self):
+        import apps.modelos.signals  # noqa: F401

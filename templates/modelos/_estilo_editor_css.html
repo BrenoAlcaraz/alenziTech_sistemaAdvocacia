@@ -46,6 +46,17 @@
   .me-page-footer-slot{border-top:1px solid #e2e2e2;padding-top:8px;margin-top:22px;font-size:8.5pt;color:#777;text-align:center;display:none;outline:none;position:relative;z-index:1;}
   .me-page-footer-slot.show{display:block;}
   .me-page-footer-slot img{max-height:30px;}
+  /* Imagem manipulável na folha: arrastar move (esquerda/centro/direita) e a
+     alça redimensiona — os campos numéricos do painel continuam valendo. */
+  .me-img-manip{position:relative;line-height:0;touch-action:none;cursor:grab;outline:1px dashed transparent;}
+  .me-img-manip:hover,.me-img-manip.me-img-ativa{outline-color:#8b7355;}
+  .me-img-manip.me-img-ativa{cursor:grabbing;}
+  .me-word-page .me-img-manip img{width:100%;height:auto;max-height:none;max-width:none;display:block;margin:0;pointer-events:none;user-select:none;}
+  .me-img-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:#8b7355;border:2px solid #fff;border-radius:50%;cursor:nwse-resize;opacity:0;transition:opacity .15s;z-index:3;}
+  .me-img-manip:hover .me-img-handle,.me-img-manip.me-img-ativa .me-img-handle{opacity:1;}
+  .me-img-manip[data-alinhamento="right"] .me-img-handle{left:-7px;right:auto;cursor:nesw-resize;}
+  .me-page-watermark-slot .me-img-manip{pointer-events:auto;}
+  .me-page-watermark-slot.me-com-imagem{width:100%;}
   .me-img-placeholder{display:inline-flex;align-items:center;gap:8px;background:#f5f3ef;border:1px dashed #e5e7eb;border-radius:8px;padding:8px 12px;font-size:10.5px;color:#6b7280;}
   .me-textbox-inserted{border:1px dashed #9aa3bd;padding:10px 12px;margin:12px 0;background:#fafbfd;outline:none;min-height:40px;}
   .me-img-wrap{margin:12px 0;}

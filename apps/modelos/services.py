@@ -102,7 +102,7 @@ def _extrair_docx(arquivo):
 # da peça base — os dados do caso entram como um bloco de identificação à
 # frente do conteúdo original, nunca por substituição de marcador.
 
-def montar_conteudo_caso_repetitivo(conteudo_base, *, cliente=None, valor="", endereco_caso="", particularidades=""):
+def montar_conteudo_caso_repetitivo(conteudo_base, *, cliente=None, observacoes="", nomes_documentos=()):
     linhas = []
     if cliente is not None:
         documento = cliente.cpf_cnpj or "não informado"
@@ -110,12 +110,11 @@ def montar_conteudo_caso_repetitivo(conteudo_base, *, cliente=None, valor="", en
             f"<p><b>Cliente:</b> {escapar_html(cliente.nome_razao_social)} "
             f"(CPF/CNPJ: {escapar_html(documento)})</p>"
         )
-    if valor:
-        linhas.append(f"<p><b>Valor:</b> {escapar_html(valor)}</p>")
-    if endereco_caso:
-        linhas.append(f"<p><b>Endereço do caso:</b> {escapar_html(endereco_caso)}</p>")
-    if particularidades:
-        linhas.append(f"<p><b>Particularidades:</b> {escapar_html(particularidades)}</p>")
+    if observacoes:
+        linhas.append(f"<p><b>Observações:</b> {escapar_html(observacoes)}</p>")
+    if nomes_documentos:
+        lista = ", ".join(escapar_html(nome) for nome in nomes_documentos)
+        linhas.append(f"<p><b>Documentos anexados:</b> {lista}</p>")
 
     if not linhas:
         return conteudo_base or ""

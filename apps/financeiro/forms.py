@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
+from .services import calcular_honorario_sucumbencial
 from apps.clientes.models import Cliente
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
@@ -113,10 +115,24 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["duracao_data_final"].input_formats = ["%Y-%m-%d"]
         self.fields["anexo"].required = False
 
+        rotulos = dict(LancamentoFinanceiro.CATEGORIA_CHOICES)
+        self.categorias_por_tipo = {
+            tipo: [[valor, rotulos[valor]] for valor in valores]
+            for tipo, valores in LancamentoFinanceiro.CATEGORIAS_POR_TIPO.items()
+        }
+
     def clean(self):
         cleaned_data = super().clean()
         status = cleaned_data.get("status")
         data_pagamento = cleaned_data.get("data_pagamento")
+
+        tipo = cleaned_data.get("tipo")
+        categoria = cleaned_data.get("categoria")
+        if tipo and categoria and categoria not in LancamentoFinanceiro.CATEGORIAS_POR_TIPO.get(tipo, ()):
+            self.add_error("categoria", "Esta categoria não pertence ao tipo escolhido.")
+        elif tipo == "receita" and categoria == "reembolso" and not cleaned_data.get("cliente"):
+            # Reembolso de cliente é creditado nas custas judiciais dele.
+            self.add_error("cliente", "Informe o cliente que está reembolsando.")
 
         if status == "pago" and not data_pagamento:
             self.add_error("data_pagamento", "Informe a data de pagamento para lançamentos pagos.")
@@ -253,13 +269,61 @@ class CreditarCustaForm(forms.ModelForm):
         return valor
 
 
+class ReembolsoCustaForm(forms.Form):
+    """Reembolso, pelo cliente, de uma custa adiantada pelo escritório —
+    exige o comprovante."""
+
+    data = forms.DateField(
+        label="Data do reembolso", input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+    )
+    comprovante = forms.FileField(
+        label="Comprovante de reembolso",
+        widget=forms.ClearableFileInput(attrs={"class": "input"}),
+    )
+
+
 class HonorarioForm(forms.ModelForm):
+    """Cadastro manual de honorário. Tipo "sucumbencial" usa o cálculo do
+    PDR-0029 (valor-base + correção conforme devedor/índice, êxito
+    opcional) e exige processo; os demais tipos seguem com valor estimado
+    informado."""
+
+    com_exito = forms.BooleanField(
+        required=False,
+        label="Escritório também tem honorários contratuais de êxito neste caso",
+        widget=forms.CheckboxInput(attrs={"class": "checkbox", "id": "id_com_exito"}),
+    )
+
+    CAMPOS_SUCUMBENCIA = (
+        "forma_condenacao", "percentual", "valor_causa", "valor_fixo", "devedor_tipo",
+        "indice_correcao", "taxa_indice_mensal", "data_correcao", "data_juros",
+    )
+    CAMPOS_EXITO = ("exito_percentual", "exito_valor_ganho", "exito_data_correcao")
+
     class Meta:
         model = Honorario
         field_classes = {"processo": ProcessoChoiceField}
-        fields = ["tipo", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes"]
+        fields = [
+            "tipo", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes",
+            "forma_condenacao", "percentual", "valor_causa", "valor_fixo", "devedor_tipo",
+            "indice_correcao", "taxa_indice_mensal", "data_correcao", "data_juros",
+            "exito_percentual", "exito_valor_ganho", "exito_data_correcao",
+        ]
         widgets = {
-            "tipo": forms.Select(attrs={"class": "select"}),
+            "tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "honorario_tipo"}),
+            "forma_condenacao": forms.Select(attrs={"class": "select", "data-toggle-select": "forma"}),
+            "devedor_tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "devedor"}),
+            "indice_correcao": forms.Select(attrs={"class": "select"}),
+            "percentual": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "valor_causa": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "valor_fixo": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "taxa_indice_mensal": forms.NumberInput(attrs={"class": "input", "step": "0.0001", "min": "0"}),
+            "data_correcao": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "data_juros": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "exito_percentual": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "exito_valor_ganho": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "exito_data_correcao": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "valor_estimado": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "cliente": forms.Select(attrs={"class": "select"}),
@@ -269,10 +333,30 @@ class HonorarioForm(forms.ModelForm):
         labels = {
             "valor_estimado": "Valor estimado (R$)",
             "data_prevista": "Data prevista",
+            "forma_condenacao": "Forma de condenação",
+            "percentual": "Percentual (%)",
+            "valor_causa": "Valor da causa (R$)",
+            "valor_fixo": "Valor fixo (R$)",
+            "devedor_tipo": "Devedor (para cálculo da correção)",
+            "indice_correcao": "Índice de correção monetária",
+            "taxa_indice_mensal": "Taxa mensal do índice (%)",
+            "data_correcao": "Data inicial — correção monetária",
+            "data_juros": "Data inicial — juros (1% a.m.)",
+            "exito_percentual": "Percentual de êxito (%)",
+            "exito_valor_ganho": "Valor ganho pelo cliente — original (R$)",
+            "exito_data_correcao": "Data inicial da correção do êxito",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for nome in ("valor_estimado", *self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO):
+            self.fields[nome].required = False
+        for nome in ("data_correcao", "data_juros", "exito_data_correcao"):
+            self.fields[nome].input_formats = ["%Y-%m-%d"]
+        self.fields["forma_condenacao"].choices = [("", "Selecione")] + Honorario.FORMA_CONDENACAO_CHOICES
+        self.fields["devedor_tipo"].choices = [("", "Selecione")] + Honorario.DEVEDOR_CHOICES
+        self.fields["indice_correcao"].choices = [("", "Selecione")] + Honorario.INDICE_CHOICES
+        self.fields["com_exito"].initial = self.instance.exito_percentual is not None
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
@@ -288,6 +372,56 @@ class HonorarioForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return valor
+
+    def _exigir(self, cleaned, campos, mensagem):
+        for campo in campos:
+            if cleaned.get(campo) in (None, ""):
+                self.add_error(campo, mensagem)
+
+    def clean(self):
+        cleaned = super().clean()
+        sucumbencial = cleaned.get("tipo") == "sucumbencial"
+
+        if not sucumbencial:
+            if cleaned.get("valor_estimado") is None:
+                self.add_error("valor_estimado", "Informe o valor estimado.")
+            for campo in (*self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO):
+                cleaned[campo] = None if campo not in ("forma_condenacao", "devedor_tipo", "indice_correcao") else ""
+            return cleaned
+
+        obrigatorio = "Obrigatório para honorário sucumbencial."
+        if not cleaned.get("processo"):
+            self.add_error("processo", "Informe o processo — o cliente é derivado dele.")
+        elif not cleaned.get("cliente"):
+            cleaned["cliente"] = cleaned["processo"].clientes.first()
+        self._exigir(cleaned, ("forma_condenacao", "devedor_tipo", "data_correcao"), obrigatorio)
+        if cleaned.get("forma_condenacao") == "percentual":
+            self._exigir(cleaned, ("percentual", "valor_causa"), obrigatorio)
+            cleaned["valor_fixo"] = None
+        elif cleaned.get("forma_condenacao") == "fixo":
+            self._exigir(cleaned, ("valor_fixo",), obrigatorio)
+            cleaned["percentual"] = cleaned["valor_causa"] = None
+        if cleaned.get("devedor_tipo") == "pessoa":
+            self._exigir(cleaned, ("indice_correcao", "data_juros"), obrigatorio)
+        else:
+            # Ente estatal: só a Selic, unificada, sem juros à parte.
+            cleaned["indice_correcao"] = "selic"
+            cleaned["data_juros"] = None
+        if cleaned.get("com_exito"):
+            self._exigir(cleaned, self.CAMPOS_EXITO, "Obrigatório quando há êxito contratual.")
+        else:
+            for campo in self.CAMPOS_EXITO:
+                cleaned[campo] = None
+
+        if not self.errors:
+            # Valor estimado = total calculado hoje (o exibido é sempre recalculado).
+            provisorio = Honorario(**{
+                campo: cleaned.get(campo) for campo in (*self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO)
+            })
+            cleaned["valor_estimado"] = calcular_honorario_sucumbencial(
+                provisorio, timezone.localdate(),
+            )["total"]
+        return cleaned
 
 
 class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):
@@ -361,7 +495,7 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
             "observacao",
         ]
         widgets = {
-            "tipo":        forms.Select(attrs={"class": "select"}),
+            "tipo":        forms.Select(attrs={"class": "select", "data-toggle-select": "tipo"}),
             "descricao":   forms.TextInput(attrs={"class": "input"}),
             "valor":       forms.NumberInput(attrs={"class": "input", "step": "0.01"}),
             "cliente":     forms.Select(attrs={"class": "select"}),
@@ -403,7 +537,7 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
         reembolso, e sem poder trocar o processo/cliente que originou o
         pedido — evita a inconsistência de o usuário escolher outro
         processo/cliente no meio do caminho."""
-        self.fields["tipo"].widget = forms.HiddenInput()
+        self.fields["tipo"].widget = forms.HiddenInput(attrs={"data-toggle-select": "tipo"})
         self.initial["tipo"] = "pagamento"
 
         self.fields["processo"].widget = forms.HiddenInput()
@@ -434,15 +568,17 @@ class SolicitacaoFinanceiraForm(forms.ModelForm):
         cleaned_data = super().clean()
         tipo = cleaned_data.get("tipo")
 
+        # Processo é opcional nos dois tipos. Vencimento só existe em
+        # pagamento e data do gasto só em reembolso — o outro é descartado.
         if tipo == "pagamento":
             if not cleaned_data.get("cliente"):
                 self.add_error("cliente", "Informe o cliente para solicitação de pagamento.")
-            if not cleaned_data.get("processo"):
-                self.add_error("processo", "Informe o processo para solicitação de pagamento.")
             if not cleaned_data.get("vencimento"):
                 self.add_error("vencimento", "Informe o vencimento para solicitação de pagamento.")
+            cleaned_data["data_gasto"] = None
         elif tipo == "reembolso":
             if not cleaned_data.get("data_gasto"):
                 self.add_error("data_gasto", "Informe a data do gasto para solicitação de reembolso.")
+            cleaned_data["vencimento"] = None
 
         return cleaned_data

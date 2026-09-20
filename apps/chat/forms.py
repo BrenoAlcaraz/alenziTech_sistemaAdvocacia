@@ -21,6 +21,8 @@ class NovaConversaIndividualForm(forms.Form):
 
 
 class NovaConversaGrupoForm(forms.Form):
+    """Criação e edição de grupo (nome e integrantes)."""
+
     titulo = forms.CharField(
         label="Título do grupo",
         max_length=255,

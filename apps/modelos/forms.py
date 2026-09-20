@@ -456,11 +456,34 @@ class PecaBaseRepetitivaForm(forms.Form):
         return dados
 
 
+EXTENSOES_ANEXO_CASO = {".pdf", ".docx", ".png", ".jpg", ".jpeg"}
+MAXIMO_ANEXOS_POR_CASO = 10
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    """FileField que aceita vários arquivos (padrão da documentação do Django)."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        limpar = super().clean
+        if isinstance(data, (list, tuple)):
+            return [limpar(arquivo, initial) for arquivo in data if arquivo]
+        return [limpar(data, initial)] if data else []
+
+
 class CasoRepetitivoForm(forms.Form):
-    """Um caso da geração em lote: Cliente já cadastrado pré-preenche nome/
-    CPF-CNPJ automaticamente; valor, endereço do caso e particularidades
-    não vêm do cadastro do Cliente — ficam num editor manual (Fase 1, sem
-    IA — Fase 2 depende do PDR-0008)."""
+    """Um caso da geração em lote: escolhe o Cliente (nome/CPF-CNPJ já
+    preenchidos), anexa os documentos que embasam a nova peça e anota
+    observações. A IA que ajusta a peça base a esses dados depende do
+    PDR-0008 — por ora o conteúdo recebe o bloco de identificação e as
+    observações, e os documentos ficam guardados na peça."""
 
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.filter(ativo=True),
@@ -469,27 +492,33 @@ class CasoRepetitivoForm(forms.Form):
         empty_label="Nenhum — preencher manualmente",
         label="Cliente já cadastrado",
     )
-    valor = forms.CharField(
-        required=False, max_length=100, label="Valor (se aplicável)",
-        widget=forms.TextInput(attrs={"class": "input", "placeholder": "Ex: R$ 5.000,00"}),
+    documentos = MultipleFileField(
+        required=False, label="Documentos que embasam a peça",
+        widget=MultipleFileInput(attrs={"accept": ".pdf,.docx,.png,.jpg,.jpeg"}),
     )
-    endereco_caso = forms.CharField(
-        required=False, max_length=255, label="Endereço do caso",
-        widget=forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Rua Exemplo, 123 — Rio de Janeiro/RJ"}),
+    observacoes = forms.CharField(
+        required=False, label="Observações",
+        widget=forms.Textarea(attrs={"class": "input h-20 resize-y", "placeholder": "Anote o que a IA/quem revisar deve considerar neste caso"}),
     )
-    particularidades = forms.CharField(
-        required=False, label="Particularidades",
-        widget=forms.Textarea(attrs={"class": "input h-20 resize-y", "placeholder": "Qualquer detalhe específico deste caso"}),
-    )
+
+    def clean_documentos(self):
+        documentos = self.cleaned_data.get("documentos") or []
+        if len(documentos) > MAXIMO_ANEXOS_POR_CASO:
+            raise forms.ValidationError(f"Anexe no máximo {MAXIMO_ANEXOS_POR_CASO} documentos por caso.")
+        for documento in documentos:
+            if Path(documento.name).suffix.lower() not in EXTENSOES_ANEXO_CASO:
+                raise forms.ValidationError("Envie documentos PDF, DOCX, PNG ou JPG.")
+            if documento.size > TAMANHO_MAXIMO_BYTES:
+                raise forms.ValidationError("Cada documento deve ter no máximo 10 MB.")
+        return documentos
 
     def tem_dados(self):
         """Formulário "vazio" (linha adicionada mas não preenchida, ou
         removida no navegador sem ajustar TOTAL_FORMS) não vira peça."""
         return bool(
             self.cleaned_data.get("cliente")
-            or self.cleaned_data.get("valor")
-            or self.cleaned_data.get("endereco_caso")
-            or self.cleaned_data.get("particularidades")
+            or self.cleaned_data.get("documentos")
+            or self.cleaned_data.get("observacoes")
         )
 
 

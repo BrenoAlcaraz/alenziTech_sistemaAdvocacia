@@ -425,6 +425,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
+// ── Voltar global (cabeçalho) ───────────────────────────────────────────────
+// Aparece quando o usuário chegou de outra tela do próprio sistema e leva de
+// volta a ela; sem tela anterior (acesso direto, outro site), fica oculto.
+document.addEventListener("DOMContentLoaded", () => {
+  const botao = document.querySelector("[data-voltar-global]");
+  if (!botao || !document.referrer) return;
+  let origem;
+  try { origem = new URL(document.referrer); } catch (e) { return; }
+  const mesmaOrigem = origem.origin === window.location.origin;
+  const outraTela = origem.pathname + origem.search !== window.location.pathname + window.location.search;
+  const veioDoLogin = /\/(login|logout)\//.test(origem.pathname);
+  if (!mesmaOrigem || !outraTela || veioDoLogin) return;
+  botao.hidden = false;
+  botao.addEventListener("click", () => window.history.back());
+});
+
+// ── "Adicionar todos" — marca todas as caixinhas do contêiner indicado ──────
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll("[data-marcar-todos]").forEach((botao) => {
+    botao.addEventListener("click", () => {
+      const alvo = document.querySelector(botao.dataset.marcarTodos);
+      if (!alvo) return;
+      alvo.querySelectorAll('input[type="checkbox"]').forEach((caixinha) => {
+        if (caixinha.checked) return;
+        caixinha.checked = true;
+        caixinha.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+  });
+});
+
 // ── Equipe como atalho de seleção (PDR-0028) ────────────────────────────────
 // Os dados vêm de <script id="equipe-atalho-dados"> (json_script). Nada da
 // equipe é enviado ao servidor: só as pessoas marcadas.

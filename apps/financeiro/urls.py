@@ -23,6 +23,7 @@ urlpatterns = [
     path("financeiro/lancamentos/<int:pk>/anexar/", views.anexar_lancamento, name="anexar_lancamento"),
     path("financeiro/custas/nova/", views.form_custa, name="form_custa"),
     path("financeiro/custas/<int:pk>/anexo/", views.anexo_custa, name="anexo_custa"),
+    path("financeiro/custas/<int:pk>/reembolsar/", views.form_reembolsar_custa, name="form_reembolsar_custa"),
     path(
         "financeiro/custas/cliente/<int:cliente_id>/",
         views.extrato_custas_cliente,

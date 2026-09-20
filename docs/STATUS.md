@@ -66,3 +66,12 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
   a feature completa (ver linha "Clientes" acima); faixa de sub-abas de
   Tarefas sumindo no quadro — `quadro` não montava o contexto da faixa
   nem incluía o template parcial (ver linha "Tarefas" acima).
+- Revisão do sócio de 2026-09-19 (`docs/implementar/atualizações (1).docx`)
+  implementada em Clientes, Processos (status), Agenda, Financeiro
+  (PDR-0029), Chat, Modelos, Configurações e transversais (anexos com
+  olho/baixar, Voltar global, localidade em maiúsculas). Ficaram de fora:
+  IA (criar processo pela íntegra; ajustar peça repetitiva a partir dos
+  anexos — PDR-0008), salário do usuário alimentando o Financeiro
+  (depende de decisão de produto) e botão "Voltar" específico por
+  tela (coberto pelo Voltar global). A manipulação de imagens do Meu
+  estilo (arrastar/redimensionar) não foi exercitada em navegador real.
