@@ -134,6 +134,11 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
 - "Clientes relacionados" também considera clientes vinculados ao mesmo
   processo (`Processo.clientes`), restritos ao escopo de leitura de quem
   consulta.
+- Cada cliente relacionado mostra os processos em comum (número +
+  status, como links; até 3, depois "+N"), pelas duas origens da
+  relação. A coluna só existe para quem tem o módulo Processos e lista só
+  processos dentro do escopo de leitura de Processos do usuário; o
+  cliente relacionado continua listado mesmo sem nenhum processo visível.
 
 ### Tarefas
 

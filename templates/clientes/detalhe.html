@@ -201,16 +201,27 @@
     Clientes que estão no mesmo polo (ativo ou passivo) que este cliente em algum processo em comum — depende de os dois terem sido cadastrados como Parte do processo.
   </p>
   <div class="flex flex-col gap-3">
-    {% for c in clientes_relacionados %}
-      <a href="{% url 'clientes:detalhe' c.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
-        <div class="flex-1 min-w-0">
+    {% for item in clientes_relacionados %}
+      {% with c=item.cliente %}
+      <div class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+        <a href="{% url 'clientes:detalhe' c.id %}" class="flex-1 min-w-0">
           <p class="font-medium text-gray-900 truncate" title="{{ c.nome_razao_social }}">{{ c.nome_razao_social }}</p>
           <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
+        </a>
+        {% if pode_ver_processos and item.processos_em_comum %}
+        <div class="flex flex-col items-end gap-0.5 text-xs">
+          {% for p in item.processos_em_comum.lista %}
+            <a href="{% url 'processos:detalhe' p.id %}" class="text-gray-600 hover:underline">
+              {{ p.numero|default:p.titulo }} · {{ p.get_status_display }}
+            </a>
+          {% endfor %}
+          {% if item.processos_em_comum.restantes %}
+            <span class="text-gray-400">+{{ item.processos_em_comum.restantes }}</span>
+          {% endif %}
         </div>
-        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      </a>
+        {% endif %}
+      </div>
+      {% endwith %}
     {% empty %}
       {% include "components/empty_state.html" with mensagem="Nenhum cliente relacionado." %}
     {% endfor %}

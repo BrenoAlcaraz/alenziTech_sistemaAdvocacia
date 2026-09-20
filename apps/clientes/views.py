@@ -30,7 +30,8 @@ from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
 from apps.modelos.services import gerar_peca_procuracao
 from .models import Cliente, Documento
 from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
-from .services import clientes_relacionados
+from apps.processos.models import Processo
+from .services import clientes_relacionados, processos_em_comum
 
 User = get_user_model()
 
@@ -79,6 +80,16 @@ def _clientes_no_escopo(request, escopo, *, ativo):
     qs = Cliente.objects.filter(ativo=ativo)
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(responsavel=request.user)
+    return qs
+
+
+def _processos_visiveis(user):
+    """Processos que o usuário pode ler — mesma regra do detalhe do
+    Processo (nível máximo do módulo Processos; `somente_seus` restringe
+    ao responsável)."""
+    qs = Processo.objects.all()
+    if nivel_acesso_modulo(user, MODULO_PROCESSOS) != NIVEL_TODOS:
+        qs = qs.filter(responsavel=user)
     return qs
 
 
@@ -165,12 +176,25 @@ def detalhe(request, pk):
         list(cliente.pecas_geradas.select_related("criado_por").order_by("-criado_em"))
         if pode_ver_procuracoes else []
     )
+    relacionados = clientes_relacionados(
+        cliente, base=_clientes_no_escopo(request, escopo, ativo=True),
+    )
+    pode_ver_processos = tem_permissao_modulo(request.user, MODULO_PROCESSOS)
+    processos_por_relacionado = (
+        processos_em_comum(
+            cliente, relacionados,
+            processos_visiveis=_processos_visiveis(request.user),
+        )
+        if pode_ver_processos else {}
+    )
     return render(request, "clientes/detalhe.html", {
         "cliente": cliente,
         "processos": processos,
-        "clientes_relacionados": clientes_relacionados(
-            cliente, base=_clientes_no_escopo(request, escopo, ativo=True),
-        ),
+        "clientes_relacionados": [
+            {"cliente": c, "processos_em_comum": processos_por_relacionado.get(c.pk)}
+            for c in relacionados
+        ],
+        "pode_ver_processos": pode_ver_processos,
         "tarefas_relacionadas": tarefas_relacionadas,
         "tarefas_relacionadas_total": tarefas_relacionadas_total,
         "pode_excluir_cliente": pode_modificar and tem_habilitacao(
