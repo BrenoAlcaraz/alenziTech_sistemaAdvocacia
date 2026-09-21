@@ -8,8 +8,12 @@ especificação não determina quantas tabelas existirão; modelagem física
 ## Financeiro geral
 
 - Todo lançamento é único, parcelado ou recorrente.
-- Parcelado: quantidade de parcelas + periodicidade + primeiro
-  vencimento → gera ocorrências individuais vinculadas à mesma origem.
+- Parcelado: quantidade de parcelas + primeiro vencimento → gera
+  ocorrências individuais vinculadas à mesma origem. O valor digitado é
+  o de cada parcela; as seguintes vencem no mesmo dia dos meses
+  seguintes (mês sem esse dia → último dia do mês, sem "derivar" nas
+  parcelas posteriores: 31/01 → 28/02 → 31/03). Só a 1ª pode nascer
+  paga; as demais nascem sempre pendentes.
 - Recorrente: periodicidade + primeiro vencimento, duração/data
   final/indeterminado. Cada ocorrência nasce como lançamento
   individual ligado à origem.
@@ -30,9 +34,20 @@ especificação não determina quantas tabelas existirão; modelagem física
   Pagamentos solicitados (lançamento originado de uma Solicitação
   Financeira) — mesmo conjunto do protótipo.
 
-- Categoria acompanha o tipo: receita (honorário, êxito, reembolso,
-  outro) e despesa têm categorias próprias; o backend recusa a
-  combinação inválida.
+- Categoria acompanha o tipo; o backend recusa a combinação inválida.
+  Receita: honorários, honorários de sucumbência, reembolso, consultoria,
+  comissão, auditoria, acordo, capacitação, outros. Despesa: aluguel,
+  condomínio, água, luz, internet, salário, bonificação, impostos/taxas,
+  cursos, equipamentos, material, software/assinatura, outros.
+  Categorias geradas só pelo sistema (custa judicial, solicitação de
+  pagamento, êxito etc.) não aparecem no dropdown manual e mantêm o
+  rótulo na listagem; lançamento existente com uma delas continua
+  editável sem trocar de categoria.
+- Formulário de lançamento: "Classificação" (Única/Parcelado/Recorrente)
+  logo abaixo de valor e categoria. Data de pagamento e comprovante só
+  existem com status Pago (backend descarta a data e recusa o
+  comprovante nos demais status); com Pago, o comprovante é opcional e,
+  em parcelado/recorrente, vale só para a 1ª ocorrência.
 - Saldo previsto = a receber + recebido − a pagar − pagos (PDR-0029).
 - Reembolso de cliente e custas do cliente não são receita/despesa —
   ver [PDR-0029](../decisions/PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md).
@@ -186,7 +201,8 @@ despesa. Integração futura mais ampla exigiria novo PDR.
   toggle de período (últimos 6 meses, últimos 12 meses, exercício
   corrente) — mesma fonte de dados dos cards de resumo, agregada por
   mês em vez de por lançamento individual. Abaixo, fontes de receita, fontes
-  de despesa, receita por área de atuação (área do processo) e por cliente,
+  de despesa (somadas por categoria, só o realizado, respeitando o escopo
+  `dados_proprios`/`dados_todos`), receita por área de atuação (área do processo) e por cliente,
   filtráveis por Sempre / Últimos 12 meses / Exercício deste ano.
 
 ## Fora de escopo imediato
