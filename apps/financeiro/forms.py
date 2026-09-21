@@ -61,7 +61,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "data_vencimento": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "data_pagamento":  forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "categoria":       forms.Select(attrs={"class": "select"}),
-            "status":          forms.Select(attrs={"class": "select"}),
+            "status":          forms.Select(attrs={"class": "select", "data-toggle-select": "status"}),
             "forma_pagamento": forms.Select(attrs={"class": "select"}),
             "cliente":         forms.Select(attrs={"class": "select"}),
             "processo":        forms.Select(attrs=PROCESSO_SELECT_ATTRS),
@@ -81,7 +81,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_tipo": "Duração da recorrência",
             "duracao_quantidade": "Quantidade de ocorrências",
             "duracao_data_final": "Data final",
-            "anexo": "Anexo (boleto e/ou comprovante)",
+            "anexo": "Comprovante de pagamento",
         }
 
     def __init__(self, *args, **kwargs):
@@ -117,9 +117,19 @@ class LancamentoFinanceiroForm(forms.ModelForm):
 
         rotulos = dict(LancamentoFinanceiro.CATEGORIA_CHOICES)
         self.categorias_por_tipo = {
-            tipo: [[valor, rotulos[valor]] for valor in valores]
-            for tipo, valores in LancamentoFinanceiro.CATEGORIAS_POR_TIPO.items()
+            tipo: [[valor, rotulos[valor]] for valor in self._categorias_aceitas(tipo)]
+            for tipo in LancamentoFinanceiro.CATEGORIAS_POR_TIPO
         }
+
+    def _categorias_aceitas(self, tipo):
+        """Categorias manuais do tipo, mais a categoria atual de um
+        lançamento existente (gerada pelo sistema ou anterior à revisão de
+        2026-09-20) — para editá-lo sem forçar a troca de categoria."""
+        categorias = LancamentoFinanceiro.CATEGORIAS_POR_TIPO.get(tipo, ())
+        instancia = self.instance
+        if instancia.pk and instancia.tipo == tipo and instancia.categoria not in categorias:
+            return (*categorias, instancia.categoria)
+        return categorias
 
     def clean(self):
         cleaned_data = super().clean()
@@ -128,7 +138,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
 
         tipo = cleaned_data.get("tipo")
         categoria = cleaned_data.get("categoria")
-        if tipo and categoria and categoria not in LancamentoFinanceiro.CATEGORIAS_POR_TIPO.get(tipo, ()):
+        if tipo and categoria and categoria not in self._categorias_aceitas(tipo):
             self.add_error("categoria", "Esta categoria não pertence ao tipo escolhido.")
         elif tipo == "receita" and categoria == "reembolso" and not cleaned_data.get("cliente"):
             # Reembolso de cliente é creditado nas custas judiciais dele.
@@ -136,6 +146,11 @@ class LancamentoFinanceiroForm(forms.ModelForm):
 
         if status == "pago" and not data_pagamento:
             self.add_error("data_pagamento", "Informe a data de pagamento para lançamentos pagos.")
+        elif status != "pago":
+            # Data de pagamento e comprovante só existem para lançamento pago.
+            cleaned_data["data_pagamento"] = None
+            if self.files.get("anexo"):
+                self.add_error("anexo", "O comprovante só pode ser anexado em lançamento pago.")
 
         classificacao = cleaned_data.get("classificacao") or "unica"
         cleaned_data["classificacao"] = classificacao

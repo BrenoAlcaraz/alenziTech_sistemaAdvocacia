@@ -287,7 +287,7 @@ class TestTotaisEAnalise(FinanceiroBase):
         self._custa(valor=Decimal("80"))
         analise = analise_de_dados(LancamentoFinanceiro.objects.all(), inicio=None, incluir_custas=True)
         receitas = {l["rotulo"]: l["valor"] for l in analise["fontes_receita"]["linhas"]}
-        self.assertEqual(receitas, {"Honorário": Decimal("700")})
+        self.assertEqual(receitas, {"Honorários": Decimal("700")})
         despesas = {l["rotulo"]: l["valor"] for l in analise["fontes_despesa"]["linhas"]}
         self.assertEqual(despesas["Aluguel"], Decimal("120"))
         self.assertEqual(despesas["Custas adiantadas (a reembolsar)"], Decimal("80"))

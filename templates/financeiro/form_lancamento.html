@@ -47,7 +47,10 @@
 
         {# Valor #}
         <div>
-          <label class="label">Valor (R$)</label>
+          <label class="label">
+            <span data-toggle-panel="classificacao" data-toggle-values="unica,recorrente">Valor (R$)</span>
+            <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor de cada parcela (R$)</span>
+          </label>
           {{ form.valor }}
           {% if form.valor.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.valor.errors|join:", " }}</p>
@@ -64,6 +67,62 @@
           {% endif %}
         </div>
 
+      </div>
+
+      {# Classificação: Única / Parcelado / Recorrente (PDR-0021) #}
+      <div>
+        <label class="label">{{ form.classificacao.label }}</label>
+        {{ form.classificacao }}
+        {% if form.classificacao.errors %}
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.classificacao.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <div data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">
+        <label class="label">{{ form.numero_parcelas.label }}</label>
+        {{ form.numero_parcelas }}
+        {% if form.numero_parcelas.errors %}
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
+        {% endif %}
+        <p class="text-xs text-gray-400 mt-1">O valor informado é o de cada parcela. As parcelas seguintes vencem no mesmo dia dos meses seguintes, a partir da data da 1ª parcela; só a 1ª pode ser lançada como paga.</p>
+      </div>
+
+      <div data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label">{{ form.periodicidade.label }}</label>
+            {{ form.periodicidade }}
+            {% if form.periodicidade.errors %}
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.periodicidade.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="label">{{ form.duracao_tipo.label }}</label>
+            {{ form.duracao_tipo }}
+            {% if form.duracao_tipo.errors %}
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_tipo.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <div data-toggle-panel="duracao_tipo" data-toggle-values="quantidade" class="hidden">
+          <label class="label">{{ form.duracao_quantidade.label }}</label>
+          {{ form.duracao_quantidade }}
+          {% if form.duracao_quantidade.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_quantidade.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div data-toggle-panel="duracao_tipo" data-toggle-values="data_final" class="hidden">
+          <label class="label">{{ form.duracao_data_final.label }}</label>
+          {{ form.duracao_data_final }}
+          {% if form.duracao_data_final.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_data_final.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <p class="text-xs text-gray-400 -mt-2">A data de vencimento abaixo é a data de início: a 1ª ocorrência vence nela.</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+
         {# Status #}
         <div>
           <label class="label">{{ form.status.label }}</label>
@@ -75,16 +134,19 @@
 
         {# Data de vencimento #}
         <div>
-          <label class="label">Data de vencimento</label>
+          <label class="label">
+            <span data-toggle-panel="classificacao" data-toggle-values="unica,recorrente">Data de vencimento</span>
+            <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Data da 1ª parcela</span>
+          </label>
           {{ form.data_vencimento }}
           {% if form.data_vencimento.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_vencimento.errors|join:", " }}</p>
           {% endif %}
         </div>
 
-        {# Data de pagamento #}
-        <div>
-          <label class="label">Data de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {# Data de pagamento — só com status Pago #}
+        <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">
+          <label class="label">Data de pagamento</label>
           {{ form.data_pagamento }}
           {% if form.data_pagamento.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_pagamento.errors|join:", " }}</p>
@@ -129,57 +191,6 @@
 
       </div>
 
-      {# Classificação: Única / Parcelado / Recorrente (PDR-0021) #}
-      <div>
-        <label class="label">{{ form.classificacao.label }}</label>
-        {{ form.classificacao }}
-        {% if form.classificacao.errors %}
-          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.classificacao.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
-      <div data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">
-        <label class="label">{{ form.numero_parcelas.label }}</label>
-        {{ form.numero_parcelas }}
-        {% if form.numero_parcelas.errors %}
-          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
-        {% endif %}
-        <p class="text-xs text-gray-400 mt-1">Parcelas mensais a partir da data de vencimento acima.</p>
-      </div>
-
-      <div data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden flex flex-col gap-4">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="label">{{ form.periodicidade.label }}</label>
-            {{ form.periodicidade }}
-            {% if form.periodicidade.errors %}
-              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.periodicidade.errors|join:", " }}</p>
-            {% endif %}
-          </div>
-          <div>
-            <label class="label">{{ form.duracao_tipo.label }}</label>
-            {{ form.duracao_tipo }}
-            {% if form.duracao_tipo.errors %}
-              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_tipo.errors|join:", " }}</p>
-            {% endif %}
-          </div>
-        </div>
-        <div data-toggle-panel="duracao_tipo" data-toggle-values="quantidade" class="hidden">
-          <label class="label">{{ form.duracao_quantidade.label }}</label>
-          {{ form.duracao_quantidade }}
-          {% if form.duracao_quantidade.errors %}
-            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_quantidade.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-        <div data-toggle-panel="duracao_tipo" data-toggle-values="data_final" class="hidden">
-          <label class="label">{{ form.duracao_data_final.label }}</label>
-          {{ form.duracao_data_final }}
-          {% if form.duracao_data_final.errors %}
-            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.duracao_data_final.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-      </div>
-
       {# Observações #}
       <div>
         <label class="label">Observações <span class="text-gray-400 font-normal">(opcional)</span></label>
@@ -189,9 +200,9 @@
         {% endif %}
       </div>
 
-      {# Anexo #}
-      <div>
-        <label class="label">{{ form.anexo.label }}</label>
+      {# Comprovante — só com status Pago (em parcelado/recorrente, vale para a 1ª ocorrência) #}
+      <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">
+        <label class="label">{{ form.anexo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
         {% if lancamento.anexo %}
           <div class="flex items-center gap-2 mb-1 text-xs text-gray-500">
             <span class="truncate" title="{{ lancamento.anexo.name }}">Atual: {{ lancamento.anexo.name }}</span>

@@ -47,32 +47,51 @@ class LancamentoFinanceiro(models.Model):
     ]
 
     CATEGORIA_CHOICES = [
-        ("honorario", "Honorário"),
-        ("exito", "Honorário de Êxito"),
+        ("honorario", "Honorários"),
+        ("honorario_sucumbencia", "Honorários de sucumbência"),
         ("reembolso", "Reembolso"),
+        ("consultoria", "Consultoria"),
+        ("comissao", "Comissão"),
+        ("auditoria", "Auditoria"),
+        ("acordo", "Acordo"),
+        ("capacitacao", "Capacitação"),
+        ("aluguel", "Aluguel"),
+        ("condominio", "Condomínio"),
+        ("agua", "Água"),
+        ("luz", "Luz"),
+        ("internet", "Internet"),
+        ("salario", "Salário"),
+        ("bonificacao", "Bonificação"),
+        ("imposto", "Impostos/taxas"),
+        ("cursos", "Cursos"),
+        ("equipamentos", "Equipamentos"),
+        ("material", "Material"),
+        ("software", "Software/assinatura"),
+        ("outro", "Outros"),
+        # Só o sistema gera estas (solicitações, custas, honorários
+        # confirmados) ou já existiam antes da revisão de 2026-09-20 —
+        # ficam fora do dropdown manual e mantêm o rótulo na listagem.
+        ("exito", "Honorário de Êxito"),
         ("solicitacao_pagamento", "Solicitação de Pagamento"),
         ("custa_judicial", "Custa Judicial"),
         ("diligencia", "Diligência"),
         ("pericia", "Perícia"),
         ("taxa", "Taxa/Emolumento"),
-        ("salario", "Salário/Pró-labore"),
-        ("aluguel", "Aluguel"),
-        ("software", "Software/Assinatura"),
-        ("imposto", "Imposto"),
-        ("despesa_escritorio", "Despesa do Escritório"),
-        ("outro", "Outro"),
     ]
 
-    # Categorias próprias de cada tipo — o formulário só oferece as do tipo
-    # escolhido e o backend recusa a combinação inválida. "reembolso" como
-    # receita é o cliente devolvendo custa adiantada (credita nas custas
-    # judiciais dele); como despesa é o escritório reembolsando alguém.
+    # Categorias que o usuário escolhe à mão em cada tipo — o formulário só
+    # oferece as do tipo escolhido e o backend recusa a combinação inválida.
+    # "reembolso" como receita é o cliente devolvendo custa adiantada
+    # (credita nas custas judiciais dele).
     CATEGORIAS_POR_TIPO = {
-        "receita": ("honorario", "exito", "reembolso", "outro"),
+        "receita": (
+            "honorario", "honorario_sucumbencia", "reembolso", "consultoria",
+            "comissao", "auditoria", "acordo", "capacitacao", "outro",
+        ),
         "despesa": (
-            "reembolso", "solicitacao_pagamento", "custa_judicial", "diligencia",
-            "pericia", "taxa", "salario", "aluguel", "software", "imposto",
-            "despesa_escritorio", "outro",
+            "aluguel", "condominio", "agua", "luz", "internet", "salario",
+            "bonificacao", "imposto", "cursos", "equipamentos", "material",
+            "software", "outro",
         ),
     }
 
