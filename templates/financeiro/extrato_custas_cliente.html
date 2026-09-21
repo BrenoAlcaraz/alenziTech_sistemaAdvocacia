@@ -15,6 +15,12 @@
 <p class="text-sm text-gray-500 mb-6">
   Saldo atual:
   <span class="font-semibold {% if saldo_positivo %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">{{ saldo }}</span>
+  {% if grupo_do_cliente %}
+    <span class="ml-2 text-xs text-gray-400">
+      Membro do <a href="{% url 'financeiro:extrato_custas_grupo' grupo_do_cliente.pk %}" class="underline hover:text-gray-700">Grupo {{ grupo_do_cliente.nome }}</a>
+      — as custas são pagas pelo saldo do grupo.
+    </span>
+  {% endif %}
 </p>
 
 <div class="border-b border-gray-200 mb-6">
@@ -22,9 +28,11 @@
     <div data-tab="lancamentos" data-tab-group="extrato-custas" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-active">
       Lançamentos
     </div>
+    {% if not grupo_do_cliente %}
     <div data-tab="creditar" data-tab-group="extrato-custas" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-inactive">
       Creditar
     </div>
+    {% endif %}
   </nav>
 </div>
 
@@ -65,6 +73,9 @@
           <p class="text-xs text-gray-400 truncate" title="{{ c.get_tipo_display }}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}">
             {{ c.get_tipo_display }}{% if c.processo %} &bull; {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
           </p>
+          {% if c.grupo %}
+            <p class="text-xs text-gray-500 mt-0.5">Pago pelo saldo do Grupo {{ c.grupo.nome }}</p>
+          {% endif %}
           {% if c.anexo %}
             <div class="flex items-center gap-2 mt-1">
               <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
@@ -74,8 +85,8 @@
           {% endif %}
         </div>
         <div class="flex flex-col items-end gap-1">
-          <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-gray-500{% endif %}">
-            {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|moeda_br }}
+          <p class="font-semibold {% if c.tipo == 'adiantamento' and not c.grupo_id %}text-juridico-vermelho{% else %}text-gray-500{% endif %}">
+            {% if c.tipo == "adiantamento" and not c.grupo_id %}&minus; {% endif %}R$ {{ c.valor|moeda_br }}
           </p>
           {% if c.reembolsada %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Reembolsada</span>
@@ -91,6 +102,7 @@
 </div>
 
 {# Creditar: depósitos adiantados pelo cliente #}
+{% if not grupo_do_cliente %}
 <div data-tab-panel="creditar" data-tab-panel-group="extrato-custas" class="hidden">
   <div class="flex items-center justify-between mb-4">
     <h2 class="font-semibold text-gray-900">Créditos</h2>
@@ -117,4 +129,5 @@
     {% endfor %}
   </div>
 </div>
+{% endif %}
 {% endblock %}

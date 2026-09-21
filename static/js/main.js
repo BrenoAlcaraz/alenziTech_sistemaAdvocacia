@@ -160,6 +160,64 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Aviso de saldo no lançamento de custa ───────────────────────────────────
+  // Só para "Adiantado pelo escritório": mostra o saldo atual e o saldo após o
+  // débito (cliente ou grupo). O cálculo é do backend (data-aviso-saldo-url);
+  // aqui só se consulta e se exibe — informativo, não bloqueia o envio.
+  document.querySelectorAll("[data-aviso-saldo-url]").forEach((form) => {
+    const aviso = form.querySelector("#aviso-saldo-custa");
+    const campo = (nome) => form.querySelector(`[name="${nome}"]`);
+    if (!aviso || !campo("tipo")) return;
+
+    let requisicao = 0;
+    const esconder = () => {
+      aviso.classList.add("hidden");
+      aviso.replaceChildren();
+    };
+    const exibir = (dados) => {
+      const negativo = dados.depois_negativo;
+      aviso.className = `p-3 rounded-lg border text-sm ${
+        negativo ? "bg-red-50 border-red-200 text-red-700" : "bg-gray-50 border-gray-200 text-gray-700"
+      }`;
+      const linhas = [`Saldo atual de ${dados.origem}: ${dados.atual}`];
+      if (dados.valor_informado) {
+        linhas.push(`Saldo após este débito de ${dados.valor}: ${dados.depois}`);
+        if (negativo) linhas.push("O saldo ficará negativo (a cobrar).");
+      }
+      aviso.replaceChildren(...linhas.map((texto) => {
+        const p = document.createElement("p");
+        p.textContent = texto;
+        return p;
+      }));
+    };
+    const atualizar = () => {
+      const cliente = campo("cliente")?.value || "";
+      const grupo = campo("grupo")?.value || "";
+      if (campo("tipo").value !== "adiantamento" || (!cliente && !grupo)) {
+        esconder();
+        return;
+      }
+      const atual = ++requisicao;
+      const params = new URLSearchParams({ cliente, grupo, valor: campo("valor")?.value || "" });
+      fetch(`${form.dataset.avisoSaldoUrl}?${params}`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+        .then((r) => r.json())
+        .then((dados) => {
+          if (atual !== requisicao) return;
+          if (dados.visivel) exibir(dados);
+          else esconder();
+        })
+        .catch(esconder);
+    };
+
+    ["tipo", "cliente", "grupo", "valor"].forEach((nome) => {
+      const el = campo(nome);
+      if (!el) return;
+      el.addEventListener("change", atualizar);
+      el.addEventListener("input", atualizar);
+    });
+    atualizar();
+  });
+
   // ── Busca em campo de Processo (combobox) ───────────────────────────────────
   // Todo <select> de Processo leva data-processo-busca="1" (ver
   // PROCESSO_SELECT_ATTRS em apps/processos/forms.py). Envolve o <select>

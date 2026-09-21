@@ -86,6 +86,18 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   expõe Cliente nem Tipo como campo, os dois vêm do próprio contexto da
   rota (`financeiro/custas/cliente/<id>/creditar/`), nunca do que foi
   submetido. O model `CustaJudicial` continua único por trás dos dois.
+- **Grupos de clientes** ([PDR-0031](../decisions/PDR-0031-custas-por-grupo-de-clientes.md)):
+  grupo com nome e membros, saldo próprio pela mesma fórmula. Cliente em
+  no máximo um grupo, só entra com saldo individual zero, some da lista
+  individual e aparece dentro do grupo (extrato, Creditar, Membros).
+  Débito no grupo exige o membro (processo opcional, só de membro) e
+  aparece na ficha do membro como "pago pelo saldo do Grupo X", sem
+  afetar o saldo individual. Remover membro/apagar grupo só sem
+  lançamentos vinculados.
+- Tela de custas: busca (cliente, documento, grupo, membros) e filtro de
+  saldo (com crédito / em débito / sem saldo pendente). Formulário de
+  débito "Adiantado pelo escritório" mostra saldo atual e após o débito,
+  inclusive negativo (informativo).
 
 ## Solicitações financeiras (PDR-0006, fluxo em PDR-0015)
 

@@ -12,7 +12,7 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" data-aviso-saldo-url="{{ url_aviso_saldo }}">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -54,6 +54,14 @@
             <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data.errors|join:", " }}</p>
           {% endif %}
         </div>
+        <div class="col-span-2">
+          <label class="label" for="{{ form.grupo.id_for_label }}">{{ form.grupo.label }}</label>
+          {{ form.grupo }}
+          {% if form.grupo.errors %}
+            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.grupo.errors|join:", " }}</p>
+          {% endif %}
+          <p class="text-xs text-gray-400 mt-1">Para debitar do saldo de um grupo, escolha o grupo e o membro a que a custa se refere.</p>
+        </div>
         <div>
           <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }}</label>
           {{ form.cliente }}
@@ -69,6 +77,9 @@
           {% endif %}
         </div>
       </div>
+
+      {# Aviso informativo: saldo atual e saldo após o débito adiantado pelo escritório #}
+      <div id="aviso-saldo-custa" class="hidden p-3 rounded-lg border text-sm" role="status" aria-live="polite"></div>
 
       <div>
         <label class="label" for="{{ form.anexo.id_for_label }}">{{ form.anexo.label }}</label>

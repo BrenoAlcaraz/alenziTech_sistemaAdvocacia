@@ -1,9 +1,9 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Creditar — {{ cliente }} — Financeiro{% endblock %}
+{% block title %}Creditar — {% if grupo %}Grupo {{ grupo.nome }}{% else %}{{ cliente }}{% endif %} — Financeiro{% endblock %}
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'financeiro:extrato_custas_cliente' cliente.pk %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% if grupo %}{% url 'financeiro:extrato_custas_grupo' grupo.pk %}{% else %}{% url 'financeiro:extrato_custas_cliente' cliente.pk %}{% endif %}" class="text-gray-400 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -24,8 +24,13 @@
     <div class="flex flex-col gap-4">
 
       <div>
-        <p class="label">Cliente</p>
-        <p class="input bg-gray-50 text-gray-600">{{ cliente.nome_razao_social }} — {{ cliente.cpf_cnpj|default:"—" }}</p>
+        {% if grupo %}
+          <p class="label">Grupo</p>
+          <p class="input bg-gray-50 text-gray-600">{{ grupo.nome }}</p>
+        {% else %}
+          <p class="label">Cliente</p>
+          <p class="input bg-gray-50 text-gray-600">{{ cliente.nome_razao_social }} — {{ cliente.cpf_cnpj|default:"—" }}</p>
+        {% endif %}
       </div>
 
       <div>
@@ -56,6 +61,7 @@
             <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data.errors|join:", " }}</p>
           {% endif %}
         </div>
+        {% if form.processo %}
         <div class="col-span-2">
           <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }}</label>
           {{ form.processo }}
@@ -63,6 +69,7 @@
             <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
           {% endif %}
         </div>
+        {% endif %}
       </div>
 
       <div>
@@ -81,7 +88,7 @@
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
       <button type="submit" class="btn-primary">Creditar</button>
-      <a href="{% url 'financeiro:extrato_custas_cliente' cliente.pk %}" class="btn-secondary">Cancelar</a>
+      <a href="{% if grupo %}{% url 'financeiro:extrato_custas_grupo' grupo.pk %}{% else %}{% url 'financeiro:extrato_custas_cliente' cliente.pk %}{% endif %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>
 </div>

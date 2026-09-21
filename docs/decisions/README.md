@@ -58,3 +58,4 @@ serem efetivamente decididas.
 | PDR-0028 | Equipe como atalho de seleção (substitui o vínculo dinâmico de Equipe) | accepted | [PDR-0028-equipe-como-atalho-de-selecao.md](PDR-0028-equipe-como-atalho-de-selecao.md) |
 | PDR-0029 | Financeiro líquido de custas do cliente e honorário sucumbencial calculado | accepted | [PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md](PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md) |
 | PDR-0030 | Papel de acesso como único mecanismo e exclusão de usuário com senha | accepted | [PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md](PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md) |
+| PDR-0031 | Custas judiciais por grupo de clientes | accepted | [PDR-0031-custas-por-grupo-de-clientes.md](PDR-0031-custas-por-grupo-de-clientes.md) |

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import LancamentoFinanceiro, CustaJudicial, Honorario, SolicitacaoFinanceira
+from .models import CustaJudicial, GrupoCustas, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
 from .services import calcular_honorario_sucumbencial
 from apps.clientes.models import Cliente
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
@@ -205,9 +205,10 @@ class CustaJudicialForm(forms.ModelForm):
     class Meta:
         model = CustaJudicial
         field_classes = {"processo": ProcessoChoiceField}
-        fields = ["tipo", "descricao", "valor", "data", "cliente", "processo", "anexo"]
+        fields = ["tipo", "descricao", "valor", "data", "grupo", "cliente", "processo", "anexo"]
         widgets = {
             "descricao": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Custas de citação – Processo 001/2026"}),
+            "grupo": forms.Select(attrs={"class": "select"}),
             "valor": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "data": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "cliente": forms.Select(attrs={"class": "select"}),
@@ -218,6 +219,7 @@ class CustaJudicialForm(forms.ModelForm):
             "descricao": "Descrição",
             "valor": "Valor (R$)",
             "data": "Data",
+            "grupo": "Grupo (saldo compartilhado)",
             "cliente": "Cliente",
             "processo": "Processo",
             "anexo": "Anexo (boleto e/ou comprovante)",
@@ -228,6 +230,8 @@ class CustaJudicialForm(forms.ModelForm):
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
+        self.fields["grupo"].required = False
+        self.fields["grupo"].empty_label = "Nenhum (saldo individual do cliente)"
         self.fields["processo"].required = False
         self.fields["processo"].empty_label = "Nenhum"
         _filtrar_processo_por_cliente(self, "financeiro:processos_por_cliente")
@@ -269,11 +273,15 @@ class CreditarCustaForm(forms.ModelForm):
             "anexo": "Anexo (comprovante)",
         }
 
-    def __init__(self, *args, cliente, **kwargs):
+    def __init__(self, *args, cliente=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["processo"].required = False
-        self.fields["processo"].empty_label = "Nenhum"
-        self.fields["processo"].queryset = processos_do_cliente(cliente.pk)
+        if cliente is None:
+            # Crédito de grupo: sem processo (os membros têm processos próprios).
+            del self.fields["processo"]
+        else:
+            self.fields["processo"].required = False
+            self.fields["processo"].empty_label = "Nenhum"
+            self.fields["processo"].queryset = processos_do_cliente(cliente.pk)
         self.fields["data"].input_formats = ["%Y-%m-%d"]
         self.fields["anexo"].required = False
 
@@ -282,6 +290,25 @@ class CreditarCustaForm(forms.ModelForm):
         if valor is not None and valor <= 0:
             raise forms.ValidationError("O valor deve ser maior que zero.")
         return valor
+
+
+class GrupoCustasForm(forms.ModelForm):
+    class Meta:
+        model = GrupoCustas
+        fields = ["nome"]
+        widgets = {"nome": forms.TextInput(attrs={"class": "input", "placeholder": "Ex: Grupo Holding X"})}
+        labels = {"nome": "Nome do grupo"}
+
+
+class MembroGrupoCustasForm(forms.Form):
+    cliente = forms.ModelChoiceField(
+        queryset=Cliente.objects.none(), label="Cliente",
+        widget=forms.Select(attrs={"class": "select"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True, grupo_custas__isnull=True)
 
 
 class ReembolsoCustaForm(forms.Form):

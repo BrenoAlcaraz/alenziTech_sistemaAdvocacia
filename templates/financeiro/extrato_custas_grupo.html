@@ -1,0 +1,133 @@
+{% extends "base/base_auth.html" %}
+{% load moeda %}
+{% block title %}Grupo {{ grupo.nome }} — Custas Judiciais — Financeiro{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-2">
+  <a href="{% url 'financeiro:custas' %}" class="text-gray-400 hover:text-gray-700">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+  </a>
+  <h1 class="text-xl font-bold text-gray-900 texto-quebra">Grupo {{ grupo.nome }}</h1>
+</div>
+<p class="text-sm text-gray-500 mb-6">
+  Saldo atual do grupo:
+  <span class="font-semibold {% if saldo_positivo %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">{{ saldo }}</span>
+</p>
+
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <div data-tab="lancamentos" data-tab-group="extrato-custas" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-active">
+      Lançamentos
+    </div>
+    <div data-tab="creditar" data-tab-group="extrato-custas" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-inactive">
+      Creditar
+    </div>
+    <div data-tab="membros" data-tab-group="extrato-custas" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-inactive">
+      Membros
+    </div>
+  </nav>
+</div>
+
+{# Lançamentos: débitos do saldo do grupo, cada um com o membro e o processo #}
+<div data-tab-panel="lancamentos" data-tab-panel-group="extrato-custas">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-gray-900">Custas</h2>
+    <a href="{% url 'financeiro:form_custa' %}?grupo={{ grupo.pk }}" class="btn-primary">+ Nova custa</a>
+  </div>
+  <div class="flex flex-col gap-2">
+    {% for c in lancamentos %}
+      <div class="card px-5 py-4 flex items-center gap-4">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-gray-900 truncate" title="{{ c.descricao }}">{{ c.descricao }}</p>
+          <p class="text-xs text-gray-400 truncate" title="{{ c.get_tipo_display }}{% if c.cliente %} &bull; Cliente: {{ c.cliente }}{% endif %}{% if c.processo %} &bull; Processo: {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}">
+            {{ c.get_tipo_display }}{% if c.cliente %} &bull; Cliente: {{ c.cliente }}{% endif %}{% if c.processo %} &bull; Processo: {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
+          </p>
+          {% if c.anexo %}
+            <div class="flex items-center gap-2 mt-1">
+              <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
+              {% url 'financeiro:anexo_custa' c.pk as anexo_url %}
+              {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+            </div>
+          {% endif %}
+        </div>
+        <p class="font-semibold {% if c.tipo == 'adiantamento' %}text-juridico-vermelho{% else %}text-gray-500{% endif %}">
+          {% if c.tipo == "adiantamento" %}&minus; {% endif %}R$ {{ c.valor|moeda_br }}
+        </p>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhuma custa registrada para este grupo." %}
+    {% endfor %}
+  </div>
+</div>
+
+{# Creditar: depósitos no saldo do grupo #}
+<div data-tab-panel="creditar" data-tab-panel-group="extrato-custas" class="hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="font-semibold text-gray-900">Créditos</h2>
+    <a href="{% url 'financeiro:form_creditar_custa_grupo' grupo.pk %}" class="btn-primary">+ Creditar</a>
+  </div>
+  <div class="flex flex-col gap-2">
+    {% for c in creditos %}
+      <div class="card px-5 py-4 flex items-center gap-4">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-gray-900 truncate" title="{{ c.descricao }}">{{ c.descricao }}</p>
+          <p class="text-xs text-gray-400">{{ c.data|date:"d/m/Y" }}</p>
+          {% if c.anexo %}
+            <div class="flex items-center gap-2 mt-1">
+              <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>
+              {% url 'financeiro:anexo_custa' c.pk as anexo_url %}
+              {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+            </div>
+          {% endif %}
+        </div>
+        <p class="font-semibold text-juridico-verde">+ R$ {{ c.valor|moeda_br }}</p>
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum crédito depositado neste grupo." %}
+    {% endfor %}
+  </div>
+</div>
+
+{# Membros: clientes que pagam suas custas pelo saldo do grupo #}
+<div data-tab-panel="membros" data-tab-panel-group="extrato-custas" class="hidden">
+  <h2 class="font-semibold text-gray-900 mb-4">Membros</h2>
+  <form method="post" action="{% url 'financeiro:adicionar_membro_grupo' grupo.pk %}" class="flex flex-wrap items-end gap-3 mb-4">
+    {% csrf_token %}
+    <div>
+      <label class="text-xs font-medium text-gray-500" for="{{ form_membro.cliente.id_for_label }}">Adicionar cliente</label>
+      {{ form_membro.cliente }}
+    </div>
+    <button type="submit" class="btn-secondary text-sm">Adicionar</button>
+    <p class="text-xs text-gray-400">O saldo individual do cliente precisa estar zerado.</p>
+  </form>
+  <div class="flex flex-col gap-2">
+    {% for m in membros %}
+      <div class="card px-5 py-3 flex items-center gap-4">
+        <div class="flex-1 min-w-0">
+          <a href="{% url 'financeiro:extrato_custas_cliente' m.cliente_id %}" class="font-medium text-gray-900 hover:underline truncate">{{ m.cliente.nome_razao_social }}</a>
+          <span class="text-xs text-gray-400 ml-1">{{ m.cliente.cpf_cnpj|default:"—" }}</span>
+        </div>
+        {% if m.cliente_id in membros_com_lancamentos %}
+          <span class="text-xs text-gray-400">Com lançamentos no grupo</span>
+        {% else %}
+          <form method="post" action="{% url 'financeiro:remover_membro_grupo' grupo.pk m.cliente_id %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-juridico-vermelho hover:underline">Remover</button>
+          </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Este grupo ainda não tem membros." %}
+    {% endfor %}
+  </div>
+  {% if pode_apagar %}
+    <form method="post" action="{% url 'financeiro:apagar_grupo' grupo.pk %}" class="mt-6">
+      {% csrf_token %}
+      <button type="submit" class="text-sm text-juridico-vermelho hover:underline"
+              onclick="return confirm('Apagar este grupo? Os membros voltam a ter saldo individual.')">Apagar grupo</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

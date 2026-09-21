@@ -185,6 +185,36 @@ class LancamentoFinanceiro(models.Model):
         )
 
 
+class GrupoCustas(models.Model):
+    """Grupo de clientes que compartilha um saldo de custas (ex.: holding
+    que adianta valor para as subsidiárias). O saldo do grupo segue a
+    mesma fórmula do PDR-0005, só sobre as custas com `grupo` = este."""
+
+    nome = models.CharField(max_length=255, unique=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Grupo de custas"
+        verbose_name_plural = "Grupos de custas"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
+class MembroGrupoCustas(models.Model):
+    # OneToOne: um cliente pertence a no máximo um grupo.
+    grupo = models.ForeignKey(GrupoCustas, on_delete=models.CASCADE, related_name="membros")
+    cliente = models.OneToOneField(Cliente, on_delete=models.CASCADE, related_name="grupo_custas")
+
+    class Meta:
+        verbose_name = "Membro de grupo de custas"
+        verbose_name_plural = "Membros de grupos de custas"
+
+    def __str__(self):
+        return f"{self.cliente} — {self.grupo}"
+
+
 class CustaJudicial(models.Model):
     # "adiantamento" e "paga_pelo_cliente" são custas de fato (o processo
     # exigiu o pagamento); "deposito_cliente" é crédito adiantado pelo
@@ -210,6 +240,13 @@ class CustaJudicial(models.Model):
     )
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    # Lançamento do saldo compartilhado de um grupo: crédito do grupo
+    # (sem cliente) ou débito de um membro (cliente = o membro). PROTECT:
+    # o histórico nunca é reescrito ao apagar o grupo.
+    grupo = models.ForeignKey(
+        GrupoCustas, on_delete=models.PROTECT, null=True, blank=True, related_name="custas",
+    )
+
     # Crédito nascido de uma receita "Reembolso" do financeiro geral: o
     # lançamento é a origem e o crédito some junto com ele.
     lancamento = models.OneToOneField(
@@ -234,6 +271,25 @@ class CustaJudicial(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+        if self.grupo_id:
+            self._validar_membro_do_grupo()
+
+    def _validar_membro_do_grupo(self):
+        if self.cliente_id is None:
+            if self.tipo != "deposito_cliente":
+                raise ValidationError({"cliente": "Informe o membro do grupo a que a custa se refere."})
+        elif not MembroGrupoCustas.objects.filter(grupo_id=self.grupo_id, cliente_id=self.cliente_id).exists():
+            raise ValidationError({"cliente": "O cliente informado não é membro do grupo selecionado."})
+
+    def save(self, *args, **kwargs):
+        # Cliente em grupo não tem saldo individual: qualquer lançamento
+        # novo dele (inclusive os gerados pelo sistema, como custa paga via
+        # solicitação) cai no saldo do grupo.
+        if self._state.adding and self.grupo_id is None and self.cliente_id is not None:
+            membro = MembroGrupoCustas.objects.filter(cliente_id=self.cliente_id).first()
+            if membro:
+                self.grupo_id = membro.grupo_id
+        super().save(*args, **kwargs)
 
     @property
     def reembolsada(self):
@@ -241,7 +297,10 @@ class CustaJudicial(models.Model):
 
     @property
     def pode_reembolsar(self):
-        return self.tipo == "adiantamento" and self.cliente_id is not None and not self.reembolsada
+        return (
+            self.tipo == "adiantamento" and self.cliente_id is not None
+            and self.grupo_id is None and not self.reembolsada
+        )
 
 
 class Honorario(models.Model):

@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
-from .models import CustaJudicial, LancamentoFinanceiro
+from .models import CustaJudicial, LancamentoFinanceiro, MembroGrupoCustas
 
 # Recorrência "indeterminado" não tem data final — gera um horizonte
 # fixo de ocorrências futuras (PDR-0021 só decidiu as periodicidades,
@@ -144,21 +144,24 @@ def calcular_correcao_honorario(*, valor_pendente, taxa_mensal, data_termo, refe
 
 # ── Integração Lançamentos ↔ Creditar (custas judiciais do cliente) ─────────
 
-def _deve_creditar_custas(lancamento):
+def _deve_creditar_custas(lancamento, *, de_grupo=False):
     return (
         lancamento.tipo == "receita"
         and lancamento.categoria == "reembolso"
         and lancamento.status == "pago"
-        and lancamento.cliente_id is not None
+        and (de_grupo or lancamento.cliente_id is not None)
     )
 
 
 def sincronizar_credito_de_reembolso(lancamento):
     """Receita "Reembolso" já recebida de um cliente vira crédito nas
     custas judiciais dele; se deixa de valer (reaberta, cancelada, outra
-    categoria, sem cliente), o crédito some. O lançamento é a origem."""
+    categoria, sem cliente), o crédito some. O lançamento é a origem.
+    O crédito de um grupo (sem cliente) segue o mesmo ciclo, mas mantém
+    o vínculo com o grupo."""
     existente = CustaJudicial.objects.filter(lancamento=lancamento).first()
-    if not _deve_creditar_custas(lancamento):
+    de_grupo = existente is not None and existente.grupo_id is not None
+    if not _deve_creditar_custas(lancamento, de_grupo=de_grupo):
         if existente:
             existente.delete()
         return
@@ -166,9 +169,9 @@ def sincronizar_credito_de_reembolso(lancamento):
         "descricao": lancamento.descricao,
         "valor": lancamento.valor,
         "data": lancamento.data_pagamento or lancamento.data_vencimento,
-        "cliente": lancamento.cliente,
-        "processo": lancamento.processo,
     }
+    if not de_grupo:
+        campos.update(cliente=lancamento.cliente, processo=lancamento.processo)
     if existente:
         for nome, valor in campos.items():
             setattr(existente, nome, valor)
@@ -195,6 +198,21 @@ def registrar_credito_cliente(*, cliente, valor, data, descricao, processo=None,
     return credito
 
 
+def registrar_credito_grupo(*, grupo, valor, data, descricao, anexo=None, responsavel=None):
+    """Creditar do grupo: receita "Reembolso" no financeiro geral (sem
+    cliente) com o crédito correspondente no saldo do grupo."""
+    with transaction.atomic():
+        lancamento = LancamentoFinanceiro.objects.create(
+            tipo="receita", categoria="reembolso", status="pago",
+            descricao=descricao, valor=valor,
+            data_vencimento=data, data_pagamento=data, responsavel=responsavel,
+        )
+        return CustaJudicial.objects.create(
+            tipo="deposito_cliente", lancamento=lancamento, grupo=grupo,
+            descricao=descricao, valor=valor, data=data, anexo=anexo,
+        )
+
+
 def reembolsar_custa(custa, *, data, comprovante, responsavel=None):
     """Cliente reembolsou uma custa adiantada pelo escritório: cria o
     crédito correspondente (com o comprovante) e marca a custa como
@@ -211,6 +229,67 @@ def reembolsar_custa(custa, *, data, comprovante, responsavel=None):
         custa.reembolsada_por = credito
         custa.save(update_fields=["reembolsada_por"])
     return credito
+
+
+# ── Saldo de custas: cliente individual e grupo ─────────────────────────────
+
+# Efeito de cada tipo de CustaJudicial sobre o saldo (PDR-0005):
+# "paga_pelo_cliente" fica de fora — aparece no histórico, não entra na
+# fórmula (não é crédito nem custa paga pelo escritório).
+_EFEITO_SALDO_POR_TIPO = {"deposito_cliente": 1, "adiantamento": -1}
+
+
+def saldo_liquido_custas(custas):
+    return sum((_EFEITO_SALDO_POR_TIPO.get(c.tipo, 0) * c.valor for c in custas), Decimal("0"))
+
+
+def saldo_individual_do_cliente(cliente):
+    """Só as custas sem grupo: o que foi debitado do saldo de um grupo
+    nunca mexe no saldo individual do membro."""
+    return saldo_liquido_custas(CustaJudicial.objects.filter(cliente=cliente, grupo__isnull=True))
+
+
+def saldo_do_grupo(grupo):
+    return saldo_liquido_custas(CustaJudicial.objects.filter(grupo=grupo))
+
+
+def saldo_de_custas_do(*, cliente=None, grupo=None):
+    """Saldo que um lançamento para `cliente`/`grupo` movimenta: o do
+    grupo (escolhido, ou o do grupo do cliente membro) ou o individual.
+    Devolve `(dono, saldo)`, ou `(None, None)` sem cliente nem grupo."""
+    if grupo is None and cliente is not None:
+        membro = MembroGrupoCustas.objects.select_related("grupo").filter(cliente=cliente).first()
+        grupo = membro.grupo if membro else None
+    if grupo is not None:
+        return grupo, saldo_do_grupo(grupo)
+    if cliente is not None:
+        return cliente, saldo_individual_do_cliente(cliente)
+    return None, None
+
+
+def adicionar_membro_ao_grupo(grupo, cliente):
+    """Um cliente entra em no máximo um grupo e só com saldo individual
+    zero (não há migração de saldo para o grupo)."""
+    with transaction.atomic():
+        if MembroGrupoCustas.objects.filter(cliente=cliente).exists():
+            raise ValueError("Este cliente já pertence a um grupo.")
+        if saldo_individual_do_cliente(cliente) != 0:
+            raise ValueError("O saldo individual do cliente precisa estar zerado para entrar em um grupo.")
+        return MembroGrupoCustas.objects.create(grupo=grupo, cliente=cliente)
+
+
+def remover_membro_do_grupo(membro):
+    """Só sem lançamentos vinculados ao membro no grupo — o histórico
+    nunca é reescrito."""
+    if CustaJudicial.objects.filter(grupo=membro.grupo, cliente=membro.cliente).exists():
+        raise ValueError("Este membro tem lançamentos no grupo e não pode ser removido.")
+    membro.delete()
+
+
+def excluir_grupo(grupo):
+    if CustaJudicial.objects.filter(grupo=grupo).exists():
+        raise ValueError("O grupo tem lançamentos vinculados e não pode ser apagado.")
+    grupo.delete()
 
 
 # ── Totais e análises: reembolso/custas de cliente não são receita/despesa ─
@@ -234,22 +313,24 @@ def lancamentos_operacionais(lancamentos):
 
 
 def custas_a_recuperar(*, inicio=None, fim=None):
-    """Saldo devedor dos clientes na janela — custas adiantadas pelo
-    escritório menos o que o cliente creditou/reembolsou. Custa paga
-    direto pelo cliente não entra. Devolve `{cliente_id: valor}` só dos
-    clientes devedores."""
-    custas = CustaJudicial.objects.filter(
-        cliente__isnull=False, tipo__in=("adiantamento", "deposito_cliente"),
+    """Saldo devedor dos clientes e dos grupos na janela — custas
+    adiantadas pelo escritório menos o que foi creditado/reembolsado. Custa
+    paga direto pelo cliente não entra. O que pertence a um grupo conta
+    pelo saldo do grupo, nunca pelo do membro. Devolve
+    `{("cliente", id) | ("grupo", id): valor}` só dos devedores."""
+    custas = CustaJudicial.objects.filter(tipo__in=("adiantamento", "deposito_cliente")).filter(
+        Q(grupo__isnull=False) | Q(cliente__isnull=False),
     )
     if inicio:
         custas = custas.filter(data__gte=inicio)
     if fim:
         custas = custas.filter(data__lte=fim)
     saldo = defaultdict(Decimal)
-    for linha in custas.values("cliente_id", "tipo").annotate(total=Sum("valor")):
+    for linha in custas.values("cliente_id", "grupo_id", "tipo").annotate(total=Sum("valor")):
+        dono = ("grupo", linha["grupo_id"]) if linha["grupo_id"] else ("cliente", linha["cliente_id"])
         efeito = -1 if linha["tipo"] == "adiantamento" else 1
-        saldo[linha["cliente_id"]] += efeito * linha["total"]
-    return {cliente_id: -valor for cliente_id, valor in saldo.items() if valor < 0}
+        saldo[dono] += efeito * linha["total"]
+    return {dono: -valor for dono, valor in saldo.items() if valor < 0}
 
 
 def total_custas_a_recuperar(*, inicio=None, fim=None):

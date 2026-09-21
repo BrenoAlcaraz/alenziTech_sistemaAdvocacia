@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -24,6 +25,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOLICITACOES,
 )
 from apps.clientes.models import Cliente
+from apps.clientes.validators import normalizar_documento
 from apps.notificacoes.models import Notificacao
 from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente, rotulo_processo
@@ -38,7 +40,9 @@ from .forms import (
     ReembolsoCustaForm,
     SolicitacaoFinanceiraForm,
 )
-from .models import CustaJudicial, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
+from .models import (
+    CustaJudicial, GrupoCustas, Honorario, LancamentoFinanceiro, MembroGrupoCustas, SolicitacaoFinanceira,
+)
 from .services import (
     analise_de_dados,
     calcular_correcao_honorario,
@@ -50,6 +54,7 @@ from .services import (
     lancamentos_operacionais,
     reembolsar_custa,
     registrar_credito_cliente,
+    saldo_liquido_custas,
     totais_do_mes,
 )
 
@@ -326,14 +331,64 @@ def grafico(request):
     })
 
 
-# Efeito de cada tipo de CustaJudicial sobre o saldo do cliente
-# (PDR-0005): "paga_pelo_cliente" fica de fora — aparece no histórico,
-# não entra na fórmula (não é crédito nem custa paga pelo escritório).
-_EFEITO_SALDO_POR_TIPO = {"deposito_cliente": 1, "adiantamento": -1}
+_FILTROS_SALDO = {
+    "com_credito": ("Com crédito", lambda saldo: saldo > 0),
+    "em_debito": ("Em débito", lambda saldo: saldo < 0),
+    "sem_saldo": ("Sem saldo pendente", lambda saldo: saldo == 0),
+}
 
 
-def _saldo_liquido_custas(custas):
-    return sum((_EFEITO_SALDO_POR_TIPO.get(c.tipo, 0) * c.valor for c in custas), Decimal("0"))
+def _rotulo_saldo(saldo):
+    if saldo == 0:
+        return "Sem saldo pendente"
+    prefixo = "Crédito: " if saldo > 0 else "A cobrar: "
+    return prefixo + _formatar_moeda(abs(saldo))
+
+
+def _casa_busca(busca, *, nomes, documento=""):
+    """Nome (sem distinguir caixa) ou documento (com ou sem pontuação)."""
+    termo = busca.casefold()
+    if any(termo in nome.casefold() for nome in nomes):
+        return True
+    digitos = normalizar_documento(busca)
+    return bool(documento) and (busca in documento or (digitos and digitos in normalizar_documento(documento)))
+
+
+def _linhas_de_saldo(custas, busca):
+    """Uma linha por cliente ativo fora de grupo e por grupo, com o saldo
+    de cada um — o grupo entra pelo saldo do próprio grupo e o membro só
+    aparece dentro dele (busca pelo nome do membro também acha o grupo)."""
+    individuais, por_grupo = defaultdict(list), defaultdict(list)
+    for c in custas:
+        if c.grupo_id:
+            por_grupo[c.grupo_id].append(c)
+        elif c.cliente_id:
+            individuais[c.cliente_id].append(c)
+
+    linhas = []
+    clientes = Cliente.objects.filter(ativo=True, grupo_custas__isnull=True)
+    for cliente in clientes:
+        if busca and not _casa_busca(busca, nomes=[cliente.nome_razao_social], documento=cliente.cpf_cnpj):
+            continue
+        saldo = saldo_liquido_custas(individuais.get(cliente.id, []))
+        linhas.append({
+            "cliente_id": cliente.id, "grupo_id": None, "cliente": cliente, "saldo_valor": saldo,
+            "url": reverse("financeiro:extrato_custas_cliente", args=[cliente.id]),
+        })
+    for grupo in GrupoCustas.objects.prefetch_related("membros__cliente"):
+        nomes_membros = [m.cliente.nome_razao_social for m in grupo.membros.all()]
+        if busca and not _casa_busca(busca, nomes=[grupo.nome, *nomes_membros]):
+            continue
+        saldo = saldo_liquido_custas(por_grupo.get(grupo.id, []))
+        linhas.append({
+            "cliente_id": None, "grupo_id": grupo.id, "grupo": grupo, "saldo_valor": saldo,
+            "nomes_membros": nomes_membros,
+            "url": reverse("financeiro:extrato_custas_grupo", args=[grupo.id]),
+        })
+    for linha in linhas:
+        linha["saldo"] = _rotulo_saldo(linha["saldo_valor"])
+        linha["credito"] = linha["saldo_valor"] >= 0
+    return linhas
 
 
 @login_required
@@ -342,35 +397,26 @@ def custas(request):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     custas_qs = list(
-        CustaJudicial.objects.select_related("cliente", "processo").order_by("-data", "-criado_em")
+        CustaJudicial.objects.select_related("cliente", "processo", "grupo").order_by("-data", "-criado_em")
     )
 
-    por_cliente = defaultdict(list)
-    for c in custas_qs:
-        if c.cliente_id:
-            por_cliente[c.cliente_id].append(c)
-
+    busca = (request.GET.get("busca") or "").strip()
+    filtro_saldo = request.GET.get("saldo") or ""
+    if filtro_saldo not in _FILTROS_SALDO:
+        filtro_saldo = ""
     # Lista sempre todo cliente ativo, mesmo sem nenhum lançamento —
     # antes só aparecia quem já tinha CustaJudicial (reunião de 13/09).
-    saldo_clientes = []
-    for cliente in Cliente.objects.filter(ativo=True):
-        saldo = _saldo_liquido_custas(por_cliente.get(cliente.id, []))
-        credito = saldo >= 0
-        if saldo == 0:
-            rotulo_saldo = "Sem saldo pendente"
-        else:
-            prefixo = "Crédito: " if credito else "A cobrar: "
-            rotulo_saldo = prefixo + _formatar_moeda(abs(saldo))
-        saldo_clientes.append({
-            "cliente_id": cliente.id,
-            "cliente": cliente,
-            "saldo": rotulo_saldo,
-            "credito": credito,
-        })
+    saldo_clientes = _linhas_de_saldo(custas_qs, busca)
+    if filtro_saldo:
+        aceita = _FILTROS_SALDO[filtro_saldo][1]
+        saldo_clientes = [linha for linha in saldo_clientes if aceita(linha["saldo_valor"])]
 
     return render(request, "financeiro/custas.html", {
         "custas": custas_qs,
         "saldo_clientes": saldo_clientes,
+        "filtro_busca": busca,
+        "filtro_saldo": filtro_saldo,
+        "filtros_saldo": [(chave, rotulo) for chave, (rotulo, _) in _FILTROS_SALDO.items()],
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })
@@ -384,11 +430,14 @@ def extrato_custas_cliente(request, cliente_id):
     cliente = get_object_or_404(Cliente, pk=cliente_id)
     custas_cliente = list(
         CustaJudicial.objects.filter(cliente=cliente)
-        .select_related("processo", "reembolsada_por").order_by("-data", "-criado_em")
+        .select_related("processo", "reembolsada_por", "grupo").order_by("-data", "-criado_em")
     )
     lancamentos = [c for c in custas_cliente if c.tipo in ("adiantamento", "paga_pelo_cliente")]
     creditos = [c for c in custas_cliente if c.tipo == "deposito_cliente"]
-    saldo = _saldo_liquido_custas(custas_cliente)
+    # Débitos pagos pelo saldo do grupo aparecem no histórico do membro,
+    # mas o saldo individual só considera o que não é do grupo.
+    saldo = saldo_liquido_custas(c for c in custas_cliente if not c.grupo_id)
+    membro = MembroGrupoCustas.objects.select_related("grupo").filter(cliente=cliente).first()
 
     # Filtros só da lista de lançamentos (custas), nunca do saldo.
     processos_do_extrato = {c.processo_id: c.processo for c in lancamentos if c.processo_id}
@@ -405,6 +454,7 @@ def extrato_custas_cliente(request, cliente_id):
 
     return render(request, "financeiro/extrato_custas_cliente.html", {
         "cliente": cliente,
+        "grupo_do_cliente": membro.grupo if membro else None,
         "lancamentos": lancamentos,
         "creditos": creditos,
         "processos_do_extrato": list(processos_do_extrato.values()),
@@ -599,17 +649,21 @@ def form_custa(request):
         form = CustaJudicialForm(request.POST, request.FILES)
         if form.is_valid():
             custa = form.save()
+            if custa.grupo_id:
+                return redirect("financeiro:extrato_custas_grupo", grupo_id=custa.grupo_id)
             if custa.cliente_id:
                 return redirect("financeiro:extrato_custas_cliente", cliente_id=custa.cliente_id)
             return redirect("financeiro:custas")
     else:
         initial = {"data": timezone.localdate()}
-        if request.GET.get("cliente"):
-            initial["cliente"] = request.GET["cliente"]
+        for campo in ("cliente", "grupo"):
+            if request.GET.get(campo):
+                initial[campo] = request.GET[campo]
         form = CustaJudicialForm(initial=initial)
 
     return render(request, "financeiro/form_custa.html", {
         "form": form,
+        "url_aviso_saldo": reverse("financeiro:aviso_saldo_custa"),
         "aba_ativa": "custas",
         "item_ativo": "financeiro",
     })

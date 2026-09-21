@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, views_grupos
 
 app_name = "financeiro"
 
@@ -34,6 +34,29 @@ urlpatterns = [
         views.form_creditar_custa,
         name="form_creditar_custa",
     ),
+    path("financeiro/custas/aviso-saldo/", views_grupos.aviso_saldo_custa, name="aviso_saldo_custa"),
+    path("financeiro/custas/grupo/novo/", views_grupos.novo_grupo, name="novo_grupo_custas"),
+    path(
+        "financeiro/custas/grupo/<int:grupo_id>/",
+        views_grupos.extrato_custas_grupo,
+        name="extrato_custas_grupo",
+    ),
+    path(
+        "financeiro/custas/grupo/<int:grupo_id>/creditar/",
+        views_grupos.form_creditar_custa_grupo,
+        name="form_creditar_custa_grupo",
+    ),
+    path(
+        "financeiro/custas/grupo/<int:grupo_id>/membros/adicionar/",
+        views_grupos.adicionar_membro_grupo,
+        name="adicionar_membro_grupo",
+    ),
+    path(
+        "financeiro/custas/grupo/<int:grupo_id>/membros/<int:cliente_id>/remover/",
+        views_grupos.remover_membro_grupo,
+        name="remover_membro_grupo",
+    ),
+    path("financeiro/custas/grupo/<int:grupo_id>/apagar/", views_grupos.apagar_grupo, name="apagar_grupo"),
     path("financeiro/honorarios/", views.honorarios_lista, name="honorarios_lista"),
     path("financeiro/honorarios/novo/", views.form_honorario, name="form_honorario"),
     path("financeiro/honorarios/<int:pk>/editar/", views.editar_honorario, name="editar_honorario"),
