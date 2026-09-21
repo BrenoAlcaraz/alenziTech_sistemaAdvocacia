@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PerfilUsuario, PermissaoPapel
+from apps.accounts.models import PapelAcesso, PerfilUsuario, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS, NIVEL_TODOS
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
@@ -24,9 +24,10 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         self.admin = User.objects.create_user("admin_config", password="testpass")
         PerfilUsuario.objects.filter(user=self.admin).update(is_admin_escritorio=True)
         self.limitado = User.objects.create_user("limitado_config", password="testpass")
-        self.limitado.groups.add(Group.objects.get(name="limitado"))
+        self.papel_limitado = PapelAcesso.objects.get(codigo_preset="limitado")
+        UsuarioPapel.objects.create(usuario=self.limitado, papel=self.papel_limitado)
         PermissaoPapel.objects.update_or_create(
-            tipo_conta="limitado",
+            papel=self.papel_limitado,
             modulo=MODULO_PROCESSOS,
             defaults={"ativo": True, "nivel": NIVEL_TODOS},
         )
@@ -45,7 +46,7 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
     def _post_revogacao(self):
         return self.client.post(
             "/configuracoes/permissoes/",
-            {"tipo_conta": "limitado", "nivel_processos": "somente_seus"},
+            {"papel_id": self.papel_limitado.pk, "nivel_processos": "somente_seus"},
             HTTP_HOST=self.http_host,
         )
 
@@ -58,7 +59,7 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         resposta = self.client.post(
             "/configuracoes/permissoes/",
             {
-                "tipo_conta": "limitado",
+                "papel_id": self.papel_limitado.pk,
                 "ativo_processos": "on",
                 "nivel_processos": "todos",
             },
@@ -77,7 +78,7 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
                 self._post_revogacao()
 
         permissao = PermissaoPapel.objects.get(
-            tipo_conta="limitado", modulo=MODULO_PROCESSOS
+            papel=self.papel_limitado, modulo=MODULO_PROCESSOS
         )
         self.assertTrue(permissao.ativo)
         self.processo.refresh_from_db()

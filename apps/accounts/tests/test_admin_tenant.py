@@ -4,7 +4,6 @@ Testes formais do contrato de Tenant Admin.
 Fixam o comportamento de:
   - usuario_admin_escritorio()
   - requer_admin_escritorio()
-  - tipo_conta_usuario() — ausência de retorno 'administrador_escritorio'
 
 Classe: TenantTestCase (django_tenants.test.cases)
   - cria schema isolado por classe
@@ -24,7 +23,6 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.decorators import requer_admin_escritorio, usuario_admin_escritorio
 from apps.accounts.models import PerfilUsuario
-from apps.accounts.permissoes import tipo_conta_usuario
 
 
 # ---------------------------------------------------------------------------
@@ -197,66 +195,6 @@ class TestUsuarioAdminEscritorio(AdminTenantBase):
             not result,
             "Group administrador_escritorio sem flag is_admin_escritorio não deve conceder",
         )
-
-
-class TestTipoContaUsuario(AdminTenantBase):
-    """Testes de tipo_conta_usuario() — não deve retornar 'administrador_escritorio'."""
-
-    @classmethod
-    def get_test_schema_name(cls):
-        return "test_admin_tc"
-
-    @classmethod
-    def setup_tenant(cls, tenant):
-        tenant.nome = "Escritório Teste TipoConta"
-        tenant.slug = "test-tipoconta"
-
-    # ── FALHA no kernel atual ────────────────────────────────────────────────
-
-    def test_tipo_conta_usuario_nao_retorna_admin(self):
-        """
-        FALHA ESPERADA: tipo_conta_usuario() com admin atual retorna 'administrador_escritorio'.
-        Futuro: deve retornar None (admin não entra na resolução de tipo_conta).
-        """
-        u = self._user("admin_tc")
-        self._set_admin_flag(u, True)
-        result = tipo_conta_usuario(u)
-        self.assertFuturo(
-            result != "administrador_escritorio",
-            "tipo_conta_usuario não deve retornar 'administrador_escritorio'; admin é tratado antes",
-        )
-
-    # ── PASSA no kernel atual ────────────────────────────────────────────────
-
-    def test_tipo_conta_usuario_retorna_limitado(self):
-        u = self._user("user_limitado")
-        self._add_group(u, "limitado")
-        result = tipo_conta_usuario(u)
-        self.assertEqual(result, "limitado")
-
-    def test_tipo_conta_usuario_retorna_financeiro(self):
-        u = self._user("user_financeiro")
-        self._add_group(u, "financeiro")
-        result = tipo_conta_usuario(u)
-        self.assertEqual(result, "financeiro")
-
-    def test_tipo_conta_usuario_retorna_none_sem_grupo(self):
-        u = self._user("sem_grupo")
-        result = tipo_conta_usuario(u)
-        self.assertIsNone(result)
-
-    def test_tipo_conta_usuario_retorna_none_com_dois_grupos(self):
-        u = self._user("dois_grupos")
-        self._add_group(u, "limitado")
-        self._add_group(u, "financeiro")
-        result = tipo_conta_usuario(u)
-        self.assertIsNone(result)
-
-    def test_tipo_conta_usuario_retorna_none_inativo(self):
-        u = self._user("inativo_tc", is_active=False)
-        self._add_group(u, "limitado")
-        result = tipo_conta_usuario(u)
-        self.assertIsNone(result)
 
 
 class TestRequerAdminEscritorio(AdminTenantBase):

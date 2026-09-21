@@ -30,7 +30,7 @@ class FiltroProcessoClienteBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Financeiro {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
         )
 
     def _cliente(self, nome, *, responsavel):

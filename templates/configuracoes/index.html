@@ -121,15 +121,14 @@
             </a>
           {% endif %}
           {% if usuario_e_admin_escritorio and u != request.user and not item.e_admin %}
-            <form method="post" action="{% url 'configuracoes:excluir_usuario' u.pk %}"
-                  onsubmit="return confirm('Excluir este usuário? Ele perde o acesso e os processos sob a responsabilidade dele passam ao Administrador.');">
-              {% csrf_token %}
-              <button type="submit" title="Excluir usuário" aria-label="Excluir usuário" class="text-gray-300 hover:text-red-400 transition-colors">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-              </button>
-            </form>
+            <button type="button" title="Excluir usuário" aria-label="Excluir usuário"
+                    data-excluir-usuario data-action="{% url 'configuracoes:excluir_usuario' u.pk %}"
+                    data-nome="{{ u.get_full_name|default:u.username }}"
+                    class="text-gray-300 hover:text-red-400 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
           {% endif %}
         </div>
       </div>
@@ -169,7 +168,7 @@
   <div class="flex items-center justify-between py-2 border-t border-gray-100">
     <div>
       <p class="text-sm font-medium text-gray-700">Permissões</p>
-      <p class="text-xs text-gray-400 mt-0.5">Definir o que cada tipo de conta pode visualizar e acessar</p>
+      <p class="text-xs text-gray-400 mt-0.5">Definir o que cada papel de acesso pode visualizar e acessar</p>
     </div>
     <a href="{% url 'configuracoes:permissoes' %}" class="btn-secondary text-sm flex-shrink-0">
       Gerenciar
@@ -231,4 +230,46 @@
   {% endif %}
 </div>
 
+{% if usuario_e_admin_escritorio %}
+<dialog id="dlg-excluir-usuario" class="rounded-xl p-0 backdrop:bg-black/40">
+  <form method="post" id="form-excluir-usuario" class="p-5 w-80">
+    {% csrf_token %}
+    <h2 class="text-base font-semibold text-gray-900">Excluir usuário</h2>
+    <p class="text-sm text-gray-600 mt-2">
+      <span id="excluir-usuario-nome" class="font-medium"></span> perde o acesso e os processos sob a
+      responsabilidade dele passam ao Administrador. Confirme com a sua senha.
+    </p>
+    <label for="excluir-usuario-senha" class="label mt-3">Sua senha</label>
+    <input type="password" name="senha" id="excluir-usuario-senha" class="input" required autocomplete="current-password">
+    <div class="flex items-center gap-3 mt-4">
+      <button type="submit" class="btn-primary">Excluir</button>
+      <button type="button" id="btn-cancelar-excluir-usuario" class="btn-secondary">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var dialogo = document.getElementById('dlg-excluir-usuario');
+    if (!dialogo) return;
+    var form = document.getElementById('form-excluir-usuario');
+    var senha = document.getElementById('excluir-usuario-senha');
+    document.querySelectorAll('[data-excluir-usuario]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        form.action = btn.dataset.action;
+        document.getElementById('excluir-usuario-nome').textContent = btn.dataset.nome;
+        senha.value = '';
+        dialogo.showModal();
+        senha.focus();
+      });
+    });
+    document.getElementById('btn-cancelar-excluir-usuario').addEventListener('click', function () {
+      dialogo.close();
+    });
+  })();
+</script>
 {% endblock %}

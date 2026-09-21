@@ -53,8 +53,8 @@ class UsuarioPapelAdmin(admin.ModelAdmin):
 
 @admin.register(PermissaoPapel)
 class PermissaoPapelAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "tipo_conta", "papel", "modulo", "nivel", "ativo"]
-    list_filter = ["modulo", "ativo", "nivel", "tipo_conta"]
+    list_display = ["__str__", "papel", "modulo", "nivel", "ativo"]
+    list_filter = ["modulo", "ativo", "nivel"]
     search_fields = ["papel__nome"]
     readonly_fields = ["criado_em", "atualizado_em"]
 
@@ -69,8 +69,8 @@ class PermissaoUsuarioAdmin(admin.ModelAdmin):
 
 @admin.register(HabilitacaoPapel)
 class HabilitacaoPapelAdmin(admin.ModelAdmin):
-    list_display = ["__str__", "tipo_conta", "papel", "modulo", "item", "ativo"]
-    list_filter = ["modulo", "item", "ativo", "tipo_conta"]
+    list_display = ["__str__", "papel", "modulo", "item", "ativo"]
+    list_filter = ["modulo", "item", "ativo"]
     search_fields = ["papel__nome"]
     readonly_fields = ["criado_em", "atualizado_em"]
 

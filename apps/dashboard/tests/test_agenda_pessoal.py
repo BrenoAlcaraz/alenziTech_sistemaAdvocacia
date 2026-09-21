@@ -37,10 +37,10 @@ class DashboardAgendaPessoalBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_AGENDA, ativo=True, nivel=nivel_agenda
+            papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=nivel_agenda
         )
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
 
     def _compromisso(self, *, responsavel, dias_a_frente=2, **kwargs):

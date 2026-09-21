@@ -43,10 +43,10 @@ class TestPainelTarefasPendentes(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Tarefas Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
         )
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
 
@@ -89,7 +89,7 @@ class TestPainelFinanceiroSemAcesso(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Painel Sem Financeiro", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
         LancamentoFinanceiro.objects.create(
@@ -125,10 +125,10 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Financeiro Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS
         )
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
         LancamentoFinanceiro.objects.create(
@@ -169,11 +169,11 @@ class TestPainelFinanceiroSolicitacoes(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Solicitacoes Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True,
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True,
             nivel=NIVEL_SOLICITACOES,
         )
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
 
@@ -225,7 +225,7 @@ class TestPainelClientesProcessosAgendaSemAcesso(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Painel Sem CPA", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
 
@@ -257,7 +257,7 @@ class TestPainelClientesProcessosAgendaComAcesso(TenantTestCase):
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         for modulo in (MODULO_CLIENTES, MODULO_PROCESSOS, MODULO_AGENDA, MODULO_PAINEL):
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
+                papel=papel, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
             )
         self.client.force_login(self.usuario)
 

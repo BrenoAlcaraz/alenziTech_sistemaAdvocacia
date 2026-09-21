@@ -8,9 +8,6 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import (
-    TIPO_CONTA_ADMINISTRADOR,
-    TIPO_CONTA_LIMITADO,
-    TIPO_CONTA_FINANCEIRO,
     NIVEIS_POR_MODULO,
     ITENS_POR_MODULO,
 )
@@ -90,7 +87,7 @@ class _AupContexto:
 
     Carrega UsuarioPapel uma única vez via select_related("papel").
     Deriva tem_qualquer_up e ids_papeis_ativos em memória.
-    Carrega is_admin e tipo_conta apenas se necessário (lazy).
+    Carrega is_admin apenas se necessário (lazy).
     Nunca reutilizar entre requests, usuários ou tenants.
     """
 
@@ -98,7 +95,6 @@ class _AupContexto:
         self._user = user
         self._ups = _SENTINEL
         self._is_admin = _SENTINEL
-        self._tipo_conta = _SENTINEL
 
     def _carregar_ups(self):
         if self._ups is _SENTINEL:
@@ -126,43 +122,16 @@ class _AupContexto:
             if up.ativo and up.papel.ativo
         ]
 
-    @property
-    def tipo_conta(self):
-        if self._tipo_conta is _SENTINEL:
-            self._tipo_conta = tipo_conta_usuario(self._user)
-        return self._tipo_conta
 
-
-# ── Tipo de conta ──────────────────────────────────────────────────────────────
-
-def tipo_conta_usuario(user):
-    """
-    Resolve o tipo de conta técnico do usuário via Group legado.
-
-    Retorna 'financeiro' ou 'limitado', ou None.
-
-    Casos que retornam None:
-      - usuário inativo ou inválido
-      - nenhum grupo técnico
-      - duplo grupo (limitado + financeiro ao mesmo tempo)
-
-    Administradores são tratados por usuario_admin_escritorio() antes de aqui.
-    Grupos legados ('advogado', 'gerente') não concedem acesso.
-    PerfilUsuario.cargo é descritivo e não entra nessa resolução.
-    """
-    if not _usuario_valido(user):
-        return None
-
-    grupos_tecnicos = set(
-        user.groups.filter(
-            name__in=[TIPO_CONTA_LIMITADO, TIPO_CONTA_FINANCEIRO]
-        ).values_list("name", flat=True)
-    )
-
-    if len(grupos_tecnicos) != 1:
-        return None
-
-    return grupos_tecnicos.pop()
+def nomes_papeis_usuario(user):
+    """Nomes dos papéis ativos do usuário, para exibição. Usa
+    `atribuicoes_papel__papel` já carregado por prefetch, se houver."""
+    nomes = [
+        up.papel.nome
+        for up in user.atribuicoes_papel.all()
+        if up.ativo and up.papel.ativo
+    ]
+    return ", ".join(sorted(nomes)) or "Sem papel definido"
 
 
 # ── Permissão efetiva de módulo ────────────────────────────────────────────────
@@ -173,8 +142,7 @@ def permissao_efetiva(user, modulo):
 
     Retorna dict com:
       tem_acesso (bool), modulo (str), nivel (str),
-      origem ('admin'|'individual'|'papel'|'grupo_legado'|'inativo'|'nenhuma'),
-      tipo_conta (str|None).
+      origem ('admin'|'individual'|'papel'|'inativo'|'nenhuma').
 
     Cria um contexto interno para evitar queries repetidas.
     """
@@ -192,16 +160,14 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
       3. Usuário inativo → negar (origem="inativo")
       4. Administrador → acesso total (origem="admin")
       5. Override individual (PermissaoUsuario) → origem="individual"
-      6. Usuário tem UsuarioPapel → caminho de papéis (origem="papel")
-      7. Sem UsuarioPapel → fallback de grupo legado (origem="grupo_legado")
-      8. Negação padrão
+      6. Usuário tem UsuarioPapel → agregação dos papéis ativos (origem="papel")
+      7. Negação padrão
     """
     _sem_acesso = {
         "tem_acesso": False,
         "modulo": modulo,
         "nivel": "",
         "origem": "nenhuma",
-        "tipo_conta": None,
     }
 
     if modulo not in NIVEIS_POR_MODULO:
@@ -219,26 +185,22 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
             "modulo": modulo,
             "nivel": _nivel_admin(modulo),
             "origem": "admin",
-            "tipo_conta": TIPO_CONTA_ADMINISTRADOR,
         }
 
     individual = PermissaoUsuario.objects.filter(usuario=user, modulo=modulo).first()
     if individual is not None:
-        # tipo_conta=None quando UP existe (contexto dinâmico, não legado)
-        tipo = None if ctx.tem_qualquer_up else ctx.tipo_conta
         return {
             "tem_acesso": individual.ativo,
             "modulo": modulo,
             "nivel": individual.nivel,
             "origem": "individual",
-            "tipo_conta": tipo,
         }
 
     if ctx.tem_qualquer_up:
         ids_ativos = ctx.ids_papeis_ativos
         if not ids_ativos:
             # UP existe mas todos inativos ou com PapelAcesso inativo
-            return {**_sem_acesso, "origem": "papel", "tipo_conta": None}
+            return {**_sem_acesso, "origem": "papel"}
 
         # Carregar todas as linhas sem filtrar ativo — separar em memória
         linhas = list(
@@ -248,7 +210,7 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
             )
         )
         if not linhas:
-            return {**_sem_acesso, "origem": "papel", "tipo_conta": None}
+            return {**_sem_acesso, "origem": "papel"}
 
         concessoes = [pp for pp in linhas if pp.ativo]
         if concessoes:
@@ -258,7 +220,6 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
                 "modulo": modulo,
                 "nivel": nivel,
                 "origem": "papel",
-                "tipo_conta": None,
             }
 
         # Linhas existem mas todas inativas — preservar nível seguro conservador
@@ -268,25 +229,9 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
             "modulo": modulo,
             "nivel": nivel,
             "origem": "papel",
-            "tipo_conta": None,
         }
 
-    # Fallback legado: usar tipo_conta via Group
-    tipo = ctx.tipo_conta
-    if tipo is None:
-        return _sem_acesso
-
-    papel = PermissaoPapel.objects.filter(tipo_conta=tipo, modulo=modulo).first()
-    if papel is not None:
-        return {
-            "tem_acesso": papel.ativo,
-            "modulo": modulo,
-            "nivel": papel.nivel,
-            "origem": "grupo_legado",
-            "tipo_conta": tipo,
-        }
-
-    return {**_sem_acesso, "origem": "grupo_legado", "tipo_conta": tipo}
+    return _sem_acesso
 
 
 def tem_permissao_modulo(user, modulo):
@@ -310,9 +255,8 @@ def habilitacao_efetiva(user, modulo, item):
 
     Retorna dict com:
       habilitado (bool), modulo (str), item (str),
-      origem ('admin'|'individual'|'papel'|'grupo_legado'|
-              'permissao_desligada'|'inativo'|'nenhuma'),
-      tipo_conta (str|None).
+      origem ('admin'|'individual'|'papel'|'permissao_desligada'|
+              'inativo'|'nenhuma').
 
     Cria contexto interno e reutiliza em _permissao_efetiva_com_contexto.
     """
@@ -323,19 +267,12 @@ def habilitacao_efetiva(user, modulo, item):
 def _habilitacao_efetiva_com_contexto(user, modulo, item, ctx):
     """
     Resolve habilitação reutilizando contexto para evitar queries repetidas.
-
-    Caminho de papéis (contexto.tem_qualquer_up=True):
-      nunca consulta HabilitacaoPapel por tipo_conta.
-
-    Fallback legado (contexto.tem_qualquer_up=False):
-      somente então usa tipo_conta e HabilitacaoPapel por tipo_conta.
     """
     _nao_habilitado = {
         "habilitado": False,
         "modulo": modulo,
         "item": item,
         "origem": "nenhuma",
-        "tipo_conta": None,
     }
 
     itens_validos = ITENS_POR_MODULO.get(modulo)
@@ -354,7 +291,6 @@ def _habilitacao_efetiva_com_contexto(user, modulo, item, ctx):
             "modulo": modulo,
             "item": item,
             "origem": "admin",
-            "tipo_conta": TIPO_CONTA_ADMINISTRADOR,
         }
 
     perm = _permissao_efetiva_com_contexto(user, modulo, ctx)
@@ -364,11 +300,7 @@ def _habilitacao_efetiva_com_contexto(user, modulo, item, ctx):
             "modulo": modulo,
             "item": item,
             "origem": "permissao_desligada",
-            "tipo_conta": perm["tipo_conta"],
         }
-
-    # tipo_conta=None quando existe qualquer UP — mesmo para override individual
-    tipo = None if ctx.tem_qualquer_up else ctx.tipo_conta
 
     individual = HabilitacaoUsuario.objects.filter(
         usuario=user, modulo=modulo, item=item
@@ -379,45 +311,25 @@ def _habilitacao_efetiva_com_contexto(user, modulo, item, ctx):
             "modulo": modulo,
             "item": item,
             "origem": "individual",
-            "tipo_conta": tipo,
         }
 
     if ctx.tem_qualquer_up:
-        # Caminho dinâmico: nunca consultar por tipo_conta
         ids_ativos = ctx.ids_papeis_ativos
-        if ids_ativos:
-            for hp in HabilitacaoPapel.objects.filter(
-                papel_id__in=ids_ativos,
-                modulo=modulo,
-                item=item,
-            ):
-                if hp.ativo:
-                    return {
-                        "habilitado": True,
-                        "modulo": modulo,
-                        "item": item,
-                        "origem": "papel",
-                        "tipo_conta": None,
-                    }
-        return {**_nao_habilitado, "origem": "papel", "tipo_conta": None}
+        if ids_ativos and HabilitacaoPapel.objects.filter(
+            papel_id__in=ids_ativos,
+            modulo=modulo,
+            item=item,
+            ativo=True,
+        ).exists():
+            return {
+                "habilitado": True,
+                "modulo": modulo,
+                "item": item,
+                "origem": "papel",
+            }
+        return {**_nao_habilitado, "origem": "papel"}
 
-    # Fallback legado: somente quando não existe nenhum UP
-    if tipo is None:
-        return _nao_habilitado
-
-    papel = HabilitacaoPapel.objects.filter(
-        tipo_conta=tipo, modulo=modulo, item=item
-    ).first()
-    if papel is not None:
-        return {
-            "habilitado": papel.ativo,
-            "modulo": modulo,
-            "item": item,
-            "origem": "grupo_legado",
-            "tipo_conta": tipo,
-        }
-
-    return {**_nao_habilitado, "origem": "grupo_legado", "tipo_conta": tipo}
+    return _nao_habilitado
 
 
 def tem_habilitacao(user, modulo, item):

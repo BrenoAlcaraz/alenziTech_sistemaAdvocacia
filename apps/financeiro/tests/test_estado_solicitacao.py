@@ -100,7 +100,7 @@ class TestCoresDoEstadoNasTelas(SolicitacaoFinanceiraBase):
         self.user = self._user("gestor_cores")
         papel = self._conceder_modulo(self.user, nivel=NIVEL_DADOS_TODOS)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.user)
         cliente = Cliente.objects.create(

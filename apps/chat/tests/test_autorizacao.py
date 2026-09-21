@@ -40,7 +40,7 @@ class ChatAutorizacaoBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, ativo=True, nivel=""):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=ativo, nivel=nivel
+            papel=papel, modulo=modulo, ativo=ativo, nivel=nivel
         )
 
 

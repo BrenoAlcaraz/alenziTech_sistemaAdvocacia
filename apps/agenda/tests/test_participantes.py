@@ -51,7 +51,7 @@ class AgendaParticipantesBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, ativo=True, nivel=NIVEL_SOMENTE_SEUS):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=ativo, nivel=nivel
+            papel=papel, modulo=modulo, ativo=ativo, nivel=nivel
         )
 
     def _dar_acesso_agenda(self, user, *, nivel=NIVEL_SOMENTE_SEUS):

@@ -45,7 +45,7 @@ sobre a qual IA jurídica pode ser construída depois.
 |---|---|
 | Escritório / Tenant | Unidade isolada por schema PostgreSQL. |
 | Administrador do escritório | Autoridade máxima dentro do tenant (`PerfilUsuario.is_admin_escritorio`). Distinto de Platform Admin (operador da plataforma SaaS, fora de qualquer tenant) e de superuser técnico do Django. |
-| Papel de acesso | Controla autorização. Distinto de cargo profissional (só descritivo, sem efeito em permissão). |
+| Papel de acesso | Único mecanismo de autorização além do Administrador (PDR-0030); configurável pelo Administrador. Distinto de cargo profissional (só descritivo, sem efeito em permissão). |
 | Habilitação | Capacidade específica dentro de um módulo já autorizado. Não é papel nem escopo. |
 | Equipe | Agrupamento organizacional; usada como referência de escopo, não é mecanismo de autorização em si. "Departamento" é termo depreciado. |
 | Gerente de equipe | Relação organizacional; não concede acesso global — depende de papel/habilitação/escopo aplicados no backend. |
@@ -452,8 +452,8 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   protegido por tenant — sem URL pública direta.
 - Tela de habilitações/permissões individuais de um usuário mostra
   sempre o estado efetivo (ligado/desligado) de cada módulo/
-  habilitação — já refletindo o que veio herdado do papel/tipo de
-  conta base; não expõe herdado/override como conceito separado na
+  habilitação — já refletindo o que veio herdado do(s) papel(éis);
+  não expõe herdado/override como conceito separado na
   interface. Qualquer alteração grava um override individual
   explícito, sem exigir uma ação separada de "desligar herança"; o
   mecanismo de override continua existindo tecnicamente por baixo.
@@ -473,8 +473,17 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   cor principal é escurecida se for clara demais para leitura).
 - Excluir usuário (admin) = inativar a conta, remover das equipes e
   passar os processos dele ao Administrador (PDR-0010); não vale para
-  si nem para o Administrador. Criação de usuário oferece todos os
-  papéis de acesso ativos, além do tipo de conta.
+  si nem para o Administrador. Exige a senha de quem está logado
+  (senha ausente/errada não exclui; mensagem genérica) — só para
+  usuário, não para cliente/processo/modelo (PDR-0030).
+- Papel de acesso é o único mecanismo de autorização (não existe "Tipo
+  de conta"). De fábrica só há o Administrador (tudo) e o papel
+  "Limitado" (tudo desligado; editável, mas não pode ser excluído nem
+  desativado). O Administrador cria/edita papéis, módulo/nível e
+  habilitações. Novo usuário exige papel, com "Limitado" pré-selecionado.
+  Desativar papel com usuários ativos é recusado ("reatribua os N
+  usuários antes"). Usuário sem papel e sem override não acessa nada
+  (PDR-0030).
 - Foto de perfil visível aos colegas (lista de usuários, chat).
 - Documentos e anexos em qualquer módulo têm botões de visualizar
   (olho) e baixar; só PDF, imagem e texto abrem no navegador.

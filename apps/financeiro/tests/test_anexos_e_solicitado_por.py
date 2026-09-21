@@ -46,7 +46,7 @@ class AnexosFinanceiroBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Financeiro", ativo=True)
         UsuarioPapel.objects.create(usuario=self.user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
         )
         self.client.force_login(self.user)
 

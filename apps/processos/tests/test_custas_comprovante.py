@@ -60,7 +60,7 @@ class CustasComprovanteBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, nivel=NIVEL_TODOS):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=nivel
+            papel=papel, modulo=modulo, ativo=True, nivel=nivel
         )
 
     def _dar_modulo_processos(self, user, *, nivel=NIVEL_TODOS):

@@ -11,7 +11,7 @@ valor de campo — o mecanismo de override em si continua existindo).
 Cobre `usuario_overrides`: autorização (`gerir_habilitar_terceiros`),
 criação de override individual de módulo/nível e de habilitação
 granular a partir do estado efetivo exibido, e o valor herdado usado
-como padrão inicial (via papel dinâmico ou tipo de conta legado)
+como padrão inicial (via papel de acesso)
 quando não há override. A validação de efeito é sempre feita
 consultando o kernel (`tem_permissao_modulo`/`tem_habilitacao`
 /`nivel_acesso_modulo`) diretamente, não só a UI.
@@ -19,7 +19,7 @@ consultando o kernel (`tem_permissao_modulo`/`tem_habilitacao`
 Segue o mesmo padrão de fixtures de test_autorizacao.py/test_papeis.py.
 """
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import (
@@ -62,11 +62,10 @@ class UsuarioOverridesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_TERCEIROS,
             ativo=True,
@@ -170,7 +169,7 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         papel = PapelAcesso.objects.create(nome="Papel do Alvo Explicito", ativo=True)
         UsuarioPapel.objects.create(usuario=self.alvo, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES, ativo=True, nivel="todos"
+            papel=papel, modulo=MODULO_CLIENTES, ativo=True, nivel="todos"
         )
         self.assertFalse(PermissaoUsuario.objects.filter(usuario=self.alvo, modulo=MODULO_CLIENTES).exists())
 
@@ -188,7 +187,7 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         papel = PapelAcesso.objects.create(nome="Papel do Alvo", ativo=True)
         UsuarioPapel.objects.create(usuario=self.alvo, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES, ativo=True, nivel="somente_seus"
+            papel=papel, modulo=MODULO_CLIENTES, ativo=True, nivel="somente_seus"
         )
 
         r = self.client.get(
@@ -205,7 +204,7 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         papel = PapelAcesso.objects.create(nome="Papel Processos Alvo", ativo=True)
         UsuarioPapel.objects.create(usuario=self.alvo, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel="todos"
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel="todos"
         )
         self.assertTrue(tem_permissao_modulo(self.alvo, MODULO_PROCESSOS))
 
@@ -224,22 +223,14 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         processo.refresh_from_db()
         self.assertEqual(processo.responsavel_id, administrador.pk)
 
-    def test_estado_efetivo_reflete_tipo_conta_legado_sem_papel(self):
-        grupo_limitado = Group.objects.get(name="limitado")
-        self.alvo.groups.add(grupo_limitado)
-        PermissaoPapel.objects.update_or_create(
-            tipo_conta="limitado",
-            modulo=MODULO_CLIENTES,
-            defaults={"ativo": True, "nivel": "todos"},
-        )
-
+    def test_estado_efetivo_de_usuario_sem_papel_e_tudo_desligado(self):
         r = self.client.get(
             f"/configuracoes/usuarios/{self.alvo.pk}/permissoes/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 200)
-        modulos = {m["slug"]: m for m in r.context["modulos_contexto"]}
-        self.assertTrue(modulos[MODULO_CLIENTES]["ativo"])
-        self.assertEqual(modulos[MODULO_CLIENTES]["nivel_atual"], "todos")
+        modulos = r.context["modulos_contexto"]
+        self.assertFalse(any(m["ativo"] for m in modulos))
+        self.assertFalse(any(i["ativo"] for m in modulos for i in m["itens"]))
 
 
 class TestUsuarioOverridesAlvoAdministrador(UsuarioOverridesBase):

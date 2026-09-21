@@ -10,8 +10,6 @@ from django.contrib.auth.models import User
 from django.db import transaction
 
 from apps.accounts.decorators import (
-    nome_legivel_grupo,
-    obter_papel_principal_usuario,
     requer_admin_escritorio,
     usuario_admin_escritorio,
 )
@@ -35,7 +33,7 @@ from apps.accounts.models import (
     PermissaoUsuario,
     UsuarioPapel,
 )
-from apps.accounts.permissoes import tem_habilitacao, tipo_conta_usuario
+from apps.accounts.permissoes import nomes_papeis_usuario, tem_habilitacao
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_EQUIPE,
     HAB_GERIR_CRIAR_USUARIO,
@@ -44,7 +42,6 @@ from apps.accounts.permissoes_constants import (
     ITENS_POR_MODULO,
     MODULO_GERIR,
     NOMES_ITENS,
-    TIPOS_CONTA_CONFIGURAVEIS,
 )
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
@@ -90,7 +87,7 @@ def index(request):
         User.objects.filter(is_active=True)
         .select_related("perfil")
         .prefetch_related(
-            "groups",
+            "atribuicoes_papel__papel",
             "membros_equipe",
             "membros_equipe__equipe",
         )
@@ -100,7 +97,6 @@ def index(request):
 
     usuarios_contexto = []
     for usuario in usuarios:
-        grupo = obter_papel_principal_usuario(usuario)
         membros_equipe = [
             membro
             for membro in usuario.membros_equipe.all()
@@ -108,8 +104,7 @@ def index(request):
         ]
         usuarios_contexto.append({
             "usuario": usuario,
-            "papel": grupo.name if grupo else "",
-            "papel_nome": nome_legivel_grupo(grupo.name) if grupo else "Sem papel definido",
+            "papel_nome": nomes_papeis_usuario(usuario),
             "membros_equipe": membros_equipe,
             "e_admin": usuario_admin_escritorio(usuario),
         })
@@ -533,25 +528,10 @@ _MODULOS_CONFIG = [
 ]
 
 
-def _build_modulos_permissao(tipo_conta=None, papel=None):
-    """Monta a lista de módulos (nível + habilitações granulares) para um
-    tipo de conta legado ou um papel dinâmico — mutuamente exclusivos.
-
-    Filtra só pelo identificador recebido (nunca os dois juntos): a
-    migration 0011 associou `papel` a linhas legadas de `tipo_conta`
-    ('limitado'/'financeiro' apontam também para os presets 'Advogado
-    Associado'/'Gestor Financeiro') sem zerar o `tipo_conta` original —
-    filtrar pelos dois campos ao mesmo tempo perderia essas linhas.
-    """
-    if papel is not None:
-        permissoes_qs = PermissaoPapel.objects.filter(papel=papel)
-        habilitacoes_qs = HabilitacaoPapel.objects.filter(papel=papel)
-    else:
-        permissoes_qs = PermissaoPapel.objects.filter(tipo_conta=tipo_conta)
-        habilitacoes_qs = HabilitacaoPapel.objects.filter(tipo_conta=tipo_conta)
-
-    registros = {p.modulo: p for p in permissoes_qs}
-    habilitacoes = {(h.modulo, h.item): h for h in habilitacoes_qs}
+def _build_modulos_permissao(papel):
+    """Monta a lista de módulos (nível + habilitações granulares) de um papel."""
+    registros = {p.modulo: p for p in PermissaoPapel.objects.filter(papel=papel)}
+    habilitacoes = {(h.modulo, h.item): h for h in HabilitacaoPapel.objects.filter(papel=papel)}
 
     result = []
     for slug, label, niveis in _MODULOS_CONFIG:
@@ -575,12 +555,8 @@ def _build_modulos_permissao(tipo_conta=None, papel=None):
     return result
 
 
-def _salvar_permissoes(request, tipo_conta=None, papel=None):
-    """Persiste módulo/nível e habilitações granulares para um tipo de
-    conta legado ou um papel dinâmico — nunca os dois ao mesmo tempo no
-    lookup (ver docstring de `_build_modulos_permissao`)."""
-    identificador = {"papel": papel} if papel is not None else {"tipo_conta": tipo_conta}
-
+def _salvar_permissoes(request, papel):
+    """Persiste módulo/nível e habilitações granulares de um papel."""
     with transaction.atomic():
         usuarios_antes = usuarios_com_acesso_processos()
         for slug, _, niveis in _MODULOS_CONFIG:
@@ -592,17 +568,17 @@ def _salvar_permissoes(request, tipo_conta=None, papel=None):
             else:
                 nivel = ""
             PermissaoPapel.objects.update_or_create(
+                papel=papel,
                 modulo=slug,
                 defaults={"ativo": ativo, "nivel": nivel},
-                **identificador,
             )
             for item_slug in ITENS_POR_MODULO.get(slug, []):
                 habilitado = request.POST.get(f"hab_{slug}_{item_slug}") == "on"
                 HabilitacaoPapel.objects.update_or_create(
+                    papel=papel,
                     modulo=slug,
                     item=item_slug,
                     defaults={"ativo": habilitado},
-                    **identificador,
                 )
         transferir_processos_de_usuarios_sem_acesso(usuarios_antes)
 
@@ -617,33 +593,26 @@ def permissoes(request):
 
     mensagem = None
     erro = None
-    tab_ativa = request.GET.get("tab", "limitado")
-    if tab_ativa not in ({"administrador", "limitado", "financeiro"} | tabs_papeis):
-        tab_ativa = "limitado"
+    limitado = next((p for p in papeis_ativos if p.eh_limitado), None)
+    tab_padrao = f"papel_{limitado.pk}" if limitado else "administrador"
+    tab_ativa = request.GET.get("tab", tab_padrao)
+    if tab_ativa not in ({"administrador"} | tabs_papeis):
+        tab_ativa = tab_padrao
 
     if request.method == "POST":
         papel_id = request.POST.get("papel_id", "")
-        tipo_conta = request.POST.get("tipo_conta", "")
-        if papel_id:
-            papel_alvo = next((p for p in papeis_ativos if str(p.pk) == papel_id), None)
-            if papel_alvo is None:
-                erro = "Papel inválido ou inativo."
-            else:
-                _salvar_permissoes(request, tipo_conta=None, papel=papel_alvo)
-                tab_ativa = f"papel_{papel_alvo.pk}"
-                mensagem = f"Permissões de '{papel_alvo.nome}' atualizadas com sucesso."
-        elif tipo_conta in TIPOS_CONTA_CONFIGURAVEIS:
-            _salvar_permissoes(request, tipo_conta=tipo_conta, papel=None)
-            tab_ativa = tipo_conta
-            nome = "Limitado" if tipo_conta == "limitado" else "Financeiro"
-            mensagem = f"Permissões de '{nome}' atualizadas com sucesso."
+        papel_alvo = next((p for p in papeis_ativos if str(p.pk) == papel_id), None)
+        if papel_alvo is None:
+            erro = "Papel inválido ou inativo."
         else:
-            erro = "Tipo de conta ou papel inválido."
+            _salvar_permissoes(request, papel_alvo)
+            tab_ativa = f"papel_{papel_alvo.pk}"
+            mensagem = f"Permissões de '{papel_alvo.nome}' atualizadas com sucesso."
 
     papeis_contexto = [
         {
             "papel": papel,
-            "modulos": _build_modulos_permissao(tipo_conta=None, papel=papel),
+            "modulos": _build_modulos_permissao(papel),
             "titulo": f"Módulos — {papel.nome}",
             "botao_label": f"Salvar permissões de '{papel.nome}'",
         }
@@ -652,8 +621,7 @@ def permissoes(request):
 
     return render(request, "configuracoes/permissoes.html", {
         "tab_ativa": tab_ativa,
-        "modulos_limitado": _build_modulos_permissao(tipo_conta="limitado"),
-        "modulos_financeiro": _build_modulos_permissao(tipo_conta="financeiro"),
+        "modulos_admin": [label for _, label, _ in _MODULOS_CONFIG],
         "papeis_contexto": papeis_contexto,
         "mensagem": mensagem,
         "erro": erro,
@@ -669,42 +637,34 @@ def _papeis_ativos_usuario(usuario):
     ]
 
 
-def _herdado_modulo(papeis_ativos, tipo_legado, slug, niveis):
-    """Valor que o usuário teria para o módulo via papel dinâmico ou
-    tipo de conta legado, ignorando qualquer override individual."""
-    if papeis_ativos:
-        linhas = list(PermissaoPapel.objects.filter(papel__in=papeis_ativos, modulo=slug))
-        ativas = [l for l in linhas if l.ativo]
-        if not ativas:
-            return {"ativo": False, "nivel": "", "origem": "papel"}
-        ordem = [v for v, _ in niveis]
-        nivel = max(
-            (l.nivel for l in ativas),
-            key=lambda n: ordem.index(n) if n in ordem else -1,
-            default="",
-        )
-        return {"ativo": True, "nivel": nivel, "origem": "papel"}
-    if tipo_legado:
-        linha = PermissaoPapel.objects.filter(tipo_conta=tipo_legado, modulo=slug).first()
-        if linha:
-            return {"ativo": linha.ativo, "nivel": linha.nivel, "origem": "grupo_legado"}
-        return {"ativo": False, "nivel": "", "origem": "grupo_legado"}
-    return {"ativo": False, "nivel": "", "origem": "nenhuma"}
+def _herdado_modulo(papeis_ativos, slug, niveis):
+    """Valor que o usuário teria para o módulo via papéis, ignorando
+    qualquer override individual."""
+    if not papeis_ativos:
+        return {"ativo": False, "nivel": ""}
+    linhas = list(PermissaoPapel.objects.filter(papel__in=papeis_ativos, modulo=slug))
+    ativas = [l for l in linhas if l.ativo]
+    if not ativas:
+        return {"ativo": False, "nivel": ""}
+    ordem = [v for v, _ in niveis]
+    nivel = max(
+        (l.nivel for l in ativas),
+        key=lambda n: ordem.index(n) if n in ordem else -1,
+        default="",
+    )
+    return {"ativo": True, "nivel": nivel}
 
 
-def _herdado_item(papeis_ativos, tipo_legado, slug, item_slug):
-    if papeis_ativos:
-        return HabilitacaoPapel.objects.filter(
-            papel__in=papeis_ativos, modulo=slug, item=item_slug, ativo=True
-        ).exists()
-    if tipo_legado:
-        hp = HabilitacaoPapel.objects.filter(tipo_conta=tipo_legado, modulo=slug, item=item_slug).first()
-        return bool(hp and hp.ativo)
-    return False
+def _herdado_item(papeis_ativos, slug, item_slug):
+    if not papeis_ativos:
+        return False
+    return HabilitacaoPapel.objects.filter(
+        papel__in=papeis_ativos, modulo=slug, item=item_slug, ativo=True
+    ).exists()
 
 
-def _modulos_efetivos_usuario(usuario_alvo, papeis_ativos, tipo_legado):
-    """Estado efetivo — já herdado do papel/tipo de conta base, com
+def _modulos_efetivos_usuario(usuario_alvo, papeis_ativos):
+    """Estado efetivo — já herdado dos papéis, com
     override individual por cima quando existir — de cada módulo e
     habilitação granular. A tela não expõe mais herdado/override como
     conceitos separados (specs/configuracoes-perfil-e-habilitacoes.md);
@@ -717,13 +677,13 @@ def _modulos_efetivos_usuario(usuario_alvo, papeis_ativos, tipo_legado):
 
     modulos_contexto = []
     for slug, label, niveis in _MODULOS_CONFIG:
-        herdado = _herdado_modulo(papeis_ativos, tipo_legado, slug, niveis)
+        herdado = _herdado_modulo(papeis_ativos, slug, niveis)
         override = overrides_modulo.get(slug)
 
         itens = []
         for item_slug in ITENS_POR_MODULO.get(slug, []):
             override_item = overrides_item.get((slug, item_slug))
-            herdado_item = _herdado_item(papeis_ativos, tipo_legado, slug, item_slug)
+            herdado_item = _herdado_item(papeis_ativos, slug, item_slug)
             itens.append({
                 "slug": item_slug,
                 "label": NOMES_ITENS.get(item_slug, item_slug),
@@ -785,8 +745,7 @@ def usuario_overrides(request, user_pk):
         return redirect("configuracoes:usuario_overrides", user_pk=usuario_alvo.pk)
 
     papeis_ativos = _papeis_ativos_usuario(usuario_alvo)
-    tipo_legado = None if papeis_ativos else tipo_conta_usuario(usuario_alvo)
-    modulos_contexto = _modulos_efetivos_usuario(usuario_alvo, papeis_ativos, tipo_legado)
+    modulos_contexto = _modulos_efetivos_usuario(usuario_alvo, papeis_ativos)
 
     return render(
         request,
@@ -981,10 +940,14 @@ def excluir_usuario(request, user_pk):
     """Exclui o usuário do escritório: a conta é inativada (não há como
     apagar o registro — processos, clientes e tarefas o referenciam) e os
     processos sob a responsabilidade dele passam ao Administrador
-    (PDR-0010). Não vale para si mesmo nem para o Administrador."""
+    (PDR-0010). Não vale para si mesmo nem para o Administrador. Exige a
+    senha de quem está logado (PDR-0030)."""
     if request.method != "POST":
         raise Http404
     alvo = get_object_or_404(User, pk=user_pk, is_active=True)
+    if not request.user.check_password(request.POST.get("senha", "")):
+        messages.error(request, "Senha incorreta. Nenhum usuário foi excluído.")
+        return redirect("configuracoes:index")
     if alvo.pk == request.user.pk:
         messages.error(request, "Você não pode excluir a própria conta.")
         return redirect("configuracoes:index")

@@ -62,7 +62,7 @@ class AtribuirResponsavelBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
         )
         for item in (
             HAB_PROCESSOS_CRIAR,
@@ -71,7 +71,6 @@ class AtribuirResponsavelBase(TenantTestCase):
         ):
             HabilitacaoPapel.objects.create(
                 papel=papel,
-                tipo_conta=None,
                 modulo=MODULO_PROCESSOS,
                 item=item,
                 ativo=True,
@@ -79,7 +78,6 @@ class AtribuirResponsavelBase(TenantTestCase):
         if com_habilitacao:
             HabilitacaoPapel.objects.create(
                 papel=papel,
-                tipo_conta=None,
                 modulo=MODULO_PROCESSOS,
                 item=HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
                 ativo=True,

@@ -11,6 +11,7 @@ Segue o mesmo padrão de fixtures de
 """
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import (
@@ -46,11 +47,10 @@ class PapeisGerirBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_TERCEIROS,
             ativo=True,
@@ -233,6 +233,64 @@ class TestPapeisAutorizado(PapeisGerirBase):
         self.assertEqual(preset.codigo_preset, "preset-fixo")
         self.assertTrue(preset.protegido_sistema)
         self.assertEqual(preset.nome, "Preset Fábrica Renomeado")
+
+    def _editar(self, papel, **dados):
+        base = {"nome": papel.nome, "descricao": "", "ativo": "on"}
+        base.update(dados)
+        return self.client.post(
+            f"/configuracoes/papeis/{papel.pk}/editar/", base, HTTP_HOST=self.http_host
+        )
+
+    def test_de_fabrica_so_existe_o_limitado_sem_nenhuma_permissao(self):
+        de_fabrica = PapelAcesso.objects.filter(protegido_sistema=True)
+        self.assertEqual([p.codigo_preset for p in de_fabrica], ["limitado"])
+        limitado = de_fabrica.get()
+        self.assertEqual(limitado.nome, "Limitado")
+        self.assertTrue(limitado.ativo)
+        self.assertFalse(PermissaoPapel.objects.filter(papel=limitado, ativo=True).exists())
+        self.assertFalse(HabilitacaoPapel.objects.filter(papel=limitado, ativo=True).exists())
+
+    def test_limitado_e_editavel(self):
+        limitado = PapelAcesso.objects.get(codigo_preset="limitado")
+        r = self._editar(limitado, nome="Acesso mínimo", descricao="renomeado")
+        self.assertEqual(r.status_code, 302)
+        limitado.refresh_from_db()
+        self.assertEqual(limitado.nome, "Acesso mínimo")
+        self.assertEqual(limitado.codigo_preset, "limitado")
+
+    def test_limitado_nao_pode_ser_desativado(self):
+        limitado = PapelAcesso.objects.get(codigo_preset="limitado")
+        r = self._editar(limitado, ativo="")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "O papel Limitado não pode ser desativado.")
+        limitado.refresh_from_db()
+        self.assertTrue(limitado.ativo)
+
+    def test_limitado_nao_pode_ser_excluido(self):
+        limitado = PapelAcesso.objects.get(codigo_preset="limitado")
+        with self.assertRaises(ValidationError):
+            limitado.delete()
+        self.assertTrue(PapelAcesso.objects.filter(pk=limitado.pk).exists())
+
+    def test_papel_com_usuarios_nao_pode_ser_desativado(self):
+        for nome in ("um_usuario", "dois_usuario"):
+            UsuarioPapel.objects.create(usuario=self._user(nome), papel=self.papel, ativo=True)
+        r = self._editar(self.papel, ativo="")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Reatribua os 2 usuários deste papel antes de desativá-lo.")
+        self.papel.refresh_from_db()
+        self.assertTrue(self.papel.ativo)
+
+    def test_usuario_inativo_ou_vinculo_removido_nao_bloqueia_desativacao(self):
+        excluido = self._user("ja_excluido")
+        excluido.is_active = False
+        excluido.save()
+        UsuarioPapel.objects.create(usuario=excluido, papel=self.papel, ativo=True)
+        UsuarioPapel.objects.create(usuario=self._user("desvinculado"), papel=self.papel, ativo=False)
+        r = self._editar(self.papel, ativo="")
+        self.assertEqual(r.status_code, 302)
+        self.papel.refresh_from_db()
+        self.assertFalse(self.papel.ativo)
 
 
 class TestPapeisAdminBypass(PapeisGerirBase):

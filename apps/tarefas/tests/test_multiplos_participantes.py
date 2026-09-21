@@ -38,11 +38,11 @@ class MultiplosParticipantesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Tarefas {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=nivel,
+            papel=papel, modulo=MODULO_TAREFAS, ativo=True, nivel=nivel,
         )
         if atribuir_outros:
             HabilitacaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS,
+                papel=papel, modulo=MODULO_TAREFAS,
                 item=HAB_TAREFAS_ATRIBUIR_OUTROS, ativo=True,
             )
         return papel

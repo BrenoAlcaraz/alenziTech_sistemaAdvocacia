@@ -45,7 +45,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
             papel = PapelAcesso.objects.create(nome=f"Papel Agenda {username}")
             UsuarioPapel.objects.create(usuario=user, papel=papel)
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS,
+                papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS,
             )
         return user
 

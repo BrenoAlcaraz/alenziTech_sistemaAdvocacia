@@ -35,7 +35,7 @@ class TarefasNotificacaoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Notificação Tarefas")
         UsuarioPapel.objects.create(usuario=self.responsavel, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.responsavel)
 

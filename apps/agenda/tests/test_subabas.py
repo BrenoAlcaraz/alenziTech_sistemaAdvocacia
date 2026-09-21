@@ -54,12 +54,12 @@ class AgendaSubabasBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, nivel=NIVEL_TODOS):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=nivel
+            papel=papel, modulo=modulo, ativo=True, nivel=nivel
         )
 
     def _hp(self, papel, modulo, item):
         return HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, item=item, ativo=True
+            papel=papel, modulo=modulo, item=item, ativo=True
         )
 
     def _dar_acesso_agenda(self, user, *, nivel=NIVEL_TODOS):

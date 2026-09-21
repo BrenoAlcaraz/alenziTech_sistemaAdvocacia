@@ -72,11 +72,11 @@ class SolicitacaoFinanceiraBase(TenantTestCase):
         papel = self._new_papel(f"Papel Financeiro {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
         )
         for item in habilitacoes or []:
             HabilitacaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, item=item, ativo=True
+                papel=papel, modulo=MODULO_FINANCEIRO, item=item, ativo=True
             )
         return papel
 
@@ -928,7 +928,7 @@ class TestNovaSolicitacaoRetornoAoProcesso(SolicitacaoFinanceiraBase):
         papel_processos = self._new_papel("Papel Processos")
         UsuarioPapel.objects.create(usuario=self.user, papel=papel_processos, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel_processos, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel_processos, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.user)
 

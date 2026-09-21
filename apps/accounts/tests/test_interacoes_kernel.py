@@ -5,7 +5,7 @@ Todos os testes devem PASSAR com o kernel corrigido.
 Nenhum skip, expectedFailure ou unexpectedSuccess.
 
 Classes:
-  TestInteracoesOverrideComPapel    — UP + override individual + Group (Gaps 1/4)
+  TestInteracoesOverrideComPapel    — UP + override individual (Gaps 1/4)
   TestOrigemContrato                — contrato de valores de origem (Gap 2)
   TestMaiorNivelSeguranca           — _maior_nivel com nivel inválido (Gap 3)
   TestPermissaoInativaPreservaContexto — regressão: PP inativa preserva nível
@@ -14,7 +14,7 @@ Classes:
   TestSmokePagesAdvogado            — smoke HTTP: advogado sem 500
 """
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -66,10 +66,6 @@ class InteracoesBase(TenantTestCase):
             raise AssertionError(f"_set_admin_flag: esperado 1 row, got {n}")
         user._state.fields_cache.pop("perfil", None)
 
-    def _add_group(self, user, nome):
-        grp = Group.objects.get(name=nome)
-        user.groups.add(grp)
-
     def _new_papel(self, nome, *, ativo=True):
         return PapelAcesso.objects.create(nome=nome, ativo=ativo)
 
@@ -78,24 +74,24 @@ class InteracoesBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, ativo=True, nivel=NIVEL_TODOS):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=ativo, nivel=nivel
+            papel=papel, modulo=modulo, ativo=ativo, nivel=nivel
         )
 
     def _hp(self, papel, modulo, item, *, ativo=True):
         return HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, item=item, ativo=ativo
+            papel=papel, modulo=modulo, item=item, ativo=ativo
         )
 
 
 # ===========================================================================
-# 1. INTERAÇÕES — override individual + UsuarioPapel + Group legado
+# 1. INTERAÇÕES — override individual + UsuarioPapel
 # ===========================================================================
 
 
 class TestInteracoesOverrideComPapel(InteracoesBase):
     """
-    Testa a corretude de tipo_conta e habilitação quando existem:
-    PermissaoUsuario individual + UsuarioPapel + Group legado.
+    Testa a corretude da habilitação quando existem:
+    PermissaoUsuario individual + UsuarioPapel.
     """
 
     @classmethod
@@ -107,23 +103,22 @@ class TestInteracoesOverrideComPapel(InteracoesBase):
         tenant.nome = "Interacoes Override"
         tenant.slug = "tk-int-over"
 
-    def test_override_modulo_em_usuario_com_papel_nao_reativa_group_legado(self):
+    def test_override_modulo_em_usuario_com_papel_mantem_habilitacao_do_papel(self):
         """
-        PermissaoUsuario individual em usuário com UP + Group=limitado.
+        PermissaoUsuario individual em usuário com UP.
 
         Cenário:
-          - Group=limitado, UP(ativo=True), PA(ativo=True)
+          - UP(ativo=True), PA(ativo=True)
           - PP(papel, modelos, ativo=False)  ← papel NÃO concede modelos
           - HP(papel, modelos, modelos_criar, ativo=True)  ← papel tem HP
           - PermissaoUsuario(modelos, ativo=True, nivel=todos)  ← override individual
           - Sem HabilitacaoUsuario
 
         Esperado:
-          permissao_efetiva  → tipo_conta=None (UP existe)
-          habilitacao_efetiva → habilitado=True via HP do papel FK; tipo_conta=None
+          permissao_efetiva  → origem="individual", tem_acesso=True
+          habilitacao_efetiva → habilitado=True via HP do papel FK
         """
         u = self._user("u_mix_up_ind")
-        self._add_group(u, "limitado")
 
         papel = self._new_papel("Papel Mix Ind")
         self._pp(papel, MODULO_MODELOS, ativo=False, nivel=NIVEL_TODOS)
@@ -137,29 +132,20 @@ class TestInteracoesOverrideComPapel(InteracoesBase):
         perm_r = permissao_efetiva(u, MODULO_MODELOS)
         self.assertEqual(perm_r["origem"], "individual", f"origem errada: {perm_r}")
         self.assertTrue(perm_r["tem_acesso"], f"deve ter acesso via override: {perm_r}")
-        self.assertIsNone(
-            perm_r["tipo_conta"],
-            f"tipo_conta deve ser None quando UP existe; atual={perm_r['tipo_conta']!r}",
-        )
 
         hab_r = habilitacao_efetiva(u, MODULO_MODELOS, HAB_MODELOS_CRIAR)
         self.assertTrue(
             hab_r["habilitado"],
             f"HP do papel FK (ativo=True) deve prevalecer; atual={hab_r['habilitado']!r}",
         )
-        self.assertIsNone(
-            hab_r["tipo_conta"],
-            f"tipo_conta deve ser None no caminho de papéis; atual={hab_r['tipo_conta']!r}",
-        )
 
-    def test_override_habilitacao_em_usuario_com_papel_mantem_tipo_conta_none(self):
+    def test_override_habilitacao_em_usuario_com_papel_tem_origem_individual(self):
         """
-        HabilitacaoUsuario individual em usuário com UP + Group=limitado.
+        HabilitacaoUsuario individual em usuário com UP.
 
-        Esperado: habilitado=True, origem="individual", tipo_conta=None.
+        Esperado: habilitado=True, origem="individual".
         """
         u = self._user("u_mix_hab_ind")
-        self._add_group(u, "limitado")
 
         papel = self._new_papel("Papel Hab Ind")
         self._pp(papel, MODULO_MODELOS, ativo=True, nivel=NIVEL_TODOS)
@@ -175,56 +161,25 @@ class TestInteracoesOverrideComPapel(InteracoesBase):
         hab_r = habilitacao_efetiva(u, MODULO_MODELOS, HAB_MODELOS_CRIAR)
         self.assertTrue(hab_r["habilitado"], f"deve estar habilitado via HabilitacaoUsuario: {hab_r}")
         self.assertEqual(hab_r["origem"], "individual", f"origem errada: {hab_r}")
-        self.assertIsNone(
-            hab_r["tipo_conta"],
-            f"tipo_conta deve ser None quando UP existe; atual={hab_r['tipo_conta']!r}",
-        )
 
-    def test_group_legado_nao_completa_habilitacao_de_papel_dinamico(self):
+    def test_habilitacao_ausente_no_papel_nega_mesmo_com_modulo_concedido(self):
         """
-        Prova que Group legado NÃO completa habilitação ausente no papel dinâmico.
-
         Cenário:
-          - Group=limitado, UP(ativo=True), PA(ativo=True)
+          - UP(ativo=True), PA(ativo=True)
           - PP(papel, processos, ativo=True)  ← módulo concedido pelo papel
           - Sem HP(papel, processos, processos_criar)  ← item não no papel
-          - Seed HP(tipo_conta="limitado", processos, processos_criar) ativo=True
 
-        Esperado:
-          habilitado=False  ← seed legado ignorado no caminho dinâmico
-          tipo_conta=None
-          origem="papel"
+        Esperado: habilitado=False, origem="papel".
         """
-        try:
-            seed_hp = HabilitacaoPapel.objects.get(
-                tipo_conta="limitado", modulo=MODULO_PROCESSOS, item=HAB_PROCESSOS_CRIAR
-            )
-        except HabilitacaoPapel.DoesNotExist:
-            self.fail("Seed HP(limitado/processos/processos_criar) não existe — pré-condição não atendida")
-
-        self.assertTrue(
-            seed_hp.ativo,
-            "Seed HP(limitado/processos/processos_criar).ativo=False — pré-condição: seed deve estar ativo",
-        )
-
-        u = self._user("u_grp_nao_comp")
-        self._add_group(u, "limitado")
+        u = self._user("u_hab_ausente")
 
         papel = self._new_papel("Papel Sem HAB Criar")
         self._pp(papel, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS)
-        # Sem _hp(papel, processos, processos_criar)
         self._assign_papel(u, papel)
 
         hab_r = habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
 
-        self.assertFalse(
-            hab_r["habilitado"],
-            f"Group legado não deve completar HP ausente do papel dinâmico: {hab_r}",
-        )
-        self.assertIsNone(
-            hab_r["tipo_conta"],
-            f"tipo_conta deve ser None no caminho de papéis: {hab_r}",
-        )
+        self.assertFalse(hab_r["habilitado"], f"item ausente no papel deve negar: {hab_r}")
         self.assertEqual(
             hab_r["origem"],
             "papel",
@@ -257,7 +212,6 @@ class TestOrigemContrato(InteracoesBase):
         Distingue "usuário inativo" de "usuário sem permissão configurada".
         """
         u = self._user("u_inativo_orig", is_active=False)
-        self._add_group(u, "limitado")
 
         perm_r = permissao_efetiva(u, MODULO_PROCESSOS)
         self.assertFalse(perm_r["tem_acesso"])
@@ -275,45 +229,24 @@ class TestOrigemContrato(InteracoesBase):
             f"habilitacao_efetiva: inativo deve retornar origem='inativo'; atual={hab_r['origem']!r}",
         )
 
-    def test_fallback_legado_retorna_origem_grupo_legado(self):
+    def test_usuario_sem_papel_retorna_origem_nenhuma(self):
         """
-        Group=limitado sem UP → origem="grupo_legado".
-        Distingue "papel dinâmico" de "fallback de Group legado".
+        Sem UP e sem override → origem="nenhuma" (não há fallback de Group).
         """
-        seed_pp = PermissaoPapel.objects.filter(
-            tipo_conta="limitado", modulo=MODULO_PROCESSOS
-        ).first()
-        self.assertIsNotNone(seed_pp, "Seed PP limitado/processos não existe — pré-condição não atendida")
-        self.assertTrue(seed_pp.ativo, "Seed PP limitado/processos.ativo=False — pré-condição não atendida")
-
-        u = self._user("u_legado_orig")
-        self._add_group(u, "limitado")
+        u = self._user("u_sem_up_orig")
 
         perm_r = permissao_efetiva(u, MODULO_PROCESSOS)
-        self.assertTrue(perm_r["tem_acesso"])
-        self.assertEqual(
-            perm_r["origem"],
-            "grupo_legado",
-            f"fallback legado deve ter origem='grupo_legado'; atual={perm_r['origem']!r}",
-        )
-
-        seed_hp = HabilitacaoPapel.objects.filter(
-            tipo_conta="limitado", modulo=MODULO_PROCESSOS, item=HAB_PROCESSOS_CRIAR
-        ).first()
-        self.assertIsNotNone(seed_hp, "Seed HP limitado/processos/processos_criar não existe")
-        self.assertTrue(seed_hp.ativo, "Seed HP limitado/processos/processos_criar.ativo=False")
+        self.assertFalse(perm_r["tem_acesso"])
+        self.assertEqual(perm_r["origem"], "nenhuma")
 
         hab_r = habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
-        self.assertTrue(hab_r["habilitado"])
-        self.assertEqual(
-            hab_r["origem"],
-            "grupo_legado",
-            f"habilitacao via fallback deve ter origem='grupo_legado'; atual={hab_r['origem']!r}",
-        )
+        self.assertFalse(hab_r["habilitado"])
+        # Sem permissão de módulo a habilitação nem é consultada.
+        self.assertEqual(hab_r["origem"], "permissao_desligada")
 
     def test_papel_sem_concessao_retorna_origem_papel(self):
         """
-        UP existe, sem PP para o módulo → origem="papel", tipo_conta=None.
+        UP existe, sem PP para o módulo → origem="papel".
         Distingue "sem UP" (origem="nenhuma") de "UP sem concessão" (origem="papel").
         """
         u = self._user("u_up_sem_pp_orig")
@@ -322,7 +255,6 @@ class TestOrigemContrato(InteracoesBase):
 
         perm_r = permissao_efetiva(u, MODULO_PROCESSOS)
         self.assertFalse(perm_r["tem_acesso"])
-        self.assertIsNone(perm_r["tipo_conta"])
         self.assertEqual(
             perm_r["origem"],
             "papel",
@@ -337,7 +269,6 @@ class TestOrigemContrato(InteracoesBase):
         papel = PapelAcesso.objects.create(nome="Papel Orig Sem HP", ativo=True)
         PermissaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_PROCESSOS,
             ativo=True,
             nivel=NIVEL_TODOS,
@@ -347,7 +278,6 @@ class TestOrigemContrato(InteracoesBase):
 
         hab_r = habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
         self.assertFalse(hab_r["habilitado"])
-        self.assertIsNone(hab_r["tipo_conta"])
         self.assertEqual(
             hab_r["origem"],
             "papel",
@@ -443,7 +373,6 @@ class TestPermissaoInativaPreservaContexto(InteracoesBase):
         papel = self._new_papel("Papel PP Inativo")
         PermissaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_FINANCEIRO,
             ativo=False,
             nivel=NIVEL_SOLICITACOES,
@@ -458,7 +387,6 @@ class TestPermissaoInativaPreservaContexto(InteracoesBase):
             f"nível deve ser preservado mesmo com ativo=False; atual={r['nivel']!r}",
         )
         self.assertEqual(r["origem"], "papel", f"origem deve ser 'papel'; atual={r['origem']!r}")
-        self.assertIsNone(r["tipo_conta"], f"tipo_conta deve ser None: {r}")
 
     def test_permissao_inativa_nao_eleva_nivel_de_concessao_ativa(self):
         """
@@ -473,14 +401,12 @@ class TestPermissaoInativaPreservaContexto(InteracoesBase):
 
         PermissaoPapel.objects.create(
             papel=papel_a,
-            tipo_conta=None,
             modulo=MODULO_PROCESSOS,
             ativo=True,
             nivel=NIVEL_SOMENTE_SEUS,
         )
         PermissaoPapel.objects.create(
             papel=papel_b,
-            tipo_conta=None,
             modulo=MODULO_PROCESSOS,
             ativo=False,
             nivel=NIVEL_TODOS,
@@ -496,7 +422,6 @@ class TestPermissaoInativaPreservaContexto(InteracoesBase):
             f"PP inativa com nivel maior não pode elevar; atual={r['nivel']!r}",
         )
         self.assertEqual(r["origem"], "papel")
-        self.assertIsNone(r["tipo_conta"])
 
 
 # ===========================================================================
@@ -583,16 +508,15 @@ class TestKernelQueriesClassificadas(InteracoesBase):
         self._report("dois_papeis_perm", ctx, r)
         self.assertLessEqual(r["SELECT"], 4, f"dois papéis/permissão: esperado SELECT<=4; got {r['SELECT']}")
 
-    def test_qcls_fallback_limitado_permissao(self):
-        """Group=limitado sem UP: permissao_efetiva — SELECT <= 5."""
-        u = self._user("u_qcls_lim")
-        self._add_group(u, "limitado")
+    def test_qcls_sem_papel_permissao(self):
+        """Sem papel nem override: permissao_efetiva — SELECT <= 3."""
+        u = self._user("u_qcls_sp")
         u_f = User.objects.get(pk=u.pk)
         with CaptureQueriesContext(connection) as ctx:
             permissao_efetiva(u_f, MODULO_PROCESSOS)
         r = self._cls(ctx.captured_queries)
-        self._report("fallback_limitado_perm", ctx, r)
-        self.assertLessEqual(r["SELECT"], 5, f"fallback limitado/permissão: esperado SELECT<=5; got {r['SELECT']}")
+        self._report("sem_papel_perm", ctx, r)
+        self.assertLessEqual(r["SELECT"], 3, f"sem papel/permissão: esperado SELECT<=3; got {r['SELECT']}")
 
     def test_qcls_habilitacao_dinamica(self):
         """Papel dinâmico único: habilitacao_efetiva — SELECT <= 6."""
@@ -608,21 +532,9 @@ class TestKernelQueriesClassificadas(InteracoesBase):
         self._report("hab_dinamica", ctx, r)
         self.assertLessEqual(r["SELECT"], 6, f"habilitação dinâmica: esperado SELECT<=6; got {r['SELECT']}")
 
-    def test_qcls_habilitacao_fallback_legado(self):
-        """Group=limitado sem UP: habilitacao_efetiva — SELECT <= 7."""
-        u = self._user("u_qcls_hleg")
-        self._add_group(u, "limitado")
-        u_f = User.objects.get(pk=u.pk)
-        with CaptureQueriesContext(connection) as ctx:
-            habilitacao_efetiva(u_f, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)
-        r = self._cls(ctx.captured_queries)
-        self._report("hab_fallback_legado", ctx, r)
-        self.assertLessEqual(r["SELECT"], 7, f"habilitação fallback: esperado SELECT<=7; got {r['SELECT']}")
-
     def test_qcls_override_individual_com_up(self):
         """UP + PermissaoUsuario individual: habilitacao_efetiva — SELECT <= 6."""
         u = self._user("u_qcls_ov")
-        self._add_group(u, "limitado")
         papel = self._new_papel("QCls Ov")
         self._pp(papel, MODULO_MODELOS, ativo=True, nivel=NIVEL_TODOS)
         self._assign_papel(u, papel)
@@ -701,7 +613,7 @@ class TestSmokePagesAdmin(_SmokeBase):
 
 
 class TestSmokePagesAdvogado(_SmokeBase):
-    """Smoke HTTP: usuário com Group=limitado + UsuarioPapel (advogado simulado)."""
+    """Smoke HTTP: usuário com UsuarioPapel (advogado simulado)."""
 
     @classmethod
     def get_test_schema_name(cls):
@@ -713,9 +625,8 @@ class TestSmokePagesAdvogado(_SmokeBase):
         tenant.slug = "tk-int-smkadv"
 
     def test_smoke_advogado_sem_500(self):
-        """Advogado (Group=limitado + UP): endpoints retornam 200/302/403, nunca 500."""
+        """Advogado (UP): endpoints retornam 200/302/403, nunca 500."""
         u = self._user("smoke_adv_user")
-        self._add_group(u, "limitado")
         papel = self._new_papel("Papel Smoke Adv")
         self._pp(papel, MODULO_PROCESSOS, nivel=NIVEL_TODOS)
         self._pp(papel, MODULO_CLIENTES, nivel=NIVEL_TODOS)

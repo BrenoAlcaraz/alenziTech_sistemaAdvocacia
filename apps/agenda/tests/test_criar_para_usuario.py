@@ -32,12 +32,11 @@ class AgendaCriarParaUsuarioBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS
         )
         if criar_para_outros:
             HabilitacaoPapel.objects.create(
                 papel=papel,
-                tipo_conta=None,
                 modulo=MODULO_AGENDA,
                 item=HAB_AGENDA_CRIAR_PARA_OUTROS,
                 ativo=True,

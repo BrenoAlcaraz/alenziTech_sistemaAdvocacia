@@ -74,7 +74,7 @@ class ChatTempoRealBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Chat {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CHAT, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_CHAT, ativo=True, nivel=""
         )
 
     def _enviar_por_http(self, usuario, url, conteudo):

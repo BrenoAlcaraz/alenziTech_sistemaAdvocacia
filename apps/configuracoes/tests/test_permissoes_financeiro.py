@@ -13,7 +13,7 @@ conhecimento durável para docs/STATUS.md/ARCHITECTURE.md).
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
-from apps.accounts.models import PerfilUsuario, PermissaoPapel
+from apps.accounts.models import PapelAcesso, PerfilUsuario, PermissaoPapel
 from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     NIVEL_DADOS_PROPRIOS,
@@ -34,26 +34,27 @@ class TestPermissoesFinanceiroNiveis(TenantTestCase):
         self.http_host = dominio.domain if dominio else "localhost"
         self.admin = User.objects.create_user("admin_perm_financeiro", password="testpass")
         PerfilUsuario.objects.filter(user=self.admin).update(is_admin_escritorio=True)
+        self.papel = PapelAcesso.objects.create(nome="Financeiro Teste")
         self.client.force_login(self.admin)
 
     def _post_nivel_financeiro(self, nivel):
         return self.client.post(
             "/configuracoes/permissoes/",
-            {"tipo_conta": "financeiro", "ativo_financeiro": "on", "nivel_financeiro": nivel},
+            {"papel_id": self.papel.pk, "ativo_financeiro": "on", "nivel_financeiro": nivel},
             HTTP_HOST=self.http_host,
         )
 
     def test_salva_nivel_dados_proprios(self):
         resposta = self._post_nivel_financeiro(NIVEL_DADOS_PROPRIOS)
         self.assertEqual(resposta.status_code, 200)
-        permissao = PermissaoPapel.objects.get(tipo_conta="financeiro", modulo=MODULO_FINANCEIRO)
+        permissao = PermissaoPapel.objects.get(papel=self.papel, modulo=MODULO_FINANCEIRO)
         self.assertTrue(permissao.ativo)
         self.assertEqual(permissao.nivel, NIVEL_DADOS_PROPRIOS)
 
     def test_salva_nivel_dados_todos(self):
         resposta = self._post_nivel_financeiro(NIVEL_DADOS_TODOS)
         self.assertEqual(resposta.status_code, 200)
-        permissao = PermissaoPapel.objects.get(tipo_conta="financeiro", modulo=MODULO_FINANCEIRO)
+        permissao = PermissaoPapel.objects.get(papel=self.papel, modulo=MODULO_FINANCEIRO)
         self.assertTrue(permissao.ativo)
         self.assertEqual(permissao.nivel, NIVEL_DADOS_TODOS)
 
@@ -61,5 +62,5 @@ class TestPermissoesFinanceiroNiveis(TenantTestCase):
         """Consistente com o fallback já existente em _build_modulos/POST de configuracoes/views.py."""
         resposta = self._post_nivel_financeiro("dados")
         self.assertEqual(resposta.status_code, 200)
-        permissao = PermissaoPapel.objects.get(tipo_conta="financeiro", modulo=MODULO_FINANCEIRO)
+        permissao = PermissaoPapel.objects.get(papel=self.papel, modulo=MODULO_FINANCEIRO)
         self.assertEqual(permissao.nivel, "solicitacoes")

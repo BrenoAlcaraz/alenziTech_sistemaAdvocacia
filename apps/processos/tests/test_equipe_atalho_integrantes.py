@@ -41,7 +41,7 @@ class EquipeAtalhoIntegrantesBase(TenantTestCase):
             papel = PapelAcesso.objects.create(nome=f"Papel Processos {username}")
             UsuarioPapel.objects.create(usuario=user, papel=papel)
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS,
+                papel=papel, modulo=MODULO_PROCESSOS,
                 ativo=True, nivel=nivel,
             )
         return user
@@ -51,10 +51,10 @@ class EquipeAtalhoIntegrantesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel="",
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel="",
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR,
+            papel=papel, modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_USUARIO_PROCESSOS, ativo=True,
         )
         return user

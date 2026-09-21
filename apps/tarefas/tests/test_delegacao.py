@@ -41,10 +41,10 @@ class TarefasDelegacaoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Delegação Tarefas")
         UsuarioPapel.objects.create(usuario=self.criador, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_TAREFAS, item=HAB_TAREFAS_ATRIBUIR_OUTROS, ativo=True
+            papel=papel, modulo=MODULO_TAREFAS, item=HAB_TAREFAS_ATRIBUIR_OUTROS, ativo=True
         )
         self.client.force_login(self.criador)
 

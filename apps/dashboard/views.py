@@ -10,14 +10,15 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Max, Q, Sum
 from django.utils import timezone
 
-from apps.accounts.decorators import (
-    nome_legivel_grupo,
-    obter_papel_principal_usuario,
-    usuario_admin_escritorio,
-)
+from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.models import Equipe
 from apps.atividade.models import LogAtividade
-from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo, nivel_acesso_modulo
+from apps.accounts.permissoes import (
+    nivel_acesso_modulo,
+    nomes_papeis_usuario,
+    tem_habilitacao,
+    tem_permissao_modulo,
+)
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_USUARIO,
     MODULO_AGENDA,
@@ -673,15 +674,17 @@ def gestor(request):
         raise PermissionDenied
 
     hoje = timezone.localdate()
-    usuarios = User.objects.filter(is_active=True).select_related("perfil").order_by(
-        "first_name", "last_name", "username"
+    usuarios = (
+        User.objects.filter(is_active=True)
+        .select_related("perfil")
+        .prefetch_related("atribuicoes_papel__papel")
+        .order_by("first_name", "last_name", "username")
     )
     usuarios_contexto = []
     for usuario in usuarios:
-        papel = obter_papel_principal_usuario(usuario)
         usuarios_contexto.append({
             "usuario": usuario,
-            "papel_nome": nome_legivel_grupo(papel.name) if papel else "Sem papel definido",
+            "papel_nome": nomes_papeis_usuario(usuario),
             "acoes_hoje": LogAtividade.objects.filter(usuario=usuario, criado_em__date=hoje).count(),
         })
 

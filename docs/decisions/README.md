@@ -57,3 +57,4 @@ serem efetivamente decididas.
 | PDR-0027 | Sugestão automática de contraparte e novos papéis em Outros | accepted | [PDR-0027-sugestao-contraparte-e-papeis-outros.md](PDR-0027-sugestao-contraparte-e-papeis-outros.md) |
 | PDR-0028 | Equipe como atalho de seleção (substitui o vínculo dinâmico de Equipe) | accepted | [PDR-0028-equipe-como-atalho-de-selecao.md](PDR-0028-equipe-como-atalho-de-selecao.md) |
 | PDR-0029 | Financeiro líquido de custas do cliente e honorário sucumbencial calculado | accepted | [PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md](PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md) |
+| PDR-0030 | Papel de acesso como único mecanismo e exclusão de usuário com senha | accepted | [PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md](PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md) |

@@ -110,8 +110,10 @@ Kernel dinâmico em `apps/accounts`: `PapelAcesso`, `UsuarioPapel`,
   sozinho não prova nada.
 - Precedência: admin do escritório (acesso total) → `PermissaoUsuario`
   individual → união dos `PapelAcesso` ativos do usuário (maior nível
-  entre eles) → fallback legado por `auth.Group` (só quando o usuário
-  não tem nenhum `UsuarioPapel`) → nega.
+  entre eles) → nega. Não há fallback por `auth.Group` nem "tipo de
+  conta" (PDR-0030); o papel "Limitado" (`codigo_preset="limitado"`) é o
+  único de fábrica e nasce sem nenhuma permissão. Os dicts de
+  `permissao_efetiva`/`habilitacao_efetiva` não têm chave `tipo_conta`.
 - `usuario_admin_escritorio(user)` (`apps/accounts/decorators.py`) —
   único caminho: `PerfilUsuario.is_admin_escritorio=True` +
   `is_active=True`. Sem atalho por `is_superuser` ou grupo.
@@ -127,20 +129,15 @@ juntas, com uma migration nova (`AlterField` de `item` +
 banco rejeita a gravação da habilitação nova com violação de
 `chk_habilitacaopapel_modulo_item`/`chk_habilitacaousuario_modulo_item`.
 
-**Gravar em `PermissaoPapel`/`HabilitacaoPapel`**: filtrar e gravar
-sempre por um único identificador por vez — `tipo_conta` OU `papel`,
-nunca os dois juntos no mesmo `filter`/`update_or_create`. A migration
-`0011_migrar_papeis_e_presets` associou `papel` a linhas legadas de
-`tipo_conta` ('limitado'/'financeiro' apontam também para os presets
-'Advogado Associado'/'Gestor Financeiro') sem zerar o `tipo_conta`
-original — essas linhas ficam com os dois campos preenchidos ao mesmo
-tempo. Um lookup pelos dois campos juntos não encontra essa linha e
-tenta inserir uma duplicata, violando a `UniqueConstraint`. Referência:
-`apps/configuracoes/views.py::_build_modulos_permissao`/`_salvar_permissoes`.
+**Gravar em `PermissaoPapel`/`HabilitacaoPapel`**: sempre por `papel`
+(FK obrigatória; a coluna `tipo_conta` foi removida na migration `0034`).
+Referência: `apps/configuracoes/views.py::_build_modulos_permissao`/`_salvar_permissoes`.
+Proteções do papel "Limitado" (não excluir/desativar) e do papel com
+usuários (não desativar) vivem em `PapelAcesso.delete` e em
+`PapelAcessoForm.clean_ativo`.
 
 **Efeito colateral em Processos ao mudar permissão de um usuário**:
-qualquer código que grave `PermissaoPapel`/`HabilitacaoPapel` (por
-papel ou tipo de conta) ou `PermissaoUsuario`/`HabilitacaoUsuario`
+qualquer código que grave `PermissaoPapel`/`HabilitacaoPapel` ou `PermissaoUsuario`/`HabilitacaoUsuario`
 (override individual) e que possa remover acesso ao módulo Processos
 deve chamar `transferir_processos_de_usuarios_sem_acesso`
 (`apps/processos/services.py`) na mesma transação — sem isso, o

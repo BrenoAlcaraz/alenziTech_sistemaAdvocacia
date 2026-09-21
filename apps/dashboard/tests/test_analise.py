@@ -36,7 +36,7 @@ class AnaliseBase(TenantTestCase):
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         for modulo in (MODULO_PAINEL, MODULO_PROCESSOS):
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=nivel
+                papel=papel, modulo=modulo, ativo=True, nivel=nivel
             )
         return papel
 

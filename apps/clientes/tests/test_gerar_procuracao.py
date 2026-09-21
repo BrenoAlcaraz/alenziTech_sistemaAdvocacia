@@ -40,11 +40,11 @@ class GerarProcuracaoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {modulo} {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=nivel
+            papel=papel, modulo=modulo, ativo=True, nivel=nivel
         )
         if habilitacao:
             HabilitacaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=modulo, item=habilitacao, ativo=True
+                papel=papel, modulo=modulo, item=habilitacao, ativo=True
             )
         return papel
 

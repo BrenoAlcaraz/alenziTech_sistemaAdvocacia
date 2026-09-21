@@ -58,7 +58,6 @@ class ProcessosEscopoBase(TenantTestCase):
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_PROCESSOS,
             ativo=True,
             nivel=nivel,
@@ -70,7 +69,6 @@ class ProcessosEscopoBase(TenantTestCase):
         ):
             HabilitacaoPapel.objects.create(
                 papel=papel,
-                tipo_conta=None,
                 modulo=MODULO_PROCESSOS,
                 item=item,
                 ativo=True,

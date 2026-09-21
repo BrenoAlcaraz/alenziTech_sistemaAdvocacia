@@ -1,15 +1,9 @@
 from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 
-from apps.accounts.decorators import GRUPOS_CRIACAO_USUARIO, nome_legivel_grupo
-
+from .permissoes_constants import CODIGO_PRESET_LIMITADO
 from .models import Equipe, MembroEquipe, PapelAcesso, PerfilUsuario, UsuarioPapel
-
-
-class GrupoPapelChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return nome_legivel_grupo(obj.name)
 
 
 class CriarUsuarioEscritorioForm(UserCreationForm):
@@ -40,16 +34,10 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             }
         ),
     )
-    grupo = GrupoPapelChoiceField(
-        queryset=Group.objects.none(),
-        required=True,
-        empty_label="Selecione o tipo de conta",
-        widget=forms.Select(attrs={"class": "input"}),
-    )
     papel = forms.ModelChoiceField(
         queryset=PapelAcesso.objects.none(),
-        required=False,
-        empty_label="Nenhum (só o tipo de conta)",
+        required=True,
+        empty_label=None,
         widget=forms.Select(attrs={"class": "input"}),
     )
 
@@ -60,7 +48,6 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             "email",
             "nome_completo",
             "cargo",
-            "grupo",
             "papel",
             "password1",
             "password2",
@@ -76,10 +63,12 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["grupo"].queryset = Group.objects.filter(
-            name__in=GRUPOS_CRIACAO_USUARIO
-        ).order_by("name")
         self.fields["papel"].queryset = PapelAcesso.objects.filter(ativo=True).order_by("nome")
+        self.fields["papel"].initial = (
+            PapelAcesso.objects.filter(codigo_preset=CODIGO_PRESET_LIMITADO)
+            .values_list("pk", flat=True)
+            .first()
+        )
         self.fields["password1"].widget.attrs.update(
             {"class": "input", "placeholder": "Senha inicial"}
         )
@@ -108,13 +97,9 @@ class CriarUsuarioEscritorioForm(UserCreationForm):
             perfil.cargo = self.cleaned_data.get("cargo", "")
             perfil.save(update_fields=["nome_completo", "cargo"])
 
-            grupo = self.cleaned_data["grupo"]
-            user.groups.clear()
-            user.groups.add(grupo)
-
-            papel = self.cleaned_data.get("papel")
-            if papel is not None:
-                UsuarioPapel.objects.get_or_create(usuario=user, papel=papel, defaults={"ativo": True})
+            UsuarioPapel.objects.get_or_create(
+                usuario=user, papel=self.cleaned_data["papel"], defaults={"ativo": True}
+            )
 
         return user
 
@@ -212,6 +197,23 @@ class PapelAcessoForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean_ativo(self):
+        ativo = self.cleaned_data["ativo"]
+        papel = self.instance
+        if ativo or not papel.pk or not papel.ativo:
+            return ativo
+        if papel.eh_limitado:
+            raise forms.ValidationError("O papel Limitado não pode ser desativado.")
+        usuarios = UsuarioPapel.objects.filter(
+            papel=papel, ativo=True, usuario__is_active=True
+        ).count()
+        if usuarios:
+            quem = "o usuário" if usuarios == 1 else f"os {usuarios} usuários"
+            raise forms.ValidationError(
+                f"Reatribua {quem} deste papel antes de desativá-lo."
+            )
+        return ativo
 
 
 class AtribuirPapelForm(forms.Form):

@@ -60,18 +60,8 @@
         <p class="erro-campo mt-1 text-xs text-red-600">{{ form.papel.errors.0 }}</p>
       {% endif %}
       <p class="mt-1 text-xs text-gray-400">
-        Papéis pré-definidos (Advogado Associado, Estagiário/Paralegal, Gestor Financeiro, Secretaria/Recepção...) e os criados pelo escritório. As permissões vêm do papel; ajustes individuais ficam em Permissões.
-      </p>
-    </div>
-
-    <div class="mb-4">
-      <label for="{{ form.grupo.id_for_label }}" class="label">Tipo de conta</label>
-      {{ form.grupo }}
-      {% if form.grupo.errors %}
-        <p class="erro-campo mt-1 text-xs text-red-600">{{ form.grupo.errors.0 }}</p>
-      {% endif %}
-      <p class="mt-1 text-xs text-gray-400">
-        Tipos de conta disponíveis: Limitado e Financeiro. O cargo profissional é informado separadamente.
+        As permissões vêm do papel (o padrão "Limitado" não libera nada); ajustes individuais ficam em Permissões.
+        O cargo profissional é informado separadamente.
         Administradores do Escritório devem ser definidos por fluxo administrativo separado.
       </p>
     </div>

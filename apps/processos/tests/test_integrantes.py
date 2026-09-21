@@ -51,7 +51,7 @@ class IntegrantesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Processos {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
         )
         return papel
 
@@ -59,11 +59,10 @@ class IntegrantesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
             ativo=True,

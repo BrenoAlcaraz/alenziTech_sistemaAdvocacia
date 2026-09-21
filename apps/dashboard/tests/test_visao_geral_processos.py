@@ -37,7 +37,7 @@ class DashboardProcessosBase(TenantTestCase):
         UsuarioPapel.objects.create(usuario=self.usuario, papel=self.papel, ativo=True)
         for modulo in (MODULO_PAINEL, MODULO_PROCESSOS):
             PermissaoPapel.objects.create(
-                papel=self.papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
+                papel=self.papel, modulo=modulo, ativo=True, nivel=NIVEL_TODOS
             )
         self.client.force_login(self.usuario)
 
@@ -168,7 +168,6 @@ class TestCardFinanceiroCombinado(DashboardProcessosBase):
         super().setUp()
         PermissaoPapel.objects.create(
             papel=self.papel,
-            tipo_conta=None,
             modulo=MODULO_FINANCEIRO,
             ativo=True,
             nivel=NIVEL_DADOS_TODOS,
@@ -203,10 +202,10 @@ class TestCardUsuariosAtivos(DashboardProcessosBase):
 
     def test_com_habilitacao_gerir_mostra_contagem(self):
         PermissaoPapel.objects.create(
-            papel=self.papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel="",
+            papel=self.papel, modulo=MODULO_GERIR, ativo=True, nivel="",
         )
         HabilitacaoPapel.objects.create(
-            papel=self.papel, tipo_conta=None, modulo=MODULO_GERIR,
+            papel=self.papel, modulo=MODULO_GERIR,
             item=HAB_GERIR_CRIAR_USUARIO, ativo=True,
         )
 

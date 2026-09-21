@@ -8,7 +8,7 @@ import io
 import shutil
 import tempfile
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django_tenants.test.cases import TenantTestCase
@@ -147,12 +147,14 @@ class TestExcluirUsuario(ConfigBase):
     def get_test_schema_name(cls):
         return "config_ajustes_excluir"
 
-    def _excluir(self, usuario):
-        return self.client.post(f"/configuracoes/usuarios/{usuario.pk}/excluir/", HTTP_HOST=self.http_host)
+    def _excluir(self, usuario, senha="testpass"):
+        dados = {} if senha is None else {"senha": senha}
+        return self.client.post(
+            f"/configuracoes/usuarios/{usuario.pk}/excluir/", dados, HTTP_HOST=self.http_host,
+        )
 
     def test_inativa_o_usuario_e_passa_os_processos_ao_administrador(self):
         alvo = User.objects.create_user("alvo_cfg", password="testpass")
-        alvo.groups.add(Group.objects.get(name="limitado"))
         processo = Processo.objects.create(responsavel=alvo, titulo="Do alvo")
         equipe = Equipe.objects.create(nome="Equipe Exclusao")
         MembroEquipe.objects.create(usuario=alvo, equipe=equipe, ativo=True)
@@ -163,6 +165,34 @@ class TestExcluirUsuario(ConfigBase):
         processo.refresh_from_db()
         self.assertEqual(processo.responsavel_id, self.admin.pk)
         self.assertFalse(MembroEquipe.objects.filter(usuario=alvo).exists())
+
+    def test_sem_senha_nao_exclui(self):
+        alvo = User.objects.create_user("alvo_sem_senha", password="outra-senha-1")
+        self._excluir(alvo, senha=None)
+        alvo.refresh_from_db()
+        self.assertTrue(alvo.is_active)
+
+    def test_senha_errada_nao_exclui_e_avisa_sem_detalhar(self):
+        alvo = User.objects.create_user("alvo_senha_errada", password="outra-senha-1")
+        r = self._excluir(alvo, senha="errada")
+        alvo.refresh_from_db()
+        self.assertTrue(alvo.is_active)
+        self.assertEqual(r.status_code, 302)
+        mensagens = [str(m) for m in r.wsgi_request._messages]
+        self.assertEqual(mensagens, ["Senha incorreta. Nenhum usuário foi excluído."])
+
+    def test_senha_do_usuario_excluido_nao_vale(self):
+        alvo = User.objects.create_user("alvo_senha_dele", password="outra-senha-1")
+        self._excluir(alvo, senha="outra-senha-1")
+        alvo.refresh_from_db()
+        self.assertTrue(alvo.is_active)
+
+    def test_senha_correta_nao_afeta_os_demais_usuarios(self):
+        alvo = User.objects.create_user("alvo_isolado", password="outra-senha-1")
+        outro = User.objects.create_user("outro_isolado", password="outra-senha-1")
+        self._excluir(alvo)
+        outro.refresh_from_db()
+        self.assertTrue(outro.is_active)
 
     def test_usuario_excluido_some_da_lista(self):
         alvo = User.objects.create_user("alvo_lista_cfg", password="testpass")
@@ -189,10 +219,11 @@ class TestExcluirUsuario(ConfigBase):
         alvo.refresh_from_db()
         self.assertTrue(alvo.is_active)
 
-    def test_botao_de_excluir_e_um_formulario_real(self):
+    def test_tela_pede_a_senha_para_excluir(self):
         User.objects.create_user("alvo4_cfg", password="testpass")
         r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
         self.assertContains(r, "/excluir/")
+        self.assertContains(r, 'name="senha"')
 
 
 class TestNovoUsuarioComPapel(ConfigBase):
@@ -203,18 +234,29 @@ class TestNovoUsuarioComPapel(ConfigBase):
     def _dados(self, **kw):
         dados = {
             "username": "novo.usuario", "email": "novo@ex.com", "nome_completo": "Novo",
-            "grupo": Group.objects.get(name="limitado").pk,
             "password1": "S3nha-forte-123", "password2": "S3nha-forte-123",
         }
         dados.update(kw)
         return dados
 
-    def test_formulario_oferece_os_papeis_ativos_incluindo_presets(self):
+    def test_formulario_oferece_os_papeis_ativos(self):
         papel = PapelAcesso.objects.create(nome="Advogado Assoc", ativo=True)
         inativo = PapelAcesso.objects.create(nome="Inativo", ativo=False)
         form = CriarUsuarioEscritorioForm()
         self.assertIn(papel, form.fields["papel"].queryset)
         self.assertNotIn(inativo, form.fields["papel"].queryset)
+
+    def test_formulario_nao_tem_tipo_de_conta_e_preseleciona_limitado(self):
+        form = CriarUsuarioEscritorioForm()
+        self.assertNotIn("grupo", form.fields)
+        limitado = PapelAcesso.objects.get(codigo_preset="limitado")
+        self.assertEqual(form.fields["papel"].initial, limitado.pk)
+        self.assertIsNone(form.fields["papel"].empty_label)
+
+    def test_tela_nao_mostra_tipo_de_conta(self):
+        r = self.client.get("/configuracoes/usuarios/novo/", HTTP_HOST=self.http_host)
+        self.assertNotContains(r, "Tipo de conta")
+        self.assertContains(r, "Papel de acesso")
 
     def test_papel_escolhido_e_atribuido_ao_novo_usuario(self):
         papel = PapelAcesso.objects.create(nome="Estagiário", ativo=True)
@@ -223,11 +265,16 @@ class TestNovoUsuarioComPapel(ConfigBase):
         usuario = form.save()
         self.assertTrue(UsuarioPapel.objects.filter(usuario=usuario, papel=papel, ativo=True).exists())
 
-    def test_papel_e_opcional(self):
+    def test_papel_e_obrigatorio(self):
         form = CriarUsuarioEscritorioForm(data=self._dados())
-        self.assertTrue(form.is_valid(), form.errors)
-        usuario = form.save()
-        self.assertFalse(UsuarioPapel.objects.filter(usuario=usuario).exists())
+        self.assertFalse(form.is_valid())
+        self.assertIn("papel", form.errors)
+
+    def test_papel_inativo_e_recusado(self):
+        inativo = PapelAcesso.objects.create(nome="Inativo 2", ativo=False)
+        form = CriarUsuarioEscritorioForm(data=self._dados(papel=inativo.pk))
+        self.assertFalse(form.is_valid())
+        self.assertIn("papel", form.errors)
 
 
 class TestFotoVisivelAosColegas(ConfigBase):
@@ -278,7 +325,7 @@ class TestFotoVisivelAosColegas(ConfigBase):
 
         papel = PapelAcesso.objects.create(nome="Chat", ativo=True)
         UsuarioPapel.objects.create(usuario=self.admin, papel=papel, ativo=True)
-        PermissaoPapel.objects.create(papel=papel, tipo_conta=None, modulo=MODULO_CHAT, ativo=True, nivel="")
+        PermissaoPapel.objects.create(papel=papel, modulo=MODULO_CHAT, ativo=True, nivel="")
         r = self.client.get("/chat/global/", HTTP_HOST=self.http_host)
         self.assertContains(r, f"/configuracoes/usuarios/{self.comum.pk}/foto/")
 

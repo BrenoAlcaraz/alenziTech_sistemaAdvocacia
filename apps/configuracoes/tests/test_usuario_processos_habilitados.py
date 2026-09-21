@@ -32,10 +32,10 @@ class UsuarioProcessosHabilitadosBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Gestor Proc Hab")
         UsuarioPapel.objects.create(usuario=self.gestor, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR,
+            papel=papel, modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_USUARIO_PROCESSOS, ativo=True,
         )
         self.client.force_login(self.gestor)

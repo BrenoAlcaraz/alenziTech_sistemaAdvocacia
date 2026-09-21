@@ -45,11 +45,11 @@ class TestClientesFormScriptOrdem(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Clientes")
         UsuarioPapel.objects.create(usuario=self.user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES,
+            papel=papel, modulo=MODULO_CLIENTES,
             ativo=True, nivel=NIVEL_TODOS,
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES,
+            papel=papel, modulo=MODULO_CLIENTES,
             item=HAB_CLIENTES_CRIAR, ativo=True,
         )
         self.client.force_login(self.user)

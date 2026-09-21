@@ -43,7 +43,7 @@ class FinanceiroAutorizacaoBase(TenantTestCase):
         papel = self._new_papel(f"Papel Financeiro {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=nivel
         )
 
     def _lancamento(self, **kwargs):

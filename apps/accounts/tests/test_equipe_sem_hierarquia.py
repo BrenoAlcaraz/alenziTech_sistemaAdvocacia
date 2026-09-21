@@ -31,10 +31,10 @@ class TestEquipeSemHierarquia(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Equipes sem hierarquia")
         UsuarioPapel.objects.create(usuario=gestor, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR,
+            papel=papel, modulo=MODULO_GERIR,
             item=HAB_GERIR_CRIAR_EQUIPE, ativo=True,
         )
         self.client.force_login(gestor)

@@ -11,7 +11,7 @@ smoke check de não-regressão.
 Segue o mesmo padrão de fixtures de apps/processos/tests/test_integrantes.py.
 """
 
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import (
@@ -51,11 +51,11 @@ class ConfiguracoesGerirBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         if item:
             HabilitacaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_GERIR, item=item, ativo=True
+                papel=papel, modulo=MODULO_GERIR, item=item, ativo=True
             )
         return papel
 
@@ -145,7 +145,7 @@ class TestConfiguracoesGerirNegado(ConfiguracoesGerirBase):
     def test_permissoes_post_negado(self):
         r = self.client.post(
             "/configuracoes/permissoes/",
-            {"tipo_conta": "limitado", "ativo_processos": "on"},
+            {"papel_id": PapelAcesso.objects.get(codigo_preset="limitado").pk, "ativo_processos": "on"},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
@@ -164,7 +164,7 @@ class TestConfiguracoesGerirCriarUsuario(ConfiguracoesGerirBase):
         self.user = self._user("com_criar_usuario")
         self._conceder_gerir(self.user, HAB_GERIR_CRIAR_USUARIO)
         self.client.force_login(self.user)
-        self.grupo_limitado = Group.objects.get(name="limitado")
+        self.papel_limitado = PapelAcesso.objects.get(codigo_preset="limitado")
 
     def test_novo_usuario_get_autorizado(self):
         r = self.client.get("/configuracoes/usuarios/novo/", HTTP_HOST=self.http_host)
@@ -176,7 +176,7 @@ class TestConfiguracoesGerirCriarUsuario(ConfiguracoesGerirBase):
             {
                 "username": "novo.usuario",
                 "email": "novo.usuario@escritorio.com",
-                "grupo": self.grupo_limitado.pk,
+                "papel": self.papel_limitado.pk,
                 "password1": "SenhaForte123!",
                 "password2": "SenhaForte123!",
             },
@@ -274,6 +274,7 @@ class TestConfiguracoesGerirHabilitarTerceiros(ConfiguracoesGerirBase):
         self.user = self._user("com_habilitar_terceiros")
         self._conceder_gerir(self.user, HAB_GERIR_HABILITAR_TERCEIROS)
         self.client.force_login(self.user)
+        self.papel_limitado = PapelAcesso.objects.get(codigo_preset="limitado")
 
     def test_permissoes_get_autorizado(self):
         r = self.client.get("/configuracoes/permissoes/", HTTP_HOST=self.http_host)
@@ -282,13 +283,17 @@ class TestConfiguracoesGerirHabilitarTerceiros(ConfiguracoesGerirBase):
     def test_permissoes_post_autorizado(self):
         r = self.client.post(
             "/configuracoes/permissoes/",
-            {"tipo_conta": "limitado", "ativo_processos": "on", "nivel_processos": "somente_seus"},
+            {
+                "papel_id": self.papel_limitado.pk,
+                "ativo_processos": "on",
+                "nivel_processos": "somente_seus",
+            },
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 200)
         self.assertTrue(
             PermissaoPapel.objects.filter(
-                tipo_conta="limitado", modulo="processos", ativo=True
+                papel=self.papel_limitado, modulo="processos", ativo=True
             ).exists()
         )
 

@@ -28,7 +28,7 @@ class PainelGestorBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Painel {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         return papel
 
@@ -46,7 +46,7 @@ class TestPainelGestorAutorizacao(PainelGestorBase):
         gestor = User.objects.create_user("com_gerir", password="testpass")
         papel = self._conceder_painel(gestor)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         self.client.force_login(gestor)
 

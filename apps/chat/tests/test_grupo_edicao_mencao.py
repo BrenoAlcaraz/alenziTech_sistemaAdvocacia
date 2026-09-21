@@ -30,7 +30,7 @@ class ChatBase(TenantTestCase):
         user = User.objects.create_user(username=username, password="testpass", first_name=username.title())
         papel = PapelAcesso.objects.create(nome=f"Papel Chat {username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
-        PermissaoPapel.objects.create(papel=papel, tipo_conta=None, modulo=MODULO_CHAT, ativo=True, nivel="")
+        PermissaoPapel.objects.create(papel=papel, modulo=MODULO_CHAT, ativo=True, nivel="")
         return user
 
     def _grupo(self, *participantes, titulo="Grupo X"):

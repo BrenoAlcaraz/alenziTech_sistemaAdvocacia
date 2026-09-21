@@ -146,7 +146,7 @@ class TestLogIntegranteEApenso(AtividadeLogProcessosBase):
         papel = PapelAcesso.objects.create(nome="Papel Integrante Elegivel")
         UsuarioPapel.objects.create(usuario=outro, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
         )
         resposta = self.client.post(
             f"/processos/{self.processo.pk}/integrantes/adicionar/",

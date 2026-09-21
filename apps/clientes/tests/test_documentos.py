@@ -77,12 +77,12 @@ class DocumentosClienteBase(TenantTestCase):
 
     def _pp(self, papel, modulo, *, ativo=True, nivel=NIVEL_TODOS):
         return PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, ativo=ativo, nivel=nivel
+            papel=papel, modulo=modulo, ativo=ativo, nivel=nivel
         )
 
     def _hp(self, papel, modulo, item, *, ativo=True):
         return HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=modulo, item=item, ativo=ativo
+            papel=papel, modulo=modulo, item=item, ativo=ativo
         )
 
     def _dar_modulo_clientes(self, user):

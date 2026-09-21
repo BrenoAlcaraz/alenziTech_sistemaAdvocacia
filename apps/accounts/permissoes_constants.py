@@ -1,24 +1,14 @@
-# Constantes de permissões e habilitações por tipo de conta.
+# Constantes de permissões e habilitações dos papéis de acesso.
 #
 # Este arquivo não importa models Django nem qualquer módulo que importe models.
 # Pode ser importado com segurança de models.py sem risco de importação circular.
 
-# ── Tipos de conta ─────────────────────────────────────────────────────────────
+# ── Papel de fábrica ───────────────────────────────────────────────────────────
 
-TIPO_CONTA_ADMINISTRADOR = "administrador_escritorio"
-TIPO_CONTA_LIMITADO = "limitado"
-TIPO_CONTA_FINANCEIRO = "financeiro"
-
-# Administrador não aparece aqui — não possui registros editáveis de permissão.
-TIPOS_CONTA_CONFIGURAVEIS = [
-    TIPO_CONTA_LIMITADO,
-    TIPO_CONTA_FINANCEIRO,
-]
-
-TIPOS_CONTA_CHOICES = [
-    (TIPO_CONTA_LIMITADO, "Limitado"),
-    (TIPO_CONTA_FINANCEIRO, "Financeiro"),
-]
+# Único papel criado de fábrica além do Administrador (que é flag no perfil,
+# não papel). Identificado por codigo_preset, pois o nome é editável.
+CODIGO_PRESET_LIMITADO = "limitado"
+NOME_PAPEL_LIMITADO = "Limitado"
 
 # ── Módulos ────────────────────────────────────────────────────────────────────
 

@@ -32,7 +32,7 @@ class IntimacoesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Intimacao {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel
         )
 
 

@@ -46,7 +46,7 @@ class DashboardEscopoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=nome, ativo=True)
         for modulo, nivel in niveis.items():
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=modulo, ativo=True, nivel=nivel
+                papel=papel, modulo=modulo, ativo=True, nivel=nivel
             )
         return papel
 

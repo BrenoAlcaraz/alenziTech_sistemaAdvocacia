@@ -33,11 +33,11 @@ class PainelIntimacoesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Intimacoes")
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel_processos
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=nivel_processos
         )
         if painel:
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+                papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
             )
         self.client.force_login(self.usuario)
 
@@ -47,7 +47,7 @@ class TestPainelIntimacoesSemAcessoProcessos(PainelIntimacoesBase):
         papel = PapelAcesso.objects.create(nome="Papel Sem Processos")
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.usuario)
 

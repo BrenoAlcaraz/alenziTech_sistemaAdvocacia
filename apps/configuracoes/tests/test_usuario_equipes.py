@@ -29,10 +29,10 @@ class UsuarioEquipesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Equipes {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR,
+            papel=papel, modulo=MODULO_GERIR,
             item=HAB_GERIR_CRIAR_EQUIPE, ativo=True,
         )
 

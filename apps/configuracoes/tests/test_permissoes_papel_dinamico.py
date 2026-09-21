@@ -48,11 +48,10 @@ class PermissoesPapelDinamicoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel Gerir {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+            papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
         )
         HabilitacaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_GERIR,
             item=HAB_GERIR_HABILITAR_TERCEIROS,
             ativo=True,
@@ -97,7 +96,6 @@ class TestPermissoesAbaPapelDinamico(PermissoesPapelDinamicoBase):
         pp = PermissaoPapel.objects.get(papel=self.papel_alvo, modulo=MODULO_CLIENTES)
         self.assertTrue(pp.ativo)
         self.assertEqual(pp.nivel, "todos")
-        self.assertIsNone(pp.tipo_conta)
 
     def test_post_papel_id_salva_habilitacao_granular(self):
         r = self.client.post(
@@ -125,7 +123,6 @@ class TestPermissoesAbaPapelDinamico(PermissoesPapelDinamicoBase):
     def test_post_papel_id_omitindo_habilitacao_desativa(self):
         HabilitacaoPapel.objects.create(
             papel=self.papel_alvo,
-            tipo_conta=None,
             modulo=MODULO_CLIENTES,
             item=HAB_CLIENTES_CRIAR,
             ativo=True,
@@ -158,11 +155,12 @@ class TestPermissoesAbaPapelDinamico(PermissoesPapelDinamicoBase):
             PermissaoPapel.objects.filter(papel=self.papel_inativo).count(), antes
         )
 
-    def test_post_tipo_conta_salva_habilitacao_granular(self):
+    def test_limitado_e_editavel_pela_tela(self):
+        limitado = PapelAcesso.objects.get(codigo_preset="limitado")
         r = self.client.post(
             "/configuracoes/permissoes/",
             {
-                "tipo_conta": "limitado",
+                "papel_id": str(limitado.pk),
                 "ativo_clientes": "on",
                 "nivel_clientes": "somente_seus",
                 f"hab_{MODULO_CLIENTES}_{HAB_CLIENTES_CRIAR}": "on",
@@ -172,6 +170,23 @@ class TestPermissoesAbaPapelDinamico(PermissoesPapelDinamicoBase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(
             HabilitacaoPapel.objects.get(
-                tipo_conta="limitado", modulo=MODULO_CLIENTES, item=HAB_CLIENTES_CRIAR
+                papel=limitado, modulo=MODULO_CLIENTES, item=HAB_CLIENTES_CRIAR
             ).ativo
         )
+
+    def test_tela_nao_tem_abas_de_tipo_de_conta(self):
+        r = self.client.get("/configuracoes/permissoes/", HTTP_HOST=self.http_host)
+        self.assertNotContains(r, "tab-btn-financeiro")
+        self.assertNotContains(r, 'value="tipo_conta"')
+        self.assertContains(r, "tab-btn-administrador")
+
+    def test_post_sem_papel_e_recusado_sem_gravar(self):
+        antes = PermissaoPapel.objects.count()
+        r = self.client.post(
+            "/configuracoes/permissoes/",
+            {"tipo_conta": "limitado", "ativo_clientes": "on", "nivel_clientes": "todos"},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Papel inválido ou inativo.")
+        self.assertEqual(PermissaoPapel.objects.count(), antes)

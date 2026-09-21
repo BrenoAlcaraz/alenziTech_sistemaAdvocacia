@@ -44,7 +44,7 @@ class HonorariosParcialCorrecaoBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Financeiro Admin", ativo=True)
         UsuarioPapel.objects.create(usuario=self.admin, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
         )
         PerfilUsuario.objects.filter(user=self.admin).update(is_admin_escritorio=True)
         self.client.force_login(self.admin)
@@ -175,7 +175,7 @@ class TestCorrecaoMonetaria(HonorariosParcialCorrecaoBase):
         papel = PapelAcesso.objects.create(nome="Papel Financeiro Comum", ativo=True)
         UsuarioPapel.objects.create(usuario=nao_admin, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
+            papel=papel, modulo=MODULO_FINANCEIRO, ativo=True, nivel=NIVEL_DADOS_TODOS,
         )
         self.client.force_login(nao_admin)
 

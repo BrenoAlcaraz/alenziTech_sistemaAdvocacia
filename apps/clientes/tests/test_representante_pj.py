@@ -39,13 +39,13 @@ class ClienteFormBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_CLIENTES, ativo=True, nivel=NIVEL_TODOS
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES, item=HAB_CLIENTES_CRIAR, ativo=True
+            papel=papel, modulo=MODULO_CLIENTES, item=HAB_CLIENTES_CRIAR, ativo=True
         )
         HabilitacaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_CLIENTES, item=HAB_CLIENTES_EDITAR, ativo=True
+            papel=papel, modulo=MODULO_CLIENTES, item=HAB_CLIENTES_EDITAR, ativo=True
         )
         return papel
 

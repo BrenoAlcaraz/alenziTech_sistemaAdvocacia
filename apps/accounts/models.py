@@ -11,8 +11,7 @@ from apps.saas_tenants.storage import (
 )
 
 from .permissoes_constants import (
-    TIPOS_CONTA_CONFIGURAVEIS,
-    TIPOS_CONTA_CHOICES,
+    CODIGO_PRESET_LIMITADO,
     MODULO_CHOICES,
     MODULO_HABILITACAO_CHOICES,
     NIVEL_CHOICES,
@@ -27,7 +26,7 @@ class PerfilUsuario(models.Model):
     Dados extras do usuário dentro de um tenant específico.
     Usa o User padrão do Django via OneToOne.
     Cargo é apenas descritivo — não controla permissão.
-    Permissões são gerenciadas via django.contrib.auth.Group.
+    Permissões vêm dos papéis de acesso (PapelAcesso).
     """
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="perfil")
@@ -48,9 +47,6 @@ class PerfilUsuario(models.Model):
         help_text="Indica se este usuário é administrador do escritório.",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
-
-    # Futuramente: decorators e middleware verificarão is_admin_escritorio
-    # e os grupos do Django para controle granular de acesso.
 
     class Meta:
         verbose_name = "Perfil de Usuário"
@@ -121,12 +117,12 @@ class MembroEquipe(models.Model):
 
 class PapelAcesso(models.Model):
     """
-    Papel de acesso dinâmico, configurável pelo Tenant Admin.
+    Papel de acesso — único mecanismo de autorização além do Administrador
+    do escritório (flag em PerfilUsuario), totalmente configurável por ele.
 
-    Substitui gradualmente django.contrib.auth.Group como fonte de autorização.
-    Papéis com protegido_sistema=True são presets de fábrica e não podem ser
-    excluídos ou ter o codigo_preset alterado via interface — essa proteção
-    será aplicada por services e forms em etapas futuras.
+    O papel "Limitado" (codigo_preset=limitado, protegido_sistema=True) nasce
+    de fábrica com tudo desligado; é editável, mas não pode ser excluído nem
+    desativado.
     """
 
     nome = models.CharField(
@@ -184,6 +180,15 @@ class PapelAcesso(models.Model):
 
     def __str__(self):
         return self.nome
+
+    @property
+    def eh_limitado(self):
+        return self.codigo_preset == CODIGO_PRESET_LIMITADO
+
+    def delete(self, *args, **kwargs):
+        if self.eh_limitado:
+            raise ValidationError("O papel Limitado não pode ser excluído.")
+        return super().delete(*args, **kwargs)
 
 
 class UsuarioPapel(models.Model):
@@ -243,27 +248,18 @@ class UsuarioPapel(models.Model):
 
 class PermissaoPapel(models.Model):
     """
-    Permissão padrão de acesso a um módulo por tipo de conta técnico.
+    Permissão de acesso de um papel a um módulo.
 
-    Ausência de linha para um módulo = tipo de conta sem acesso a esse módulo.
+    Ausência de linha para um módulo = papel sem acesso a esse módulo.
     Administradores não possuem linhas aqui; são verificados por
     usuario_admin_escritorio() antes de qualquer consulta a esta tabela.
     """
 
-    tipo_conta = models.CharField(
-        max_length=20,
-        choices=TIPOS_CONTA_CHOICES,
-        null=True,
-        blank=True,
-        verbose_name="Tipo de conta",
-    )
     papel = models.ForeignKey(
         PapelAcesso,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name="permissoes_modulo",
-        verbose_name="Papel (novo sistema)",
+        verbose_name="Papel",
     )
     modulo = models.CharField(
         max_length=30,
@@ -286,23 +282,13 @@ class PermissaoPapel(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Permissão por Tipo de Conta"
-        verbose_name_plural = "Permissões por Tipo de Conta"
-        ordering = ["tipo_conta", "modulo"]
+        verbose_name = "Permissão por Papel"
+        verbose_name_plural = "Permissões por Papel"
+        ordering = ["papel", "modulo"]
         constraints = [
             models.UniqueConstraint(
-                fields=["tipo_conta", "modulo"],
-                condition=Q(tipo_conta__isnull=False),
-                name="uniq_permissaopapel_tipo_modulo_legado",
-            ),
-            models.UniqueConstraint(
                 fields=["papel", "modulo"],
-                condition=Q(papel__isnull=False),
                 name="uniq_permissaopapel_papel_modulo",
-            ),
-            models.CheckConstraint(
-                condition=Q(tipo_conta__isnull=True) | Q(tipo_conta__in=["limitado", "financeiro"]),
-                name="chk_permissaopapel_tipo_conta_legado_ou_nulo",
             ),
             models.CheckConstraint(
                 condition=(
@@ -315,27 +301,13 @@ class PermissaoPapel(models.Model):
                 ),
                 name="chk_permissaopapel_nivel",
             ),
-            models.CheckConstraint(
-                condition=Q(tipo_conta__isnull=False) | Q(papel__isnull=False),
-                name="chk_permissaopapel_tipo_ou_papel",
-            ),
         ]
 
     def __str__(self):
-        if self.papel_id:
-            conta_str = self.papel.nome
-        elif self.tipo_conta:
-            conta_str = self.get_tipo_conta_display()
-        else:
-            conta_str = "(sem papel)"
         nivel_str = f" [{self.nivel}]" if self.nivel else ""
-        return f"{conta_str} / {self.get_modulo_display()}{nivel_str}"
+        return f"{self.papel.nome} / {self.get_modulo_display()}{nivel_str}"
 
     def clean(self):
-        if self.tipo_conta and self.tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
-            raise ValidationError(
-                {"tipo_conta": f"Tipo de conta inválido: '{self.tipo_conta}'."}
-            )
         if self.modulo and self.modulo in NIVEIS_POR_MODULO:
             niveis_validos = NIVEIS_POR_MODULO[self.modulo]
             if self.nivel not in niveis_validos:
@@ -353,8 +325,8 @@ class PermissaoUsuario(models.Model):
     Presença da linha substitui PermissaoPapel para o usuário e módulo.
     ativo=True concede acesso individualmente.
     ativo=False bloqueia acesso individualmente.
-    Ausência da linha significa herdar o tipo de conta.
-    Excluir a linha faz o usuário voltar ao padrão do tipo de conta.
+    Ausência da linha significa herdar o(s) papel(éis) do usuário.
+    Excluir a linha faz o usuário voltar ao padrão do papel.
     """
 
     usuario = models.ForeignKey(
@@ -422,26 +394,17 @@ class PermissaoUsuario(models.Model):
 
 class HabilitacaoPapel(models.Model):
     """
-    Habilitação de um item de funcionalidade por tipo de conta técnico.
+    Habilitação de um item de funcionalidade por papel.
 
-    Presença com ativo=True = item habilitado para o tipo de conta.
+    Presença com ativo=True = item habilitado para o papel.
     Ausência = item não habilitado.
     """
 
-    tipo_conta = models.CharField(
-        max_length=20,
-        choices=TIPOS_CONTA_CHOICES,
-        null=True,
-        blank=True,
-        verbose_name="Tipo de conta",
-    )
     papel = models.ForeignKey(
         PapelAcesso,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name="habilitacoes",
-        verbose_name="Papel (novo sistema)",
+        verbose_name="Papel",
     )
     modulo = models.CharField(
         max_length=30,
@@ -461,23 +424,13 @@ class HabilitacaoPapel(models.Model):
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Habilitação por Tipo de Conta"
-        verbose_name_plural = "Habilitações por Tipo de Conta"
-        ordering = ["tipo_conta", "modulo", "item"]
+        verbose_name = "Habilitação por Papel"
+        verbose_name_plural = "Habilitações por Papel"
+        ordering = ["papel", "modulo", "item"]
         constraints = [
             models.UniqueConstraint(
-                fields=["tipo_conta", "modulo", "item"],
-                condition=Q(tipo_conta__isnull=False),
-                name="uniq_habilitacaopapel_tipo_modulo_item_legado",
-            ),
-            models.UniqueConstraint(
                 fields=["papel", "modulo", "item"],
-                condition=Q(papel__isnull=False),
                 name="uniq_habilitacaopapel_papel_modulo_item",
-            ),
-            models.CheckConstraint(
-                condition=Q(tipo_conta__isnull=True) | Q(tipo_conta__in=["limitado", "financeiro"]),
-                name="chk_habilitacaopapel_tipo_conta_legado_ou_nulo",
             ),
             models.CheckConstraint(
                 condition=(
@@ -526,26 +479,12 @@ class HabilitacaoPapel(models.Model):
                 ),
                 name="chk_habilitacaopapel_modulo_item",
             ),
-            models.CheckConstraint(
-                condition=Q(tipo_conta__isnull=False) | Q(papel__isnull=False),
-                name="chk_habilitacaopapel_tipo_ou_papel",
-            ),
         ]
 
     def __str__(self):
-        if self.papel_id:
-            conta_str = self.papel.nome
-        elif self.tipo_conta:
-            conta_str = self.get_tipo_conta_display()
-        else:
-            conta_str = "(sem papel)"
-        return f"{conta_str} / {self.get_modulo_display()} / {self.get_item_display()}"
+        return f"{self.papel.nome} / {self.get_modulo_display()} / {self.get_item_display()}"
 
     def clean(self):
-        if self.tipo_conta and self.tipo_conta not in TIPOS_CONTA_CONFIGURAVEIS:
-            raise ValidationError(
-                {"tipo_conta": f"Tipo de conta inválido: '{self.tipo_conta}'."}
-            )
         if self.modulo and self.modulo in ITENS_POR_MODULO:
             itens_validos = ITENS_POR_MODULO[self.modulo]
             if not itens_validos:

@@ -42,11 +42,10 @@ class MovimentacoesBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}")
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
         )
         HabilitacaoPapel.objects.create(
             papel=papel,
-            tipo_conta=None,
             modulo=MODULO_PROCESSOS,
             item=HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
             ativo=True,

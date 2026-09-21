@@ -29,11 +29,11 @@ class AgendaDisponibilidadeBase(TenantTestCase):
         papel = PapelAcesso.objects.create(nome=f"Papel {user.username}", ativo=True)
         UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, tipo_conta=None, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS
         )
         if gerir:
             PermissaoPapel.objects.create(
-                papel=papel, tipo_conta=None, modulo=MODULO_GERIR, ativo=True, nivel=""
+                papel=papel, modulo=MODULO_GERIR, ativo=True, nivel=""
             )
 
 
