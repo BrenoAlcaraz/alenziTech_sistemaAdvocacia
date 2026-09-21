@@ -47,6 +47,9 @@ from .services import (
     analise_de_dados,
     calcular_correcao_honorario,
     calcular_honorario_sucumbencial,
+    cancelar_lancamentos_futuros_do_honorario,
+    contratos_de_exito_pelo_ganho,
+    gerar_lancamentos_do_honorario,
     cancelar_ocorrencias_futuras,
     custas_a_recuperar,
     gerar_ocorrencias,
@@ -746,6 +749,21 @@ def _honorarios_no_escopo():
     return Honorario.objects.select_related("cliente", "processo")
 
 
+def _calculo_sucumbencial(honorario, ate):
+    """Total da sucumbência já com o aviso de êxito dos contratos "pelo
+    ganho" do mesmo processo (PDR-0032)."""
+    return calcular_honorario_sucumbencial(honorario, ate, contratos_de_exito_pelo_ganho(honorario.processo))
+
+
+def _salvar_honorario(form, usuario):
+    """Grava o honorário e, se contratual parcelado/recorrente, gera os
+    lançamentos pendentes vinculados a ele — numa transação só."""
+    with transaction.atomic():
+        honorario = form.save()
+        gerar_lancamentos_do_honorario(honorario, responsavel=usuario)
+    return honorario
+
+
 @login_required
 def honorarios_lista(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
@@ -756,9 +774,12 @@ def honorarios_lista(request):
     for h in honorarios:
         if h.calculado:
             # Total sempre recalculado dos parâmetros — nunca o valor gravado.
-            h.calculo = calcular_honorario_sucumbencial(h, hoje)
+            h.calculo = _calculo_sucumbencial(h, hoje)
             h.valor_total_exibido = h.calculo["total"]
             h.valor_pendente_hoje = max(h.calculo["total"] - h.valor_recebido, Decimal("0"))
+            continue
+        if not h.confirmavel:
+            h.valor_total_exibido = h.valor_estimado
             continue
         valor_efetivo = h.valor_efetivo or h.valor_estimado
         pendente_base = valor_efetivo - h.valor_recebido
@@ -788,7 +809,7 @@ def form_honorario(request):
     if request.method == "POST":
         form = HonorarioForm(request.POST)
         if form.is_valid():
-            form.save()
+            _salvar_honorario(form, request.user)
             return redirect("financeiro:honorarios_lista")
     else:
         form = HonorarioForm()
@@ -811,15 +832,17 @@ def editar_honorario(request, pk):
     if request.method == "POST":
         form = HonorarioForm(request.POST, instance=honorario)
         if form.is_valid():
-            form.save()
+            _salvar_honorario(form, request.user)
             return redirect("financeiro:honorarios_lista")
     else:
         form = HonorarioForm(instance=honorario)
 
+    avisos_exito = _calculo_sucumbencial(honorario, timezone.localdate())["exito_contratos"] if honorario.calculado else []
     return render(request, "financeiro/form_honorario.html", {
         "form": form,
         "modo": "editar",
         "honorario": honorario,
+        "avisos_exito": avisos_exito,
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",
     })
@@ -833,12 +856,15 @@ def confirmar_recebimento_honorario(request, pk):
     if not usuario_admin_escritorio(request.user):
         raise PermissionDenied
     honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+    if not honorario.confirmavel:
+        # Êxito é só anotação; parcelado/recorrente recebe nos lançamentos.
+        raise Http404
     # Capturados antes de validar o form: ModelForm._post_clean() já
     # escreve os valores novos em `honorario` (mesma instância) durante
     # form.is_valid(), então ler `honorario.<campo>` depois disso
     # devolveria o valor recém-submetido, não o valor anterior.
     if honorario.calculado:
-        valor_efetivo_antes = calcular_honorario_sucumbencial(honorario, timezone.localdate())["total"]
+        valor_efetivo_antes = _calculo_sucumbencial(honorario, timezone.localdate())["total"]
     else:
         valor_efetivo_antes = honorario.valor_efetivo or honorario.valor_estimado
     valor_recebido_antes = honorario.valor_recebido
@@ -940,8 +966,10 @@ def cancelar_honorario(request, pk):
     _exige_nivel_dados(request.user)
     honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
     if request.method == "POST":
-        honorario.status = "cancelado"
-        honorario.save(update_fields=["status"])
+        with transaction.atomic():
+            honorario.status = "cancelado"
+            honorario.save(update_fields=["status"])
+            cancelar_lancamentos_futuros_do_honorario(honorario)
     return redirect("financeiro:honorarios_lista")
 
 

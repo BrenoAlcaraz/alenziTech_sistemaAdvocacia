@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
 
-from .models import CustaJudicial, LancamentoFinanceiro, MembroGrupoCustas
+from .models import CustaJudicial, Honorario, LancamentoFinanceiro, MembroGrupoCustas
 
 # Recorrência "indeterminado" não tem data final — gera um horizonte
 # fixo de ocorrências futuras (PDR-0021 só decidiu as periodicidades,
@@ -47,6 +47,7 @@ def _copiar_para_ocorrencia(origem, data_vencimento):
         classificacao=origem.classificacao,
         periodicidade=origem.periodicidade,
         lancamento_origem=origem,
+        honorario=origem.honorario,
     )
 
 
@@ -430,47 +431,123 @@ def analise_de_dados(escopo, *, inicio, incluir_custas):
     }
 
 
+# ── Honorário contratual: lançamentos gerados (PDR-0032) ────────────────────
+
+def gerar_lancamentos_do_honorario(honorario, *, responsavel=None):
+    """Honorário contratual parcelado/recorrente → receitas pendentes
+    (categoria Honorários) vinculadas a ele, pelo gerador do PDR-0021.
+    Idempotente: só gera se o honorário ainda não tem lançamentos. No
+    parcelamento, `valor_estimado` é o total: a última parcela absorve o
+    centavo de arredondamento."""
+    if not honorario.recebimento_por_lancamentos or honorario.lancamentos.exists():
+        return
+    parcelado = honorario.classificacao == "parcelado"
+    valor = honorario.valor_estimado
+    if parcelado:
+        valor = (honorario.valor_estimado / honorario.numero_parcelas).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+    alvo = honorario.processo or honorario.cliente
+    with transaction.atomic():
+        origem = LancamentoFinanceiro.objects.create(
+            tipo="receita",
+            descricao=f"Honorário — {honorario.get_tipo_display()}" + (f" — {alvo}" if alvo else ""),
+            valor=valor,
+            data_vencimento=honorario.data_prevista,
+            categoria="honorario",
+            cliente=honorario.cliente,
+            processo=honorario.processo,
+            responsavel=responsavel,
+            classificacao=honorario.classificacao,
+            periodicidade=honorario.periodicidade,
+            numero_parcelas=honorario.numero_parcelas,
+            duracao_tipo=honorario.duracao_tipo,
+            duracao_quantidade=honorario.duracao_quantidade,
+            duracao_data_final=honorario.duracao_data_final,
+            honorario=honorario,
+        )
+        gerar_ocorrencias(origem)
+        if parcelado:
+            ultima = origem.ocorrencias.order_by("-data_vencimento").first()
+            ultima.valor = honorario.valor_estimado - valor * (honorario.numero_parcelas - 1)
+            ultima.save(update_fields=["valor"])
+
+
+def cancelar_lancamentos_futuros_do_honorario(honorario):
+    """Honorário cancelado: cancela só as receitas pendentes ainda não
+    vencidas, sem reescrever o que já foi pago ou venceu (mesma regra do
+    PDR-0021)."""
+    LancamentoFinanceiro.objects.filter(
+        honorario=honorario, status="pendente", data_vencimento__gte=timezone.localdate(),
+    ).update(status="cancelado")
+
+
 # ── Honorário sucumbencial calculado (PDR-0029) ─────────────────────────────
 
 JUROS_MENSAL_PESSOA = Decimal("0.01")
 _CENTAVOS = Decimal("0.01")
 
 
-def _meses_decorridos(inicio, ate):
-    """Meses completos entre `inicio` e `ate`; sem data, não há correção."""
+def _meses_decorridos(inicio, ate, fim=None):
+    """Meses completos entre `inicio` e `ate` (limitado por `fim`, quando
+    há); sem data inicial, não há correção."""
     if not inicio:
         return 0
+    if fim and fim < ate:
+        ate = fim
     return max(0, _meses_entre(inicio, ate))
 
 
-def _corrigir(valor_base, *, devedor_tipo, taxa_indice_mensal, data_correcao, data_juros, ate):
+def _corrigir(valor_base, *, devedor_tipo, taxa_indice_mensal, data_correcao, data_juros, ate,
+              data_correcao_fim=None, data_juros_fim=None):
     """Devedor comum: correção monetária pelo índice + juros de 1% a.m.,
-    cada um desde a sua data. Ente estatal: só a taxa (Selic), unificada,
-    desde a data de correção — sem juros à parte. Taxa informada à mão."""
+    cada um no seu intervalo de incidência. Ente estatal: só a taxa
+    (Selic), unificada, no intervalo da correção — sem juros à parte. Taxa
+    informada à mão."""
     taxa = (taxa_indice_mensal or Decimal("0")) / Decimal("100")
-    meses_correcao = _meses_decorridos(data_correcao, ate)
+    meses_correcao = _meses_decorridos(data_correcao, ate, data_correcao_fim)
     if devedor_tipo == "ente_estatal":
         return valor_base * (1 + taxa * meses_correcao)
-    juros = valor_base * JUROS_MENSAL_PESSOA * _meses_decorridos(data_juros, ate)
+    juros = valor_base * JUROS_MENSAL_PESSOA * _meses_decorridos(data_juros, ate, data_juros_fim)
     return valor_base + valor_base * taxa * meses_correcao + juros
 
 
-def calcular_honorario_sucumbencial(honorario, ate):
-    """Total do honorário na data `ate`: sucumbência corrigida + êxito
-    contratual (percentual sobre o valor ganho, também corrigido). Nunca
-    é gravado — o valor exibido é sempre recalculado."""
+def _base_da_sucumbencia(honorario):
+    fixo = honorario.valor_fixo or Decimal("0")
+    percentual = (honorario.percentual or Decimal("0")) / Decimal("100") * (honorario.valor_condenacao or Decimal("0"))
     if honorario.forma_condenacao == "percentual":
-        base = (honorario.percentual or Decimal("0")) / Decimal("100") * (honorario.valor_causa or Decimal("0"))
-    else:
-        base = honorario.valor_fixo or Decimal("0")
+        return percentual
+    if honorario.forma_condenacao == "fixo_percentual":
+        return fixo + percentual
+    return fixo
+
+
+def contratos_de_exito_pelo_ganho(processo):
+    """Contratos de êxito "pelo ganho" ativos do processo — os que a
+    sucumbência avisa. "Pela economia" não entra (o cliente não recebe)."""
+    if processo is None:
+        return []
+    return list(
+        Honorario.objects.filter(
+            processo=processo, tipo="contratual", modalidade__in=("exito", "valor_exito"), exito_base="ganho",
+        ).exclude(status="cancelado")
+    )
+
+
+def calcular_honorario_sucumbencial(honorario, ate, contratos_exito=()):
+    """Total do honorário na data `ate`: sucumbência corrigida + êxito.
+    Êxito = o embutido em registros anteriores ao PDR-0032 + uma linha por
+    contrato de êxito "pelo ganho" do processo (`contratos_exito`), sobre a
+    condenação corrigida — sem condenação informada não há base e não há
+    linha. Nunca é gravado — o valor exibido é sempre recalculado."""
     comum = {
         "devedor_tipo": honorario.devedor_tipo,
         "taxa_indice_mensal": honorario.taxa_indice_mensal,
         "ate": ate,
     }
-    sucumbencia = _corrigir(
-        base, data_correcao=honorario.data_correcao, data_juros=honorario.data_juros, **comum,
-    )
+    intervalos = {
+        "data_correcao": honorario.data_correcao, "data_correcao_fim": honorario.data_correcao_fim,
+        "data_juros": honorario.data_juros, "data_juros_fim": honorario.data_juros_fim,
+    }
+    sucumbencia = _corrigir(_base_da_sucumbencia(honorario), **intervalos, **comum)
     exito = Decimal("0")
     if honorario.exito_percentual is not None:
         ganho = _corrigir(
@@ -478,6 +555,12 @@ def calcular_honorario_sucumbencial(honorario, ate):
             data_correcao=honorario.exito_data_correcao, data_juros=honorario.exito_data_correcao, **comum,
         )
         exito = honorario.exito_percentual / Decimal("100") * ganho
+    linhas = []
+    if honorario.valor_condenacao:
+        condenacao = _corrigir(honorario.valor_condenacao, **intervalos, **comum)
+        for contrato in contratos_exito:
+            valor = (contrato.exito_percentual / Decimal("100") * condenacao).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+            linhas.append({"contrato": contrato, "percentual": contrato.exito_percentual, "valor": valor})
     sucumbencia = sucumbencia.quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
-    exito = exito.quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
-    return {"sucumbencia": sucumbencia, "exito": exito, "total": sucumbencia + exito}
+    exito = exito.quantize(_CENTAVOS, rounding=ROUND_HALF_UP) + sum((l["valor"] for l in linhas), Decimal("0"))
+    return {"sucumbencia": sucumbencia, "exito": exito, "exito_contratos": linhas, "total": sucumbencia + exito}

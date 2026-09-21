@@ -137,6 +137,11 @@ class LancamentoFinanceiro(models.Model):
     lancamento_origem = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="ocorrencias",
     )
+    # Parcelas/ocorrências de um honorário contratual nascem já vinculadas
+    # a ele (PDR-0032).
+    honorario = models.ForeignKey(
+        "Honorario", on_delete=models.SET_NULL, null=True, blank=True, related_name="lancamentos",
+    )
 
     class Meta:
         verbose_name = "Lançamento Financeiro"
@@ -309,10 +314,13 @@ class Honorario(models.Model):
 
     TIPO_CHOICES = [
         ("contratual", "Contratual"),
-        ("sucumbencial", "Sucumbencial"),
+        ("sucumbencial", "Sucumbência"),
         ("exito", "Êxito"),
         ("outro", "Outro"),
     ]
+    # Só estes dois se criam hoje (PDR-0032); "exito" e "outro" são legado,
+    # seguem visíveis e editáveis.
+    TIPOS_NOVOS = ("contratual", "sucumbencial")
 
     STATUS_CHOICES = [
         ("previsto", "Previsto"),
@@ -346,8 +354,9 @@ class Honorario(models.Model):
     # (`services.calcular_honorario_sucumbencial`). `forma_condenacao`
     # vazio = honorário no modelo simples (valor estimado informado).
     FORMA_CONDENACAO_CHOICES = [
-        ("percentual", "Percentual sobre o valor da causa"),
-        ("fixo", "Valor fixo predeterminado"),
+        ("fixo", "Valor fixo"),
+        ("percentual", "Percentual sobre a condenação"),
+        ("fixo_percentual", "Valor fixo + percentual"),
     ]
     DEVEDOR_CHOICES = [
         ("pessoa", "Pessoa física ou jurídica"),
@@ -357,10 +366,11 @@ class Honorario(models.Model):
         ("inpc", "INPC (padrão legal)"),
         ("igpm", "IGP-M (se previsto em contrato/sentença)"),
         ("selic", "Taxa Selic (se previsto em contrato/sentença)"),
+        ("ipca", "IPCA (se previsto em contrato/sentença)"),
     ]
-    forma_condenacao = models.CharField(max_length=12, choices=FORMA_CONDENACAO_CHOICES, blank=True)
+    forma_condenacao = models.CharField(max_length=16, choices=FORMA_CONDENACAO_CHOICES, blank=True)
     percentual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    valor_causa = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    valor_condenacao = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     valor_fixo = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     devedor_tipo = models.CharField(max_length=14, choices=DEVEDOR_CHOICES, blank=True)
     indice_correcao = models.CharField(max_length=6, choices=INDICE_CHOICES, blank=True)
@@ -368,11 +378,39 @@ class Honorario(models.Model):
         max_digits=6, decimal_places=4, null=True, blank=True,
         help_text="Taxa mensal (%) do índice escolhido, informada manualmente.",
     )
+    # Data final vazia = incide até hoje.
     data_correcao = models.DateField(null=True, blank=True)
+    data_correcao_fim = models.DateField(null=True, blank=True)
     data_juros = models.DateField(null=True, blank=True)
+    data_juros_fim = models.DateField(null=True, blank=True)
+    # Êxito embutido na sucumbência: só registros anteriores ao PDR-0032.
     exito_percentual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     exito_valor_ganho = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     exito_data_correcao = models.DateField(null=True, blank=True)
+
+    # Honorário contratual (PDR-0032): parte "valor" (única, parcelada ou
+    # recorrente — parcelada/recorrente geram lançamentos pendentes via o
+    # gerador do PDR-0021) e/ou parte "êxito" (`exito_percentual` + base),
+    # que é só anotação. `modalidade` vazia = contratual anterior ao
+    # PDR-0032, tratado como "valor" único. Nas parcelas, `valor_estimado` é
+    # o total; na recorrência, o valor de cada ocorrência.
+    MODALIDADE_CHOICES = [
+        ("valor", "Valor"),
+        ("exito", "Por êxito"),
+        ("valor_exito", "Valor + êxito"),
+    ]
+    EXITO_BASE_CHOICES = [
+        ("ganho", "Pelo ganho (atuo pelo autor/reconvindo)"),
+        ("economia", "Pela economia (atuo pelo réu)"),
+    ]
+    modalidade = models.CharField(max_length=12, choices=MODALIDADE_CHOICES, blank=True)
+    exito_base = models.CharField(max_length=8, choices=EXITO_BASE_CHOICES, blank=True)
+    classificacao = models.CharField(max_length=12, choices=LancamentoFinanceiro.CLASSIFICACAO_CHOICES, blank=True)
+    periodicidade = models.CharField(max_length=10, choices=LancamentoFinanceiro.PERIODICIDADE_CHOICES, blank=True)
+    numero_parcelas = models.PositiveSmallIntegerField(null=True, blank=True)
+    duracao_tipo = models.CharField(max_length=15, choices=LancamentoFinanceiro.DURACAO_TIPO_CHOICES, blank=True)
+    duracao_quantidade = models.PositiveSmallIntegerField(null=True, blank=True)
+    duracao_data_final = models.DateField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Honorário"
@@ -385,6 +423,24 @@ class Honorario(models.Model):
     @property
     def calculado(self):
         return bool(self.forma_condenacao)
+
+    @property
+    def so_exito(self):
+        return self.tipo == "contratual" and self.modalidade == "exito"
+
+    @property
+    def tem_exito_contratual(self):
+        return self.tipo == "contratual" and self.modalidade in ("exito", "valor_exito")
+
+    @property
+    def recebimento_por_lancamentos(self):
+        """Parcelado/recorrente: o recebimento acontece nos lançamentos
+        gerados, não pela confirmação do honorário."""
+        return self.tipo == "contratual" and self.classificacao in ("parcelado", "recorrente")
+
+    @property
+    def confirmavel(self):
+        return not self.so_exito and not self.recebimento_por_lancamentos
 
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):

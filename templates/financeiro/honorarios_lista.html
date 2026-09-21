@@ -21,7 +21,7 @@
     <div class="card px-5 py-4">
       <div class="flex items-start justify-between gap-4 mb-1 flex-wrap">
         <div>
-          <p class="font-medium text-gray-900">{{ h.get_tipo_display }}{% if h.processo %} — {{ h.processo }}{% endif %}</p>
+          <p class="font-medium text-gray-900">{{ h.get_tipo_display }}{% if h.tipo == "contratual" and h.modalidade %} — {{ h.get_modalidade_display }}{% endif %}{% if h.processo %} — {{ h.processo }}{% endif %}</p>
           <p class="text-xs text-gray-500 mt-0.5">
             {% if h.processo.responsavel %}Responsável: {{ h.processo.responsavel.get_full_name|default:h.processo.responsavel.username }}{% endif %}
             {% if not h.processo and h.cliente %}{{ h.cliente }}{% endif %}
@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      {% if h.status == "previsto" %}
+      {% if h.status == "previsto" and h.confirmavel %}
         {# Três colunas — mesmo layout do protótipo: Valor total / Já recebido / Ainda pendente #}
         <div class="flex flex-wrap gap-7 mt-3">
           <div>
@@ -63,8 +63,18 @@
             <p class="font-semibold text-amber-600">R$ {{ h.valor_pendente_hoje|moeda_br }}</p>
           </div>
         </div>
-      {% else %}
-        <p class="font-semibold text-gray-900 mt-1">R$ {{ h.valor_total_exibido|moeda_br }}</p>
+      {% elif not h.so_exito %}
+        <p class="font-semibold text-gray-900 mt-1">R$ {{ h.valor_total_exibido|moeda_br }}{% if h.classificacao == "recorrente" %} <span class="text-xs font-normal text-gray-500">por ocorrência</span>{% endif %}</p>
+      {% endif %}
+
+      {% if h.recebimento_por_lancamentos %}
+        <p class="text-xs text-gray-500 mt-1">
+          {% if h.classificacao == "parcelado" %}Parcelado em {{ h.numero_parcelas }}x{% else %}Recorrente {{ h.get_periodicidade_display|lower }}{% endif %}
+          &bull; recebimento pelos lançamentos gerados no Financeiro
+        </p>
+      {% endif %}
+      {% if h.tem_exito_contratual %}
+        <p class="text-xs text-gray-500 mt-1">Êxito de {{ h.exito_percentual }}% {% if h.exito_base == "ganho" %}pelo ganho{% else %}pela economia{% endif %} — anotação, sem valor a receber calculado</p>
       {% endif %}
 
       {% if h.calculado %}
@@ -72,6 +82,9 @@
           Sucumbência corrigida R$ {{ h.calculo.sucumbencia|moeda_br }}{% if h.calculo.exito %} &bull; Êxito R$ {{ h.calculo.exito|moeda_br }}{% endif %}
           &bull; {% if h.devedor_tipo == "ente_estatal" %}Ente estatal (Selic){% else %}Devedor comum ({{ h.get_indice_correcao_display }} + juros 1% a.m.){% endif %}
         </p>
+        {% for linha in h.calculo.exito_contratos %}
+          <p class="text-xs text-amber-700 mt-1">Você tem {{ linha.percentual }}% de êxito a receber — R$ {{ linha.valor|moeda_br }}</p>
+        {% endfor %}
       {% endif %}
       <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
         {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
@@ -80,7 +93,7 @@
 
       {% if h.status == "previsto" %}
         <div class="flex flex-wrap items-center gap-3 mt-3">
-          {% if is_admin %}
+          {% if is_admin and h.confirmavel %}
             <a href="{% url 'financeiro:confirmar_recebimento_honorario' h.pk %}" class="text-xs text-green-700 hover:text-green-900 hover:underline">Confirmar recebimento</a>
             <span class="text-gray-200 text-xs">|</span>
           {% endif %}

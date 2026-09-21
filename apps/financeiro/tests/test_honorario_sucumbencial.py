@@ -45,7 +45,7 @@ class HonorarioSucumbencialBase(TenantTestCase):
     def _honorario(self, **kw):
         dados = {
             "tipo": "sucumbencial", "valor_estimado": Decimal("1"), "forma_condenacao": "percentual",
-            "percentual": Decimal("10"), "valor_causa": Decimal("100000"), "devedor_tipo": "pessoa",
+            "percentual": Decimal("10"), "valor_condenacao": Decimal("100000"), "devedor_tipo": "pessoa",
             "indice_correcao": "inpc", "taxa_indice_mensal": Decimal("0.5"),
             "data_correcao": self._atras(6), "data_juros": self._atras(3),
             "processo": self.processo, "cliente": self.cliente,
@@ -74,7 +74,7 @@ class TestCalculo(HonorarioSucumbencialBase):
         self.assertEqual(calcular_honorario_sucumbencial(h, self.hoje)["total"], Decimal("11200.00"))
 
     def test_valor_fixo_como_base(self):
-        h = self._honorario(forma_condenacao="fixo", percentual=None, valor_causa=None,
+        h = self._honorario(forma_condenacao="fixo", percentual=None, valor_condenacao=None,
                             valor_fixo=Decimal("5000"), taxa_indice_mensal=Decimal("0"), data_juros=None)
         self.assertEqual(calcular_honorario_sucumbencial(h, self.hoje)["total"], Decimal("5000.00"))
 
@@ -107,7 +107,7 @@ class TestFormulario(HonorarioSucumbencialBase):
     def _dados(self, **kw):
         dados = {
             "tipo": "sucumbencial", "processo": self.processo.pk, "forma_condenacao": "percentual",
-            "percentual": "10", "valor_causa": "100000", "devedor_tipo": "pessoa",
+            "percentual": "10", "valor_condenacao": "100000", "devedor_tipo": "pessoa",
             "indice_correcao": "inpc", "taxa_indice_mensal": "0.5",
             "data_correcao": self._atras(6).isoformat(), "data_juros": self._atras(3).isoformat(),
         }
@@ -127,9 +127,9 @@ class TestFormulario(HonorarioSucumbencialBase):
         self.assertIn("processo", form.errors)
 
     def test_percentual_exige_valor_da_causa(self):
-        form = HonorarioForm(data=self._dados(valor_causa=""))
+        form = HonorarioForm(data=self._dados(valor_condenacao=""))
         self.assertFalse(form.is_valid())
-        self.assertIn("valor_causa", form.errors)
+        self.assertIn("valor_condenacao", form.errors)
 
     def test_pessoa_exige_data_de_juros_e_indice(self):
         form = HonorarioForm(data=self._dados(data_juros="", indice_correcao=""))
@@ -143,15 +143,21 @@ class TestFormulario(HonorarioSucumbencialBase):
         self.assertEqual(form.cleaned_data["indice_correcao"], "selic")
         self.assertIsNone(form.cleaned_data["data_juros"])
 
-    def test_com_exito_exige_campos_do_exito(self):
-        form = HonorarioForm(data=self._dados(com_exito="on"))
-        self.assertFalse(form.is_valid())
-        self.assertIn("exito_percentual", form.errors)
-
-    def test_sem_exito_descarta_campos_do_exito(self):
+    def test_sucumbencia_nova_nao_grava_exito_embutido(self):
         form = HonorarioForm(data=self._dados(exito_percentual="20", exito_valor_ganho="1"))
         self.assertTrue(form.is_valid(), form.errors)
         self.assertIsNone(form.cleaned_data["exito_percentual"])
+
+    def test_exito_embutido_de_registro_anterior_e_preservado_ao_editar(self):
+        h = self._honorario(
+            exito_percentual=Decimal("20"), exito_valor_ganho=Decimal("50000"),
+            exito_data_correcao=self._atras(6),
+        )
+        form = HonorarioForm(data=self._dados(), instance=h)
+        self.assertTrue(form.is_valid(), form.errors)
+        h = form.save()
+        self.assertEqual(h.exito_percentual, Decimal("20"))
+        self.assertEqual(h.exito_valor_ganho, Decimal("50000"))
 
     def test_tipo_simples_continua_exigindo_valor_estimado_e_ignora_calculo(self):
         form = HonorarioForm(data={"tipo": "contratual", "percentual": "10"})
@@ -170,7 +176,7 @@ class TestTelas(HonorarioSucumbencialBase):
     def test_formulario_novo_abre(self):
         r = self.client.get("/financeiro/honorarios/novo/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Forma de condenação")
+        self.assertContains(r, "Forma da sucumbência")
 
     def test_lista_mostra_total_recalculado_e_pendente(self):
         h = self._honorario()

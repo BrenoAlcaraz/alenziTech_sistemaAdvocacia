@@ -1,10 +1,13 @@
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import CustaJudicial, GrupoCustas, Honorario, LancamentoFinanceiro, SolicitacaoFinanceira
-from .services import calcular_honorario_sucumbencial
+from .services import calcular_honorario_sucumbencial, contratos_de_exito_pelo_ganho
 from apps.clientes.models import Cliente
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
@@ -326,46 +329,59 @@ class ReembolsoCustaForm(forms.Form):
 
 
 class HonorarioForm(forms.ModelForm):
-    """Cadastro manual de honorário. Tipo "sucumbencial" usa o cálculo do
-    PDR-0029 (valor-base + correção conforme devedor/índice, êxito
-    opcional) e exige processo; os demais tipos seguem com valor estimado
-    informado."""
-
-    com_exito = forms.BooleanField(
-        required=False,
-        label="Escritório também tem honorários contratuais de êxito neste caso",
-        widget=forms.CheckboxInput(attrs={"class": "checkbox", "id": "id_com_exito"}),
-    )
+    """Cadastro manual de honorário (PDR-0007, PDR-0032). Só Contratual e
+    Sucumbência se criam; "exito"/"outro" (legado) seguem editáveis no
+    modelo simples (valor estimado informado). Contratual: valor (único,
+    parcelado ou recorrente) e/ou êxito. Sucumbência: valor-base + correção
+    conforme devedor/índice (PDR-0029); o total é sempre recalculado."""
 
     CAMPOS_SUCUMBENCIA = (
-        "forma_condenacao", "percentual", "valor_causa", "valor_fixo", "devedor_tipo",
-        "indice_correcao", "taxa_indice_mensal", "data_correcao", "data_juros",
+        "forma_condenacao", "percentual", "valor_condenacao", "valor_fixo", "devedor_tipo",
+        "indice_correcao", "taxa_indice_mensal",
+        "data_correcao", "data_correcao_fim", "data_juros", "data_juros_fim",
     )
-    CAMPOS_EXITO = ("exito_percentual", "exito_valor_ganho", "exito_data_correcao")
+    CAMPOS_PAGAMENTO = (
+        "classificacao", "periodicidade", "numero_parcelas",
+        "duracao_tipo", "duracao_quantidade", "duracao_data_final",
+    )
+    CAMPOS_EXITO = ("exito_percentual", "exito_base")
+    # Estrutura que, depois de gerados os lançamentos, só se muda neles.
+    CAMPOS_ESTRUTURA_GERADA = ("tipo", "valor_estimado", "data_prevista", *CAMPOS_PAGAMENTO)
 
     class Meta:
         model = Honorario
         field_classes = {"processo": ProcessoChoiceField}
         fields = [
-            "tipo", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes",
-            "forma_condenacao", "percentual", "valor_causa", "valor_fixo", "devedor_tipo",
-            "indice_correcao", "taxa_indice_mensal", "data_correcao", "data_juros",
-            "exito_percentual", "exito_valor_ganho", "exito_data_correcao",
+            "tipo", "modalidade", "valor_estimado", "processo", "cliente", "data_prevista", "observacoes",
+            "classificacao", "periodicidade", "numero_parcelas",
+            "duracao_tipo", "duracao_quantidade", "duracao_data_final",
+            "exito_percentual", "exito_base",
+            "forma_condenacao", "percentual", "valor_condenacao", "valor_fixo", "devedor_tipo",
+            "indice_correcao", "taxa_indice_mensal",
+            "data_correcao", "data_correcao_fim", "data_juros", "data_juros_fim",
         ]
         widgets = {
             "tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "honorario_tipo"}),
+            "modalidade": forms.Select(attrs={"class": "select", "data-toggle-select": "modalidade"}),
+            "classificacao": forms.Select(attrs={"class": "select", "data-toggle-select": "pagamento"}),
+            "periodicidade": forms.Select(attrs={"class": "select"}),
+            "numero_parcelas": forms.NumberInput(attrs={"class": "input", "min": "2"}),
+            "duracao_tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "duracao_tipo"}),
+            "duracao_quantidade": forms.NumberInput(attrs={"class": "input", "min": "1"}),
+            "duracao_data_final": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "exito_percentual": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "exito_base": forms.Select(attrs={"class": "select"}),
             "forma_condenacao": forms.Select(attrs={"class": "select", "data-toggle-select": "forma"}),
             "devedor_tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "devedor"}),
             "indice_correcao": forms.Select(attrs={"class": "select"}),
             "percentual": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
-            "valor_causa": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
+            "valor_condenacao": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
             "valor_fixo": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
             "taxa_indice_mensal": forms.NumberInput(attrs={"class": "input", "step": "0.0001", "min": "0"}),
             "data_correcao": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "data_correcao_fim": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "data_juros": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
-            "exito_percentual": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
-            "exito_valor_ganho": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0"}),
-            "exito_data_correcao": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+            "data_juros_fim": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "valor_estimado": forms.NumberInput(attrs={"class": "input", "step": "0.01", "min": "0.01"}),
             "processo": forms.Select(attrs=PROCESSO_SELECT_ATTRS),
             "cliente": forms.Select(attrs={"class": "select"}),
@@ -373,32 +389,55 @@ class HonorarioForm(forms.ModelForm):
             "observacoes": forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
         }
         labels = {
-            "valor_estimado": "Valor estimado (R$)",
-            "data_prevista": "Data prevista",
-            "forma_condenacao": "Forma de condenação",
+            "modalidade": "Cobrança contratual",
+            "valor_estimado": "Valor (R$)",
+            "data_prevista": "Data (ou 1º vencimento)",
+            "classificacao": "Pagamento do valor",
+            "numero_parcelas": "Quantidade de parcelas",
+            "duracao_tipo": "Duração da recorrência",
+            "duracao_quantidade": "Quantidade de ocorrências",
+            "duracao_data_final": "Data final",
+            "exito_percentual": "Percentual de êxito (%)",
+            "exito_base": "Base do êxito",
+            "forma_condenacao": "Forma da sucumbência",
             "percentual": "Percentual (%)",
-            "valor_causa": "Valor da causa (R$)",
+            "valor_condenacao": "Valor da condenação (R$)",
             "valor_fixo": "Valor fixo (R$)",
             "devedor_tipo": "Devedor (para cálculo da correção)",
             "indice_correcao": "Índice de correção monetária",
             "taxa_indice_mensal": "Taxa mensal do índice (%)",
-            "data_correcao": "Data inicial — correção monetária",
-            "data_juros": "Data inicial — juros (1% a.m.)",
-            "exito_percentual": "Percentual de êxito (%)",
-            "exito_valor_ganho": "Valor ganho pelo cliente — original (R$)",
-            "exito_data_correcao": "Data inicial da correção do êxito",
+            "data_correcao": "Correção monetária — data inicial",
+            "data_correcao_fim": "Correção monetária — data final",
+            "data_juros": "Juros (1% a.m.) — data inicial",
+            "data_juros_fim": "Juros (1% a.m.) — data final",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for nome in ("valor_estimado", *self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO):
+        campos_opcionais = (
+            "valor_estimado", "modalidade", *self.CAMPOS_PAGAMENTO, *self.CAMPOS_EXITO, *self.CAMPOS_SUCUMBENCIA,
+        )
+        for nome in campos_opcionais:
             self.fields[nome].required = False
-        for nome in ("data_correcao", "data_juros", "exito_data_correcao"):
+        for nome in ("data_correcao", "data_correcao_fim", "data_juros", "data_juros_fim", "duracao_data_final"):
             self.fields[nome].input_formats = ["%Y-%m-%d"]
-        self.fields["forma_condenacao"].choices = [("", "Selecione")] + Honorario.FORMA_CONDENACAO_CHOICES
-        self.fields["devedor_tipo"].choices = [("", "Selecione")] + Honorario.DEVEDOR_CHOICES
-        self.fields["indice_correcao"].choices = [("", "Selecione")] + Honorario.INDICE_CHOICES
-        self.fields["com_exito"].initial = self.instance.exito_percentual is not None
+        # Só Contratual e Sucumbência para criar; o tipo legado do próprio
+        # registro continua aceito ao editá-lo.
+        self.fields["tipo"].choices = [
+            (valor, rotulo) for valor, rotulo in Honorario.TIPO_CHOICES
+            if valor in Honorario.TIPOS_NOVOS or valor == self.instance.tipo
+        ]
+        self.fields["modalidade"].choices = Honorario.MODALIDADE_CHOICES
+        self.fields["classificacao"].choices = LancamentoFinanceiro.CLASSIFICACAO_CHOICES
+        for nome, opcoes in (
+            ("periodicidade", LancamentoFinanceiro.PERIODICIDADE_CHOICES),
+            ("duracao_tipo", LancamentoFinanceiro.DURACAO_TIPO_CHOICES),
+            ("exito_base", Honorario.EXITO_BASE_CHOICES),
+            ("forma_condenacao", Honorario.FORMA_CONDENACAO_CHOICES),
+            ("devedor_tipo", Honorario.DEVEDOR_CHOICES),
+            ("indice_correcao", Honorario.INDICE_CHOICES),
+        ):
+            self.fields[nome].choices = [("", "Selecione")] + list(opcoes)
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
         self.fields["cliente"].empty_label = "Nenhum"
@@ -420,50 +459,139 @@ class HonorarioForm(forms.ModelForm):
             if cleaned.get(campo) in (None, ""):
                 self.add_error(campo, mensagem)
 
-    def clean(self):
-        cleaned = super().clean()
-        sucumbencial = cleaned.get("tipo") == "sucumbencial"
+    @staticmethod
+    def _zerar(cleaned, campos):
+        for campo in campos:
+            cleaned[campo] = None if Honorario._meta.get_field(campo).null else ""
 
-        if not sucumbencial:
-            if cleaned.get("valor_estimado") is None:
-                self.add_error("valor_estimado", "Informe o valor estimado.")
-            for campo in (*self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO):
-                cleaned[campo] = None if campo not in ("forma_condenacao", "devedor_tipo", "indice_correcao") else ""
-            return cleaned
-
-        obrigatorio = "Obrigatório para honorário sucumbencial."
+    def _derivar_cliente_do_processo(self, cleaned, mensagem):
         if not cleaned.get("processo"):
-            self.add_error("processo", "Informe o processo — o cliente é derivado dele.")
+            self.add_error("processo", mensagem)
         elif not cleaned.get("cliente"):
             cleaned["cliente"] = cleaned["processo"].clientes.first()
+
+    def clean(self):
+        cleaned = super().clean()
+        tipo = cleaned.get("tipo")
+        if tipo == "sucumbencial":
+            self._clean_sucumbencia(cleaned)
+        elif tipo == "contratual":
+            self._clean_contratual(cleaned)
+        elif tipo:
+            self._clean_legado(cleaned)
+        self._exigir_estrutura_gerada_intacta(cleaned)
+        return cleaned
+
+    def _clean_legado(self, cleaned):
+        if cleaned.get("valor_estimado") is None:
+            self.add_error("valor_estimado", "Informe o valor estimado.")
+        self._zerar(cleaned, (*self.CAMPOS_SUCUMBENCIA, "modalidade", *self.CAMPOS_PAGAMENTO, *self.CAMPOS_EXITO))
+
+    def _clean_contratual(self, cleaned):
+        modalidade = cleaned["modalidade"] = cleaned.get("modalidade") or "valor"
+        self._zerar(cleaned, self.CAMPOS_SUCUMBENCIA)
+        if modalidade in ("valor", "valor_exito"):
+            self._clean_valor_contratual(cleaned)
+        else:
+            cleaned["valor_estimado"] = Decimal("0")
+            cleaned["data_prevista"] = None
+            self._zerar(cleaned, self.CAMPOS_PAGAMENTO)
+        if modalidade in ("exito", "valor_exito"):
+            self._clean_exito_contratual(cleaned)
+        else:
+            self._zerar(cleaned, self.CAMPOS_EXITO)
+
+    def _clean_valor_contratual(self, cleaned):
+        if cleaned.get("valor_estimado") is None:
+            self.add_error("valor_estimado", "Informe o valor.")
+        classificacao = cleaned["classificacao"] = cleaned.get("classificacao") or "unica"
+        if classificacao == "unica":
+            self._zerar(cleaned, self.CAMPOS_PAGAMENTO[1:])
+            return
+        if not cleaned.get("data_prevista"):
+            self.add_error("data_prevista", "Informe a data do primeiro vencimento.")
+        if self.instance.valor_recebido > 0:
+            self.add_error(
+                "classificacao",
+                "Já há recebimento confirmado: o pagamento não pode mais ser parcelado ou recorrente.",
+            )
+        self._validar_recorrencia(cleaned)
+        if classificacao == "parcelado":
+            self._zerar(cleaned, ("periodicidade", "duracao_tipo", "duracao_quantidade", "duracao_data_final"))
+        else:
+            self._zerar(cleaned, ("numero_parcelas",))
+            if cleaned.get("duracao_tipo") != "quantidade":
+                self._zerar(cleaned, ("duracao_quantidade",))
+            if cleaned.get("duracao_tipo") != "data_final":
+                self._zerar(cleaned, ("duracao_data_final",))
+
+    def _validar_recorrencia(self, cleaned):
+        """Mesmas regras de parcelado/recorrente do lançamento (PDR-0021),
+        reaproveitando a validação do próprio modelo."""
+        provisorio = LancamentoFinanceiro(
+            data_vencimento=cleaned.get("data_prevista"),
+            **{campo: cleaned.get(campo) for campo in self.CAMPOS_PAGAMENTO},
+        )
+        try:
+            provisorio.clean()
+        except ValidationError as erro:
+            for campo, mensagens in erro.message_dict.items():
+                self.add_error(campo, mensagens)
+
+    def _clean_exito_contratual(self, cleaned):
+        self._derivar_cliente_do_processo(cleaned, "Informe o processo — obrigatório para honorário por êxito.")
+        self._exigir(cleaned, self.CAMPOS_EXITO, "Obrigatório para honorário por êxito.")
+        percentual = cleaned.get("exito_percentual")
+        if percentual is not None and not 0 < percentual <= 100:
+            self.add_error("exito_percentual", "Informe um percentual entre 0 e 100.")
+
+    def _clean_sucumbencia(self, cleaned):
+        obrigatorio = "Obrigatório para honorário de sucumbência."
+        self._derivar_cliente_do_processo(cleaned, "Informe o processo — o cliente é derivado dele.")
         self._exigir(cleaned, ("forma_condenacao", "devedor_tipo", "data_correcao"), obrigatorio)
-        if cleaned.get("forma_condenacao") == "percentual":
-            self._exigir(cleaned, ("percentual", "valor_causa"), obrigatorio)
-            cleaned["valor_fixo"] = None
-        elif cleaned.get("forma_condenacao") == "fixo":
+        forma = cleaned.get("forma_condenacao")
+        if forma in ("percentual", "fixo_percentual"):
+            self._exigir(cleaned, ("percentual", "valor_condenacao"), obrigatorio)
+        else:
+            cleaned["percentual"] = cleaned["valor_condenacao"] = None
+        if forma in ("fixo", "fixo_percentual"):
             self._exigir(cleaned, ("valor_fixo",), obrigatorio)
-            cleaned["percentual"] = cleaned["valor_causa"] = None
+        else:
+            cleaned["valor_fixo"] = None
         if cleaned.get("devedor_tipo") == "pessoa":
             self._exigir(cleaned, ("indice_correcao", "data_juros"), obrigatorio)
         else:
             # Ente estatal: só a Selic, unificada, sem juros à parte.
             cleaned["indice_correcao"] = "selic"
-            cleaned["data_juros"] = None
-        if cleaned.get("com_exito"):
-            self._exigir(cleaned, self.CAMPOS_EXITO, "Obrigatório quando há êxito contratual.")
-        else:
-            for campo in self.CAMPOS_EXITO:
-                cleaned[campo] = None
+            cleaned["data_juros"] = cleaned["data_juros_fim"] = None
+        for inicio, fim in (("data_correcao", "data_correcao_fim"), ("data_juros", "data_juros_fim")):
+            if cleaned.get(inicio) and cleaned.get(fim) and cleaned[fim] < cleaned[inicio]:
+                self.add_error(fim, "A data final não pode ser anterior à inicial.")
+        self._zerar(cleaned, ("modalidade", *self.CAMPOS_PAGAMENTO, "exito_base"))
+        # O êxito passou a ser o contrato do processo (aviso na sucumbência);
+        # o êxito embutido de registros anteriores é preservado, sem edição.
+        embutido = self.instance.tipo == "sucumbencial" and self.instance.exito_percentual is not None
+        cleaned["exito_percentual"] = self.instance.exito_percentual if embutido else None
 
         if not self.errors:
             # Valor estimado = total calculado hoje (o exibido é sempre recalculado).
-            provisorio = Honorario(**{
-                campo: cleaned.get(campo) for campo in (*self.CAMPOS_SUCUMBENCIA, *self.CAMPOS_EXITO)
-            })
+            provisorio = Honorario(
+                exito_valor_ganho=self.instance.exito_valor_ganho if embutido else None,
+                exito_data_correcao=self.instance.exito_data_correcao if embutido else None,
+                **{campo: cleaned.get(campo) for campo in (*self.CAMPOS_SUCUMBENCIA, "exito_percentual")},
+            )
             cleaned["valor_estimado"] = calcular_honorario_sucumbencial(
-                provisorio, timezone.localdate(),
+                provisorio, timezone.localdate(), contratos_de_exito_pelo_ganho(cleaned.get("processo")),
             )["total"]
-        return cleaned
+
+    def _exigir_estrutura_gerada_intacta(self, cleaned):
+        if self.errors or not self.instance.pk or not self.instance.lancamentos.exists():
+            return
+        if any(cleaned.get(campo) != getattr(self.instance, campo) for campo in self.CAMPOS_ESTRUTURA_GERADA):
+            raise forms.ValidationError(
+                "Os lançamentos deste honorário já foram gerados: para mudar valor, datas ou "
+                "parcelamento, ajuste-os no Financeiro."
+            )
 
 
 class ConfirmarRecebimentoHonorarioForm(forms.ModelForm):

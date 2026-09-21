@@ -1,4 +1,5 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}{% if modo == "editar" %}Editar honorário — Financeiro{% else %}Novo honorário — Financeiro{% endif %}{% endblock %}
 
 {% block content %}
@@ -23,133 +24,92 @@
 
     <div class="flex flex-col gap-4">
 
-      <div>
-        <label class="label" for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
-        {{ form.tipo }}
-        {% if form.tipo.errors %}
-          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.tipo.errors|join:", " }}</p>
-        {% endif %}
-      </div>
+      {% include "financeiro/_campo_honorario.html" with campo=form.tipo %}
 
       <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="label" for="{{ form.processo.id_for_label }}">{{ form.processo.label }} <span class="text-gray-400 font-normal">(obrigatório na sucumbência)</span></label>
-          {{ form.processo }}
-          {% if form.processo.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.processo.errors|join:", " }}</p>
-          {% endif %}
+        {% include "financeiro/_campo_honorario.html" with campo=form.processo dica="obrigatório na sucumbência e no êxito" %}
+        {% include "financeiro/_campo_honorario.html" with campo=form.cliente dica="com processo, vem dele" %}
+      </div>
+
+      {# Contratual e legado (êxito/outro): o valor é um campo só, renderizado uma vez #}
+      <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual,exito,outro" class="flex flex-col gap-4">
+        <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual">
+          {% include "financeiro/_campo_honorario.html" with campo=form.modalidade %}
         </div>
-        <div>
-          <label class="label" for="{{ form.cliente.id_for_label }}">{{ form.cliente.label }} <span class="text-gray-400 font-normal">(na sucumbência, vem do processo)</span></label>
-          {{ form.cliente }}
-          {% if form.cliente.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.cliente.errors|join:", " }}</p>
-          {% endif %}
+
+        <div data-toggle-panel="modalidade" data-toggle-values="valor,valor_exito" class="flex flex-col gap-4">
+          <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual">
+            {% include "financeiro/_campo_honorario.html" with campo=form.classificacao %}
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            {% include "financeiro/_campo_honorario.html" with campo=form.valor_estimado %}
+            {% include "financeiro/_campo_honorario.html" with campo=form.data_prevista dica="opcional no pagamento único" %}
+          </div>
+          <p data-toggle-panel="pagamento" data-toggle-values="parcelado" class="text-xs text-gray-400">O valor é o total: será dividido em parcelas mensais, cada uma gerando uma receita pendente no Financeiro.</p>
+          <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-400">O valor é o de cada ocorrência; cada uma gera uma receita pendente no Financeiro. Sem duração definida, gera uma janela de ocorrências futuras.</p>
+          <div data-toggle-panel="pagamento" data-toggle-values="parcelado">
+            {% include "financeiro/_campo_honorario.html" with campo=form.numero_parcelas %}
+          </div>
+          <div data-toggle-panel="pagamento" data-toggle-values="recorrente" class="grid grid-cols-2 gap-4">
+            {% include "financeiro/_campo_honorario.html" with campo=form.periodicidade %}
+            {% include "financeiro/_campo_honorario.html" with campo=form.duracao_tipo %}
+            <div data-toggle-panel="duracao_tipo" data-toggle-values="quantidade">
+              {% include "financeiro/_campo_honorario.html" with campo=form.duracao_quantidade %}
+            </div>
+            <div data-toggle-panel="duracao_tipo" data-toggle-values="data_final">
+              {% include "financeiro/_campo_honorario.html" with campo=form.duracao_data_final %}
+            </div>
+          </div>
+        </div>
+
+        <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual">
+          <div data-toggle-panel="modalidade" data-toggle-values="exito,valor_exito" class="grid grid-cols-2 gap-4">
+            {% include "financeiro/_campo_honorario.html" with campo=form.exito_percentual %}
+            {% include "financeiro/_campo_honorario.html" with campo=form.exito_base %}
+            <p class="col-span-2 text-xs text-gray-400">O êxito é só anotação: não gera lançamento nem valor a receber. Com base "pelo ganho", a sucumbência do mesmo processo mostra o percentual a receber sobre a condenação corrigida.</p>
+          </div>
         </div>
       </div>
 
-      {# Modelo simples — contratual, êxito, outro #}
-      <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual,exito,outro" class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="label" for="{{ form.valor_estimado.id_for_label }}">{{ form.valor_estimado.label }}</label>
-          {{ form.valor_estimado }}
-          {% if form.valor_estimado.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_estimado.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-        <div>
-          <label class="label" for="{{ form.data_prevista.id_for_label }}">{{ form.data_prevista.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
-          {{ form.data_prevista }}
-          {% if form.data_prevista.errors %}
-            <p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_prevista.errors|join:", " }}</p>
-          {% endif %}
-        </div>
-      </div>
-
-      {# Sucumbência calculada (PDR-0029) #}
+      {# Sucumbência (PDR-0029, PDR-0032) #}
       <div data-toggle-panel="honorario_tipo" data-toggle-values="sucumbencial" class="flex flex-col gap-4">
-        <div>
-          <label class="label" for="{{ form.forma_condenacao.id_for_label }}">{{ form.forma_condenacao.label }}</label>
-          {{ form.forma_condenacao }}
-          {% if form.forma_condenacao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.forma_condenacao.errors|join:", " }}</p>{% endif %}
+        {% include "financeiro/_campo_honorario.html" with campo=form.forma_condenacao %}
+        <div data-toggle-panel="forma" data-toggle-values="fixo,fixo_percentual">
+          {% include "financeiro/_campo_honorario.html" with campo=form.valor_fixo %}
         </div>
-        <div data-toggle-panel="forma" data-toggle-values="percentual" class="grid grid-cols-2 gap-4">
-          <div>
-          <label class="label" for="{{ form.percentual.id_for_label }}">{{ form.percentual.label }}</label>
-          {{ form.percentual }}
-          {% if form.percentual.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.percentual.errors|join:", " }}</p>{% endif %}
-        </div>
-          <div>
-          <label class="label" for="{{ form.valor_causa.id_for_label }}">{{ form.valor_causa.label }}</label>
-          {{ form.valor_causa }}
-          {% if form.valor_causa.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_causa.errors|join:", " }}</p>{% endif %}
-        </div>
-        </div>
-        <div data-toggle-panel="forma" data-toggle-values="fixo">
-          <div>
-          <label class="label" for="{{ form.valor_fixo.id_for_label }}">{{ form.valor_fixo.label }}</label>
-          {{ form.valor_fixo }}
-          {% if form.valor_fixo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_fixo.errors|join:", " }}</p>{% endif %}
-        </div>
+        <div data-toggle-panel="forma" data-toggle-values="percentual,fixo_percentual" class="grid grid-cols-2 gap-4">
+          {% include "financeiro/_campo_honorario.html" with campo=form.percentual %}
+          {% include "financeiro/_campo_honorario.html" with campo=form.valor_condenacao %}
         </div>
 
-        <div>
-          <label class="label" for="{{ form.devedor_tipo.id_for_label }}">{{ form.devedor_tipo.label }}</label>
-          {{ form.devedor_tipo }}
-          {% if form.devedor_tipo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.devedor_tipo.errors|join:", " }}</p>{% endif %}
-        </div>
+        {% include "financeiro/_campo_honorario.html" with campo=form.devedor_tipo %}
         <div class="grid grid-cols-2 gap-4">
           <div data-toggle-panel="devedor" data-toggle-values="pessoa">
-            <label class="label" for="{{ form.indice_correcao.id_for_label }}">{{ form.indice_correcao.label }}</label>
-            {{ form.indice_correcao }}
-            {% if form.indice_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.indice_correcao.errors|join:", " }}</p>{% endif %}
+            {% include "financeiro/_campo_honorario.html" with campo=form.indice_correcao %}
           </div>
-          <div>
-          <label class="label" for="{{ form.taxa_indice_mensal.id_for_label }}">{{ form.taxa_indice_mensal.label }}</label>
-          {{ form.taxa_indice_mensal }}
-          {% if form.taxa_indice_mensal.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.taxa_indice_mensal.errors|join:", " }}</p>{% endif %}
-        </div>
-          <div>
-          <label class="label" for="{{ form.data_correcao.id_for_label }}">{{ form.data_correcao.label }}</label>
-          {{ form.data_correcao }}
-          {% if form.data_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_correcao.errors|join:", " }}</p>{% endif %}
-        </div>
+          {% include "financeiro/_campo_honorario.html" with campo=form.taxa_indice_mensal %}
+          {% include "financeiro/_campo_honorario.html" with campo=form.data_correcao %}
+          {% include "financeiro/_campo_honorario.html" with campo=form.data_correcao_fim dica="vazia = até hoje" %}
           <div data-toggle-panel="devedor" data-toggle-values="pessoa">
-            <label class="label" for="{{ form.data_juros.id_for_label }}">{{ form.data_juros.label }}</label>
-            {{ form.data_juros }}
-            {% if form.data_juros.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.data_juros.errors|join:", " }}</p>{% endif %}
+            {% include "financeiro/_campo_honorario.html" with campo=form.data_juros %}
+          </div>
+          <div data-toggle-panel="devedor" data-toggle-values="pessoa">
+            {% include "financeiro/_campo_honorario.html" with campo=form.data_juros_fim dica="vazia = até hoje" %}
           </div>
         </div>
-        <p class="text-xs text-gray-400">Sem integração com índices externos: informe a taxa mensal do índice (ou da Selic, no ente estatal). Devedor comum: correção pelo índice + juros de 1% a.m.; ente estatal: só a Selic, sem juros à parte. As datas podem ser diferentes porque o juiz costuma fixar termos iniciais distintos.</p>
-
-        <div class="flex items-center gap-2">
-          {{ form.com_exito }}
-          <label for="id_com_exito" class="text-sm text-gray-700 cursor-pointer">{{ form.com_exito.label }}</label>
-        </div>
-        <div id="painel-exito" class="hidden grid grid-cols-2 gap-4">
-          <div>
-          <label class="label" for="{{ form.exito_percentual.id_for_label }}">{{ form.exito_percentual.label }}</label>
-          {{ form.exito_percentual }}
-          {% if form.exito_percentual.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_percentual.errors|join:", " }}</p>{% endif %}
-        </div>
-          <div>
-          <label class="label" for="{{ form.exito_valor_ganho.id_for_label }}">{{ form.exito_valor_ganho.label }}</label>
-          {{ form.exito_valor_ganho }}
-          {% if form.exito_valor_ganho.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_valor_ganho.errors|join:", " }}</p>{% endif %}
-        </div>
-          <div>
-          <label class="label" for="{{ form.exito_data_correcao.id_for_label }}">{{ form.exito_data_correcao.label }}</label>
-          {{ form.exito_data_correcao }}
-          {% if form.exito_data_correcao.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.exito_data_correcao.errors|join:", " }}</p>{% endif %}
-        </div>
-          <p class="col-span-2 text-xs text-gray-400">O valor ganho pelo cliente também é corrigido (mesma regra da sucumbência), a partir da data própria do êxito; o percentual incide sobre o valor já corrigido.</p>
-        </div>
+        <p class="text-xs text-gray-400">Sem integração com índices externos: informe a taxa mensal do índice (ou da Selic, no ente estatal). Devedor comum: correção pelo índice + juros de 1% a.m.; ente estatal: só a Selic, sem juros à parte. Cada incidência tem as suas datas porque o juiz costuma fixar termos distintos.</p>
 
         <div class="rounded-xl bg-gray-50 p-4 text-sm">
-          <div class="flex justify-between"><span class="text-gray-500">Sucumbência corrigida</span><span id="calc-sucumbencia" class="font-medium">R$ 0,00</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">Honorários de êxito (contratual)</span><span id="calc-exito" class="font-medium">R$ 0,00</span></div>
-          <div class="flex justify-between border-t border-gray-200 mt-2 pt-2"><span class="font-semibold text-gray-900">Valor total do honorário</span><span id="calc-total" class="font-semibold text-gray-900">R$ 0,00</span></div>
+          <div class="flex justify-between"><span class="font-semibold text-gray-900">Sucumbência corrigida (prévia)</span><span id="calc-sucumbencia" class="font-semibold text-gray-900">R$ 0,00</span></div>
+          <p class="text-xs text-gray-400 mt-2">O êxito dos contratos "pelo ganho" do processo é somado na listagem.</p>
         </div>
+
+        {% if honorario.exito_percentual is not None and honorario.tipo == "sucumbencial" %}
+          <p class="text-xs text-gray-500">Êxito embutido de registro anterior ({{ honorario.exito_percentual }}%) preservado no total.</p>
+        {% endif %}
+        {% for linha in avisos_exito %}
+          <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Você tem {{ linha.percentual }}% de êxito a receber — R$ {{ linha.valor|moeda_br }}</p>
+        {% endfor %}
       </div>
 
       <div>
@@ -170,47 +130,47 @@
 </div>
 
 <script>
-  // Prévia do total — mesma fórmula de services.calcular_honorario_sucumbencial
+  // Prévia da sucumbência — mesma fórmula de services.calcular_honorario_sucumbencial
   // (o valor gravado/exibido é sempre o recalculado no servidor).
   (function () {
     var form = document.getElementById("form-honorario");
     var hoje = new Date(form.dataset.hoje + "T00:00:00");
     function el(id) { return document.getElementById("id_" + id); }
     function num(id) { return parseFloat(el(id).value) || 0; }
-    function meses(idData) {
-      var v = el(idData).value;
+    function meses(idInicio, idFim) {
+      var v = el(idInicio).value;
       if (!v) return 0;
+      var fim = hoje;
+      var vFim = el(idFim).value;
+      if (vFim) {
+        var dataFim = new Date(vFim + "T00:00:00");
+        if (dataFim < fim) fim = dataFim;
+      }
       var d = new Date(v + "T00:00:00");
-      var m = (hoje.getFullYear() - d.getFullYear()) * 12 + (hoje.getMonth() - d.getMonth());
-      if (hoje.getDate() < d.getDate()) m -= 1;
+      var m = (fim.getFullYear() - d.getFullYear()) * 12 + (fim.getMonth() - d.getMonth());
+      if (fim.getDate() < d.getDate()) m -= 1;
       return Math.max(0, m);
     }
-    function corrigir(base, dataCorrecao, dataJuros) {
+    function corrigir(base) {
       var taxa = num("taxa_indice_mensal") / 100;
-      var mesesCorrecao = meses(dataCorrecao);
+      var mesesCorrecao = meses("data_correcao", "data_correcao_fim");
       if (el("devedor_tipo").value === "ente_estatal") return base * (1 + taxa * mesesCorrecao);
-      return base + base * taxa * mesesCorrecao + base * 0.01 * meses(dataJuros);
+      return base + base * taxa * mesesCorrecao + base * 0.01 * meses("data_juros", "data_juros_fim");
     }
     function brl(v) { return "R$ " + v.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 
-    var comExito = document.getElementById("id_com_exito");
-    var painelExito = document.getElementById("painel-exito");
-
     function recalcular() {
-      painelExito.classList.toggle("hidden", !comExito.checked);
-      var base = el("forma_condenacao").value === "percentual"
-        ? num("percentual") / 100 * num("valor_causa") : num("valor_fixo");
-      var suc = corrigir(base, "data_correcao", "data_juros");
-      var exito = comExito.checked
-        ? num("exito_percentual") / 100 * corrigir(num("exito_valor_ganho"), "exito_data_correcao", "exito_data_correcao")
-        : 0;
-      document.getElementById("calc-sucumbencia").textContent = brl(suc);
-      document.getElementById("calc-exito").textContent = brl(exito);
-      document.getElementById("calc-total").textContent = brl(suc + exito);
+      var forma = el("forma_condenacao").value;
+      var percentual = num("percentual") / 100 * num("valor_condenacao");
+      var base = forma === "percentual" ? percentual
+        : forma === "fixo_percentual" ? num("valor_fixo") + percentual
+        : num("valor_fixo");
+      document.getElementById("calc-sucumbencia").textContent = brl(corrigir(base));
     }
     form.addEventListener("input", recalcular);
     form.addEventListener("change", recalcular);
     recalcular();
   })();
 </script>
+
 {% endblock %}
