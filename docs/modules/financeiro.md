@@ -197,9 +197,23 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   do Administrador do escritório, mesma restrição da confirmação de
   recebimento.
 
-- Honorário sucumbencial (PDR-0029): percentual sobre a causa ou valor
-  fixo, devedor pessoa/ente estatal, índice com taxa mensal informada à
-  mão, êxito contratual opcional; total recalculado a cada leitura.
+- Honorário sucumbencial (PDR-0029, ajustado pelo PDR-0032): valor fixo,
+  percentual sobre a condenação ou fixo + percentual; devedor pessoa/ente
+  estatal; índice (INPC, IGP-M, Selic, IPCA) com taxa mensal informada à
+  mão; juros e correção com data inicial e final de incidência (final
+  vazia = até hoje); total recalculado a cada leitura.
+- Tipos ([PDR-0032](../decisions/PDR-0032-honorarios-contratual-sucumbencia-ipca.md)):
+  só Contratual e Sucumbência se criam; `exito`/`outro` antigos seguem
+  editáveis.
+- Contratual: "valor", "por êxito" ou "valor + êxito" no mesmo registro.
+  Valor único, parcelado ou recorrente; parcelado e recorrente geram
+  receitas pendentes (categoria Honorários) vinculadas ao honorário, pelo
+  gerador do PDR-0021 — recebidas nos lançamentos, não pela confirmação
+  do honorário. Êxito: percentual + base (pelo ganho/pela economia),
+  processo obrigatório, só anotação (sem lançamento nem valor calculado).
+- Aviso de êxito: a sucumbência mostra "Você tem X% de êxito a receber"
+  por contrato "pelo ganho" do mesmo processo, sobre a condenação
+  corrigida, somado ao total a receber; "pela economia" não entra.
 
 ## Relação com billing SaaS
 
@@ -225,8 +239,8 @@ despesa. Integração futura mais ampla exigiria novo PDR.
 - exportação Excel opcional;
 - relatórios além do painel mínimo e do gráfico receita×despesa;
 - integração bancária, boleto por API, conciliação automatizada;
-- integração com índice externo (INPC/Selic) para correção monetária de
-  honorários (PDR-0022).
+- integração com índice externo (INPC/Selic/IPCA) para correção monetária
+  de honorários (PDR-0022, PDR-0032).
 
 ## Referências
 
@@ -238,4 +252,5 @@ despesa. Integração futura mais ampla exigiria novo PDR.
 - [PDR-0015](../decisions/PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md) — fluxo de aprovação
 - [PDR-0021](../decisions/PDR-0021-periodicidades-financeiras.md) — periodicidades da recorrência
 - [PDR-0022](../decisions/PDR-0022-honorarios-recebimento-parcial-correcao.md) — honorários: parcial e correção
+- [PDR-0032](../decisions/PDR-0032-honorarios-contratual-sucumbencia-ipca.md) — honorários: contratual, sucumbência, êxito e IPCA
 - [STATUS.md](../STATUS.md#financeiro) para o estado real de implementação
