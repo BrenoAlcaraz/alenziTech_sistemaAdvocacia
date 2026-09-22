@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from apps.accounts.models import ConviteDelegacao
 from apps.processos.models import Processo
 from apps.processos.services import processo_pertence_ao_cliente
 from apps.clientes.models import Cliente
@@ -39,6 +40,12 @@ class Tarefa(models.Model):
     )
     prazo = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+    # Convite de delegação (specs/delegacao-por-convite-agenda-tarefas.md):
+    # presente e pendente/recusado enquanto a tarefa não é uma atribuição
+    # ativa do responsável — ver Tarefa.oculta_por_convite.
+    convite_delegacao = models.OneToOneField(
+        ConviteDelegacao, on_delete=models.SET_NULL, null=True, blank=True, related_name="tarefa",
+    )
 
     class Meta:
         verbose_name = "Tarefa"
@@ -48,6 +55,15 @@ class Tarefa(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
+    @property
+    def oculta_por_convite(self):
+        """True enquanto a tarefa não deve aparecer como atribuição ativa
+        do responsável — convite de delegação pendente ou recusado."""
+        return (
+            self.convite_delegacao_id is not None
+            and self.convite_delegacao.status != ConviteDelegacao.STATUS_ACEITO
+        )
 
     @property
     def prazo_urgente(self):

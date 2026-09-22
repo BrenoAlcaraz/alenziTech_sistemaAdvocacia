@@ -42,6 +42,20 @@
       </span>
     {% endif %}
 
+    {# Convite de delegação — estado visível para quem delegou (specs/delegacao-por-convite-agenda-tarefas.md) #}
+    {% if tarefa.convite_delegacao %}
+      {% if tarefa.convite_delegacao.status == "pendente" %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #92400e;">Convite pendente</span>
+      {% elif tarefa.convite_delegacao.status == "recusado" %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #b91c1c;"
+              title="{{ tarefa.convite_delegacao.justificativa_recusa }}">
+          Convite recusado{% if tarefa.convite_delegacao.justificativa_recusa %}: {{ tarefa.convite_delegacao.justificativa_recusa }}{% endif %}
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 text-xs font-medium" style="color: #15803d;">Convite aceito</span>
+      {% endif %}
+    {% endif %}
+
     {# Processo ou Cliente — ícone escuro, label em negrito, valor normal #}
     {% if tarefa.processo %}
       <span class="inline-flex items-center gap-1 max-w-full text-xs text-gray-600">

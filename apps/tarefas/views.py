@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -10,7 +11,14 @@ from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from apps.accounts.decorators import usuario_admin_escritorio
+from apps.accounts.delegacao import (
+    aceitar_convite,
+    criar_convite_delegacao,
+    delegacao_exige_convite,
+    recusar_convite,
+)
 from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
+from apps.accounts.models import ConviteDelegacao
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_GERIR,
@@ -39,7 +47,7 @@ ORDENS_VALIDAS = {
     "mais_antigas",
 }
 
-ABAS_VALIDAS = {"novidades", "terceiro", "delegadas", "outros"}
+ABAS_VALIDAS = {"novidades", "terceiro", "delegadas", "convites", "outros"}
 
 
 def _normalizar_ordem(ordem):
@@ -86,14 +94,26 @@ def _resolver_escopo(request):
     return solicitado, nivel_maximo
 
 
+_CONVITES_QUE_OCULTAM = [ConviteDelegacao.STATUS_PENDENTE, ConviteDelegacao.STATUS_RECUSADO]
+
+
+def _excluir_ocultas_por_convite(qs):
+    """Remove tarefa com convite de delegação pendente/recusado — ainda
+    não é (ou nunca será) atribuição ativa do responsável (specs/
+    delegacao-por-convite-agenda-tarefas.md). Tarefa sem convite (direta)
+    ou com convite aceito não é afetada."""
+    return qs.exclude(convite_delegacao__status__in=_CONVITES_QUE_OCULTAM)
+
+
 def _tarefas_no_escopo(request, escopo):
     """QuerySet de LEITURA (quadro/lista), restrito pelo escopo efetivo —
     inclui quem é responsável e quem é participante (specs/tarefas-
     multiplos-participantes.md: um participante precisa conseguir ver a
     tarefa em que está)."""
-    qs = Tarefa.objects.select_related("responsavel", "processo", "cliente")
+    qs = Tarefa.objects.select_related("responsavel", "processo", "cliente", "convite_delegacao")
     if escopo == NIVEL_SOMENTE_SEUS:
         qs = qs.filter(Q(responsavel=request.user) | Q(participantes=request.user)).distinct()
+        qs = _excluir_ocultas_por_convite(qs)
     return qs
 
 
@@ -104,11 +124,13 @@ def _tarefas_mutaveis(request):
     "Todos" é escopo de visualização, não autorização de mutação sobre
     qualquer tarefa: um usuário não-admin só muta tarefa da própria
     responsabilidade, mesmo com nível máximo `todos`. Só o Administrador
-    do escritório alcança qualquer tarefa do tenant para mutação.
+    do escritório alcança qualquer tarefa do tenant para mutação — inclusive
+    uma tarefa ainda oculta por convite de delegação.
     """
     qs = Tarefa.objects.all()
     if not usuario_admin_escritorio(request.user):
         qs = qs.filter(responsavel=request.user)
+        qs = _excluir_ocultas_por_convite(qs)
     return qs
 
 
@@ -152,11 +174,10 @@ def _tarefas_novidades(request):
     Sempre visível, sem checagem de habilitação.
     """
     limite = timezone.now() - timedelta(hours=24)
-    return (
+    return _excluir_ocultas_por_convite(
         Tarefa.objects.select_related("responsavel", "processo", "cliente")
         .filter(responsavel=request.user, atribuido_em__gte=limite)
-        .order_by("-atribuido_em")
-    )
+    ).order_by("-atribuido_em")
 
 
 def _tarefas_atribuidas_por_terceiros(request):
@@ -165,13 +186,12 @@ def _tarefas_atribuidas_por_terceiros(request):
     usuário é responsável, mas quem atribuiu foi outra pessoa. Sempre
     visível, sem checagem de habilitação.
     """
-    return (
+    return _excluir_ocultas_por_convite(
         Tarefa.objects.select_related("responsavel", "processo", "cliente")
         .filter(responsavel=request.user)
         .exclude(atribuidor__isnull=True)
         .exclude(atribuidor=request.user)
-        .order_by("-atribuido_em")
-    )
+    ).order_by("-atribuido_em")
 
 
 def _tarefas_delegadas_por_mim(request):
@@ -181,10 +201,25 @@ def _tarefas_delegadas_por_mim(request):
     habilitação de atribuir tarefa a terceiros.
     """
     return (
-        Tarefa.objects.select_related("responsavel", "processo", "cliente")
+        Tarefa.objects.select_related("responsavel", "processo", "cliente", "convite_delegacao")
         .filter(atribuidor=request.user)
         .exclude(responsavel=request.user)
         .order_by("-atribuido_em")
+    )
+
+
+def _convites_pendentes_do_usuario(request):
+    """Convites de delegação de Tarefa pendentes para o usuário logado
+    responder (specs/delegacao-por-convite-agenda-tarefas.md) — qualquer
+    usuário pode ser destinatário, sem exigir habilitação."""
+    return (
+        ConviteDelegacao.objects.filter(
+            destinatario=request.user,
+            status=ConviteDelegacao.STATUS_PENDENTE,
+            content_type=ContentType.objects.get_for_model(Tarefa),
+        )
+        .select_related("delegante")
+        .order_by("-criado_em")
     )
 
 
@@ -199,6 +234,7 @@ def _contexto_faixa_subabas(request, usuario_filtro, pode_atribuir_a_outros):
         "pode_atribuir_a_outros": pode_atribuir_a_outros,
         "tarefas_novidades": list(_tarefas_novidades(request)),
         "tarefas_terceiro": list(_tarefas_atribuidas_por_terceiros(request)),
+        "convites_recebidos": list(_convites_pendentes_do_usuario(request)),
     }
     if pode_atribuir_a_outros:
         contexto["tarefas_delegadas"] = list(_tarefas_delegadas_por_mim(request))
@@ -355,6 +391,37 @@ def lista(request):
 
 
 @login_required
+def convite_responder(request, pk):
+    """Aceitar/recusar convite de delegação — sub-aba "Convites
+    recebidos" do quadro/lista (specs/delegacao-por-convite-agenda-
+    tarefas.md). Sem página própria: mesma sub-aba dos demais estados
+    de Tarefas."""
+    if not tem_permissao_modulo(request.user, MODULO_TAREFAS):
+        raise PermissionDenied
+    convite = get_object_or_404(
+        ConviteDelegacao,
+        pk=pk,
+        destinatario=request.user,
+        status=ConviteDelegacao.STATUS_PENDENTE,
+        content_type=ContentType.objects.get_for_model(Tarefa),
+    )
+    if request.method == "POST":
+        acao = request.POST.get("acao")
+        if acao == "aceitar":
+            aceitar_convite(convite, request.user)
+        elif acao == "recusar":
+            recusar_convite(convite, request.user, justificativa=request.POST.get("justificativa", ""))
+        else:
+            raise Http404
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(next_url)
+    return redirect("tarefas:quadro")
+
+
+@login_required
 def processos_por_cliente(request):
     """Processos do cliente informado, para o filtro dinâmico dos
     formulários de criação/edição de tarefas."""
@@ -415,6 +482,15 @@ def nova(request):
         tarefa.save()
         participantes = [u for u in atribuidos if u.pk != tarefa.responsavel_id]
         tarefa.participantes.set(participantes)
+        # Delegação por convite (specs/delegacao-por-convite-agenda-
+        # tarefas.md): só se aplica quando o responsável é outra pessoa,
+        # nunca em auto-atribuição.
+        if tarefa.responsavel_id != request.user.pk and delegacao_exige_convite(
+            request.user, tarefa.responsavel
+        ):
+            convite = criar_convite_delegacao(request.user, tarefa.responsavel, tarefa)
+            tarefa.convite_delegacao = convite
+            tarefa.save(update_fields=["convite_delegacao"])
         return redirect(next_url or "tarefas:quadro")
     return render(request, "tarefas/form.html", {
         "form": form,
