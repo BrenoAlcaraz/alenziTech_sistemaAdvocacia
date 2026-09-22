@@ -90,9 +90,18 @@ class TestPainelGestorListaEDetalhe(PainelGestorBase):
         LogAtividade.objects.filter(pk=log_antigo.pk).update(criado_em=agora - timezone.timedelta(days=1))
 
     def test_lista_mostra_contagem_de_hoje(self):
+        # "login" não conta como ação produtiva — só "processo_criado".
         resposta = self.client.get("/gestor/", HTTP_HOST=self.http_host)
         contexto = {c["usuario"].pk: c["acoes_hoje"] for c in resposta.context["usuarios_contexto"]}
-        self.assertEqual(contexto[self.membro.pk], 2)
+        self.assertEqual(contexto[self.membro.pk], 1)
+
+    def test_lista_mostra_contagem_da_semana_e_do_mes_sem_login(self):
+        resposta = self.client.get("/gestor/", HTTP_HOST=self.http_host)
+        item = next(
+            c for c in resposta.context["usuarios_contexto"] if c["usuario"].pk == self.membro.pk
+        )
+        self.assertEqual(item["acoes_semana"], 1)
+        self.assertEqual(item["acoes_mes"], 1)
 
     def test_detalhe_mostra_timeline_do_dia_em_ordem(self):
         resposta = self.client.get(f"/gestor/{self.membro.pk}/", HTTP_HOST=self.http_host)

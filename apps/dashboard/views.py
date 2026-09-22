@@ -674,6 +674,8 @@ def gestor(request):
         raise PermissionDenied
 
     hoje = timezone.localdate()
+    inicio_semana = hoje - timedelta(days=hoje.weekday())
+    inicio_mes = hoje.replace(day=1)
     usuarios = (
         User.objects.filter(is_active=True)
         .select_related("perfil")
@@ -682,10 +684,15 @@ def gestor(request):
     )
     usuarios_contexto = []
     for usuario in usuarios:
+        produtivas = LogAtividade.objects.filter(usuario=usuario).exclude(
+            tipo__in=LogAtividade.TIPOS_NAO_PRODUTIVOS
+        )
         usuarios_contexto.append({
             "usuario": usuario,
             "papel_nome": nomes_papeis_usuario(usuario),
-            "acoes_hoje": LogAtividade.objects.filter(usuario=usuario, criado_em__date=hoje).count(),
+            "acoes_hoje": produtivas.filter(criado_em__date=hoje).count(),
+            "acoes_semana": produtivas.filter(criado_em__date__gte=inicio_semana).count(),
+            "acoes_mes": produtivas.filter(criado_em__date__gte=inicio_mes).count(),
         })
 
     return render(request, "dashboard/gestor.html", {
@@ -694,6 +701,23 @@ def gestor(request):
         "acesso_gestor": True,
         "item_ativo": "painel",
         "aba_ativa": "gestor",
+    })
+
+
+@login_required
+def minha_atividade(request):
+    """Histórico de atividade do próprio usuário — qualquer usuário
+    autenticado, independente do módulo `gerir`/Painel
+    (specs/atividade-ampliar-catalogo.md). Estritamente escopado ao
+    usuário logado, nunca a terceiros."""
+    hoje = timezone.localdate()
+    atividades = LogAtividade.objects.filter(
+        usuario=request.user, criado_em__date=hoje
+    ).order_by("criado_em")
+
+    return render(request, "dashboard/minha_atividade.html", {
+        "atividades": atividades,
+        "item_ativo": "painel",
     })
 
 

@@ -27,6 +27,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.atividade.services import registrar_atividade
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente, rotulo_processo
 from .models import ReatribuicaoTarefa, Tarefa
@@ -491,6 +492,10 @@ def nova(request):
             convite = criar_convite_delegacao(request.user, tarefa.responsavel, tarefa)
             tarefa.convite_delegacao = convite
             tarefa.save(update_fields=["convite_delegacao"])
+        registrar_atividade(
+            request.user, "tarefa_criada", f"Criou a tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
         return redirect(next_url or "tarefas:quadro")
     return render(request, "tarefas/form.html", {
         "form": form,
@@ -524,6 +529,10 @@ def editar(request, pk):
             if not tarefa.cliente and tarefa.processo:
                 tarefa.cliente = tarefa.processo.clientes.first()
             tarefa.save()
+            registrar_atividade(
+                request.user, "tarefa_editada", f"Editou a tarefa {tarefa.titulo}",
+                processo=tarefa.processo,
+            )
             return redirect(next_url or "tarefas:quadro")
     else:
         form = TarefaForm(instance=tarefa)
@@ -572,6 +581,11 @@ def adicionar_participante(request, pk):
             raise Http404
         usuario = formulario.cleaned_data["usuario"]
         tarefa.participantes.add(usuario)
+        registrar_atividade(
+            request.user, "tarefa_participante_adicionado",
+            f"Adicionou {usuario.get_full_name() or usuario.username} como participante da tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
     return redirect("tarefas:editar", pk=pk)
 
 
@@ -586,6 +600,11 @@ def remover_participante(request, pk, usuario_pk):
     if request.method == "POST":
         usuario = get_object_or_404(tarefa.participantes, pk=usuario_pk)
         tarefa.participantes.remove(usuario)
+        registrar_atividade(
+            request.user, "tarefa_participante_removido",
+            f"Removeu {usuario.get_full_name() or usuario.username} dos participantes da tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
     return redirect("tarefas:editar", pk=pk)
 
 
@@ -610,6 +629,12 @@ def adicionar_equipe_participante(request, pk):
             if usuario.pk != tarefa.responsavel_id
         ]
         tarefa.participantes.add(*selecionados)
+        for usuario in selecionados:
+            registrar_atividade(
+                request.user, "tarefa_participante_adicionado",
+                f"Adicionou {usuario.get_full_name() or usuario.username} como participante da tarefa {tarefa.titulo}",
+                processo=tarefa.processo,
+            )
     return redirect("tarefas:editar", pk=pk)
 
 
@@ -634,6 +659,12 @@ def reatribuir(request, pk):
             tarefa.responsavel = novo_responsavel
             tarefa.atribuido_em = timezone.now()
             tarefa.save(update_fields=["responsavel", "atribuido_em"])
+            registrar_atividade(
+                request.user, "tarefa_reatribuida",
+                f"Reatribuiu a tarefa {tarefa.titulo} para "
+                f"{novo_responsavel.get_full_name() or novo_responsavel.username}",
+                processo=tarefa.processo,
+            )
             return _redirect_seguro(request)
     else:
         form = ReatribuirForm(initial={"destinatario": tarefa.responsavel_id})
@@ -655,6 +686,10 @@ def concluir(request, pk):
     if request.method == "POST":
         tarefa.status = "concluida"
         tarefa.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "tarefa_concluida", f"Concluiu a tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
         if tarefa.criador_id and tarefa.criador_id != tarefa.responsavel_id:
             Notificacao.objects.create(
                 destinatario=tarefa.criador,
@@ -672,6 +707,10 @@ def reabrir(request, pk):
     if request.method == "POST":
         tarefa.status = "a_fazer"
         tarefa.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "tarefa_reaberta", f"Reabriu a tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -684,6 +723,10 @@ def iniciar(request, pk):
     if request.method == "POST":
         tarefa.status = "em_andamento"
         tarefa.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "tarefa_iniciada", f"Iniciou a tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -696,6 +739,10 @@ def cancelar(request, pk):
     if request.method == "POST":
         tarefa.status = "cancelada"
         tarefa.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "tarefa_cancelada", f"Cancelou a tarefa {tarefa.titulo}",
+            processo=tarefa.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -706,5 +753,11 @@ def excluir(request, pk):
     _resolver_escopo(request)
     tarefa = get_object_or_404(_tarefas_mutaveis(request), pk=pk)
     if request.method == "POST":
+        titulo = tarefa.titulo
+        processo = tarefa.processo
         tarefa.delete()
+        registrar_atividade(
+            request.user, "tarefa_excluida", f"Excluiu a tarefa {titulo}",
+            processo=processo,
+        )
     return _redirect_seguro(request)

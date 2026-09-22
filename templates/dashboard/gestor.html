@@ -20,6 +20,8 @@
           <th class="text-left px-5 py-3 font-medium">Usuário</th>
           <th class="text-left px-5 py-3 font-medium">Papel</th>
           <th class="text-right px-5 py-3 font-medium">Ações hoje</th>
+          <th class="text-right px-5 py-3 font-medium">Ações na semana</th>
+          <th class="text-right px-5 py-3 font-medium">Ações no mês</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
@@ -31,13 +33,12 @@
             <p class="text-xs text-gray-400">@{{ item.usuario.username }}</p>
           </td>
           <td class="px-5 py-4 text-gray-600">{{ item.papel_nome }}</td>
-          <td class="px-5 py-4 text-right">
-            <span class="font-semibold text-gray-900">{{ item.acoes_hoje }}</span>
-            <span class="text-gray-400"> ações hoje</span>
-          </td>
+          <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_hoje }}</td>
+          <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_semana }}</td>
+          <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_mes }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="3" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum usuário ativo.</td></tr>
+        <tr><td colspan="5" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum usuário ativo.</td></tr>
         {% endfor %}
       </tbody>
     </table>

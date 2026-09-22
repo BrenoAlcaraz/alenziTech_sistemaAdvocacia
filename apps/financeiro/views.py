@@ -24,6 +24,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
 )
+from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.clientes.validators import normalizar_documento
 from apps.notificacoes.models import Notificacao
@@ -497,6 +498,10 @@ def form_lancamento(request):
                 lancamento.cliente = lancamento.processo.clientes.first()
             lancamento.save()
             gerar_ocorrencias(lancamento)
+            registrar_atividade(
+                request.user, "lancamento_criado", f"Criou o lançamento {lancamento.descricao}",
+                processo=lancamento.processo,
+            )
             return redirect("financeiro:index")
     else:
         form = LancamentoFinanceiroForm(initial={"responsavel": request.user})
@@ -526,6 +531,10 @@ def editar_lancamento(request, pk):
                 lancamento.cliente = lancamento.processo.clientes.first()
             lancamento.save()
             gerar_ocorrencias(lancamento)
+            registrar_atividade(
+                request.user, "lancamento_editado", f"Editou o lançamento {lancamento.descricao}",
+                processo=lancamento.processo,
+            )
             return redirect("financeiro:index")
     else:
         form = LancamentoFinanceiroForm(instance=lancamento)
@@ -549,6 +558,10 @@ def marcar_pago(request, pk):
         lancamento.status = "pago"
         lancamento.data_pagamento = timezone.localdate()
         lancamento.save(update_fields=["status", "data_pagamento"])
+        registrar_atividade(
+            request.user, "lancamento_pago", f"Marcou como pago o lançamento {lancamento.descricao}",
+            processo=lancamento.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -561,6 +574,10 @@ def cancelar_lancamento(request, pk):
     if request.method == "POST":
         lancamento.status = "cancelado"
         lancamento.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "lancamento_cancelado", f"Cancelou o lançamento {lancamento.descricao}",
+            processo=lancamento.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -575,6 +592,11 @@ def cancelar_recorrencia(request, pk):
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if request.method == "POST":
         cancelar_ocorrencias_futuras(lancamento)
+        registrar_atividade(
+            request.user, "lancamento_recorrencia_cancelada",
+            f"Cancelou a recorrência futura do lançamento {lancamento.descricao}",
+            processo=lancamento.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -597,6 +619,10 @@ def reabrir_lancamento(request, pk):
         lancamento.status = "pendente"
         lancamento.data_pagamento = None
         lancamento.save(update_fields=["status", "data_pagamento"])
+        registrar_atividade(
+            request.user, "lancamento_reaberto", f"Reabriu o lançamento {lancamento.descricao}",
+            processo=lancamento.processo,
+        )
         if origem is not None and origem.solicitante_id and origem.solicitante_id != request.user.id:
             Notificacao.objects.create(
                 destinatario=origem.solicitante,
@@ -614,7 +640,13 @@ def excluir_lancamento(request, pk):
     if hasattr(lancamento, "solicitacao_origem"):
         raise PermissionDenied
     if request.method == "POST":
+        descricao = lancamento.descricao
+        processo = lancamento.processo
         lancamento.delete()
+        registrar_atividade(
+            request.user, "lancamento_excluido", f"Excluiu o lançamento {descricao}",
+            processo=processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -679,6 +711,10 @@ def form_custa(request):
         form = CustaJudicialForm(request.POST, request.FILES)
         if form.is_valid():
             custa = form.save()
+            registrar_atividade(
+                request.user, "custa_criada", f"Criou a custa judicial {custa.descricao}",
+                processo=custa.processo,
+            )
             if custa.grupo_id:
                 return redirect("financeiro:extrato_custas_grupo", grupo_id=custa.grupo_id)
             if custa.cliente_id:
@@ -720,6 +756,10 @@ def form_creditar_custa(request, cliente_id):
                 descricao=dados["descricao"], processo=dados.get("processo"),
                 anexo=dados.get("anexo"), responsavel=request.user,
             )
+            registrar_atividade(
+                request.user, "custa_creditada", f"Creditou custa a {cliente.nome_razao_social}",
+                processo=dados.get("processo"),
+            )
             return redirect("financeiro:extrato_custas_cliente", cliente_id=cliente.pk)
     else:
         form = CreditarCustaForm(cliente=cliente, initial={"data": timezone.localdate()})
@@ -759,6 +799,10 @@ def form_reembolsar_custa(request, pk):
             reembolsar_custa(
                 custa, data=form.cleaned_data["data"],
                 comprovante=form.cleaned_data["comprovante"], responsavel=request.user,
+            )
+            registrar_atividade(
+                request.user, "custa_reembolsada", f"Reembolsou a custa {custa.descricao}",
+                processo=custa.processo,
             )
             return redirect("financeiro:extrato_custas_cliente", cliente_id=custa.cliente_id)
     else:
@@ -840,7 +884,11 @@ def form_honorario(request):
     if request.method == "POST":
         form = HonorarioForm(request.POST)
         if form.is_valid():
-            _salvar_honorario(form, request.user)
+            honorario = _salvar_honorario(form, request.user)
+            registrar_atividade(
+                request.user, "honorario_criado", f"Criou o honorário ({honorario.get_tipo_display()})",
+                processo=honorario.processo,
+            )
             return redirect("financeiro:honorarios_lista")
     else:
         form = HonorarioForm()
@@ -863,7 +911,11 @@ def editar_honorario(request, pk):
     if request.method == "POST":
         form = HonorarioForm(request.POST, instance=honorario)
         if form.is_valid():
-            _salvar_honorario(form, request.user)
+            honorario = _salvar_honorario(form, request.user)
+            registrar_atividade(
+                request.user, "honorario_editado", f"Editou o honorário ({honorario.get_tipo_display()})",
+                processo=honorario.processo,
+            )
             return redirect("financeiro:honorarios_lista")
     else:
         form = HonorarioForm(instance=honorario)
@@ -962,6 +1014,11 @@ def confirmar_recebimento_honorario(request, pk):
                             destinatario=honorario.processo.responsavel,
                             mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
                         )
+                registrar_atividade(
+                    request.user, "honorario_recebido",
+                    f"Confirmou recebimento do honorário ({honorario.get_tipo_display()})",
+                    processo=honorario.processo,
+                )
                 return redirect("financeiro:honorarios_lista")
     else:
         form = ConfirmarRecebimentoHonorarioForm(
@@ -1001,6 +1058,11 @@ def cancelar_honorario(request, pk):
             honorario.status = "cancelado"
             honorario.save(update_fields=["status"])
             cancelar_lancamentos_futuros_do_honorario(honorario)
+            registrar_atividade(
+                request.user, "honorario_cancelado",
+                f"Cancelou o honorário ({honorario.get_tipo_display()})",
+                processo=honorario.processo,
+            )
     return redirect("financeiro:honorarios_lista")
 
 
@@ -1125,6 +1187,10 @@ def form_solicitacao(request):
             if solicitacao.processo and not solicitacao.cliente:
                 solicitacao.cliente = solicitacao.processo.clientes.first()
             solicitacao.save()
+            registrar_atividade(
+                request.user, "solicitacao_criada", f"Criou a solicitação financeira {solicitacao.descricao}",
+                processo=solicitacao.processo,
+            )
             return redirect(next_url or "financeiro:solicitacoes_lista")
     else:
         form = SolicitacaoFinanceiraForm(processo_fixo=processo_fixo)
@@ -1178,7 +1244,11 @@ def editar_solicitacao(request, pk):
             request.POST, request.FILES, instance=solicitacao, processo_fixo=processo_fixo
         )
         if form.is_valid():
-            form.save()
+            solicitacao = form.save()
+            registrar_atividade(
+                request.user, "solicitacao_editada", f"Editou a solicitação financeira {solicitacao.descricao}",
+                processo=solicitacao.processo,
+            )
             return redirect(next_url or "financeiro:detalhe_solicitacao", pk=solicitacao.pk)
     else:
         form = SolicitacaoFinanceiraForm(instance=solicitacao, processo_fixo=processo_fixo)
@@ -1253,4 +1323,9 @@ def processar_solicitacao(request, pk):
             )
         else:
             solicitacao.avancar_para(novo_status, usuario=request.user)
+        registrar_atividade(
+            request.user, "solicitacao_processada",
+            f"Alterou a solicitação {solicitacao.descricao} para {solicitacao.get_status_display()}",
+            processo=solicitacao.processo,
+        )
     return redirect("financeiro:detalhe_solicitacao", pk=solicitacao.pk)

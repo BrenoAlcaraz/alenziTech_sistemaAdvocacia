@@ -41,6 +41,22 @@
     <a href="{% url 'configuracoes:alterar_senha' %}" class="btn-secondary text-sm">Alterar senha</a>
   </div>
 
+  {# Minha atividade #}
+  <div class="flex items-center justify-between py-3 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center">
+        <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Minha atividade</p>
+        <p class="text-xs text-gray-400">Histórico das suas ações de hoje</p>
+      </div>
+    </div>
+    <a href="{% url 'dashboard:minha_atividade' %}" class="btn-secondary text-sm">Ver histórico</a>
+  </div>
+
   {# Sair #}
   <div class="flex items-center justify-between py-3">
     <div class="flex items-center gap-3">

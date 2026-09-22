@@ -29,6 +29,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.atividade.services import registrar_atividade
 from apps.notificacoes.models import Notificacao
 from apps.processos.services import processos_do_cliente, rotulo_processo
 
@@ -594,6 +595,10 @@ def editar(request, pk):
             compromisso.save()
             if compromisso.data_hora_inicio != data_anterior:
                 _resetar_confirmacoes_por_reagendamento(compromisso)
+            registrar_atividade(
+                request.user, "compromisso_editado", f"Editou o compromisso {compromisso.titulo}",
+                processo=compromisso.processo,
+            )
             return redirect("agenda:index")
     else:
         form = CompromissoForm(instance=compromisso)
@@ -750,6 +755,10 @@ def form_compromisso(request):
                 convite = criar_convite_delegacao(request.user, compromisso.responsavel, compromisso)
                 compromisso.convite_delegacao = convite
                 compromisso.save(update_fields=["convite_delegacao"])
+            registrar_atividade(
+                request.user, "compromisso_criado", f"Criou o compromisso {compromisso.titulo}",
+                processo=compromisso.processo,
+            )
             return redirect("agenda:index")
     else:
         form = CompromissoForm(initial={"responsavel": usuario_travado or request.user})
@@ -773,6 +782,10 @@ def concluir(request, pk):
     if request.method == "POST":
         compromisso.status = "concluido"
         compromisso.save(update_fields=["status"])
+        registrar_atividade(
+            request.user, "compromisso_concluido", f"Concluiu o compromisso {compromisso.titulo}",
+            processo=compromisso.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -787,6 +800,10 @@ def cancelar(request, pk):
         compromisso.cancelado_em = timezone.now()
         compromisso.save(update_fields=["status", "cancelado_em"])
         _notificar_cancelamento(compromisso)
+        registrar_atividade(
+            request.user, "compromisso_cancelado", f"Cancelou o compromisso {compromisso.titulo}",
+            processo=compromisso.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -800,6 +817,10 @@ def reabrir(request, pk):
         compromisso.status = "agendado"
         compromisso.cancelado_em = None
         compromisso.save(update_fields=["status", "cancelado_em"])
+        registrar_atividade(
+            request.user, "compromisso_reaberto", f"Reabriu o compromisso {compromisso.titulo}",
+            processo=compromisso.processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -810,7 +831,13 @@ def excluir(request, pk):
     _resolver_escopo(request)
     compromisso = get_object_or_404(_compromissos_mutaveis(request), pk=pk)
     if request.method == "POST":
+        titulo = compromisso.titulo
+        processo = compromisso.processo
         compromisso.delete()
+        registrar_atividade(
+            request.user, "compromisso_excluido", f"Excluiu o compromisso {titulo}",
+            processo=processo,
+        )
     return _redirect_seguro(request)
 
 
@@ -833,6 +860,12 @@ def adicionar_participante(request, pk):
             compromisso=compromisso, usuario=form.cleaned_data["usuario"]
         )
         _notificar_convite(participacao)
+        registrar_atividade(
+            request.user, "compromisso_participante_adicionado",
+            f"Adicionou {participacao.usuario.get_full_name() or participacao.usuario.username} "
+            f"como participante do compromisso {compromisso.titulo}",
+            processo=compromisso.processo,
+        )
     return redirect("agenda:editar", pk=pk)
 
 
@@ -846,7 +879,14 @@ def remover_participante(request, pk, usuario_pk):
         participacao = get_object_or_404(
             ParticipanteCompromisso, compromisso=compromisso, usuario_id=usuario_pk
         )
+        usuario = participacao.usuario
         participacao.delete()
+        registrar_atividade(
+            request.user, "compromisso_participante_removido",
+            f"Removeu {usuario.get_full_name() or usuario.username} dos participantes do "
+            f"compromisso {compromisso.titulo}",
+            processo=compromisso.processo,
+        )
     return redirect("agenda:editar", pk=pk)
 
 
@@ -871,6 +911,12 @@ def adicionar_equipe_participante(request, pk):
             )
             if criada:
                 _notificar_convite(participacao)
+                registrar_atividade(
+                    request.user, "compromisso_participante_adicionado",
+                    f"Adicionou {usuario.get_full_name() or usuario.username} como participante "
+                    f"do compromisso {compromisso.titulo}",
+                    processo=compromisso.processo,
+                )
     return redirect("agenda:editar", pk=pk)
 
 
@@ -889,6 +935,12 @@ def adicionar_todos_participantes(request, pk):
                 compromisso=compromisso, usuario=usuario
             )
             _notificar_convite(participacao)
+            registrar_atividade(
+                request.user, "compromisso_participante_adicionado",
+                f"Adicionou {usuario.get_full_name() or usuario.username} como participante "
+                f"do compromisso {compromisso.titulo}",
+                processo=compromisso.processo,
+            )
     return redirect("agenda:editar", pk=pk)
 
 

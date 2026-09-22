@@ -208,7 +208,11 @@ def novo_usuario(request):
     if request.method == "POST":
         form = CriarUsuarioEscritorioForm(request.POST)
         if form.is_valid():
-            form.save()
+            usuario = form.save()
+            registrar_atividade(
+                request.user, "usuario_criado",
+                f"Criou o usuário {usuario.get_full_name() or usuario.username}",
+            )
             return redirect("configuracoes:index")
     else:
         form = CriarUsuarioEscritorioForm()
@@ -261,7 +265,8 @@ def nova_equipe(request):
     if request.method == "POST":
         form = EquipeForm(request.POST)
         if form.is_valid():
-            form.save()
+            equipe = form.save()
+            registrar_atividade(request.user, "equipe_criada", f"Criou a equipe {equipe.nome}")
             return redirect("configuracoes:equipes")
     else:
         form = EquipeForm()
@@ -288,7 +293,8 @@ def editar_equipe(request, pk):
     if request.method == "POST":
         form = EquipeForm(request.POST, instance=equipe)
         if form.is_valid():
-            form.save()
+            equipe = form.save()
+            registrar_atividade(request.user, "equipe_editada", f"Editou a equipe {equipe.nome}")
             return redirect("configuracoes:equipes")
     else:
         form = EquipeForm(instance=equipe)
@@ -320,6 +326,11 @@ def equipe_membros(request, pk):
             membro.equipe = equipe
             membro.ativo = True
             membro.save()
+            registrar_atividade(
+                request.user, "equipe_membro_adicionado",
+                f"Adicionou {membro.usuario.get_full_name() or membro.usuario.username} "
+                f"à equipe {equipe.nome}",
+            )
             return redirect("configuracoes:equipe_membros", pk=equipe.pk)
     else:
         form = MembroEquipeForm(equipe=equipe)
@@ -356,7 +367,12 @@ def remover_membro_equipe(request, pk, membro_pk):
     )
 
     if request.method == "POST":
+        usuario = membro.usuario
         membro.delete()
+        registrar_atividade(
+            request.user, "equipe_membro_removido",
+            f"Removeu {usuario.get_full_name() or usuario.username} da equipe {equipe.nome}",
+        )
 
     return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
@@ -376,6 +392,12 @@ def alternar_gerente_equipe(request, pk, membro_pk):
     if request.method == "POST":
         membro.eh_gerente = not membro.eh_gerente
         membro.save(update_fields=["eh_gerente"])
+        nome = membro.usuario.get_full_name() or membro.usuario.username
+        acao = "Definiu" if membro.eh_gerente else "Removeu"
+        registrar_atividade(
+            request.user, "equipe_gerente_alterado",
+            f"{acao} {nome} como gerente da equipe {equipe.nome}",
+        )
 
     return redirect("configuracoes:equipe_membros", pk=equipe.pk)
 
@@ -412,7 +434,8 @@ def novo_papel(request):
     if request.method == "POST":
         form = PapelAcessoForm(request.POST)
         if form.is_valid():
-            form.save()
+            papel = form.save()
+            registrar_atividade(request.user, "papel_criado", f"Criou o papel de acesso {papel.nome}")
             return redirect("configuracoes:papeis")
     else:
         form = PapelAcessoForm()
@@ -439,7 +462,8 @@ def editar_papel(request, pk):
     if request.method == "POST":
         form = PapelAcessoForm(request.POST, instance=papel)
         if form.is_valid():
-            form.save()
+            papel = form.save()
+            registrar_atividade(request.user, "papel_editado", f"Editou o papel de acesso {papel.nome}")
             return redirect("configuracoes:papeis")
     else:
         form = PapelAcessoForm(instance=papel)
@@ -472,6 +496,10 @@ def papel_usuarios(request, pk):
                 usuario=usuario,
                 papel=papel,
                 defaults={"ativo": True, "atribuido_por": request.user},
+            )
+            registrar_atividade(
+                request.user, "papel_usuario_atribuido",
+                f"Atribuiu {usuario.get_full_name() or usuario.username} ao papel {papel.nome}",
             )
             return redirect("configuracoes:papel_usuarios", pk=papel.pk)
     else:
@@ -511,6 +539,11 @@ def remover_usuario_papel(request, pk, usuario_papel_pk):
     if request.method == "POST":
         vinculo.ativo = False
         vinculo.save(update_fields=["ativo"])
+        registrar_atividade(
+            request.user, "papel_usuario_removido",
+            f"Removeu {vinculo.usuario.get_full_name() or vinculo.usuario.username} "
+            f"do papel {papel.nome}",
+        )
 
     return redirect("configuracoes:papel_usuarios", pk=papel.pk)
 
@@ -606,6 +639,10 @@ def permissoes(request):
             erro = "Papel inválido ou inativo."
         else:
             _salvar_permissoes(request, papel_alvo)
+            registrar_atividade(
+                request.user, "permissao_papel_editada",
+                f"Editou as permissões do papel {papel_alvo.nome}",
+            )
             tab_ativa = f"papel_{papel_alvo.pk}"
             mensagem = f"Permissões de '{papel_alvo.nome}' atualizadas com sucesso."
 
@@ -742,6 +779,11 @@ def usuario_overrides(request, user_pk):
 
     if request.method == "POST" and not is_admin_alvo:
         _salvar_overrides_usuario(request, usuario_alvo)
+        registrar_atividade(
+            request.user, "permissao_usuario_editada",
+            f"Editou as permissões individuais de "
+            f"{usuario_alvo.get_full_name() or usuario_alvo.username}",
+        )
         return redirect("configuracoes:usuario_overrides", user_pk=usuario_alvo.pk)
 
     papeis_ativos = _papeis_ativos_usuario(usuario_alvo)
@@ -772,11 +814,20 @@ def usuario_equipes(request, user_pk):
 
     if request.method == "POST":
         equipe = get_object_or_404(Equipe, pk=request.POST.get("equipe_id"))
+        nome_alvo = usuario_alvo.get_full_name() or usuario_alvo.username
         if request.POST.get("acao") == "remover":
             MembroEquipe.objects.filter(usuario=usuario_alvo, equipe=equipe).delete()
+            registrar_atividade(
+                request.user, "equipe_membro_removido",
+                f"Removeu {nome_alvo} da equipe {equipe.nome}",
+            )
         else:
             MembroEquipe.objects.update_or_create(
                 usuario=usuario_alvo, equipe=equipe, defaults={"ativo": True},
+            )
+            registrar_atividade(
+                request.user, "equipe_membro_adicionado",
+                f"Adicionou {nome_alvo} à equipe {equipe.nome}",
             )
         return redirect("configuracoes:usuario_equipes", user_pk=usuario_alvo.pk)
 
@@ -878,6 +929,7 @@ def editar_escritorio(request):
         form = ConfiguracaoEscritorioForm(request.POST, instance=configuracao)
         if form.is_valid():
             form.save()
+            registrar_atividade(request.user, "escritorio_editado", "Editou os dados do escritório")
             return redirect("configuracoes:index")
     else:
         form = ConfiguracaoEscritorioForm(instance=configuracao)
@@ -921,6 +973,10 @@ def identidade_visual(request):
                 config.cor_primaria = dados["cor_primaria"] or config.cor_primaria
                 config.cor_secundaria = dados["cor_secundaria"] or config.cor_secundaria
             config.save()
+            registrar_atividade(
+                request.user, "escritorio_identidade_visual_editada",
+                "Editou a identidade visual do escritório",
+            )
             messages.success(request, "Identidade visual atualizada.")
             return redirect("configuracoes:identidade_visual")
     else:
@@ -966,5 +1022,6 @@ def excluir_usuario(request, user_pk):
         messages.error(request, str(exc))
         return redirect("configuracoes:index")
 
+    registrar_atividade(request.user, "usuario_excluido", f"Excluiu o usuário {nome}")
     messages.success(request, f"Usuário {nome} excluído.")
     return redirect("configuracoes:index")

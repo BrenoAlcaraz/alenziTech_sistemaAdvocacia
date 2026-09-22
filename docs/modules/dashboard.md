@@ -129,18 +129,31 @@ em cada ponto de escrita (nunca por signal genérico de
 `post_save`/`post_delete` — a descrição legível exige o contexto que só
 a view tem no momento da ação).
 
-- **Fase 1 do catálogo de ações** (login + Processos): `login` (via
-  `django.contrib.auth.signals.user_logged_in`); e, em
-  `apps/processos/views.py`, `novo`, `editar`, `arquivar`, `reabrir`,
-  `adicionar_movimentacao`, `adicionar_parte`, `editar_parte`,
-  `adicionar_apenso`, `remover_apenso`, `adicionar_integrante`,
-  `remover_integrante`, `adicionar_documento`, `excluir_documento`.
-  Outros módulos (Financeiro, Tarefas, Agenda, Chat, Modelos) entram
-  depois, sob demanda, reaproveitando o mesmo modelo/helper.
+- **Catálogo de ações**: `login`/`logout` (via
+  `user_logged_in`/`user_logged_out`);
+  Processos (`apps/processos/views.py`: `novo`, `editar`, `arquivar`,
+  `reabrir`, `adicionar_movimentacao`, `adicionar_parte`,
+  `editar_parte`, `adicionar_apenso`, `remover_apenso`,
+  `adicionar_integrante`, `remover_integrante`, `adicionar_documento`,
+  `excluir_documento`); e, no mesmo padrão, os pontos de escrita de
+  Tarefas, Agenda, Financeiro (lançamentos, custas, honorários,
+  solicitações), Clientes e Configurações (usuários, equipes, papéis,
+  permissões, dados do escritório). Chat e Modelos seguem fora do
+  catálogo — entram depois, sob demanda, reaproveitando o mesmo
+  modelo/helper.
+- `LogAtividade.TIPOS_NAO_PRODUTIVOS = {"login", "logout"}` — os dois
+  continuam gravados, mas nunca contam nos contadores de ação
+  produtiva (lista de usuários abaixo).
 - **Lista de usuários**: todos os usuários ativos do tenant, com
-  contagem de `LogAtividade` do dia (fuso local — zera à meia-noite).
-- **Detalhe de atividade do usuário**: timeline do dia, ordem
-  cronológica. Atalhos:
+  contagem de ações produtivas do dia, da semana (segunda a domingo,
+  fuso local) e do mês corrente (fuso local) — `login`/`logout`
+  excluídos das três contagens.
+- **Minha atividade** (`dashboard:minha_atividade`, link em
+  Configurações): qualquer usuário autenticado vê a própria timeline do
+  dia, sem depender do módulo `gerir`/Painel — estritamente escopada ao
+  usuário logado.
+- **Detalhe de atividade do usuário** (painel do gestor): timeline do
+  dia, ordem cronológica. Atalhos:
   - "Ir para Habilitações"/"Ir para Permissões" → ambos apontam para
     `configuracoes:usuario_overrides` (já cobre os dois).
   - "Grupos" → `configuracoes:usuario_equipes` (novo): equipes ativas
@@ -164,6 +177,9 @@ a view tem no momento da ação).
 
 - Ranking/avaliação automática de desempenho, predição por IA, analytics
   preditivo (fora de escopo do módulo, ver [PRODUCT.md](../PRODUCT.md)).
+- Tempo de tela ativo, detecção de inatividade e métricas de
+  produtividade baseadas em tempo (duração de sessão, tempo entre
+  ações) — o log de atividade conta ações, nunca tempo.
 - Retenção/expurgo automático do `LogAtividade` — nenhuma política de
   limpeza nesta versão; revisitar junto com o ciclo de vida de tenant
   (OPEN-002 em [STATUS.md](../STATUS.md)) e possíveis obrigações de

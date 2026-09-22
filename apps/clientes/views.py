@@ -26,6 +26,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.atividade.services import registrar_atividade
 from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
 from apps.modelos.services import gerar_peca_procuracao
 from .models import Cliente, Documento
@@ -238,6 +239,9 @@ def novo(request):
             if not is_admin:
                 cliente.responsavel = request.user
             cliente.save()
+            registrar_atividade(
+                request.user, "cliente_criado", f"Criou o cliente {cliente.nome_razao_social}",
+            )
             if next_url:
                 # Criação cruzada (specs/cliente-processo-criacao-cruzada.md):
                 # devolve ao formulário de origem (ex.: novo Processo) com o
@@ -284,6 +288,9 @@ def editar(request, pk):
         form = FormClass(request.POST, instance=cliente, **form_kwargs)
         if form.is_valid():
             form.save()
+            registrar_atividade(
+                request.user, "cliente_editado", f"Editou o cliente {cliente.nome_razao_social}",
+            )
             return redirect("clientes:detalhe", pk=pk)
     else:
         form_kwargs = {"usuarios_queryset": _usuarios_ativos()} if is_admin else {}
@@ -311,6 +318,9 @@ def desativar(request, pk):
         cliente = get_object_or_404(_clientes_mutaveis(request, ativo=True), pk=pk)
         cliente.ativo = False
         cliente.save()
+        registrar_atividade(
+            request.user, "cliente_desativado", f"Desativou o cliente {cliente.nome_razao_social}",
+        )
         return redirect("clientes:lista")
     return redirect("clientes:detalhe", pk=pk)
 
@@ -332,7 +342,9 @@ def excluir(request, pk):
     if not usuario_admin_escritorio(request.user):
         qs = qs.filter(responsavel=request.user)
     cliente = get_object_or_404(qs, pk=pk)
+    nome = cliente.nome_razao_social
     cliente.delete()
+    registrar_atividade(request.user, "cliente_excluido", f"Excluiu o cliente {nome}")
     return redirect("clientes:lista")
 
 
@@ -362,6 +374,9 @@ def reativar(request, pk):
         cliente = get_object_or_404(_clientes_mutaveis(request, ativo=False), pk=pk)
         cliente.ativo = True
         cliente.save()
+        registrar_atividade(
+            request.user, "cliente_reativado", f"Reativou o cliente {cliente.nome_razao_social}",
+        )
         return redirect("clientes:inativos")
     return redirect("clientes:inativos")
 
@@ -381,6 +396,10 @@ def adicionar_documento(request, pk):
         documento.cliente = cliente
         documento.autor = request.user
         documento.save()
+        registrar_atividade(
+            request.user, "cliente_documento_adicionado",
+            f"Adicionou documento ({documento.get_tipo_display()}) do cliente {cliente.nome_razao_social}",
+        )
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
 
 
@@ -394,7 +413,12 @@ def excluir_documento(request, pk, documento_pk):
     _resolver_escopo(request)
     cliente = get_object_or_404(_clientes_mutaveis(request, ativo=True), pk=pk)
     documento = get_object_or_404(cliente.documentos, pk=documento_pk)
+    descricao_tipo = documento.get_tipo_display()
     documento.delete()
+    registrar_atividade(
+        request.user, "cliente_documento_excluido",
+        f"Excluiu documento ({descricao_tipo}) do cliente {cliente.nome_razao_social}",
+    )
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
 
 
@@ -443,6 +467,10 @@ def gerar_procuracao(request, pk):
     if request.method == "POST" and modelos_procuracao.exists():
         modelo_base = get_object_or_404(modelos_procuracao, pk=request.POST.get("modelo_base"))
         peca = gerar_peca_procuracao(modelo_base, cliente, request.user)
+        registrar_atividade(
+            request.user, "cliente_procuracao_gerada",
+            f"Gerou procuração do cliente {cliente.nome_razao_social}",
+        )
         return redirect("modelos:detalhe", pk=peca.pk)
 
     return render(request, "clientes/gerar_procuracao.html", {
