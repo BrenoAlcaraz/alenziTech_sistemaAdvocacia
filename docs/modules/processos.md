@@ -131,7 +131,11 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   como cards funcionais abaixo do card superior, fora do sistema de
   abas — reunião de 13/09. No card de Tarefas, clicar numa tarefa abre
   o formulário dela no módulo de Tarefas; "ver todas" filtra o quadro
-  de Tarefas por este processo (`tarefas:quadro?processo=<id>`).
+  de Tarefas por este processo (`tarefas:quadro?processo=<id>`); "+
+  Nova tarefa" abre o formulário padrão de criação de Tarefas
+  (`tarefas:nova`) com o campo Processo pré-preenchido (`?processo=
+  <id>`, sem travar o campo) e retorna ao detalhe do processo ao
+  salvar — mesmo formulário do módulo de Tarefas, sem fluxo paralelo.
 
 ## Custas Judiciais (aba do processo)
 

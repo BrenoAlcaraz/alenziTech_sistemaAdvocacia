@@ -372,14 +372,25 @@ def nova(request):
         raise PermissionDenied
     usuario_travado = _usuario_travado(request)
     pode_atribuir_a_outros = _pode_atribuir_a_outros(request)
+    next_url = request.GET.get("next") or request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = None
     # Fluxo focado de "+ Nova tarefa para esta pessoa": uma só pessoa,
     # travada — atribuída e responsável. Campos `disabled` fazem o
     # Django ignorar o POST e usar sempre o `initial`.
     initial = (
         {"atribuidos": [usuario_travado.pk], "destinatario": usuario_travado.pk}
         if usuario_travado
-        else None
+        else {}
     )
+    # Atalho "+ Nova tarefa" do card de Tarefas relacionadas no detalhe
+    # do Processo: só pré-preenche o campo, sem travar — reaproveita o
+    # formulário padrão em vez de um fluxo de criação paralelo.
+    processo_id = request.GET.get("processo")
+    if processo_id:
+        initial["processo"] = processo_id
     form = TarefaCriacaoForm(
         request.POST if request.method == "POST" else None,
         initial=initial,
@@ -404,11 +415,12 @@ def nova(request):
         tarefa.save()
         participantes = [u for u in atribuidos if u.pk != tarefa.responsavel_id]
         tarefa.participantes.set(participantes)
-        return redirect("tarefas:quadro")
+        return redirect(next_url or "tarefas:quadro")
     return render(request, "tarefas/form.html", {
         "form": form,
         "modo": "novo",
         "item_ativo": "tarefas",
+        "next_url": next_url,
         "usuario_travado": usuario_travado,
         "equipe_atalho": None if usuario_travado or not pode_atribuir_a_outros else dados_para_js(form.fields["atribuidos"].queryset),
     })

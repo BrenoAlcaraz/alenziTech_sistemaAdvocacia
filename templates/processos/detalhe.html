@@ -154,9 +154,12 @@
   <div class="card p-5">
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold text-gray-700">Tarefas relacionadas <span class="text-gray-400">({{ tarefas_relacionadas_total }})</span></h2>
-      {% if tarefas_relacionadas_total %}
-      <a href="{% url 'tarefas:quadro' %}?processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
-      {% endif %}
+      <div class="flex items-center gap-3">
+        <a href="{% url 'tarefas:nova' %}?processo={{ processo.pk }}&next={% url 'processos:detalhe' processo.pk %}" class="text-xs text-juridico-verde hover:underline">+ Nova tarefa</a>
+        {% if tarefas_relacionadas_total %}
+        <a href="{% url 'tarefas:quadro' %}?processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
+        {% endif %}
+      </div>
     </div>
 
     <div class="flex flex-col gap-2">
