@@ -52,6 +52,12 @@ especificação não determina quantas tabelas existirão; modelagem física
   existem com status Pago (backend descarta a data e recusa o
   comprovante nos demais status); com Pago, o comprovante é opcional e,
   em parcelado/recorrente, vale só para a 1ª ocorrência.
+- Card de lançamento parcelado mostra a parcela atual sobre o total
+  ("PARCELA(S): (1/3)"), calculado pela posição cronológica dentro do
+  parcelamento (a origem é sempre a 1ª parcela). Nos cards de
+  Lançamentos e de Solicitações Financeiras, Processo, Cliente e (no
+  lançamento) Forma de pagamento aparecem sempre, com "—" quando
+  vazios — nunca ficam ocultos por falta de preenchimento.
 - Saldo previsto = a receber + recebido − a pagar − pagos (PDR-0029).
 - Reembolso de cliente e custas do cliente não são receita/despesa —
   ver [PDR-0029](../decisions/PDR-0029-financeiro-liquido-de-custas-e-honorario-calculado.md).
