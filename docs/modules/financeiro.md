@@ -10,10 +10,14 @@ especificação não determina quantas tabelas existirão; modelagem física
 - Todo lançamento é único, parcelado ou recorrente.
 - Parcelado: quantidade de parcelas + primeiro vencimento → gera
   ocorrências individuais vinculadas à mesma origem. O valor digitado é
-  o de cada parcela; as seguintes vencem no mesmo dia dos meses
-  seguintes (mês sem esse dia → último dia do mês, sem "derivar" nas
-  parcelas posteriores: 31/01 → 28/02 → 31/03). Só a 1ª pode nascer
-  paga; as demais nascem sempre pendentes.
+  o total a parcelar; o sistema divide igualmente entre as parcelas
+  (arredondado ao centavo), e a última parcela absorve o resíduo do
+  arredondamento, para a soma bater exatamente com o total — mesma
+  convenção do honorário contratual parcelado (PDR-0032). As parcelas
+  seguintes vencem no mesmo dia dos meses seguintes (mês sem esse dia →
+  último dia do mês, sem "derivar" nas parcelas posteriores: 31/01 →
+  28/02 → 31/03). Só a 1ª pode nascer paga; as demais nascem sempre
+  pendentes.
 - Recorrente: periodicidade + primeiro vencimento, duração/data
   final/indeterminado. Cada ocorrência nasce como lançamento
   individual ligado à origem.
