@@ -68,6 +68,10 @@ DATABASES = {
 
 DATABASE_ROUTERS = ["django_tenants.routers.TenantSyncRouter"]
 
+# Limpa schemas de tenant orfaos (de execucoes de teste interrompidas)
+# antes de cada TenantTestCase.setUpClass — ver apps/saas_tenants/testing.py.
+TEST_RUNNER = "apps.saas_tenants.testing.TenantAwareTestRunner"
+
 # ─── Aplicação ─────────────────────────────────────────────────────────────────
 ROOT_URLCONF = "config.urls"
 
