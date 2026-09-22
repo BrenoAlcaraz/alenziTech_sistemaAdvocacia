@@ -103,6 +103,51 @@ class TestAnexoLancamento(AnexosFinanceiroBase):
 
         self.assertFalse(os.path.exists(caminho_arquivo))
 
+    def test_download_do_comprovante_existente(self):
+        lancamento = self._lancamento(status="pago", comprovante_pagamento=_arquivo())
+        r = self.client.get(
+            f"/financeiro/lancamentos/{lancamento.pk}/comprovante-pagamento/", HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 200)
+
+    def test_download_sem_comprovante_e_404(self):
+        lancamento = self._lancamento(status="pago")
+        r = self.client.get(
+            f"/financeiro/lancamentos/{lancamento.pk}/comprovante-pagamento/", HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 404)
+
+    def test_acao_inline_anexa_comprovante_com_lancamento_pago(self):
+        lancamento = self._lancamento(status="pago")
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/anexar-comprovante/",
+            {"comprovante_pagamento": _arquivo("comprovante.pdf")},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        lancamento.refresh_from_db()
+        self.assertTrue(lancamento.comprovante_pagamento)
+
+    def test_acao_inline_de_comprovante_ignora_lancamento_nao_pago(self):
+        lancamento = self._lancamento(status="pendente")
+        r = self.client.post(
+            f"/financeiro/lancamentos/{lancamento.pk}/anexar-comprovante/",
+            {"comprovante_pagamento": _arquivo("comprovante.pdf")},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        lancamento.refresh_from_db()
+        self.assertFalse(lancamento.comprovante_pagamento)
+
+    def test_excluir_lancamento_remove_comprovante_do_storage(self):
+        lancamento = self._lancamento(status="pago", comprovante_pagamento=_arquivo())
+        caminho_arquivo = lancamento.comprovante_pagamento.path
+        self.assertTrue(os.path.exists(caminho_arquivo))
+
+        lancamento.delete()
+
+        self.assertFalse(os.path.exists(caminho_arquivo))
+
 
 class TestAnexoCusta(AnexosFinanceiroBase):
     def test_download_do_anexo_existente(self):

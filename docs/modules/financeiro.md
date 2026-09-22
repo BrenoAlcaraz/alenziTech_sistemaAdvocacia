@@ -48,10 +48,17 @@ especificação não determina quantas tabelas existirão; modelagem física
   rótulo na listagem; lançamento existente com uma delas continua
   editável sem trocar de categoria.
 - Formulário de lançamento: "Classificação" (Única/Parcelado/Recorrente)
-  logo abaixo de valor e categoria. Data de pagamento e comprovante só
-  existem com status Pago (backend descarta a data e recusa o
-  comprovante nos demais status); com Pago, o comprovante é opcional e,
-  em parcelado/recorrente, vale só para a 1ª ocorrência.
+  logo abaixo de valor e categoria. Anexos são dois campos distintos:
+  boleto/documento da despesa, permitido em qualquer status, e
+  comprovante de pagamento, que só existe com status Pago (backend
+  descarta a data de pagamento e recusa o comprovante nos demais
+  status); com Pago, o comprovante é opcional e, em parcelado/recorrente,
+  vale só para a 1ª ocorrência (mesma regra que já vale para o boleto,
+  por nunca ser copiado às ocorrências geradas). Forma de pagamento só é
+  exibida no formulário com status Pago. Em parcelado/recorrente, o
+  rótulo do campo "status" vira "Status da primeira parcela" (só o
+  rótulo muda — a lógica de que só a 1ª parcela pode nascer paga é a
+  mesma de sempre).
 - Card de lançamento parcelado mostra a parcela atual sobre o total
   ("PARCELA(S): (1/3)"), calculado pela posição cronológica dentro do
   parcelamento (a origem é sempre a 1ª parcela). Nos cards de

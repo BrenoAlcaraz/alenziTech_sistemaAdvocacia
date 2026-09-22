@@ -127,7 +127,7 @@ class TestRecebimentoParcial(HonorariosParcialCorrecaoBase):
         )
         self.assertEqual(r.status_code, 302)
         lancamento = LancamentoFinanceiro.objects.filter(descricao__startswith="Honorário").latest("criado_em")
-        self.assertTrue(lancamento.anexo)
+        self.assertTrue(lancamento.comprovante_pagamento)
 
 
 class TestCorrecaoMonetaria(HonorariosParcialCorrecaoBase):

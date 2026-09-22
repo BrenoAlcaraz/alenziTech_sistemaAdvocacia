@@ -631,8 +631,9 @@ def anexo_lancamento(request, pk):
 
 @login_required
 def anexar_lancamento(request, pk):
-    """Ação inline da lista de lançamentos: anexa boleto/comprovante sem
-    navegar para a tela de edição completa."""
+    """Ação inline da lista de lançamentos: anexa o boleto/documento da
+    despesa sem navegar para a tela de edição completa — independe do
+    status."""
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
@@ -640,6 +641,32 @@ def anexar_lancamento(request, pk):
     if request.method == "POST" and request.FILES.get("anexo"):
         lancamento.anexo = request.FILES["anexo"]
         lancamento.save(update_fields=["anexo"])
+    return _redirect_seguro(request)
+
+
+@login_required
+def comprovante_pagamento_lancamento(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if not lancamento.comprovante_pagamento:
+        raise Http404
+    return resposta_de_arquivo(request, lancamento.comprovante_pagamento)
+
+
+@login_required
+def anexar_comprovante_lancamento(request, pk):
+    """Ação inline da lista de lançamentos: anexa o comprovante de
+    pagamento sem navegar para a tela de edição completa — só disponível
+    com o lançamento pago, mesma regra do formulário."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if lancamento.status == "pago" and request.method == "POST" and request.FILES.get("comprovante_pagamento"):
+        lancamento.comprovante_pagamento = request.FILES["comprovante_pagamento"]
+        lancamento.save(update_fields=["comprovante_pagamento"])
     return _redirect_seguro(request)
 
 
@@ -922,7 +949,7 @@ def confirmar_recebimento_honorario(request, pk):
                         cliente=honorario.cliente,
                         processo=honorario.processo,
                         responsavel=request.user,
-                        anexo=form.cleaned_data.get("anexo"),
+                        comprovante_pagamento=form.cleaned_data.get("anexo"),
                     )
 
                     responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None

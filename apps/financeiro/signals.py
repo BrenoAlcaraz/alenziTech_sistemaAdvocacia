@@ -8,11 +8,15 @@ from apps.financeiro.models import CustaJudicial, LancamentoFinanceiro, Solicita
 @receiver(post_delete, sender=LancamentoFinanceiro)
 @receiver(post_delete, sender=CustaJudicial)
 def excluir_anexo_do_registro(sender, instance, **kwargs):
-    """Remove o arquivo do storage protegido ao excluir o registro —
+    """Remove o(s) arquivo(s) do storage protegido ao excluir o registro —
     signal cobre qualquer caminho de exclusão (view futura, cascata ou
-    Django Admin), não só um ponto específico."""
+    Django Admin), não só um ponto específico. `comprovante_pagamento`
+    só existe em LancamentoFinanceiro e SolicitacaoFinanceira."""
     if instance.anexo:
         instance.anexo.delete(save=False)
+    comprovante = getattr(instance, "comprovante_pagamento", None)
+    if comprovante:
+        comprovante.delete(save=False)
 
 
 @receiver(post_save, sender=LancamentoFinanceiro)

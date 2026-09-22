@@ -56,6 +56,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_quantidade",
             "duracao_data_final",
             "anexo",
+            "comprovante_pagamento",
         ]
         widgets = {
             "tipo":            forms.Select(attrs={"class": "select"}),
@@ -77,6 +78,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_quantidade": forms.NumberInput(attrs={"class": "input", "min": "1"}),
             "duracao_data_final": forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
             "anexo": forms.ClearableFileInput(attrs={"class": "input"}),
+            "comprovante_pagamento": forms.ClearableFileInput(attrs={"class": "input"}),
         }
         labels = {
             "classificacao": "Classificação",
@@ -84,7 +86,8 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "duracao_tipo": "Duração da recorrência",
             "duracao_quantidade": "Quantidade de ocorrências",
             "duracao_data_final": "Data final",
-            "anexo": "Comprovante de pagamento",
+            "anexo": "Boleto/documento da despesa",
+            "comprovante_pagamento": "Comprovante de pagamento",
         }
 
     def __init__(self, *args, **kwargs):
@@ -117,6 +120,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["duracao_data_final"].required = False
         self.fields["duracao_data_final"].input_formats = ["%Y-%m-%d"]
         self.fields["anexo"].required = False
+        self.fields["comprovante_pagamento"].required = False
 
         rotulos = dict(LancamentoFinanceiro.CATEGORIA_CHOICES)
         self.categorias_por_tipo = {
@@ -150,10 +154,14 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         if status == "pago" and not data_pagamento:
             self.add_error("data_pagamento", "Informe a data de pagamento para lançamentos pagos.")
         elif status != "pago":
-            # Data de pagamento e comprovante só existem para lançamento pago.
+            # Data de pagamento e comprovante de pagamento só existem para
+            # lançamento pago; o boleto/documento da despesa (`anexo`) vale
+            # independentemente do status.
             cleaned_data["data_pagamento"] = None
-            if self.files.get("anexo"):
-                self.add_error("anexo", "O comprovante só pode ser anexado em lançamento pago.")
+            if self.files.get("comprovante_pagamento"):
+                self.add_error(
+                    "comprovante_pagamento", "O comprovante de pagamento só pode ser anexado em lançamento pago."
+                )
 
         classificacao = cleaned_data.get("classificacao") or "unica"
         cleaned_data["classificacao"] = classificacao

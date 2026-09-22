@@ -126,6 +126,14 @@ class LancamentoFinanceiro(models.Model):
         storage=StorageProtegido(),
         null=True, blank=True,
     )
+    # Boleto/documento da despesa (`anexo`) e comprovante de pagamento são
+    # anexos distintos: o primeiro independe do status, o segundo só existe
+    # com status Pago (mesma separação de SolicitacaoFinanceira).
+    comprovante_pagamento = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/lancamentos/comprovantes"),
+        storage=StorageProtegido(),
+        null=True, blank=True,
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     classificacao = models.CharField(max_length=12, choices=CLASSIFICACAO_CHOICES, default="unica")

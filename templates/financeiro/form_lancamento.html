@@ -131,9 +131,12 @@
 
       <div class="grid grid-cols-2 gap-4">
 
-        {# Status #}
+        {# Status — "da 1ª parcela" em parcelado/recorrente (mesma lógica: só a 1ª pode nascer paga) #}
         <div>
-          <label class="label">{{ form.status.label }}</label>
+          <label class="label">
+            <span data-toggle-panel="classificacao" data-toggle-values="unica">{{ form.status.label }}</span>
+            <span data-toggle-panel="classificacao" data-toggle-values="parcelado,recorrente" class="hidden">Status da primeira parcela</span>
+          </label>
           {{ form.status }}
           {% if form.status.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.status.errors|join:", " }}</p>
@@ -161,8 +164,8 @@
           {% endif %}
         </div>
 
-        {# Forma de pagamento #}
-        <div>
+        {# Forma de pagamento — só com status Pago #}
+        <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">
           <label class="label">Forma de pagamento <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.forma_pagamento }}
           {% if form.forma_pagamento.errors %}
@@ -208,8 +211,8 @@
         {% endif %}
       </div>
 
-      {# Comprovante — só com status Pago (em parcelado/recorrente, vale para a 1ª ocorrência) #}
-      <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">
+      {# Boleto/documento da despesa — independe do status #}
+      <div>
         <label class="label">{{ form.anexo.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
         {% if lancamento.anexo %}
           <div class="flex items-center gap-2 mb-1 text-xs text-gray-500">
@@ -221,6 +224,22 @@
         {{ form.anexo }}
         {% if form.anexo.errors %}
           <p class="erro-campo text-xs text-red-500 mt-1">{{ form.anexo.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      {# Comprovante de pagamento — só com status Pago (em parcelado/recorrente, vale para a 1ª ocorrência) #}
+      <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">
+        <label class="label">{{ form.comprovante_pagamento.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+        {% if lancamento.comprovante_pagamento %}
+          <div class="flex items-center gap-2 mb-1 text-xs text-gray-500">
+            <span class="truncate" title="{{ lancamento.comprovante_pagamento.name }}">Atual: {{ lancamento.comprovante_pagamento.name }}</span>
+            {% url 'financeiro:comprovante_pagamento_lancamento' lancamento.pk as comprovante_url %}
+            {% include "components/anexo_acoes.html" with arquivo_url=comprovante_url %}
+          </div>
+        {% endif %}
+        {{ form.comprovante_pagamento }}
+        {% if form.comprovante_pagamento.errors %}
+          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.comprovante_pagamento.errors|join:", " }}</p>
         {% endif %}
       </div>
 

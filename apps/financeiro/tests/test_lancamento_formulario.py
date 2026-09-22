@@ -174,29 +174,42 @@ class TestDataPagamentoEComprovante(LancamentoFormularioBase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertIsNone(form.cleaned_data["data_pagamento"])
 
-    def test_comprovante_e_recusado_se_nao_esta_pago(self):
+    def test_boleto_e_aceito_independente_do_status(self):
         form = LancamentoFinanceiroForm(data=self._dados(), files={"anexo": self._arquivo()})
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_comprovante_e_recusado_se_nao_esta_pago(self):
+        form = LancamentoFinanceiroForm(data=self._dados(), files={"comprovante_pagamento": self._arquivo()})
         self.assertFalse(form.is_valid())
-        self.assertIn("anexo", form.errors)
+        self.assertIn("comprovante_pagamento", form.errors)
 
     def test_comprovante_e_aceito_com_status_pago(self):
         form = LancamentoFinanceiroForm(
             data=self._dados(status="pago", data_pagamento=self.hoje.isoformat()),
-            files={"anexo": self._arquivo()},
+            files={"comprovante_pagamento": self._arquivo()},
         )
         self.assertTrue(form.is_valid(), form.errors)
 
     def test_comprovante_e_opcional_com_status_pago(self):
         self.assertTrue(self._form(status="pago", data_pagamento=self.hoje.isoformat()).is_valid())
 
-    def test_view_grava_comprovante_do_lancamento_pago(self):
+    def test_view_grava_boleto_independente_do_status(self):
         r = self.client.post(
             "/financeiro/lancamentos/novo/",
-            {**self._dados(status="pago", data_pagamento=self.hoje.isoformat()), "anexo": self._arquivo()},
+            {**self._dados(), "anexo": self._arquivo()},
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
         self.assertTrue(LancamentoFinanceiro.objects.get(descricao="X").anexo)
+
+    def test_view_grava_comprovante_do_lancamento_pago(self):
+        r = self.client.post(
+            "/financeiro/lancamentos/novo/",
+            {**self._dados(status="pago", data_pagamento=self.hoje.isoformat()), "comprovante_pagamento": self._arquivo()},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(LancamentoFinanceiro.objects.get(descricao="X").comprovante_pagamento)
 
     def test_formulario_mostra_classificacao_antes_de_status_e_datas(self):
         r = self.client.get("/financeiro/lancamentos/novo/", HTTP_HOST=self.http_host)
@@ -252,7 +265,19 @@ class TestParcelado(LancamentoFormularioBase):
             {**self._dados(tipo="despesa", categoria="aluguel", classificacao="parcelado",
                            numero_parcelas="2", data_vencimento="2026-01-31", status="pago",
                            data_pagamento="2026-01-31"),
-             "anexo": SimpleUploadedFile("c.pdf", b"x", content_type="application/pdf")},
+             "comprovante_pagamento": SimpleUploadedFile("c.pdf", b"x", content_type="application/pdf")},
+            HTTP_HOST=self.http_host,
+        )
+        primeira, segunda = LancamentoFinanceiro.objects.order_by("data_vencimento")
+        self.assertTrue(primeira.comprovante_pagamento)
+        self.assertFalse(segunda.comprovante_pagamento)
+
+    def test_boleto_tambem_fica_so_na_primeira_parcela(self):
+        self.client.post(
+            "/financeiro/lancamentos/novo/",
+            {**self._dados(tipo="despesa", categoria="aluguel", classificacao="parcelado",
+                           numero_parcelas="2", data_vencimento="2026-01-31"),
+             "anexo": SimpleUploadedFile("boleto.pdf", b"x", content_type="application/pdf")},
             HTTP_HOST=self.http_host,
         )
         primeira, segunda = LancamentoFinanceiro.objects.order_by("data_vencimento")

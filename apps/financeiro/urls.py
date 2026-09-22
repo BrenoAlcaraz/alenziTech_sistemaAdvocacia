@@ -21,6 +21,16 @@ urlpatterns = [
     path("financeiro/lancamentos/<int:pk>/excluir/", views.excluir_lancamento, name="excluir_lancamento"),
     path("financeiro/lancamentos/<int:pk>/anexo/", views.anexo_lancamento, name="anexo_lancamento"),
     path("financeiro/lancamentos/<int:pk>/anexar/", views.anexar_lancamento, name="anexar_lancamento"),
+    path(
+        "financeiro/lancamentos/<int:pk>/comprovante-pagamento/",
+        views.comprovante_pagamento_lancamento,
+        name="comprovante_pagamento_lancamento",
+    ),
+    path(
+        "financeiro/lancamentos/<int:pk>/anexar-comprovante/",
+        views.anexar_comprovante_lancamento,
+        name="anexar_comprovante_lancamento",
+    ),
     path("financeiro/custas/nova/", views.form_custa, name="form_custa"),
     path("financeiro/custas/<int:pk>/anexo/", views.anexo_custa, name="anexo_custa"),
     path("financeiro/custas/<int:pk>/reembolsar/", views.form_reembolsar_custa, name="form_reembolsar_custa"),
