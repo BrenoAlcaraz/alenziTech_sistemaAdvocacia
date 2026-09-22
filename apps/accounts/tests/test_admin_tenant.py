@@ -8,8 +8,7 @@ Fixam o comportamento de:
 Classe: TenantTestCase (django_tenants.test.cases)
   - cria schema isolado por classe
   - cada método de teste é envolto em transação com rollback automático
-  - GroupS e seeds de PermissaoPapel/HabilitacaoPapel são criados pelas migrations
-    e persistem entre métodos (são dados de migração, não de teste)
+  - Groups legados não vêm das migrations: cada teste cria o que usa
 
 Testes marcados como FALHA_ESPERADA falharão no kernel atual (pré-2.1C1B).
 Os demais devem PASSAR mesmo antes da implementação.
@@ -80,7 +79,7 @@ class AdminTenantBase(TenantTestCase):
         user._state.fields_cache.pop("perfil", None)
 
     def _add_group(self, user, nome):
-        grp = Group.objects.get(name=nome)
+        grp, _ = Group.objects.get_or_create(name=nome)
         user.groups.add(grp)
 
     def _request_for(self, user):

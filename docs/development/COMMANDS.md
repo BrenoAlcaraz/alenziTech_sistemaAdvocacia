@@ -48,9 +48,9 @@ Runner é o padrão do Django; testes usam `TenantTestCase`
 (django-tenants), exigem PostgreSQL real.
 
 O custo é por **classe**, não por teste: cada classe cria um schema de
-tenant e roda todas as migrations (~9s por classe; suíte de um app
-grande leva vários minutos). `--keepdb` reaproveita o banco de teste
-entre execuções (~13–16s contra ~20s numa classe isolada). Sem
+tenant e roda todas as migrations (~2,5s de criação de schema; ~8s
+numa classe pequena isolada com `--keepdb`). `--keepdb` reaproveita o
+banco de teste entre execuções. Sem
 `--keepdb` só quando o banco de teste estiver inconsistente.
 `--failfast` é útil quando se roda mais de uma classe.
 

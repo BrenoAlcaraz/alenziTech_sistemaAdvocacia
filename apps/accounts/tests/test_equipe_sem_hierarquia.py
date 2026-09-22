@@ -1,7 +1,4 @@
 from django.contrib.auth.models import User
-from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.forms import EquipeForm
@@ -13,7 +10,6 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import HAB_GERIR_CRIAR_EQUIPE, MODULO_GERIR
-from apps.processos.tests._migration_targets import targets_seguros_para_rollback
 
 
 class TestEquipeSemHierarquia(TenantTestCase):
@@ -75,54 +71,3 @@ class TestEquipeSemHierarquia(TenantTestCase):
         self.assertEqual(resposta.status_code, 302)
         self.equipe.refresh_from_db()
         self.assertEqual(self.equipe.nome, "Equipe Cível 2")
-
-
-ACCOUNTS_ANTES = ("accounts", "0030_equipevinculada_vinculointegrante")
-ACCOUNTS_DEPOIS = ("accounts", "0031_remove_equipe_pai")
-
-
-class TestMigrationRemoveEquipePai(TenantTestCase):
-    @classmethod
-    def _fixture_setup(cls):
-        return TransactionTestCase._fixture_setup.__func__(cls)
-
-    def _fixture_teardown(self):
-        return TransactionTestCase._fixture_teardown(self)
-
-    def tearDown(self):
-        # Recoloca o schema no HEAD antes do flush (ver test_migrations_apensos).
-        executor = MigrationExecutor(connection)
-        executor.migrate(executor.loader.graph.leaf_nodes())
-        super().tearDown()
-
-    @classmethod
-    def get_test_schema_name(cls):
-        return "wi_accounts_migration_equipe_pai"
-
-    def _migrar(self, target):
-        executor = MigrationExecutor(connection)
-        executor.migrate(targets_seguros_para_rollback(executor.loader.graph, target))
-        executor = MigrationExecutor(connection)
-        targets = targets_seguros_para_rollback(executor.loader.graph, target)
-        return executor.loader.project_state(targets).apps
-
-    def _colunas_equipe(self):
-        with connection.cursor() as cursor:
-            descricao = connection.introspection.get_table_description(cursor, "accounts_equipe")
-        return {coluna.name for coluna in descricao}
-
-    def test_remove_coluna_preservando_equipes_com_equipe_pai(self):
-        self.assertEqual(connection.vendor, "postgresql")
-        apps_antes = self._migrar(ACCOUNTS_ANTES)
-        EquipeAntes = apps_antes.get_model("accounts", "Equipe")
-        pai = EquipeAntes.objects.create(nome="Equipe Pai")
-        filha = EquipeAntes.objects.create(nome="Equipe Filha", equipe_pai_id=pai.pk)
-        self.assertIn("equipe_pai_id", self._colunas_equipe())
-
-        apps_depois = self._migrar(ACCOUNTS_DEPOIS)
-        EquipeDepois = apps_depois.get_model("accounts", "Equipe")
-        self.assertNotIn("equipe_pai_id", self._colunas_equipe())
-        self.assertEqual(
-            set(EquipeDepois.objects.filter(pk__in=[pai.pk, filha.pk]).values_list("nome", flat=True)),
-            {"Equipe Pai", "Equipe Filha"},
-        )

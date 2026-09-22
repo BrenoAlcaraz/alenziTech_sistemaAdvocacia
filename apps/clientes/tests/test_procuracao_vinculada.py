@@ -5,13 +5,9 @@ Cobre: a peça gerada grava o cliente e aparece em "Procurações geradas"
 na aba Documentos; peça vinculada nunca é oferecida como modelo-base
 (nem por POST direto); a seção respeita escopo de leitura do cliente e o
 acesso ao módulo Modelos (filtro no backend); exclusão definitiva do
-cliente leva a peça junto; migration só adiciona campo opcional.
+cliente leva a peça junto.
 """
 
-from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
-from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_CRIAR,
@@ -20,8 +16,7 @@ from apps.accounts.permissoes_constants import (
 )
 from apps.clientes.models import Cliente
 from apps.clientes.tests.test_gerar_procuracao import GerarProcuracaoBase
-from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
-from apps.processos.tests._migration_targets import targets_seguros_para_rollback
+from apps.modelos.models import ModeloPeca
 
 
 class TestProcuracaoVinculadaAoCliente(GerarProcuracaoBase):
@@ -163,49 +158,3 @@ class TestEscopoEAcessoAModelos(GerarProcuracaoBase):
         r = self.client.get(f"/clientes/{self.cliente.pk}/?aba=documentos", HTTP_HOST=self.http_host)
         self.assertContains(r, "Procurações geradas")
         self.assertContains(r, f"/modelos/{self.peca.pk}/")
-
-
-ANTES = ("modelos", "0008_remove_estiloescritorio_imagem_assinatura_and_more")
-DEPOIS = ("modelos", "0009_modelopeca_cliente")
-
-
-class TestMigrationModeloPecaCliente(TenantTestCase):
-    @classmethod
-    def _fixture_setup(cls):
-        return TransactionTestCase._fixture_setup.__func__(cls)
-
-    def _fixture_teardown(self):
-        return TransactionTestCase._fixture_teardown(self)
-
-    def tearDown(self):
-        executor = MigrationExecutor(connection)
-        executor.migrate(executor.loader.graph.leaf_nodes())
-        super().tearDown()
-
-    @classmethod
-    def get_test_schema_name(cls):
-        return "procuracao_vinculada_migration"
-
-    def _migrar(self, target):
-        executor = MigrationExecutor(connection)
-        executor.migrate(targets_seguros_para_rollback(executor.loader.graph, target))
-        executor = MigrationExecutor(connection)
-        targets = targets_seguros_para_rollback(executor.loader.graph, target)
-        return executor.loader.project_state(targets).apps
-
-    def test_campo_opcional_preserva_modelos_existentes_sem_cliente(self):
-        apps_antes = self._migrar(ANTES)
-        Categoria = apps_antes.get_model("modelos", "CategoriaModeloPeca")
-        Modelo = apps_antes.get_model("modelos", "ModeloPeca")
-        categoria = Categoria.objects.filter(nome="Procuração").first() or Categoria.objects.create(
-            nome="Procuração"
-        )
-        modelo = Modelo.objects.create(
-            titulo="Procuração antiga", categoria=categoria, area_direito="CÍVEL", conteudo="<p>x</p>"
-        )
-
-        apps_depois = self._migrar(DEPOIS)
-        ModeloDepois = apps_depois.get_model("modelos", "ModeloPeca")
-        antigo = ModeloDepois.objects.get(pk=modelo.pk)
-        self.assertIsNone(antigo.cliente_id)
-        self.assertEqual(antigo.titulo, "Procuração antiga")

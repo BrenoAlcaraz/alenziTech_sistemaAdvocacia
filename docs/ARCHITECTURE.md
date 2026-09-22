@@ -124,13 +124,12 @@ não basta sozinho: o `CheckConstraint` de `modulo`/`item` em
 (`apps/accounts/models.py`) usa uma lista literal própria por módulo,
 não derivada de `ITENS_POR_MODULO` — ambas precisam ser atualizadas
 juntas, com uma migration nova (`AlterField` de `item` +
-`Remove`/`AddConstraint`, gerada por `makemigrations`), no formato de
-`0015_adicionar_habilitacao_reabrir_lancamento_pago.py`. Sem isso, o
+`Remove`/`AddConstraint`, gerada por `makemigrations`). Sem isso, o
 banco rejeita a gravação da habilitação nova com violação de
 `chk_habilitacaopapel_modulo_item`/`chk_habilitacaousuario_modulo_item`.
 
 **Gravar em `PermissaoPapel`/`HabilitacaoPapel`**: sempre por `papel`
-(FK obrigatória; a coluna `tipo_conta` foi removida na migration `0034`).
+(FK obrigatória; não existe coluna `tipo_conta`).
 Referência: `apps/configuracoes/views.py::_build_modulos_permissao`/`_salvar_permissoes`.
 Proteções do papel "Limitado" (não excluir/desativar) e do papel com
 usuários (não desativar) vivem em `PapelAcesso.delete` e em

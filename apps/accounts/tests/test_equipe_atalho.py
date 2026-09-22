@@ -1,19 +1,15 @@
 """
 Equipe como atalho de seleção (PDR-0028): helper compartilhado
-(`apps/accounts/equipe_atalho.py`) e migration que remove o vínculo
-dinâmico de Equipe (EquipeVinculada/VinculoIntegrante).
+(`apps/accounts/equipe_atalho.py`) e ausência do vínculo dinâmico de
+Equipe (EquipeVinculada/VinculoIntegrante).
 """
 
 from django.apps import apps as django_apps
 from django.contrib.auth.models import User
-from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
 from apps.accounts.models import Equipe, MembroEquipe
-from apps.processos.tests._migration_targets import targets_seguros_para_rollback
 
 
 class TestHelperEquipeAtalho(TenantTestCase):
@@ -72,74 +68,3 @@ class TestHelperEquipeAtalho(TenantTestCase):
         nomes = {modelo.__name__ for modelo in django_apps.get_app_config("accounts").get_models()}
         self.assertNotIn("EquipeVinculada", nomes)
         self.assertNotIn("VinculoIntegrante", nomes)
-
-
-ACCOUNTS_ANTES = ("accounts", "0031_remove_equipe_pai")
-ACCOUNTS_DEPOIS = ("accounts", "0032_remove_equipe_vinculada_vinculo_integrante")
-
-
-class TestMigrationRemoveVinculoEquipe(TenantTestCase):
-    @classmethod
-    def _fixture_setup(cls):
-        return TransactionTestCase._fixture_setup.__func__(cls)
-
-    def _fixture_teardown(self):
-        return TransactionTestCase._fixture_teardown(self)
-
-    def tearDown(self):
-        # Recoloca o schema no HEAD antes do flush (ver test_migrations_apensos).
-        executor = MigrationExecutor(connection)
-        executor.migrate(executor.loader.graph.leaf_nodes())
-        super().tearDown()
-
-    @classmethod
-    def get_test_schema_name(cls):
-        return "pdr0028_accounts_migration"
-
-    def _migrar(self, target):
-        executor = MigrationExecutor(connection)
-        executor.migrate(targets_seguros_para_rollback(executor.loader.graph, target))
-        executor = MigrationExecutor(connection)
-        targets = targets_seguros_para_rollback(executor.loader.graph, target)
-        return executor.loader.project_state(targets).apps
-
-    def _tabelas(self):
-        with connection.cursor() as cursor:
-            return set(connection.introspection.table_names(cursor))
-
-    def test_apaga_vinculos_e_preserva_pessoas_ja_materializadas(self):
-        self.assertEqual(connection.vendor, "postgresql")
-        apps_antes = self._migrar(ACCOUNTS_ANTES)
-        Usuario = apps_antes.get_model("auth", "User")
-        EquipeAntes = apps_antes.get_model("accounts", "Equipe")
-        EquipeVinculada = apps_antes.get_model("accounts", "EquipeVinculada")
-        VinculoIntegrante = apps_antes.get_model("accounts", "VinculoIntegrante")
-        ContentType = apps_antes.get_model("contenttypes", "ContentType")
-        Processo = apps_antes.get_model("processos", "Processo")
-
-        responsavel = Usuario.objects.create(username="responsavel_migracao")
-        ana = Usuario.objects.create(username="ana_migracao")
-        equipe = EquipeAntes.objects.create(nome="Equipe Migração")
-        processo = Processo.objects.create(titulo="Processo Migração", responsavel_id=responsavel.pk)
-        processo.integrantes_habilitados.add(ana)
-        ct, _ = ContentType.objects.get_or_create(app_label="processos", model="processo")
-        EquipeVinculada.objects.create(content_type=ct, object_id=processo.pk, equipe=equipe)
-        VinculoIntegrante.objects.create(
-            content_type=ct, object_id=processo.pk, usuario=ana, equipe=equipe
-        )
-        self.assertIn("accounts_equipevinculada", self._tabelas())
-
-        apps_depois = self._migrar(ACCOUNTS_DEPOIS)
-
-        tabelas = self._tabelas()
-        self.assertNotIn("accounts_equipevinculada", tabelas)
-        self.assertNotIn("accounts_vinculointegrante", tabelas)
-        ProcessoDepois = apps_depois.get_model("processos", "Processo")
-        self.assertEqual(
-            list(
-                ProcessoDepois.objects.get(pk=processo.pk)
-                .integrantes_habilitados.values_list("username", flat=True)
-            ),
-            ["ana_migracao"],
-        )
-        self.assertTrue(apps_depois.get_model("accounts", "Equipe").objects.filter(pk=equipe.pk).exists())

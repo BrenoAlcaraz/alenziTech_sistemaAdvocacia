@@ -2,14 +2,10 @@
 Testes do catálogo pré-definido de "Tipo de peça"
 (specs/modelos-catalogo-tipos-pre-definido.md).
 
-Cobre: tenant novo já nasce com os 15 tipos; tenant existente recebe os
-15 tipos ao rodar a migration sem duplicar categoria já existente com o
-mesmo nome; cada tipo pré-cadastrado é editável/excluível como qualquer
-categoria criada manualmente.
+Cobre: tenant novo já nasce com os 15 tipos; cada tipo pré-cadastrado é
+editável/excluível como qualquer categoria criada manualmente.
 """
 
-from django.db import connection
-from django.db.migrations.executor import MigrationExecutor
 from django_tenants.test.cases import TenantTestCase
 
 from apps.modelos.models import CategoriaModeloPeca
@@ -58,32 +54,3 @@ class TestTenantNovoJaNasceComCatalogo(TenantTestCase):
         self.assertFalse(
             CategoriaModeloPeca.objects.filter(pk=categoria.pk).exists()
         )
-
-
-class TestMigrationNaoDuplicaCategoriaExistente(TenantTestCase):
-    """Roda a migration 0006 sobre um tenant que já tem, manualmente,
-    uma categoria com o mesmo nome de uma das pré-definidas — não deve
-    duplicar (regra de negócio: `nome` é único)."""
-
-    @classmethod
-    def get_test_schema_name(cls):
-        return "modelos_catalogo_sem_duplicar"
-
-    def test_categoria_ja_existente_nao_duplica_ao_rodar_migration(self):
-        executor = MigrationExecutor(connection)
-        alvo_antes = [("modelos", "0005_unificar_area_direito_processo")]
-        executor.migrate(alvo_antes)
-
-        executor = MigrationExecutor(connection)
-        estado = executor.loader.project_state(alvo_antes).apps
-        CategoriaHistorica = estado.get_model("modelos", "CategoriaModeloPeca")
-        CategoriaHistorica.objects.create(nome="Contestação")
-
-        executor = MigrationExecutor(connection)
-        alvo_depois = [("modelos", "0006_seed_categorias_pre_definidas")]
-        executor.migrate(alvo_depois)
-
-        self.assertEqual(
-            CategoriaModeloPeca.objects.filter(nome="Contestação").count(), 1
-        )
-        self.assertEqual(CategoriaModeloPeca.objects.count(), len(CATEGORIAS_ESPERADAS))

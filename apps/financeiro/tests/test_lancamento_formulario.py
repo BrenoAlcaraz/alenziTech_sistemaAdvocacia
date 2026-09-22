@@ -1,16 +1,14 @@
 """
 Formulário de novo lançamento (revisão de 2026-09-20): categorias por
-tipo, remapeamento das antigas, data de pagamento/comprovante só com
+tipo, data de pagamento/comprovante só com
 status Pago, parcelado e fontes de receita/despesa por categoria.
 """
 
-import importlib
 import shutil
 import tempfile
 from datetime import date
 from decimal import Decimal
 
-from django.apps import apps as django_apps
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
@@ -135,31 +133,6 @@ class TestCategoriasPorTipo(LancamentoFormularioBase):
         gerado = self._lancamento(tipo="despesa", categoria="solicitacao_pagamento")
         form = LancamentoFinanceiroForm(instance=gerado)
         self.assertNotIn("solicitacao_pagamento", [v for v, _ in form.categorias_por_tipo["receita"]])
-
-
-class TestRemapeamentoDeCategorias(LancamentoFormularioBase):
-    def test_despesa_escritorio_vira_outros_e_as_demais_mantem_a_chave(self):
-        migracao = importlib.import_module(
-            "apps.financeiro.migrations.0014_categorias_lancamento_por_tipo"
-        )
-        antigo = self._lancamento(tipo="despesa", categoria="despesa_escritorio")
-        aluguel = self._lancamento(tipo="despesa", categoria="aluguel")
-        migracao.remapear_despesa_escritorio(django_apps, None)
-        antigo.refresh_from_db()
-        aluguel.refresh_from_db()
-        self.assertEqual(antigo.categoria, "outro")
-        self.assertEqual(antigo.get_categoria_display(), "Outros")
-        self.assertEqual(aluguel.categoria, "aluguel")
-
-    def test_categorias_antigas_ganham_os_rotulos_novos(self):
-        rotulos = dict(LancamentoFinanceiro.CATEGORIA_CHOICES)
-        self.assertEqual(rotulos["honorario"], "Honorários")
-        self.assertEqual(rotulos["software"], "Software/assinatura")
-        self.assertEqual(rotulos["imposto"], "Impostos/taxas")
-        self.assertEqual(rotulos["outro"], "Outros")
-
-    def test_categoria_fora_da_spec_mantem_o_rotulo_antigo_na_listagem(self):
-        self.assertEqual(self._lancamento(tipo="despesa", categoria="taxa").get_categoria_display(), "Taxa/Emolumento")
 
 
 class TestDataPagamentoEComprovante(LancamentoFormularioBase):
