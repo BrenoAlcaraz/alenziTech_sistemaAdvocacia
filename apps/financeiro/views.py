@@ -822,6 +822,10 @@ def honorarios_lista(request):
 
     return render(request, "financeiro/honorarios_lista.html", {
         "honorarios": honorarios,
+        # Sub-abas Contratuais/Sucumbência — "exito"/"outro" são tipos
+        # legados (não mais criáveis, PDR-0032) e entram em Contratuais.
+        "honorarios_contratuais": [h for h in honorarios if h.tipo != "sucumbencial"],
+        "honorarios_sucumbencia": [h for h in honorarios if h.tipo == "sucumbencial"],
         "is_admin": usuario_admin_escritorio(request.user),
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",

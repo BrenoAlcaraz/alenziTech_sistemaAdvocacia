@@ -16,96 +16,34 @@
   <a href="{% url 'financeiro:form_honorario' %}" class="btn-primary">+ Novo honorário</a>
 </div>
 
-<div class="flex flex-col gap-2">
-  {% for h in honorarios %}
-    <div class="card px-5 py-4">
-      <div class="flex items-start justify-between gap-4 mb-1 flex-wrap">
-        <div>
-          <p class="font-medium text-gray-900">{{ h.get_tipo_display }}{% if h.tipo == "contratual" and h.modalidade %} — {{ h.get_modalidade_display }}{% endif %}{% if h.processo %} — {{ h.processo }}{% endif %}</p>
-          <p class="text-xs text-gray-500 mt-0.5">
-            {% if h.processo.responsavel %}Responsável: {{ h.processo.responsavel.get_full_name|default:h.processo.responsavel.username }}{% endif %}
-            {% if not h.processo and h.cliente %}{{ h.cliente }}{% endif %}
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          {% if h.status == "previsto" and h.valor_recebido > 0 %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Parcialmente recebido</span>
-          {% elif h.status == "previsto" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Aguardando recebimento</span>
-          {% elif h.status == "recebido" %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Recebido</span>
-          {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
-          {% endif %}
-          <a href="{% url 'financeiro:editar_honorario' h.pk %}"
-             title="Editar honorário" aria-label="Editar honorário"
-             class="text-gray-300 hover:text-gray-500 ml-1">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-            </svg>
-          </a>
-        </div>
-      </div>
-
-      {% if h.status == "previsto" and h.confirmavel %}
-        {# Três colunas — mesmo layout do protótipo: Valor total / Já recebido / Ainda pendente #}
-        <div class="flex flex-wrap gap-7 mt-3">
-          <div>
-            <p class="text-xs text-gray-400">Valor total</p>
-            <p class="font-semibold text-gray-900">R$ {{ h.valor_total_exibido|moeda_br }}</p>
-          </div>
-          <div>
-            <p class="text-xs text-gray-400">Já recebido</p>
-            <p class="font-semibold text-juridico-verde">R$ {{ h.valor_recebido|moeda_br }}</p>
-          </div>
-          <div>
-            <p class="text-xs text-gray-400">Ainda pendente</p>
-            <p class="font-semibold text-amber-600">R$ {{ h.valor_pendente_hoje|moeda_br }}</p>
-          </div>
-        </div>
-      {% elif not h.so_exito %}
-        <p class="font-semibold text-gray-900 mt-1">R$ {{ h.valor_total_exibido|moeda_br }}{% if h.classificacao == "recorrente" %} <span class="text-xs font-normal text-gray-500">por ocorrência</span>{% endif %}</p>
-      {% endif %}
-
-      {% if h.recebimento_por_lancamentos %}
-        <p class="text-xs text-gray-500 mt-1">
-          {% if h.classificacao == "parcelado" %}Parcelado em {{ h.numero_parcelas }}x{% else %}Recorrente {{ h.get_periodicidade_display|lower }}{% endif %}
-          &bull; recebimento pelos lançamentos gerados no Financeiro
-        </p>
-      {% endif %}
-      {% if h.tem_exito_contratual %}
-        <p class="text-xs text-gray-500 mt-1">Êxito de {{ h.exito_percentual }}% {% if h.exito_base == "ganho" %}pelo ganho{% else %}pela economia{% endif %} — anotação, sem valor a receber calculado</p>
-      {% endif %}
-
-      {% if h.calculado %}
-        <p class="text-xs text-gray-500 mt-2">
-          Sucumbência corrigida R$ {{ h.calculo.sucumbencia|moeda_br }}{% if h.calculo.exito %} &bull; Êxito R$ {{ h.calculo.exito|moeda_br }}{% endif %}
-          &bull; {% if h.devedor_tipo == "ente_estatal" %}Ente estatal (Selic){% else %}Devedor comum ({{ h.get_indice_correcao_display }} + juros 1% a.m.){% endif %}
-        </p>
-        {% for linha in h.calculo.exito_contratos %}
-          <p class="text-xs text-amber-700 mt-1">Você tem {{ linha.percentual }}% de êxito a receber — R$ {{ linha.valor|moeda_br }}</p>
-        {% endfor %}
-      {% endif %}
-      <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
-        {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
-        {% if h.data_recebida %}<span>Última confirmação em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}
-      </div>
-
-      {% if h.status == "previsto" %}
-        <div class="flex flex-wrap items-center gap-3 mt-3">
-          {% if is_admin and h.confirmavel %}
-            <a href="{% url 'financeiro:confirmar_recebimento_honorario' h.pk %}" class="text-xs text-green-700 hover:text-green-900 hover:underline">Confirmar recebimento</a>
-            <span class="text-gray-200 text-xs">|</span>
-          {% endif %}
-          <form method="post" action="{% url 'financeiro:cancelar_honorario' h.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
-          </form>
-        </div>
-      {% endif %}
+<div class="border-b border-gray-200 mb-6">
+  <nav class="-mb-px flex gap-6">
+    <div data-tab="contratuais" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-active">
+      Contratuais
     </div>
-  {% empty %}
-    {% include "components/empty_state.html" with mensagem="Nenhum honorário registrado." %}
-  {% endfor %}
+    <div data-tab="sucumbencia" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer tab-inactive">
+      Sucumbência
+    </div>
+  </nav>
+</div>
+
+<div data-tab-panel="contratuais" data-tab-panel-group="honorarios">
+  <div class="flex flex-col gap-2">
+    {% for h in honorarios_contratuais %}
+      {% include "financeiro/_card_honorario.html" %}
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum honorário contratual registrado." %}
+    {% endfor %}
+  </div>
+</div>
+
+<div data-tab-panel="sucumbencia" data-tab-panel-group="honorarios" class="hidden">
+  <div class="flex flex-col gap-2">
+    {% for h in honorarios_sucumbencia %}
+      {% include "financeiro/_card_honorario.html" %}
+    {% empty %}
+      {% include "components/empty_state.html" with mensagem="Nenhum honorário de sucumbência registrado." %}
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}
