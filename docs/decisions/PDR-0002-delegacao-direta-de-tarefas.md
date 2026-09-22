@@ -2,9 +2,10 @@
 id: PDR-0002
 title: Delegação direta de tarefas
 status: accepted
+partially_superseded_by: PDR-0033
 owner: product-and-engineering
 decision_date: 2026-08-05
-last_reviewed: 2026-08-06
+last_reviewed: 2026-09-22
 supersedes: []
 source_files:
   - docs/history/source-material/2026-08-05-decisoes-funcionais-consolidadas-original.txt
@@ -12,6 +13,17 @@ source_files:
 ---
 
 # PDR-0002 — Delegação direta de tarefas
+
+> **Parcialmente substituída por
+> [PDR-0033](PDR-0033-delegacao-por-convite-tarefas-agenda.md) em
+> 2026-09-22.** "Delegação de tarefa é sempre direta" deixou de valer
+> como regra geral — passa a depender de quem delega e para quem: só
+> Administrador→qualquer usuário e gerente de Equipe→subordinado não-
+> gerente da própria Equipe continuam diretos; os demais casos exigem
+> convite (aceitar/recusar). Para esses dois casos diretos, e para todo
+> o resto deste documento (dados obrigatórios, status, visibilidade,
+> histórico de reatribuição), este PDR continua sendo a decisão vigente
+> — ver PDR-0033.
 
 ## Contexto
 

@@ -142,10 +142,20 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
 
 ### Tarefas
 
-Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
+Delegação de trabalho — direta na maioria dos casos hierárquicos claros,
+por convite (aceitar/recusar) nos demais (PDR-0002/PDR-0033).
 
-- Tarefa aparece imediatamente para o destinatário ao ser criada/
-  delegada; não existe status "recusada".
+- Delegar (atribuir a outro usuário) gera convite pendente, exceto
+  quando quem delega é Administrador do escritório (para qualquer
+  usuário) ou gerente de Equipe delegando para subordinado não-gerente
+  da própria Equipe — nesses dois casos a tarefa aparece imediatamente
+  para o destinatário, sem convite (PDR-0002). Nos demais casos,
+  inclusive gerente para gerente da mesma Equipe, a tarefa só passa a
+  ser atribuição ativa do destinatário depois que ele aceita o convite;
+  recusar (com justificativa opcional) também é uma resposta válida —
+  ver "Delegação por convite" abaixo. Auto-atribuição nunca gera
+  convite. Reatribuição de tarefa **já existente** continua livre, sem
+  convite (comportamento inalterado de PDR-0002).
 - Registra separadamente criador, atribuidor, destinatário da
   atribuição, data da atribuição e responsável atual — mesmo quando
   coincidem na mesma pessoa.
@@ -158,11 +168,13 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
 - Notificação (PDR-0016): ao concluir, o criador é notificado — exceto
   se o criador for o próprio responsável ou for a IA. Notificação de
   atribuição/reatribuição/prazo fica fora de escopo.
-- Faixa de sub-abas abaixo da lista principal: "Recentes (últimas 24h)"
-  e "Atribuídas a mim por terceiros" sempre visíveis para qualquer
-  usuário; "Delegadas por mim" e "Ver tarefas de outra pessoa" só para
-  quem já tem a habilitação de atribuir tarefa a terceiros — mesma
-  habilitação nas duas, nenhuma habilitação nova.
+- Faixa de sub-abas abaixo da lista principal: "Recentes (últimas 24h)",
+  "Atribuídas a mim por terceiros" e "Convites recebidos" (PDR-0033)
+  sempre visíveis para qualquer usuário; "Delegadas por mim" e "Ver
+  tarefas de outra pessoa" só para quem já tem a habilitação de
+  atribuir tarefa a terceiros — mesma habilitação nas duas, nenhuma
+  habilitação nova. "Delegadas por mim" mostra o estado do convite
+  (pendente/aceito ou direto/recusado com justificativa) de cada item.
 - Múltiplos participantes: "Atribuir a" aceita vários usuários de uma
   vez (botão "Atribuir a todos" marca todos de uma vez). Na criação,
   "Atribuir a" é obrigatório (mínimo um; o usuário logado já vem
@@ -180,7 +192,31 @@ Delegação direta de trabalho, sem fluxo de aceite (PDR-0002).
   leitura do responsável), mas não aparece como quem a concluiu. Uma
   Equipe pode ser usada como atalho para selecionar vários atribuídos/
   participantes de uma vez — ver "Equipe como atalho de seleção" abaixo.
-- Fora de escopo: aceite/recusa, gamificação, avaliação de desempenho.
+- Fora de escopo: gamificação, avaliação de desempenho.
+
+### Delegação por convite (Tarefas e Agenda)
+
+Mesma regra conceitual reaproveitada nos dois módulos (PDR-0033):
+delegar (Tarefa: atribuir; Agenda: definir responsável de outra
+pessoa) gera convite pendente, exceto Administrador→qualquer usuário e
+gerente de Equipe→subordinado não-gerente da própria Equipe, que
+continuam diretos. Entre dois gerentes da mesma Equipe o convite
+continua obrigatório.
+
+- Só o próprio destinatário aceita ou recusa o próprio convite, sem
+  checagem de habilitação adicional. Recusar aceita justificativa
+  opcional em texto livre.
+- Enquanto pendente ou recusado, o item não aparece como atribuição
+  ativa do destinatário (fora das listas/quadro/agenda operacionais
+  dele) — só como convite aguardando resposta na sub-aba "Convites
+  recebidos".
+- Não confundir com a confirmação de presença de **participante** de
+  Compromisso (PDR-0020) — decide presença, não quem é o responsável;
+  não muda com esta regra.
+- Reatribuição de item **já existente** para outro responsável
+  continua livre, sem convite, nos dois módulos.
+- Fora de escopo: notificação de convite, expiração/lembrete/
+  cancelamento de convite pendente.
 
 ### Equipe como atalho de seleção
 
@@ -228,11 +264,16 @@ alternância dinâmica sem recarregar.
 - Sincronização bidirecional automática prazo↔evento não está
   claramente aprovada em nenhum PDR — não presumir esse comportamento.
 - Faixa de sub-abas abaixo da lista/calendário: "Novos na sua agenda
-  (últimas 24h)" e "Adicionado por terceiro" sempre visíveis para
-  qualquer usuário; "Delegados por mim" e "Agenda de outros usuários"
-  só para quem já tem, respectivamente, a habilitação de criar
-  compromisso para outros e a Permissão "Agenda"/"Todos" + Gerir —
-  nenhuma habilitação nova.
+  (últimas 24h)", "Adicionado por terceiro" e "Convites recebidos"
+  (PDR-0033) sempre visíveis para qualquer usuário; "Delegados por mim"
+  e "Agenda de outros usuários" só para quem já tem, respectivamente, a
+  habilitação de criar compromisso para outros e a Permissão
+  "Agenda"/"Todos" + Gerir — nenhuma habilitação nova. Definir outro
+  usuário como responsável do compromisso segue a regra de "Delegação
+  por convite" (ver seção em Tarefas) — direto só para Administrador ou
+  gerente→subordinado da própria Equipe, convite nos demais casos;
+  "Delegados por mim" mostra o estado do convite de cada item. Não
+  confundir com a confirmação de presença de participante logo abaixo.
 - Verificar disponibilidade de um convidado ao adicioná-lo como
   participante (mostra os compromissos que ele já tem no horário)
   é só informativo — nunca impede a criação do compromisso — e exige a
