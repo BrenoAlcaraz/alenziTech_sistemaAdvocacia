@@ -150,6 +150,11 @@ class TestConfiguracoesGerirNegado(ConfiguracoesGerirBase):
         )
         self.assertEqual(r.status_code, 403)
 
+    def test_index_nao_admin_nao_ve_dados_do_escritorio(self):
+        r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertNotContains(r, "Dados do escritório")
+
 
 class TestConfiguracoesGerirCriarUsuario(ConfiguracoesGerirBase):
     """`gerir_criar_usuario` autoriza só novo_usuario — equipes e
@@ -336,3 +341,8 @@ class TestConfiguracoesGerirAdminBypass(ConfiguracoesGerirBase):
     def test_editar_escritorio_sem_regressao(self):
         r = self.client.get("/configuracoes/escritorio/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
+
+    def test_index_admin_ve_dados_do_escritorio(self):
+        r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Dados do escritório")

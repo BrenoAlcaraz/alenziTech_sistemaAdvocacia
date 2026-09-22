@@ -178,18 +178,17 @@
 </div>
 {% endif %}
 
+{% if usuario_e_admin_escritorio %}
 {# Card de dados do escritório #}
 <div class="card p-5 mt-4">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-sm font-semibold text-gray-700">Dados do escritório</h2>
-    {% if usuario_e_admin_escritorio %}
     <div class="flex items-center gap-2 flex-shrink-0">
       <a href="{% url 'configuracoes:identidade_visual' %}" class="btn-secondary text-sm">Logo e cores</a>
       <a href="{% url 'configuracoes:editar_escritorio' %}" class="btn-secondary text-sm">
         Editar dados do escritório
       </a>
     </div>
-    {% endif %}
   </div>
 
   {% if configuracao_escritorio.nome_escritorio or configuracao_escritorio.email or configuracao_escritorio.telefone %}
@@ -229,6 +228,7 @@
     <p class="text-sm text-gray-400">Dados do escritório ainda não preenchidos.</p>
   {% endif %}
 </div>
+{% endif %}
 
 {% if usuario_e_admin_escritorio %}
 <dialog id="dlg-excluir-usuario" class="rounded-xl p-0 backdrop:bg-black/40">
