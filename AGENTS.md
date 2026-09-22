@@ -115,9 +115,14 @@ apenas para dividir trabalho.
 
 | Risco | Verificar |
 |---|---|
-| Mudança pequena | arquivos afetados, comportamento relacionado, testes da área |
+| Mudança pequena | arquivos afetados, comportamento relacionado, testes que comprovam o delta |
 | Feature normal | + reuso existente, impacto direto, critérios da spec |
 | Mudança crítica (autenticação, autorização, multitenancy, dados sensíveis, migration, contrato público, mudança arquitetural relevante) | análise ampliada só aqui |
+
+Os testes executados seguem o raio de impacto do delta, não o tamanho
+da feature. Suíte do app e suíte completa não são padrão. Regra e
+comandos em
+[docs/development/COMMANDS.md](docs/development/COMMANDS.md#testes).
 
 Resultado sempre no formato `Encontrado → impacto → ação` — nunca
 relatório narrativo de como a análise foi feita. Não releia o projeto

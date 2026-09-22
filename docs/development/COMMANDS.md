@@ -37,21 +37,60 @@ nenhum procedimento oficial define ordem/parâmetros.
 ## Testes
 
 ```bash
-python manage.py test apps.<app>                    # suíte de um app
-python manage.py test apps.<app>.tests.<modulo>      # um arquivo
-python manage.py test                                # tudo
+python manage.py test apps.<app>.tests.<modulo>.<Classe> --keepdb           # uma classe
+python manage.py test apps.<app>.tests.<modulo>.<Classe>.<metodo> --keepdb  # um método
+python manage.py test apps.<app>.tests.<modulo> --keepdb                    # um arquivo
+python manage.py test apps.<app> --keepdb                                   # suíte de um app
+python manage.py test                                                       # tudo
 ```
 
 Runner é o padrão do Django; testes usam `TenantTestCase`
 (django-tenants), exigem PostgreSQL real.
 
-- **Mudança pequena**: teste alvo do que mudou.
-- **Feature normal**: teste alvo + suíte do app antes de considerar
-  pronto.
-- **Mudança crítica** (autorização, IDOR/escopo, migration, kernel
-  compartilhado): teste alvo + suíte do app + suítes de qualquer app
-  consumidor do contrato alterado. Testes negativos (acesso negado,
-  objeto fora de escopo, mutação sem efeito) são obrigatórios aqui.
+O custo é por **classe**, não por teste: cada classe cria um schema de
+tenant e roda todas as migrations (~9s por classe; suíte de um app
+grande leva vários minutos). `--keepdb` reaproveita o banco de teste
+entre execuções (~13–16s contra ~20s numa classe isolada). Sem
+`--keepdb` só quando o banco de teste estiver inconsistente.
+`--failfast` é útil quando se roda mais de uma classe.
+
+### Seleção de testes pelo raio de impacto do delta
+
+O que define o escopo dos testes é o que o delta atinge, não o
+tamanho da feature.
+
+| Delta | Rodar |
+|---|---|
+| **Local**: view/form/template/service usado só dentro do app | só as classes/métodos que comprovam o delta |
+| **Contrato compartilhado**: símbolo importado por outro app, model com FK entre apps, signal, template incluído por outros | delta + testes dos consumidores diretos |
+| **Transversal/crítico**: autorização/escopo (`accounts/permissoes.py`, `escopo.py`, `decorators.py`, `delegacao.py`), tenant, middleware, settings, `base.html`/sidebar, runner de teste, migration | ampliar conforme o impacto: suítes dos apps consumidores; suíte completa só se o impacto for de fato global |
+| Só docs/texto sem lógica | nenhum teste |
+
+- **Antes de classificar como local**, conferir só os consumidores
+  diretos do que mudou: `grep` de `from apps.<app>.<modulo> import` no
+  símbolo alterado, do caminho da URL nos testes (os testes acessam as
+  URLs pelo caminho literal, ex. `"/tarefas/..."`) e do nome do
+  template em `render(...)`/`{% include %}`. Se houver consumidor fora
+  do app, o delta é compartilhado.
+- Signals, strings de permissão, context processors e template tags não
+  aparecem no grafo de imports: mudança neles nunca é local.
+- **Na dúvida entre dois níveis, subir um.**
+- Em mudança crítica, testes negativos (acesso negado, objeto fora de
+  escopo, mutação sem efeito) são obrigatórios.
+- `check` (e `makemigrations --check --dry-run` quando tocar models)
+  pode substituir execução ampla quando o risco é só estrutural.
+
+### Loop, fechamento e suíte completa
+
+- **Loop de implementação**: só os testes do delta atual.
+- **Corrigir um teste** exige reexecutar só a classe corrigida e as
+  classes atingidas pela correção, não a suíte que já passou.
+- **Fechamento da feature**: não rodar a suíte do app
+  automaticamente. Reclassificar o delta final (`git diff`) pela
+  tabela acima e ampliar só se o raio de impacto aumentou em relação ao
+  que já foi testado.
+- **Suíte completa**: só para mudança realmente transversal ou em um
+  gate separado de integração/release.
 
 Não repetir teste/gate sem motivo: evidência de uma sessão anterior
 continua válida se o delta não tocou o arquivo/contrato que ela cobre.
