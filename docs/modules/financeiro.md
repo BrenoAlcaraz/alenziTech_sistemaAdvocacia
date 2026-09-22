@@ -231,6 +231,9 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
 - Aviso de êxito: a sucumbência mostra "Você tem X% de êxito a receber"
   por contrato "pelo ganho" do mesmo processo, sobre a condenação
   corrigida, somado ao total a receber; "pela economia" não entra.
+- A aba Honorários é dividida em sub-abas Contratuais e Sucumbência
+  (client-side, sem reload). Os tipos legados `exito`/`outro` (não mais
+  criáveis, ver acima) entram em Contratuais — não têm sub-aba própria.
 
 ## Relação com billing SaaS
 
