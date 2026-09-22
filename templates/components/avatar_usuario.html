@@ -1,6 +1,8 @@
-{# Foto de perfil do usuário, ou as iniciais quando não há foto.
-   Espera `usuario`; opcionais: `tamanho` (classes w-/h-, padrão w-8 h-8) e
-   `texto` (classes de fonte, padrão text-xs). #}
+{% comment %}
+Foto de perfil do usuário, ou as iniciais quando não há foto.
+Espera `usuario`; opcionais: `tamanho` (classes w-/h-, padrão w-8 h-8) e
+`texto` (classes de fonte, padrão text-xs).
+{% endcomment %}
 <div class="{{ tamanho|default:'w-8 h-8' }} rounded-full bg-stone-500 flex items-center justify-center text-white {{ texto|default:'text-xs' }} font-semibold overflow-hidden flex-shrink-0">
   {% if usuario.perfil.avatar %}
     <img src="{% url 'configuracoes:foto_usuario' usuario.pk %}" alt="" class="w-full h-full object-cover">
