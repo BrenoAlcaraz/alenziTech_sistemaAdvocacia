@@ -1,8 +1,11 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 from apps.saas_tenants.storage import (
     CaminhoArquivoTenant,
@@ -113,6 +116,65 @@ class MembroEquipe(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} → {self.equipe.nome}"
+
+
+class ConviteDelegacao(models.Model):
+    """
+    Convite de delegação (specs/delegacao-por-convite-agenda-tarefas.md):
+    mecanismo compartilhado por Tarefas e Agenda. `item` aponta (via
+    content type genérico) para a Tarefa ou o Compromisso delegado, para
+    não criar dependência de `apps.accounts` sobre esses módulos.
+    """
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_ACEITO = "aceito"
+    STATUS_RECUSADO = "recusado"
+    STATUS_CHOICES = [
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_ACEITO, "Aceito"),
+        (STATUS_RECUSADO, "Recusado"),
+    ]
+
+    delegante = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="convites_delegacao_enviados",
+    )
+    destinatario = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name="convites_delegacao_recebidos",
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDENTE,
+    )
+    justificativa_recusa = models.TextField(blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    item = GenericForeignKey("content_type", "object_id")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    respondido_em = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Convite de delegação"
+        verbose_name_plural = "Convites de delegação"
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"Convite #{self.pk}: {self.delegante} → {self.destinatario} ({self.status})"
+
+    def aceitar(self):
+        if self.status != self.STATUS_PENDENTE:
+            raise ValidationError("Este convite já foi respondido.")
+        self.status = self.STATUS_ACEITO
+        self.respondido_em = timezone.now()
+        self.save(update_fields=["status", "respondido_em"])
+
+    def recusar(self, justificativa=""):
+        if self.status != self.STATUS_PENDENTE:
+            raise ValidationError("Este convite já foi respondido.")
+        self.status = self.STATUS_RECUSADO
+        self.justificativa_recusa = justificativa
+        self.respondido_em = timezone.now()
+        self.save(update_fields=["status", "justificativa_recusa", "respondido_em"])
 
 
 class PapelAcesso(models.Model):
