@@ -21,7 +21,7 @@ class Processo(models.Model):
     ]
 
     AREAS_CHOICES = [
-        ("CÍVEL", "Cível"),
+        ("CÍVEL", "Civil"),
         ("CONSUMIDOR", "Consumidor"),
         ("TRABALHISTA", "Trabalhista"),
         ("SUCESSÕES", "Sucessões"),
