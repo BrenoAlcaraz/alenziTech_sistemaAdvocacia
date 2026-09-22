@@ -82,7 +82,7 @@ class TestAnaliseNaturezaEStatus(AnaliseBase):
 
         self.assertEqual(resposta.status_code, 200)
         natureza = {b["label"]: b["total"] for b in resposta.context["natureza_barras"]}
-        self.assertEqual(natureza["Cível"], 2)
+        self.assertEqual(natureza["Civil"], 2)
         self.assertEqual(natureza["Trabalhista"], 1)
         status = {b["label"]: b["total"] for b in resposta.context["status_barras"]}
         self.assertEqual(status["Ativo"], 2)

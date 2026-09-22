@@ -213,11 +213,11 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
 - `tipo` do andamento não é mais uma lista genérica única — é um
   catálogo agrupado pela área do processo (`Processo.area_direito`):
-  Cível, Trabalhista e Penal têm listas próprias; todas as demais áreas
+  Civil, Trabalhista e Penal têm listas próprias; todas as demais áreas
   do catálogo (Consumidor, Sucessões, Administrativo, Tributário,
   Família, Empresarial, Médico, Previdenciário, Digital,
   Propriedade Intelectual, Imobiliário, Desportivo, Direito
-  Internacional, Outro) caem no catálogo Cível como padrão (sem
+  Internacional, Outro) caem no catálogo Civil como padrão (sem
   catálogo próprio) — decisão deliberada para manter o escopo pequeno;
   catálogo específico para alguma dessas áreas é spec futura própria,
   não extensão silenciosa. Um grupo "Genéricos" (Despacho, Decisão
@@ -225,6 +225,8 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 - "Eleitoral" não faz parte do catálogo de área do direito (removido na
   revisão do sócio de 2026-09-17); processos e peças que a tinham foram
   convertidos para "Outro".
+- A área gravada como `CÍVEL` é exibida como "Civil" (não "Cível"),
+  em Processos e em Modelos; o valor gravado no banco não mudou.
 
 ### Criação automática por IA (reservada)
 
