@@ -223,17 +223,28 @@ class TestParcelado(LancamentoFormularioBase):
         )
         self.assertEqual(datas, [date(2026, 1, 31), date(2026, 2, 28), date(2026, 3, 31)])
 
-    def test_valor_digitado_e_o_de_cada_parcela(self):
+    def test_valor_digitado_e_o_total_dividido_entre_as_parcelas(self):
+        # 250,00 ÷ 3 não é exato: a última parcela absorve o resíduo do
+        # arredondamento, para a soma bater com o total digitado.
         self._criar(valor="250.00")
-        self.assertEqual(
-            set(LancamentoFinanceiro.objects.values_list("valor", flat=True)), {Decimal("250.00")},
-        )
+        valores = list(LancamentoFinanceiro.objects.order_by("data_vencimento").values_list("valor", flat=True))
+        self.assertEqual(valores, [Decimal("83.33"), Decimal("83.33"), Decimal("83.34")])
+        self.assertEqual(sum(valores), Decimal("250.00"))
 
     def test_so_a_primeira_nasce_paga(self):
         self._criar(status="pago", data_pagamento="2026-01-31")
         lancamentos = list(LancamentoFinanceiro.objects.order_by("data_vencimento"))
         self.assertEqual([l.status for l in lancamentos], ["pago", "pendente", "pendente"])
         self.assertEqual([l.data_pagamento for l in lancamentos], [date(2026, 1, 31), None, None])
+
+    def test_card_mostra_a_parcela_atual_sobre_o_total(self):
+        self._criar()
+        r_jan = self.client.get("/financeiro/?ano=2026&mes=1", HTTP_HOST=self.http_host)
+        r_fev = self.client.get("/financeiro/?ano=2026&mes=2", HTTP_HOST=self.http_host)
+        r_mar = self.client.get("/financeiro/?ano=2026&mes=3", HTTP_HOST=self.http_host)
+        self.assertContains(r_jan, "PARCELA(S): (1/3)")
+        self.assertContains(r_fev, "PARCELA(S): (2/3)")
+        self.assertContains(r_mar, "PARCELA(S): (3/3)")
 
     def test_comprovante_fica_so_na_primeira_parcela(self):
         self.client.post(

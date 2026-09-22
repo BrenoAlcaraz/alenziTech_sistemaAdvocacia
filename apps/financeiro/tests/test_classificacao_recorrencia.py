@@ -9,6 +9,7 @@ django_tenants.test.cases.TenantTestCase.
 """
 
 from datetime import date
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django_tenants.test.cases import TenantTestCase
@@ -63,7 +64,42 @@ class TestGeracaoDeParcelas(ClassificacaoRecorrenciaBase):
         for ocorrencia in ocorrencias:
             self.assertEqual(ocorrencia.lancamento_origem_id, origem.pk)
             self.assertEqual(ocorrencia.status, "pendente")
-            self.assertEqual(ocorrencia.valor, origem.valor)
+
+    def test_valor_digitado_e_o_total_dividido_entre_as_parcelas(self):
+        # 1000,00 ÷ 3 não é exato: a última parcela absorve o centavo de
+        # resíduo, para a soma bater exatamente com o total digitado.
+        origem = self._lancamento(classificacao="parcelado", numero_parcelas=3, valor="1000.00")
+        gerar_ocorrencias(origem)
+        origem.refresh_from_db()
+
+        ocorrencias = list(origem.ocorrencias.order_by("data_vencimento"))
+        self.assertEqual(origem.valor, Decimal("333.33"))
+        self.assertEqual(ocorrencias[0].valor, Decimal("333.33"))
+        self.assertEqual(ocorrencias[1].valor, Decimal("333.34"))
+        self.assertEqual(
+            origem.valor + sum(o.valor for o in ocorrencias), Decimal("1000.00"),
+        )
+
+    def test_valor_divisivel_nao_gera_diferenca_de_centavos(self):
+        origem = self._lancamento(classificacao="parcelado", numero_parcelas=3, valor="3000.00")
+        gerar_ocorrencias(origem)
+        origem.refresh_from_db()
+
+        valores = [origem.valor] + [o.valor for o in origem.ocorrencias.order_by("data_vencimento")]
+        self.assertEqual(valores, [Decimal("1000.00")] * 3)
+
+    def test_info_parcela_numera_a_origem_e_as_ocorrencias_em_sequencia(self):
+        origem = self._lancamento(classificacao="parcelado", numero_parcelas=3)
+        gerar_ocorrencias(origem)
+
+        primeira, segunda = origem.ocorrencias.order_by("data_vencimento")
+        self.assertEqual(origem.info_parcela, (1, 3))
+        self.assertEqual(primeira.info_parcela, (2, 3))
+        self.assertEqual(segunda.info_parcela, (3, 3))
+
+    def test_info_parcela_e_none_fora_do_parcelamento(self):
+        unica = self._lancamento(classificacao="unica")
+        self.assertIsNone(unica.info_parcela)
 
     def test_gerar_ocorrencias_e_idempotente(self):
         origem = self._lancamento(classificacao="parcelado", numero_parcelas=3)

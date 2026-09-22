@@ -107,8 +107,9 @@
         </div>
         <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-1">
           <span>{{ s.get_tipo_display }}</span>
-          {% if tem_acesso_dados %}<span class="max-w-full truncate" title="{{ s.solicitante }}">{{ s.solicitante }}</span>{% endif %}
-          {% if s.processo %}<span class="max-w-full truncate" title="{{ s.processo }}">{{ s.processo }}</span>{% elif s.cliente %}<span class="max-w-full truncate" title="{{ s.cliente }}">{{ s.cliente }}</span>{% endif %}
+          {% if tem_acesso_dados %}<span class="max-w-full truncate" title="{{ s.solicitante }}">Solicitado por: {{ s.solicitante }}</span>{% endif %}
+          <span class="max-w-full truncate" title="{{ s.processo|default:"—" }}">Processo: {{ s.processo|default:"—" }}</span>
+          <span class="max-w-full truncate" title="{{ s.cliente|default:"—" }}">Cliente: {{ s.cliente|default:"—" }}</span>
           <span>Solicitada em {{ s.criado_em|date:"d/m/Y" }}</span>
           {% if s.data_pagamento %}<span>Paga em {{ s.data_pagamento|date:"d/m/Y" }}{% if tem_acesso_dados and s.pagamento_realizado_por %} por {{ s.pagamento_realizado_por.get_full_name|default:s.pagamento_realizado_por.username }}{% endif %}</span>{% endif %}
         </div>

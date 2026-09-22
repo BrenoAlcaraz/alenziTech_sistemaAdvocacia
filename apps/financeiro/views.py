@@ -155,7 +155,7 @@ def _exige_nivel_dados(user):
 
 
 def _lancamentos_no_escopo(user):
-    qs = LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel")
+    qs = LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel", "lancamento_origem")
     if _nivel_financeiro(user) == NIVEL_DADOS_PROPRIOS:
         qs = qs.filter(responsavel=user)
     return qs

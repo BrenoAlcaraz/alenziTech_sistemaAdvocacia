@@ -18,6 +18,8 @@ HORIZONTE_OCORRENCIAS_INDETERMINADO = {"mensal": 24, "anual": 5}
 # nunca deveria ser atingida em uso normal.
 MAXIMO_OCORRENCIAS_POR_SEGURANCA = 600
 
+_CENTAVOS = Decimal("0.01")
+
 
 def _somar_meses(data, meses):
     """`data` deslocada em `meses`, com o dia sempre válido no mês de
@@ -56,6 +58,12 @@ def gerar_ocorrencias(lancamento):
     recorrente recém-criado, vinculadas a ele via `lancamento_origem`
     (PDR-0021). Idempotente: não gera de novo se já existem ocorrências,
     então é seguro chamar tanto na criação quanto na edição.
+
+    Parcelado: o valor digitado é o total a parcelar. É dividido
+    igualmente entre as parcelas (arredondado ao centavo); a última
+    parcela absorve o resíduo do arredondamento, para a soma bater
+    exatamente com o total — mesma convenção do honorário contratual
+    parcelado (PDR-0032, `gerar_lancamentos_do_honorario`).
     """
     if lancamento.classificacao not in ("parcelado", "recorrente"):
         return
@@ -69,10 +77,20 @@ def gerar_ocorrencias(lancamento):
 
     novas = []
     if lancamento.classificacao == "parcelado":
-        total = lancamento.numero_parcelas or 1
-        for i in range(1, total):
+        total_parcelas = lancamento.numero_parcelas or 1
+        # str() antes de Decimal(): aceita tanto Decimal quanto valor
+        # ainda não normalizado pelo form (ex.: `.objects.create(valor="...")`
+        # direto, fora do fluxo de tela), sem perder precisão.
+        total = Decimal(str(lancamento.valor))
+        valor_parcela = (total / total_parcelas).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+        if lancamento.valor != valor_parcela:
+            lancamento.valor = valor_parcela
+            lancamento.save(update_fields=["valor"])
+        for i in range(1, total_parcelas):
             data = _somar_meses(lancamento.data_vencimento, i)
             novas.append(_copiar_para_ocorrencia(lancamento, data))
+        if novas:
+            novas[-1].valor = total - valor_parcela * (total_parcelas - 1)
 
     elif lancamento.classificacao == "recorrente":
         passo = _passo_em_meses(lancamento.periodicidade)
@@ -436,21 +454,18 @@ def analise_de_dados(escopo, *, inicio, incluir_custas):
 def gerar_lancamentos_do_honorario(honorario, *, responsavel=None):
     """Honorário contratual parcelado/recorrente → receitas pendentes
     (categoria Honorários) vinculadas a ele, pelo gerador do PDR-0021.
-    Idempotente: só gera se o honorário ainda não tem lançamentos. No
-    parcelamento, `valor_estimado` é o total: a última parcela absorve o
-    centavo de arredondamento."""
+    Idempotente: só gera se o honorário ainda não tem lançamentos.
+    `valor_estimado` é sempre o total (parcelado ou não); no
+    parcelamento, é o próprio `gerar_ocorrencias` que divide entre as
+    parcelas e absorve o arredondamento na última."""
     if not honorario.recebimento_por_lancamentos or honorario.lancamentos.exists():
         return
-    parcelado = honorario.classificacao == "parcelado"
-    valor = honorario.valor_estimado
-    if parcelado:
-        valor = (honorario.valor_estimado / honorario.numero_parcelas).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
     alvo = honorario.processo or honorario.cliente
     with transaction.atomic():
         origem = LancamentoFinanceiro.objects.create(
             tipo="receita",
             descricao=f"Honorário — {honorario.get_tipo_display()}" + (f" — {alvo}" if alvo else ""),
-            valor=valor,
+            valor=honorario.valor_estimado,
             data_vencimento=honorario.data_prevista,
             categoria="honorario",
             cliente=honorario.cliente,
@@ -465,10 +480,6 @@ def gerar_lancamentos_do_honorario(honorario, *, responsavel=None):
             honorario=honorario,
         )
         gerar_ocorrencias(origem)
-        if parcelado:
-            ultima = origem.ocorrencias.order_by("-data_vencimento").first()
-            ultima.valor = honorario.valor_estimado - valor * (honorario.numero_parcelas - 1)
-            ultima.save(update_fields=["valor"])
 
 
 def cancelar_lancamentos_futuros_do_honorario(honorario):
@@ -483,7 +494,6 @@ def cancelar_lancamentos_futuros_do_honorario(honorario):
 # ── Honorário sucumbencial calculado (PDR-0029) ─────────────────────────────
 
 JUROS_MENSAL_PESSOA = Decimal("0.01")
-_CENTAVOS = Decimal("0.01")
 
 
 def _meses_decorridos(inicio, ate, fim=None):

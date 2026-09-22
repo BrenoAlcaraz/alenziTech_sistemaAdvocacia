@@ -189,6 +189,25 @@ class LancamentoFinanceiro(models.Model):
             and self.data_vencimento < timezone.localdate()
         )
 
+    @property
+    def info_parcela(self):
+        """(número desta parcela, total de parcelas) dentro do
+        parcelamento a que pertence — a origem é sempre a parcela 1, a
+        mais antiga do grupo. `None` se não for parcelado. Não copiado
+        para as ocorrências geradas: `numero_parcelas` só existe na
+        origem, por isso a busca lá."""
+        if self.classificacao != "parcelado":
+            return None
+        origem = self.lancamento_origem or self
+        total = origem.numero_parcelas
+        if not total:
+            return None
+        # +1 pela origem em si (parcela 1, nunca está em `ocorrencias`);
+        # `lte` porque a própria `self`, quando é uma ocorrência, precisa
+        # se contar (senão toda ocorrência saía com o número da anterior).
+        numero = 1 + origem.ocorrencias.filter(data_vencimento__lte=self.data_vencimento).count()
+        return numero, total
+
 
 class GrupoCustas(models.Model):
     """Grupo de clientes que compartilha um saldo de custas (ex.: holding

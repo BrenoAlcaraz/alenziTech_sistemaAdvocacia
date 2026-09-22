@@ -49,7 +49,11 @@
         <div>
           <label class="label">
             <span data-toggle-panel="classificacao" data-toggle-values="unica,recorrente">Valor (R$)</span>
-            <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor de cada parcela (R$)</span>
+            {% if modo == "novo" %}
+              <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor total (R$)</span>
+            {% else %}
+              <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor desta parcela (R$)</span>
+            {% endif %}
           </label>
           {{ form.valor }}
           {% if form.valor.errors %}
@@ -84,7 +88,11 @@
         {% if form.numero_parcelas.errors %}
           <p class="erro-campo text-xs text-red-500 mt-1">{{ form.numero_parcelas.errors|join:", " }}</p>
         {% endif %}
-        <p class="text-xs text-gray-400 mt-1">O valor informado é o de cada parcela. As parcelas seguintes vencem no mesmo dia dos meses seguintes, a partir da data da 1ª parcela; só a 1ª pode ser lançada como paga.</p>
+        {% if modo == "novo" %}
+          <p class="text-xs text-gray-400 mt-1">O valor é o total: será dividido igualmente entre as parcelas (a última absorve o eventual arredondamento). As parcelas seguintes vencem no mesmo dia dos meses seguintes, a partir da data da 1ª parcela; só a 1ª pode ser lançada como paga.</p>
+        {% else %}
+          <p class="text-xs text-gray-400 mt-1">O valor mostrado é só desta parcela. As parcelas seguintes vencem no mesmo dia dos meses seguintes, a partir da data da 1ª parcela; só a 1ª pode ser lançada como paga.</p>
+        {% endif %}
       </div>
 
       <div data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden flex flex-col gap-4">

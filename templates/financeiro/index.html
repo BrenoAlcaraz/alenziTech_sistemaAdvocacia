@@ -228,7 +228,11 @@
           <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
             <span>{{ l.get_categoria_display }}</span>
             {% if l.classificacao == "parcelado" %}
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">PARCELADO</span>
+              {% with info=l.info_parcela %}
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">
+                  {% if info %}PARCELA(S): ({{ info.0 }}/{{ info.1 }}){% else %}PARCELADO{% endif %}
+                </span>
+              {% endwith %}
             {% elif l.classificacao == "recorrente" %}
               <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">RECORRENTE · {{ l.get_periodicidade_display|upper }}</span>
             {% endif %}
@@ -240,16 +244,11 @@
               <span>Pago em {{ l.data_pagamento|date:"d/m/Y" }}</span>
             {% endif %}
             {% if l.responsavel %}
-              <span class="max-w-full truncate" title="{{ l.responsavel }}">{{ l.responsavel }}</span>
+              <span class="max-w-full truncate" title="{{ l.responsavel }}">Criado por: {{ l.responsavel }}</span>
             {% endif %}
-            {% if l.processo %}
-              <span class="max-w-full truncate" title="{{ l.processo }}">{{ l.processo }}</span>
-            {% elif l.cliente %}
-              <span class="max-w-full truncate" title="{{ l.cliente }}">{{ l.cliente }}</span>
-            {% endif %}
-            {% if l.forma_pagamento %}
-              <span>{{ l.get_forma_pagamento_display }}</span>
-            {% endif %}
+            <span class="max-w-full truncate" title="{{ l.processo|default:"—" }}">Processo: {{ l.processo|default:"—" }}</span>
+            <span class="max-w-full truncate" title="{{ l.cliente|default:"—" }}">Cliente: {{ l.cliente|default:"—" }}</span>
+            <span>Forma de pagamento: {{ l.get_forma_pagamento_display|default:"—" }}</span>
             {% if l.anexo %}
               <span class="inline-flex items-center gap-1 max-w-full">
                 <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
