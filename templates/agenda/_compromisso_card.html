@@ -87,6 +87,19 @@
       </span>
     {% endif %}
 
+    {# Convite de delegação — estado visível para quem delegou (specs/delegacao-por-convite-agenda-tarefas.md) #}
+    {% if c.convite_delegacao %}
+      {% if c.convite_delegacao.status == "pendente" %}
+        <span class="font-medium" style="color: #92400e;">Convite pendente</span>
+      {% elif c.convite_delegacao.status == "recusado" %}
+        <span class="font-medium" style="color: #b91c1c;" title="{{ c.convite_delegacao.justificativa_recusa }}">
+          Convite recusado{% if c.convite_delegacao.justificativa_recusa %}: {{ c.convite_delegacao.justificativa_recusa }}{% endif %}
+        </span>
+      {% else %}
+        <span class="font-medium" style="color: #15803d;">Convite aceito</span>
+      {% endif %}
+    {% endif %}
+
     {% if c.processo %}
       <span class="max-w-full truncate" title="{{ c.processo }}">
         <span class="font-semibold text-gray-900">Processo:</span>

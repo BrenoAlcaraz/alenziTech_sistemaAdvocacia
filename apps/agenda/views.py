@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -13,6 +14,13 @@ from django.utils.dateparse import parse_datetime
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.accounts.decorators import usuario_admin_escritorio
+from apps.accounts.delegacao import (
+    aceitar_convite,
+    criar_convite_delegacao,
+    delegacao_exige_convite,
+    recusar_convite,
+)
+from apps.accounts.models import ConviteDelegacao
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
     MODULO_AGENDA,
@@ -33,7 +41,16 @@ from .forms import AdicionarParticipanteForm, CompromissoForm
 FILTROS_VALIDOS = {"hoje", "proximos_7", "vencidos", "todos"}
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 VISOES_VALIDAS = {"lista", "calendario"}
-ABAS_VALIDAS = {"novidades", "terceiro", "delegados", "outros"}
+ABAS_VALIDAS = {"novidades", "terceiro", "delegados", "convites", "outros"}
+_CONVITES_QUE_OCULTAM = [ConviteDelegacao.STATUS_PENDENTE, ConviteDelegacao.STATUS_RECUSADO]
+
+
+def _excluir_ocultos_por_convite(qs):
+    """Remove compromisso com convite de delegação pendente/recusado —
+    ainda não é (ou nunca será) atribuição ativa do responsável (specs/
+    delegacao-por-convite-agenda-tarefas.md). Compromisso sem convite
+    (direto) ou com convite aceito não é afetado."""
+    return qs.exclude(convite_delegacao__status__in=_CONVITES_QUE_OCULTAM)
 
 MESES = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -137,6 +154,7 @@ def _aplicar_escopo(qs, request, escopo):
         qs = qs.filter(
             Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
         ).distinct()
+        qs = _excluir_ocultos_por_convite(qs)
     return qs
 
 
@@ -148,7 +166,7 @@ def _compromissos_no_escopo(request, escopo):
     só na seção "Cancelados" (ver `cancelados`).
     """
     qs = Compromisso.objects.select_related(
-        "responsavel", "processo", "cliente"
+        "responsavel", "processo", "cliente", "convite_delegacao"
     ).exclude(status="cancelado")
     return _aplicar_escopo(qs, request, escopo)
 
@@ -173,6 +191,7 @@ def _compromissos_mutaveis(request):
     qs = Compromisso.objects.all()
     if not usuario_admin_escritorio(request.user):
         qs = qs.filter(responsavel=request.user)
+        qs = _excluir_ocultos_por_convite(qs)
     return qs
 
 
@@ -191,7 +210,7 @@ def _compromissos_novidades(request):
     caso). Sempre visível, sem checagem de habilitação.
     """
     limite = timezone.now() - timedelta(hours=24)
-    return (
+    return _excluir_ocultos_por_convite(
         Compromisso.objects.select_related("responsavel", "processo", "cliente")
         .exclude(status="cancelado")
         .filter(
@@ -199,8 +218,7 @@ def _compromissos_novidades(request):
             | Q(participacoes__usuario=request.user, participacoes__criado_em__gte=limite)
         )
         .distinct()
-        .order_by("-criado_em")
-    )
+    ).order_by("-criado_em")
 
 
 def _compromissos_adicionado_por_terceiro(request):
@@ -209,14 +227,13 @@ def _compromissos_adicionado_por_terceiro(request):
     é responsável, mas quem criou foi outra pessoa. Sempre visível, sem
     checagem de habilitação.
     """
-    return (
+    return _excluir_ocultos_por_convite(
         Compromisso.objects.select_related("responsavel", "processo", "cliente")
         .exclude(status="cancelado")
         .filter(responsavel=request.user)
         .exclude(criado_por__isnull=True)
         .exclude(criado_por=request.user)
-        .order_by("-criado_em")
-    )
+    ).order_by("-criado_em")
 
 
 def _compromissos_delegados_por_mim(request):
@@ -227,9 +244,24 @@ def _compromissos_delegados_por_mim(request):
     padrão. Só para quem tem a habilitação de criar para outros.
     """
     return (
-        Compromisso.objects.select_related("responsavel", "processo", "cliente")
+        Compromisso.objects.select_related("responsavel", "processo", "cliente", "convite_delegacao")
         .filter(criado_por=request.user)
         .exclude(responsavel=request.user)
+        .order_by("-criado_em")
+    )
+
+
+def _convites_pendentes_do_usuario(request):
+    """Convites de delegação de Compromisso pendentes para o usuário
+    logado responder (specs/delegacao-por-convite-agenda-tarefas.md) —
+    qualquer usuário pode ser destinatário, sem exigir habilitação."""
+    return (
+        ConviteDelegacao.objects.filter(
+            destinatario=request.user,
+            status=ConviteDelegacao.STATUS_PENDENTE,
+            content_type=ContentType.objects.get_for_model(Compromisso),
+        )
+        .select_related("delegante")
         .order_by("-criado_em")
     )
 
@@ -501,6 +533,7 @@ def index(request):
     contexto.update({
         "compromissos_novidades": novidades,
         "compromissos_terceiro": terceiro,
+        "convites_recebidos": list(_convites_pendentes_do_usuario(request)),
     })
 
     if pode_criar_para_outros:
@@ -579,6 +612,36 @@ def editar(request, pk):
         "item_ativo": "agenda",
         "pode_ver_disponibilidade": _pode_ver_outro_usuario(request.user),
     })
+
+
+@login_required
+def convite_responder(request, pk):
+    """Aceitar/recusar convite de delegação — sub-aba "Convites
+    recebidos" do index (specs/delegacao-por-convite-agenda-tarefas.md).
+    Sem página própria: mesma sub-aba dos demais estados de Agenda."""
+    if not tem_permissao_modulo(request.user, MODULO_AGENDA):
+        raise PermissionDenied
+    convite = get_object_or_404(
+        ConviteDelegacao,
+        pk=pk,
+        destinatario=request.user,
+        status=ConviteDelegacao.STATUS_PENDENTE,
+        content_type=ContentType.objects.get_for_model(Compromisso),
+    )
+    if request.method == "POST":
+        acao = request.POST.get("acao")
+        if acao == "aceitar":
+            aceitar_convite(convite, request.user)
+        elif acao == "recusar":
+            recusar_convite(convite, request.user, justificativa=request.POST.get("justificativa", ""))
+        else:
+            raise Http404
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(next_url)
+    return redirect("agenda:index")
 
 
 @login_required
@@ -678,6 +741,15 @@ def form_compromisso(request):
                     compromisso=compromisso, usuario=usuario
                 )
                 _notificar_convite(participacao)
+            # Delegação por convite (specs/delegacao-por-convite-agenda-
+            # tarefas.md): só se aplica quando o responsável é outra
+            # pessoa, nunca em auto-atribuição.
+            if compromisso.responsavel_id != request.user.pk and delegacao_exige_convite(
+                request.user, compromisso.responsavel
+            ):
+                convite = criar_convite_delegacao(request.user, compromisso.responsavel, compromisso)
+                compromisso.convite_delegacao = convite
+                compromisso.save(update_fields=["convite_delegacao"])
             return redirect("agenda:index")
     else:
         form = CompromissoForm(initial={"responsavel": usuario_travado or request.user})

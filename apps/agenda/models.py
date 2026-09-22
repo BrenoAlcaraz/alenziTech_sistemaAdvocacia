@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
+from apps.accounts.models import ConviteDelegacao
 from apps.processos.models import Processo
 from apps.processos.services import processo_pertence_ao_cliente
 from apps.clientes.models import Cliente
@@ -45,6 +46,12 @@ class Compromisso(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     lembrete_enviado = models.BooleanField(default=False)
     cancelado_em = models.DateTimeField(null=True, blank=True)
+    # Convite de delegação (specs/delegacao-por-convite-agenda-tarefas.md):
+    # presente e pendente/recusado enquanto o compromisso não é uma
+    # atribuição ativa do responsável — ver Compromisso.oculta_por_convite.
+    convite_delegacao = models.OneToOneField(
+        ConviteDelegacao, on_delete=models.SET_NULL, null=True, blank=True, related_name="compromisso",
+    )
 
     class Meta:
         verbose_name = "Compromisso"
@@ -57,6 +64,15 @@ class Compromisso(models.Model):
     def clean(self):
         if not processo_pertence_ao_cliente(self.cliente, self.processo):
             raise ValidationError({"processo": "O processo selecionado não pertence ao cliente informado."})
+
+    @property
+    def oculta_por_convite(self):
+        """True enquanto o compromisso não deve aparecer como atribuição
+        ativa do responsável — convite de delegação pendente ou recusado."""
+        return (
+            self.convite_delegacao_id is not None
+            and self.convite_delegacao.status != ConviteDelegacao.STATUS_ACEITO
+        )
 
     def save(self, *args, **kwargs):
         if self.pk:
