@@ -335,6 +335,31 @@ class TestVoltarGlobal(ConfigBase):
     def get_test_schema_name(cls):
         return "config_ajustes_voltar"
 
-    def test_cabecalho_traz_o_botao_voltar_global(self):
-        r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
+    def test_tela_secundaria_traz_o_botao_voltar_global(self):
+        r = self.client.get("/configuracoes/perfil/editar/", HTTP_HOST=self.http_host)
         self.assertContains(r, "data-voltar-global")
+
+    def test_paginas_raiz_dos_modulos_nao_trazem_voltar(self):
+        for url in ("/", "/configuracoes/"):
+            with self.subTest(url=url):
+                r = self.client.get(url, HTTP_HOST=self.http_host)
+                self.assertEqual(r.status_code, 200)
+                self.assertNotContains(r, "data-voltar-global")
+
+
+class TestMenuDoUsuario(ConfigBase):
+    @classmethod
+    def get_test_schema_name(cls):
+        return "config_ajustes_menu_usuario"
+
+    def test_configuracoes_e_sair_ficam_no_menu_do_usuario_e_nao_na_sidebar(self):
+        r = self.client.get("/", HTTP_HOST=self.http_host)
+        html = r.content.decode()
+        sidebar = html[html.index('id="sidebar"'):html.index("</nav>")]
+        self.assertNotIn("/configuracoes/", sidebar)
+        self.assertNotIn("/logout/", sidebar)
+        menu = html[html.index('aria-label="Menu do usuário"'):html.index("</header>")]
+        self.assertIn('href="/configuracoes/"', menu)
+        self.assertIn('href="/logout/"', menu)
+        self.assertIn("Sair do sistema", menu)
+        self.assertIn("ADM", menu)

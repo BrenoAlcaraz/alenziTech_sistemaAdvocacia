@@ -86,6 +86,13 @@ interface" vale para todos e não é repetido em cada um. Processos e
 Financeiro têm arquivo próprio em `docs/modules/` por volume real de
 regra (múltiplas decisões e sub-áreas); os demais cabem aqui.
 
+Navegação: a barra lateral lista só os módulos, nesta ordem — Painel,
+Clientes, Processos, Modelos, Financeiro, Agenda Jurídica, Chat,
+Laboratório Jurídico. Abre expandida (ícone + nome) e pode ser recolhida
+(só ícones, nome no tooltip); em tela estreita começa recolhida, e a
+escolha do usuário é lembrada no navegador. Configurações e Sair ficam
+no menu do usuário, no cabeçalho.
+
 ### Códigos internos (Processo, Cliente, Usuário)
 
 Identificador curto e estável para referência rápida no dia a dia
@@ -570,7 +577,9 @@ equipes, identidade do escritório, consulta ao plano SaaS.
 - Foto de perfil visível aos colegas (lista de usuários, chat).
 - Documentos e anexos em qualquer módulo têm botões de visualizar
   (olho) e baixar; só PDF, imagem e texto abrem no navegador.
-- Botão "Voltar" global no cabeçalho, para a tela de onde o usuário veio.
+- Botão "Voltar" global no cabeçalho, para a tela de onde o usuário veio;
+  só em telas secundárias — nunca na página raiz de um módulo (as da
+  barra lateral e Configurações).
 
 ### Inteligência Artificial
 

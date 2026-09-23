@@ -4,14 +4,41 @@
 
 document.addEventListener("DOMContentLoaded", () => {
 
-  // ── Toggle sidebar mobile (futuramente) ─────────────────────────────────────
-  const sidebarToggle = document.getElementById("sidebar-toggle");
+  // ── Sidebar expandida/recolhida ─────────────────────────────────────────────
+  // O estado inicial é aplicado no <head> (base_auth.html); aqui só alterna,
+  // lembra a escolha e mantém tooltips (title) nos itens quando recolhida.
+  const sidebarToggle = document.querySelector("[data-sidebar-toggle]");
   const sidebar = document.getElementById("sidebar");
   if (sidebarToggle && sidebar) {
+    const raiz = document.documentElement;
+    const aplicarTooltips = () => {
+      const recolhida = raiz.classList.contains("sidebar-recolhida");
+      sidebar.querySelectorAll(".sidebar-item").forEach((item) => {
+        const rotulo = item.querySelector(".sidebar-rotulo");
+        if (item !== sidebarToggle && rotulo) {
+          if (recolhida) item.title = rotulo.textContent.trim();
+          else item.removeAttribute("title");
+        }
+      });
+      const acao = recolhida ? "Expandir menu" : "Recolher menu";
+      sidebarToggle.title = acao;
+      sidebarToggle.setAttribute("aria-label", acao);
+      sidebarToggle.setAttribute("aria-expanded", String(!recolhida));
+    };
+    aplicarTooltips();
     sidebarToggle.addEventListener("click", () => {
-      sidebar.classList.toggle("-translate-x-full");
+      const recolhida = raiz.classList.toggle("sidebar-recolhida");
+      try { localStorage.setItem("sidebar", recolhida ? "recolhida" : "expandida"); } catch (e) {}
+      aplicarTooltips();
     });
   }
+
+  // ── Dropdowns do cabeçalho (<details data-dropdown>) ────────────────────────
+  // Fecham ao clicar fora ou com Esc.
+  const dropdowns = document.querySelectorAll("details[data-dropdown]");
+  const fecharDropdowns = (exceto) => dropdowns.forEach((d) => { if (d !== exceto) d.open = false; });
+  document.addEventListener("click", (e) => fecharDropdowns(e.target.closest("details[data-dropdown]")));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharDropdowns(null); });
 
   // ── Tabs internas ───────────────────────────────────────────────────────────
   // Abas com data-tab e data-tab-panel para alternância visual sem JS avançado

@@ -1,5 +1,19 @@
 {% extends "base/base.html" %}
 
+{% block layout_head %}
+  {# Estado da sidebar aplicado antes da pintura, para não "piscar" ao carregar. #}
+  {# Preferência manual fica no navegador; sem ela, telas < 1024 px começam recolhidas. #}
+  <script>
+    (function () {
+      var pref = null;
+      try { pref = localStorage.getItem("sidebar"); } catch (e) {}
+      if (pref === "recolhida" || (pref === null && window.innerWidth < 1024)) {
+        document.documentElement.classList.add("sidebar-recolhida");
+      }
+    })();
+  </script>
+{% endblock %}
+
 {% block body %}
 <div class="flex h-screen overflow-hidden bg-juridico-bg">
 
@@ -7,14 +21,14 @@
   {% include "components/sidebar.html" %}
 
   {# ── Área principal ────────────────────────────────────────────────────── #}
-  <div class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
 
     {# ── Header superior ───────────────────────────────────────────────── #}
     {% include "components/header.html" %}
 
     {# ── Conteúdo da página ────────────────────────────────────────────── #}
     <main class="flex-1 overflow-y-auto">
-      <div class="px-8 py-6 max-w-5xl">
+      <div class="w-full max-w-[1600px] px-4 sm:px-8 py-6">
         {# Mensagens Django (alerts) #}
         {% if messages %}
           {% for message in messages %}

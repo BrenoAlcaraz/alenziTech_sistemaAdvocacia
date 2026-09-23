@@ -76,5 +76,5 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
   IA (criar processo pela íntegra; ajustar peça repetitiva a partir dos
   anexos — PDR-0008), salário do usuário alimentando o Financeiro
   (depende de decisão de produto) e botão "Voltar" específico por
-  tela (coberto pelo Voltar global). A manipulação de imagens do Meu
+  tela (coberto pelo Voltar global, que não aparece nas páginas raiz). A manipulação de imagens do Meu
   estilo (arrastar/redimensionar) não foi exercitada em navegador real.

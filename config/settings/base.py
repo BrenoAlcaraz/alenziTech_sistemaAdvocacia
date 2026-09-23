@@ -111,6 +111,8 @@ TEMPLATES = [
                 "apps.saas_tenants.context_processors.tenant_config",
                 # Injeta notificações não lidas do usuário logado (header)
                 "apps.notificacoes.context_processors.notificacoes",
+                # Página raiz de módulo (header não mostra "Voltar")
+                "config.context_processors.navegacao",
             ],
         },
     },

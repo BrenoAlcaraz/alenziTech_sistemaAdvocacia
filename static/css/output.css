@@ -562,6 +562,13 @@ body {
   color: rgb(17 24 39 / var(--tw-text-opacity, 1));
 }
 
+/* O atributo hidden precisa vencer utilitários de display (ex.: o
+     inline-flex do Voltar global, exibido por JS só quando há tela anterior). */
+
+[hidden] {
+  display: none !important;
+}
+
 .\!container {
   width: 100% !important;
 }
@@ -1097,22 +1104,56 @@ body {
   color: rgb(55 65 81 / var(--tw-text-opacity, 1));
 }
 
-/* ── Sidebar item ─────────────────────────────────────────── */
+/* ── Sidebar (expandida por padrão; recolhida via html.sidebar-recolhida) ──
+     Item e ícone têm a mesma geometria nos dois estados (px-3 + ícone 20px
+     centrado nos 44px úteis da versão recolhida), só o rótulo some. */
+
+.sidebar {
+  display: flex;
+  height: 100vh;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  --tw-bg-opacity: 1;
+  background-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-bg-opacity, 1));
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  width: 212px;
+  transition: width 150ms ease;
+}
+
+.sidebar-recolhida .sidebar {
+  width: 60px;
+}
+
+.sidebar-logo {
+  margin-bottom: 1rem;
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
 
 .sidebar-item {
   display: flex;
+  height: 2.5rem;
   width: 100%;
+  flex-shrink: 0;
   cursor: pointer;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.75rem;
+  white-space: nowrap;
   border-radius: 0.5rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
   --tw-text-opacity: 1;
   color: rgb(156 163 175 / var(--tw-text-opacity, 1));
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
@@ -1127,26 +1168,58 @@ body {
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
 }
 
-/* ── Sidebar item ativo ───────────────────────────────────── */
+/* Ativo: realce discreto dentro da sidebar, sem bloco claro nem dourado */
 
 .sidebar-item-active {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  border-radius: 0.5rem;
-  --tw-bg-opacity: 1;
-  background-color: rgb(245 243 239 / var(--tw-bg-opacity, 1));
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
+  background-color: rgb(255 255 255 / 0.1);
   font-weight: 500;
   --tw-text-opacity: 1;
-  color: rgb(17 24 39 / var(--tw-text-opacity, 1));
+  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+
+.sidebar-item-active:hover {
+  background-color: rgb(255 255 255 / 0.1);
+}
+
+.sidebar-icone {
+  height: 1.25rem;
+  width: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sidebar-rotulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Recolhida: rótulo só para leitor de tela; nome visível vem no tooltip (main.js) */
+
+.sidebar-recolhida .sidebar-rotulo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sidebar-toggle-icone {
+  transition: transform 150ms ease;
+}
+
+.sidebar-recolhida .sidebar-toggle-icone {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+    .sidebar-toggle-icone {
+    transition: none;
+  }
 }
 
 /* ── Barra de busca visual ────────────────────────────────── */
@@ -1261,6 +1334,10 @@ body {
   grid-column: span 3 / span 3;
 }
 
+.col-span-full {
+  grid-column: 1 / -1;
+}
+
 .-mx-1 {
   margin-left: -0.25rem;
   margin-right: -0.25rem;
@@ -1271,6 +1348,11 @@ body {
   margin-right: -0.5rem;
 }
 
+.mx-1 {
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+}
+
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -1278,6 +1360,10 @@ body {
 
 .-mb-px {
   margin-bottom: -1px;
+}
+
+.-ml-2 {
+  margin-left: -0.5rem;
 }
 
 .-mt-2 {
@@ -1572,6 +1658,10 @@ body {
   width: 11rem;
 }
 
+.w-48 {
+  width: 12rem;
+}
+
 .w-5 {
   width: 1.25rem;
 }
@@ -1582,6 +1672,10 @@ body {
 
 .w-6 {
   width: 1.5rem;
+}
+
+.w-60 {
+  width: 15rem;
 }
 
 .w-64 {
@@ -1677,8 +1771,12 @@ body {
   max-width: 10rem;
 }
 
-.max-w-5xl {
-  max-width: 64rem;
+.max-w-\[12rem\] {
+  max-width: 12rem;
+}
+
+.max-w-\[1600px\] {
+  max-width: 1600px;
 }
 
 .max-w-\[28px\] {
@@ -1711,11 +1809,6 @@ body {
 
 .flex-shrink-0 {
   flex-shrink: 0;
-}
-
-.-translate-x-full {
-  --tw-translate-x: -100%;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
 .cursor-not-allowed {
@@ -2157,11 +2250,6 @@ body {
   background-color: rgb(255 247 237 / var(--tw-bg-opacity, 1));
 }
 
-.bg-primaria {
-  --tw-bg-opacity: 1;
-  background-color: rgb(var(--cor-primaria-rgb, 26 26 26) / var(--tw-bg-opacity, 1));
-}
-
 .bg-purple-50 {
   --tw-bg-opacity: 1;
   background-color: rgb(250 245 255 / var(--tw-bg-opacity, 1));
@@ -2316,11 +2404,6 @@ body {
   padding-right: 1.5rem;
 }
 
-.px-8 {
-  padding-left: 2rem;
-  padding-right: 2rem;
-}
-
 .py-0\.5 {
   padding-top: 0.125rem;
   padding-bottom: 0.125rem;
@@ -2396,12 +2479,20 @@ body {
   padding-bottom: 1.25rem;
 }
 
+.pl-1 {
+  padding-left: 0.25rem;
+}
+
 .pl-2 {
   padding-left: 0.5rem;
 }
 
 .pl-8 {
   padding-left: 2rem;
+}
+
+.pr-2 {
+  padding-right: 0.5rem;
 }
 
 .pt-1 {
@@ -2997,6 +3088,10 @@ body {
     grid-column: span 1 / span 1;
   }
 
+  .sm\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
   .sm\:w-80 {
     width: 20rem;
   }
@@ -3020,6 +3115,11 @@ body {
   .sm\:px-5 {
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+
+  .sm\:px-8 {
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
 
   .sm\:text-lg {
@@ -3073,7 +3173,15 @@ body {
 }
 
 @media (min-width: 1280px) {
+  .xl\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
   .xl\:grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

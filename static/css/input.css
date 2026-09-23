@@ -6,6 +6,12 @@
   body {
     @apply bg-juridico-bg text-gray-900 font-sans;
   }
+
+  /* O atributo hidden precisa vencer utilitários de display (ex.: o
+     inline-flex do Voltar global, exibido por JS só quando há tela anterior). */
+  [hidden] {
+    display: none !important;
+  }
 }
 
 @layer components {
@@ -100,14 +106,58 @@
     @apply border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium;
   }
 
-  /* ── Sidebar item ─────────────────────────────────────────── */
-  .sidebar-item {
-    @apply flex flex-col items-center gap-1 px-2 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-primaria-hover transition-colors cursor-pointer text-xs w-full;
+  /* ── Sidebar (expandida por padrão; recolhida via html.sidebar-recolhida) ──
+     Item e ícone têm a mesma geometria nos dois estados (px-3 + ícone 20px
+     centrado nos 44px úteis da versão recolhida), só o rótulo some. */
+  .sidebar {
+    @apply bg-primaria flex flex-col py-4 px-2 gap-1 flex-shrink-0 h-screen overflow-y-auto overflow-x-hidden;
+    width: 212px;
+    transition: width 150ms ease;
   }
 
-  /* ── Sidebar item ativo ───────────────────────────────────── */
+  .sidebar-recolhida .sidebar {
+    width: 60px;
+  }
+
+  .sidebar-logo {
+    @apply flex w-11 h-11 items-center justify-center mb-4 flex-shrink-0;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 w-full h-10 px-3 flex-shrink-0 rounded-lg text-sm text-gray-400 whitespace-nowrap hover:text-white hover:bg-primaria-hover transition-colors cursor-pointer;
+  }
+
+  /* Ativo: realce discreto dentro da sidebar, sem bloco claro nem dourado */
   .sidebar-item-active {
-    @apply flex flex-col items-center gap-1 px-2 py-3 rounded-lg bg-juridico-bg text-gray-900 text-xs font-medium w-full;
+    @apply bg-white/10 text-white font-medium hover:bg-white/10;
+  }
+
+  .sidebar-icone {
+    @apply w-5 h-5 flex-shrink-0;
+  }
+
+  .sidebar-rotulo {
+    @apply truncate;
+  }
+
+  /* Recolhida: rótulo só para leitor de tela; nome visível vem no tooltip (main.js) */
+  .sidebar-recolhida .sidebar-rotulo {
+    @apply sr-only;
+  }
+
+  .sidebar-toggle-icone {
+    transition: transform 150ms ease;
+  }
+
+  .sidebar-recolhida .sidebar-toggle-icone {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar-toggle-icone {
+      transition: none;
+    }
   }
 
   /* ── Barra de busca visual ────────────────────────────────── */

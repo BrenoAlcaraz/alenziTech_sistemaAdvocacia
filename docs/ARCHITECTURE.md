@@ -499,6 +499,24 @@ inalterado e um caminho `websocket` próprio (rotas em
   feita na view HTTP equivalente (`tem_permissao_modulo` + posse) —
   nunca uma regra nova ou mais ampla só para o consumer.
 
+## Layout autenticado — padrão a reutilizar
+
+- Casca única em `templates/base/base_auth.html` (sidebar + header +
+  `<main>`). O canvas usa a largura toda após a sidebar (limite amplo de
+  1600 px); **largura de leitura é do componente, não do layout**:
+  formulário limita a si mesmo (`max-w-2xl`/`max-w-lg`), grids e listas
+  ocupam o canvas e reduzem colunas por breakpoint
+  (`grid-cols-1 sm:grid-cols-2 xl:grid-cols-N`).
+- Sidebar expandida/recolhida pela classe `sidebar-recolhida` no
+  `<html>`: estado inicial aplicado no `layout_head` (antes da pintura),
+  alternância em `main.js`, estilos `.sidebar*` em `input.css`.
+- "Voltar" decidido no servidor: `config/context_processors.py`
+  expõe `pagina_raiz` a partir do nome da rota (`PAGINAS_RAIZ`). Novo
+  módulo na sidebar entra também nesse conjunto.
+- Dropdown de cabeçalho é `<details data-dropdown>` (fecha ao clicar
+  fora/Esc em `main.js`). O atributo `hidden` sempre vence classes de
+  display (regra base em `input.css`).
+
 ## Texto livre longo em cards e listas — padrão a reutilizar
 
 Campos de texto livre (nome, título, descrição, responsável, cliente…)
