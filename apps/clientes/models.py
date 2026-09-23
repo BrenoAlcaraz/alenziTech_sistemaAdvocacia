@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.accounts.models import SequenciaCodigoInterno
 from apps.saas_tenants.storage import (
     PROTEGIDO,
     CaminhoArquivoTenant,
@@ -141,6 +142,7 @@ class Cliente(models.Model):
         verbose_name="Responsável",
     )
     ativo = models.BooleanField(default=True)
+    numero_interno = models.PositiveIntegerField(unique=True, editable=False)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -149,7 +151,16 @@ class Cliente(models.Model):
         ordering = ["nome_razao_social"]
 
     def __str__(self):
-        return self.nome_razao_social
+        return f"{self.codigo} · {self.nome_razao_social}" if self.codigo else self.nome_razao_social
+
+    @property
+    def codigo(self):
+        return f"C{self.numero_interno}" if self.numero_interno else ""
+
+    def save(self, *args, **kwargs):
+        if self.numero_interno is None:
+            self.numero_interno = SequenciaCodigoInterno.proximo(SequenciaCodigoInterno.CLIENTE)
+        super().save(*args, **kwargs)
 
     @property
     def idade(self):

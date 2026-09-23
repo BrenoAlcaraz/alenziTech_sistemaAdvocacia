@@ -9,6 +9,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Área | Estado | Gap principal |
 |---|---|---|
 | Multitenancy | Feito, testado | — |
+| Códigos internos P/C/U/ADM | Feito, testado (sequência por escritório em `accounts.SequenciaCodigoInterno`; busca exata por código nas listagens de Processos/Clientes e no seletor de Processo; usuários não têm busca própria em Configurações) | — |
 | Storage de arquivo (`MEDIA_ROOT`) | Feito, testado (namespaces por tenant; arquivos protegidos sem URL pública; identidade visual pública resolvida pelo tenant; arquivo removido do storage via signal `post_delete` ao excluir o registro que o referencia — `Documento`, `Mensagem`, `SolicitacaoFinanceira`) | — |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (105 testes; inclui `ConviteDelegacao`/`apps.accounts.delegacao` — mecanismo compartilhado de convite de delegação, PDR-0033, reaproveitado por Tarefas e Agenda) | — |
 | Autorização — aplicado nas views | Parcial | Clientes, Processos, Tarefas, Financeiro, Agenda, Chat, Modelos e Configurações (`novo_usuario`, `equipes` e sub-rotas, `permissoes`, `papeis` e sub-rotas, `usuario_overrides` — PDR-0019) consultam o kernel; Laboratório (shell sem lógica de negócio) exige módulo `processos` mais a habilitação `processos_usar_laboratorio`; Dashboard consulta o kernel na própria rota (`MODULO_PAINEL`) e em todos os blocos (clientes, processos, tarefas, agenda, financeiro) |

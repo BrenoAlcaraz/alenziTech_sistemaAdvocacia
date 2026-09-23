@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib.auth.models import User
+from apps.accounts.codigo_interno import rotulo_usuario
 
 
 class UsuarioChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        nome = obj.get_full_name()
-        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+        return rotulo_usuario(obj)
 
 
 class NovaConversaIndividualForm(forms.Form):

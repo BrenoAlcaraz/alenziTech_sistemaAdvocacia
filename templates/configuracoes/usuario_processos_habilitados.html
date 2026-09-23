@@ -6,7 +6,7 @@
 <div class="flex items-start justify-between mb-6">
   <div class="texto-quebra">
     <p class="text-xs text-gray-400 mb-0.5">Usuário</p>
-    <h1 class="text-2xl font-bold text-gray-900">{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
+    <h1 class="text-2xl font-bold text-gray-900">{% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Processos em que está habilitado como integrante</p>
   </div>
 </div>
@@ -58,7 +58,7 @@
         {% for processo in processos %}
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-5 py-4">
-            <p class="font-medium text-gray-900 truncate max-w-xs" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+            <p class="font-medium text-gray-900 truncate max-w-xs" title="{{ processo }}">{{ processo }}</p>
             {% if processo.numero %}<p class="text-xs text-gray-400">{{ processo.numero }}</p>{% endif %}
           </td>
           <td class="px-5 py-4 text-gray-600"><p class="truncate max-w-xs" title="{{ processo.clientes.all|join:", "|default:"—" }}">{{ processo.clientes.all|join:", "|default:"—" }}</p></td>

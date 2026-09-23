@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}{{ cliente.nome_razao_social }} — Clientes{% endblock %}
+{% block title %}{{ cliente }} — Clientes{% endblock %}
 
 {% block content %}
 
@@ -29,7 +29,7 @@
     </div>
     <div class="flex-1 texto-quebra">
       <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-        {{ cliente.nome_razao_social }}
+        {{ cliente }}
         {% include "components/selo_prioridade.html" with cliente=cliente %}
       </h1>
       <p class="text-sm text-gray-500 mt-0.5">
@@ -185,7 +185,7 @@
       <a href="{% url 'processos:detalhe' p.id %}" class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
         <span class="badge-area">{{ p.area_direito }}</span>
         <div class="flex-1 min-w-0">
-          <p class="font-medium text-gray-900 truncate" title="{{ p.titulo }}">{{ p.titulo }}</p>
+          <p class="font-medium text-gray-900 truncate" title="{{ p }}">{{ p }}</p>
           <p class="text-xs text-gray-400">{{ p.numero }}</p>
         </div>
         <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -205,14 +205,14 @@
       {% with c=item.cliente %}
       <div class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
         <a href="{% url 'clientes:detalhe' c.id %}" class="flex-1 min-w-0">
-          <p class="font-medium text-gray-900 truncate" title="{{ c.nome_razao_social }}">{{ c.nome_razao_social }}</p>
+          <p class="font-medium text-gray-900 truncate" title="{{ c }}">{{ c }}</p>
           <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
         </a>
         {% if pode_ver_processos and item.processos_em_comum %}
         <div class="flex flex-col items-end gap-0.5 text-xs">
           {% for p in item.processos_em_comum.lista %}
             <a href="{% url 'processos:detalhe' p.id %}" class="text-gray-600 hover:underline">
-              {{ p.numero|default:p.titulo }} · {{ p.get_status_display }}
+              {{ p.codigo }} · {{ p.numero|default:p.titulo }} · {{ p.get_status_display }}
             </a>
           {% endfor %}
           {% if item.processos_em_comum.restantes %}

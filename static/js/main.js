@@ -300,7 +300,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderizarLista(termoDigitado) {
       const termo = termoDigitado.trim().toLowerCase();
-      const filtradas = opcoes().filter((o) => o.textContent.toLowerCase().includes(termo));
+      // Termo no formato de código ("p12") casa só o código exato — o
+      // rótulo começa por "P12 · ", então "p1" não traz "P10".
+      const ehCodigo = /^p\d+$/.test(termo);
+      const filtradas = opcoes().filter((o) => {
+        const texto = o.textContent.toLowerCase();
+        return ehCodigo ? texto.startsWith(`${termo} ·`) : texto.includes(termo);
+      });
       lista.innerHTML = "";
       if (!filtradas.length) {
         const vazio = document.createElement("li");

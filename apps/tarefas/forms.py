@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.urls import reverse
 from .models import Tarefa
+from apps.accounts.forms import UsuarioChoiceField, UsuarioMultipleChoiceField
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
@@ -66,7 +67,7 @@ class TarefaCriacaoForm(TarefaForm):
     alteram por reatribuição/participantes, não por este formulário.
     """
 
-    atribuidos = forms.ModelMultipleChoiceField(
+    atribuidos = UsuarioMultipleChoiceField(
         queryset=_usuarios_atribuiveis(),
         widget=forms.SelectMultiple(attrs={"class": "select", "size": "6", "id": "id_atribuidos"}),
         label="Atribuir a",
@@ -75,7 +76,7 @@ class TarefaCriacaoForm(TarefaForm):
     # Nome do campo preservado (`destinatario`, não `responsavel`) para
     # não quebrar contrato/testes já existentes do fluxo de atribuição —
     # só o rótulo reflete que é o responsável dentro de `atribuidos`.
-    destinatario = forms.ModelChoiceField(
+    destinatario = UsuarioChoiceField(
         queryset=_usuarios_atribuiveis(),
         widget=forms.Select(attrs={"class": "select"}),
         empty_label=None,
@@ -105,7 +106,7 @@ class TarefaCriacaoForm(TarefaForm):
 
 
 class ReatribuirForm(forms.Form):
-    destinatario = forms.ModelChoiceField(
+    destinatario = UsuarioChoiceField(
         queryset=_usuarios_atribuiveis(),
         widget=forms.Select(attrs={"class": "select"}),
         label="Novo responsável",
@@ -113,7 +114,7 @@ class ReatribuirForm(forms.Form):
 
 
 class AdicionarParticipanteTarefaForm(forms.Form):
-    usuario = forms.ModelChoiceField(
+    usuario = UsuarioChoiceField(
         queryset=User.objects.none(),
         label="Usuário",
         widget=forms.Select(attrs={"class": "select"}),

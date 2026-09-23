@@ -14,6 +14,7 @@ from .services import (
     rotulo_processo,
 )
 from apps.clientes.models import Cliente
+from apps.accounts.codigo_interno import rotulo_usuario
 
 
 User = get_user_model()
@@ -115,8 +116,7 @@ class ProcessoForm(forms.ModelForm):
 
 class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        nome = obj.get_full_name()
-        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+        return rotulo_usuario(obj)
 
 
 class ProcessoResponsavelForm(ProcessoForm):

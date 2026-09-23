@@ -55,7 +55,7 @@
     <select id="cliente" name="cliente" class="select">
       <option value="">Todos</option>
       {% for cliente in clientes_filtro %}
-        <option value="{{ cliente.pk }}" {% if filtro_cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>{{ cliente.nome_razao_social }}</option>
+        <option value="{{ cliente.pk }}" {% if filtro_cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>{{ cliente }}</option>
       {% endfor %}
     </select>
   </div>
@@ -85,7 +85,7 @@
     <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
       <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ p.titulo }}">{{ p.titulo }}</p>
+        <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ p }}">{{ p }}</p>
         <p class="text-xs text-gray-400 mt-0.5 truncate" title="{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}</p>
       </div>
       <div class="flex items-center gap-3 flex-shrink-0">

@@ -2,8 +2,21 @@ from django import forms
 from django.contrib.auth.forms import PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import User
 
+from .codigo_interno import rotulo_usuario
 from .permissoes_constants import CODIGO_PRESET_LIMITADO
 from .models import Equipe, MembroEquipe, PapelAcesso, PerfilUsuario, UsuarioPapel
+
+
+class UsuarioChoiceField(forms.ModelChoiceField):
+    """Seletor de usuário com o rótulo padrão "U3 · Nome (@username)"."""
+
+    def label_from_instance(self, obj):
+        return rotulo_usuario(obj)
+
+
+class UsuarioMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        return rotulo_usuario(obj)
 
 
 class CriarUsuarioEscritorioForm(UserCreationForm):
@@ -140,6 +153,7 @@ class MembroEquipeForm(forms.ModelForm):
             "usuario",
             "eh_gerente",
         ]
+        field_classes = {"usuario": UsuarioChoiceField}
         widgets = {
             "usuario": forms.Select(
                 attrs={
@@ -217,7 +231,7 @@ class PapelAcessoForm(forms.ModelForm):
 
 
 class AtribuirPapelForm(forms.Form):
-    usuario = forms.ModelChoiceField(
+    usuario = UsuarioChoiceField(
         queryset=User.objects.none(),
         empty_label="Selecione um usuário",
         widget=forms.Select(attrs={"class": "input"}),

@@ -1,6 +1,6 @@
 {% extends "base/base_auth.html" %}
 {% load moeda %}
-{% block title %}{{ processo.titulo }} — Processos{% endblock %}
+{% block title %}{{ processo }} — Processos{% endblock %}
 
 {% block content %}
 
@@ -36,7 +36,7 @@
     {% endif %}
     </div>
   </div>
-  <h1 class="text-xl font-bold text-gray-900 mb-1 texto-quebra">{{ processo.titulo }}</h1>
+  <h1 class="text-xl font-bold text-gray-900 mb-1 texto-quebra">{{ processo }}</h1>
   <p class="text-sm text-gray-400 mb-5">{{ processo.numero }}</p>
 
   <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
@@ -313,7 +313,7 @@
       <div class="flex items-center gap-2">
         <select id="select-cliente-parte" class="select text-xs">
           {% for c in processo.clientes.all %}
-            <option value="{{ forloop.counter0 }}" data-nome="{{ c.nome_razao_social|escapejs }}" data-doc="{{ c.cpf_cnpj|escapejs }}">{{ c.nome_razao_social }}</option>
+            <option value="{{ forloop.counter0 }}" data-nome="{{ c.nome_razao_social|escapejs }}" data-doc="{{ c.cpf_cnpj|escapejs }}">{{ c }}</option>
           {% endfor %}
         </select>
         <button type="button" class="text-xs text-juridico-verde hover:underline" onclick="preencherParteComCliente()">
@@ -546,7 +546,7 @@
             <span class="badge-area">{{ item.processo.get_area_direito_display }}</span>
             <span class="badge-area">{{ item.processo.get_status_display }}</span>
           </div>
-          <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+          <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
           {% if item.processo.numero %}<p class="text-xs text-gray-400 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs">
             <div class="min-w-0"><dt class="text-gray-400">Cliente</dt><dd class="text-gray-700 truncate" title="{{ item.processo.clientes.all|join:", "|default:"—" }}">{{ item.processo.clientes.all|join:", "|default:"—" }}</dd></div>

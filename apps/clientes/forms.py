@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
+from apps.accounts.codigo_interno import rotulo_usuario
 from .models import Cliente, Documento
 from .validators import cnpj_valido, cpf_valido, telefone_valido
 
@@ -176,8 +177,7 @@ class DocumentoForm(forms.ModelForm):
 
 class ResponsavelChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        nome = obj.get_full_name()
-        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+        return rotulo_usuario(obj)
 
 
 class ClienteResponsavelForm(ClienteForm):

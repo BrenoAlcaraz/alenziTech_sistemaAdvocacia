@@ -8,6 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from apps.accounts.codigo_interno import numero_do_codigo
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
@@ -142,9 +143,13 @@ def lista(request):
     clientes = _clientes_no_escopo(request, escopo, ativo=True)
     busca = (request.GET.get("busca") or "").strip()
     if busca:
-        clientes = clientes.filter(
-            Q(nome_razao_social__icontains=busca) | Q(cpf_cnpj__icontains=busca)
-        )
+        numero = numero_do_codigo(busca, "C")
+        if numero is not None:
+            clientes = clientes.filter(numero_interno=numero)
+        else:
+            clientes = clientes.filter(
+                Q(nome_razao_social__icontains=busca) | Q(cpf_cnpj__icontains=busca)
+            )
     return render(request, "clientes/lista.html", {
         "clientes": clientes,
         "item_ativo": "clientes",
@@ -240,7 +245,7 @@ def novo(request):
                 cliente.responsavel = request.user
             cliente.save()
             registrar_atividade(
-                request.user, "cliente_criado", f"Criou o cliente {cliente.nome_razao_social}",
+                request.user, "cliente_criado", f"Criou o cliente {cliente}",
             )
             if next_url:
                 # Criação cruzada (specs/cliente-processo-criacao-cruzada.md):
@@ -289,7 +294,7 @@ def editar(request, pk):
         if form.is_valid():
             form.save()
             registrar_atividade(
-                request.user, "cliente_editado", f"Editou o cliente {cliente.nome_razao_social}",
+                request.user, "cliente_editado", f"Editou o cliente {cliente}",
             )
             return redirect("clientes:detalhe", pk=pk)
     else:
@@ -319,7 +324,7 @@ def desativar(request, pk):
         cliente.ativo = False
         cliente.save()
         registrar_atividade(
-            request.user, "cliente_desativado", f"Desativou o cliente {cliente.nome_razao_social}",
+            request.user, "cliente_desativado", f"Desativou o cliente {cliente}",
         )
         return redirect("clientes:lista")
     return redirect("clientes:detalhe", pk=pk)
@@ -342,7 +347,7 @@ def excluir(request, pk):
     if not usuario_admin_escritorio(request.user):
         qs = qs.filter(responsavel=request.user)
     cliente = get_object_or_404(qs, pk=pk)
-    nome = cliente.nome_razao_social
+    nome = str(cliente)
     cliente.delete()
     registrar_atividade(request.user, "cliente_excluido", f"Excluiu o cliente {nome}")
     return redirect("clientes:lista")
@@ -375,7 +380,7 @@ def reativar(request, pk):
         cliente.ativo = True
         cliente.save()
         registrar_atividade(
-            request.user, "cliente_reativado", f"Reativou o cliente {cliente.nome_razao_social}",
+            request.user, "cliente_reativado", f"Reativou o cliente {cliente}",
         )
         return redirect("clientes:inativos")
     return redirect("clientes:inativos")
@@ -398,7 +403,7 @@ def adicionar_documento(request, pk):
         documento.save()
         registrar_atividade(
             request.user, "cliente_documento_adicionado",
-            f"Adicionou documento ({documento.get_tipo_display()}) do cliente {cliente.nome_razao_social}",
+            f"Adicionou documento ({documento.get_tipo_display()}) do cliente {cliente}",
         )
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
 
@@ -417,7 +422,7 @@ def excluir_documento(request, pk, documento_pk):
     documento.delete()
     registrar_atividade(
         request.user, "cliente_documento_excluido",
-        f"Excluiu documento ({descricao_tipo}) do cliente {cliente.nome_razao_social}",
+        f"Excluiu documento ({descricao_tipo}) do cliente {cliente}",
     )
     return redirect(f"{reverse('clientes:detalhe', args=[pk])}?aba=documentos")
 
@@ -469,7 +474,7 @@ def gerar_procuracao(request, pk):
         peca = gerar_peca_procuracao(modelo_base, cliente, request.user)
         registrar_atividade(
             request.user, "cliente_procuracao_gerada",
-            f"Gerou procuração do cliente {cliente.nome_razao_social}",
+            f"Gerou procuração do cliente {cliente}",
         )
         return redirect("modelos:detalhe", pk=peca.pk)
 

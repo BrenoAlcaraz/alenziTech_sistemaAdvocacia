@@ -757,7 +757,7 @@ def form_creditar_custa(request, cliente_id):
                 anexo=dados.get("anexo"), responsavel=request.user,
             )
             registrar_atividade(
-                request.user, "custa_creditada", f"Creditou custa a {cliente.nome_razao_social}",
+                request.user, "custa_creditada", f"Creditou custa a {cliente}",
                 processo=dados.get("processo"),
             )
             return redirect("financeiro:extrato_custas_cliente", cliente_id=cliente.pk)

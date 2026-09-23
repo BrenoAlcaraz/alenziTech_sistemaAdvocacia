@@ -236,7 +236,7 @@ campos dependentes de Cliente listados acima) usa
 `ProcessoChoiceField` (`apps/processos/forms.py`), nunca
 `forms.ModelChoiceField` puro:
 
-- **Label padrão "Título — Número"**: `label_from_instance` delega em
+- **Label padrão "Código · Título — Número"**: `label_from_instance` delega em
   `apps/processos/services.py::rotulo_processo` — mesma função usada
   pelos três endpoints `processos-por-cliente` (financeiro, agenda,
   tarefas) ao montar o `label` do JSON, para o rótulo não regredir
@@ -259,6 +259,26 @@ campos dependentes de Cliente listados acima) usa
   não alcança um campo oculto e bloqueia o submit em silêncio — a
   obrigatoriedade real continua garantida em `form.is_valid()` no
   servidor.
+
+## Código interno (P/C/U/ADM) — padrão a reutilizar
+
+- Número emitido no `save()` do model via
+  `SequenciaCodigoInterno.proximo()` (`apps/accounts/models.py`) —
+  contador por entidade no schema do tenant, com `select_for_update`;
+  nunca derivar do maior código existente (exclusão não pode liberar
+  número).
+- `__str__` de `Processo`/`Cliente` já inclui o código
+  (`"P12 · Título"`), então `{{ processo }}` em template e seletores
+  padrão exibem o código sem mais nada. Consequência: peça/documento que
+  sai do escritório (Modelos, procuração) monta texto com campos
+  explícitos (`titulo`, `nome_razao_social`), nunca com `str()` do
+  objeto.
+- Seletor de usuário usa `UsuarioChoiceField`/
+  `UsuarioMultipleChoiceField` (`apps/accounts/forms.py`) ou
+  `rotulo_usuario` (`apps/accounts/codigo_interno.py`); em template,
+  `usuario.perfil.codigo`.
+- Busca: `numero_do_codigo(termo, prefixo)` decide se o termo é código
+  (casamento exato) — ver `filtrar_processos_por_busca`.
 
 ## Campos condicionados a um `<select>` — padrão a reutilizar
 

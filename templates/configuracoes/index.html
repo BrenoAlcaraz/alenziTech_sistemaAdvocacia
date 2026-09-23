@@ -17,7 +17,7 @@
           {% if perfil_usuario and perfil_usuario.nome_completo %}{{ perfil_usuario.nome_completo }}
           {% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}
         </p>
-        <p class="text-sm text-gray-400">{{ request.user.username }}</p>
+        <p class="text-sm text-gray-400">{% if request.user.perfil.codigo %}{{ request.user.perfil.codigo }} · {% endif %}{{ request.user.username }}</p>
       </div>
     </div>
     <a href="{% url 'configuracoes:editar_perfil' %}" class="btn-secondary text-sm flex-shrink-0">
@@ -110,7 +110,7 @@
             {% else %}{{ u.get_full_name|default:u.username }}{% endif %}
             {% if u == request.user %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
           </p>
-          <p class="text-xs text-gray-400">@{{ u.username }}</p>
+          <p class="text-xs text-gray-400">{% if u.perfil.codigo %}{{ u.perfil.codigo }} · {% endif %}@{{ u.username }}</p>
           <p class="text-xs text-gray-500 mt-0.5">
             Papel: <span class="font-medium">{{ item.papel_nome }}</span>
           </p>

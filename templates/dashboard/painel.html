@@ -179,9 +179,9 @@
             {% endif %}
           </div>
           {% if t.cliente %}
-            <p class="text-xs text-gray-400 truncate" title="{{ t.cliente.nome_razao_social }}">{{ t.cliente.nome_razao_social }}</p>
+            <p class="text-xs text-gray-400 truncate" title="{{ t.cliente }}">{{ t.cliente }}</p>
           {% elif t.processo %}
-            <p class="text-xs text-gray-400 truncate" title="{{ t.processo.titulo }}">{{ t.processo.titulo }}</p>
+            <p class="text-xs text-gray-400 truncate" title="{{ t.processo }}">{{ t.processo }}</p>
           {% endif %}
         </div>
       {% empty %}
@@ -245,10 +245,10 @@
             {% endif %}
             {% if c.cliente %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate" title="{{ c.cliente.nome_razao_social }}">{{ c.cliente.nome_razao_social }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ c.cliente }}">{{ c.cliente }}</p>
             {% elif c.processo %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate" title="{{ c.processo.titulo }}">{{ c.processo.titulo }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ c.processo }}">{{ c.processo }}</p>
             {% endif %}
           </div>
         </div>
@@ -285,10 +285,10 @@
             <p class="text-xs text-gray-400">{{ l.data_vencimento|date:"d/m/Y" }}</p>
             {% if l.cliente %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate" title="{{ l.cliente.nome_razao_social }}">{{ l.cliente.nome_razao_social }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ l.cliente }}">{{ l.cliente }}</p>
             {% elif l.processo %}
               <span class="text-xs text-gray-300">·</span>
-              <p class="text-xs text-gray-400 truncate" title="{{ l.processo.titulo }}">{{ l.processo.titulo }}</p>
+              <p class="text-xs text-gray-400 truncate" title="{{ l.processo }}">{{ l.processo }}</p>
             {% endif %}
           </div>
         </div>
@@ -315,7 +315,7 @@
         {% for item in movimentacao.24h.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
             <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
@@ -334,7 +334,7 @@
         {% for item in movimentacao.7dias.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
             <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
@@ -360,7 +360,7 @@
         {% for item in paralisados.1mes.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
@@ -379,7 +379,7 @@
         {% for item in paralisados.3meses.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
@@ -398,7 +398,7 @@
         {% for item in paralisados.6meses.processos %}
           <a href="{% url 'processos:detalhe' item.processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo.titulo }}">{{ item.processo.titulo }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">Última movimentação: {{ item.referencia|date:"d/m/Y" }}</p>
             </div>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
@@ -423,7 +423,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.hoje.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo }}">{{ processo }}</p>
             <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -439,7 +439,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.amanha.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo }}">{{ processo }}</p>
             <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -455,7 +455,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.3dias.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo }}">{{ processo }}</p>
             <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -471,7 +471,7 @@
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
         {% for processo in prazos.5dias.processos %}
           <a href="{% url 'processos:detalhe' processo.pk %}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+            <p class="text-xs font-medium text-gray-900 truncate" title="{{ processo }}">{{ processo }}</p>
             <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
@@ -492,7 +492,7 @@
     {% for intimacao in intimacoes %}
       <div class="py-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-900 truncate" title="{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}">{{ intimacao.processo.titulo }} — {{ intimacao.motivo }}</p>
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ intimacao.processo }} — {{ intimacao.motivo }}">{{ intimacao.processo }} — {{ intimacao.motivo }}</p>
           <p class="text-xs text-gray-400">Prazo para manifestação: {{ intimacao.prazo_manifestacao|date:"d/m/Y" }}</p>
         </div>
         <div class="flex items-center gap-3 flex-shrink-0">

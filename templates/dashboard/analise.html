@@ -76,7 +76,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -164,7 +164,7 @@
             <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
               {% for processo in barra.processos %}
                 <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                  <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+                  <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
                   <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
                 </a>
               {% endfor %}
@@ -200,7 +200,7 @@
         <div class="mt-2 flex flex-col divide-y divide-gray-100">
           {% for processo in barra.processos %}
             <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-              <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+              <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
               <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
             </a>
           {% endfor %}
@@ -225,7 +225,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -257,7 +257,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -285,7 +285,7 @@
           <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
             {% for processo in barra.processos %}
               <a href="{% url 'processos:detalhe' processo.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                <p class="text-xs text-gray-800 truncate" title="{{ processo.titulo }}">{{ processo.titulo }}</p>
+                <p class="text-xs text-gray-800 truncate" title="{{ processo }}">{{ processo }}</p>
                 <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
               </a>
             {% endfor %}
@@ -359,7 +359,7 @@
             <div class="mt-2 ml-2 flex flex-col divide-y divide-gray-100">
               {% for cliente in barra.processos %}
                 <a href="{% url 'clientes:detalhe' cliente.pk %}" class="py-1.5 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg px-1">
-                  <p class="text-xs text-gray-800 truncate" title="{{ cliente.nome_razao_social }}">{{ cliente.nome_razao_social }}</p>
+                  <p class="text-xs text-gray-800 truncate" title="{{ cliente }}">{{ cliente }}</p>
                   <span class="text-xs text-juridico-ouro flex-shrink-0">Ver →</span>
                 </a>
               {% endfor %}

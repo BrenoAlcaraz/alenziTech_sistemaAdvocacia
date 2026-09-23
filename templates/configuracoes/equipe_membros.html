@@ -82,7 +82,7 @@
                 {{ membro.usuario.get_full_name|default:membro.usuario.username }}
               {% endif %}
             </p>
-            <p class="text-xs text-gray-400 truncate max-w-xs" title="@{{ membro.usuario.username }}">@{{ membro.usuario.username }}</p>
+            <p class="text-xs text-gray-400 truncate max-w-xs" title="@{{ membro.usuario.username }}">{% if membro.usuario.perfil.codigo %}{{ membro.usuario.perfil.codigo }} · {% endif %}@{{ membro.usuario.username }}</p>
             {% if membro.usuario.email %}
               <p class="text-xs text-gray-400 truncate max-w-xs" title="{{ membro.usuario.email }}">{{ membro.usuario.email }}</p>
             {% endif %}

@@ -17,7 +17,7 @@
 </a>
 
 <h2 class="text-lg font-bold text-gray-900 mb-1 texto-quebra">
-  Atividade de {{ usuario_alvo.get_full_name|default:usuario_alvo.username }} — hoje
+  Atividade de {% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}{{ usuario_alvo.get_full_name|default:usuario_alvo.username }} — hoje
 </h2>
 
 <div class="flex flex-wrap gap-2 mb-6">

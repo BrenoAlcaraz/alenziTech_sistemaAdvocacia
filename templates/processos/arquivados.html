@@ -27,7 +27,7 @@
     <div class="card px-5 py-4 flex items-center gap-4">
       <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
       <div class="flex-1 min-w-0">
-        <a href="{% url 'processos:detalhe' p.pk %}?escopo={{ escopo_atual }}" class="block truncate font-semibold text-gray-500 hover:text-gray-700" title="{{ p.titulo }}">{{ p.titulo }}</a>
+        <a href="{% url 'processos:detalhe' p.pk %}?escopo={{ escopo_atual }}" class="block truncate font-semibold text-gray-500 hover:text-gray-700" title="{{ p }}">{{ p }}</a>
         <p class="text-xs text-gray-400 mt-0.5 truncate" title="{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }} &bull; {{ p.instancia }}">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }} &bull; {{ p.instancia }}</p>
       </div>
       {% if usuario_e_admin or p.responsavel == request.user %}

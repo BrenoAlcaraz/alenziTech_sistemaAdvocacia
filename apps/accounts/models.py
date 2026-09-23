@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -22,6 +22,54 @@ from .permissoes_constants import (
     NIVEIS_POR_MODULO,
     ITENS_POR_MODULO,
 )
+
+
+class SequenciaCodigoInterno(models.Model):
+    """
+    Último número emitido do código interno (P/C/U) de cada entidade.
+    Uma linha por entidade no schema do tenant — a sequência é por
+    escritório. Guardado à parte (e não derivado do maior código
+    existente) para que um número excluído nunca volte a ser emitido.
+    """
+
+    PROCESSO = "processo"
+    CLIENTE = "cliente"
+    USUARIO = "usuario"
+    ENTIDADE_CHOICES = [
+        (PROCESSO, "Processo"),
+        (CLIENTE, "Cliente"),
+        (USUARIO, "Usuário"),
+    ]
+
+    entidade = models.CharField(max_length=20, choices=ENTIDADE_CHOICES, unique=True)
+    ultimo_numero = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Sequência de código interno"
+        verbose_name_plural = "Sequências de código interno"
+
+    def __str__(self):
+        return f"{self.get_entidade_display()}: {self.ultimo_numero}"
+
+    @classmethod
+    def proximo(cls, entidade):
+        # select_for_update serializa criações concorrentes da mesma
+        # entidade até o fim da transação, evitando número repetido.
+        with transaction.atomic():
+            sequencia, _ = cls.objects.select_for_update().get_or_create(entidade=entidade)
+            sequencia.ultimo_numero += 1
+            sequencia.save(update_fields=["ultimo_numero"])
+            return sequencia.ultimo_numero
+
+    @classmethod
+    def devolver(cls, entidade, numero):
+        """Desfaz a emissão de `numero` só se ele for o último emitido.
+        Caso do Administrador: o perfil nasce comum (signal de User) e só
+        depois é marcado como Administrador, que não consome número."""
+        with transaction.atomic():
+            cls.objects.select_for_update().filter(
+                entidade=entidade, ultimo_numero=numero,
+            ).update(ultimo_numero=numero - 1)
 
 
 class PerfilUsuario(models.Model):
@@ -49,6 +97,10 @@ class PerfilUsuario(models.Model):
         default=False,
         help_text="Indica se este usuário é administrador do escritório.",
     )
+    numero_interno = models.PositiveIntegerField(
+        null=True, blank=True, unique=True, editable=False,
+        help_text="Número do código interno U. Vazio para o Administrador (ADM).",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -64,6 +116,25 @@ class PerfilUsuario(models.Model):
 
     def __str__(self):
         return self.nome_completo or self.user.username
+
+    @property
+    def codigo(self):
+        if self.is_admin_escritorio:
+            return "ADM"
+        return f"U{self.numero_interno}" if self.numero_interno else ""
+
+    def save(self, *args, **kwargs):
+        numero_anterior = self.numero_interno
+        if self.is_admin_escritorio:
+            if self.numero_interno is not None:
+                SequenciaCodigoInterno.devolver(SequenciaCodigoInterno.USUARIO, self.numero_interno)
+                self.numero_interno = None
+        elif self.numero_interno is None:
+            self.numero_interno = SequenciaCodigoInterno.proximo(SequenciaCodigoInterno.USUARIO)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and self.numero_interno != numero_anterior:
+            kwargs["update_fields"] = {*update_fields, "numero_interno"}
+        super().save(*args, **kwargs)
 
     def iniciais(self):
         """Retorna iniciais para o avatar visual."""

@@ -5,6 +5,7 @@ from django.db import transaction
 from django.db.models import Q, Subquery
 from django.utils import timezone
 
+from apps.accounts.codigo_interno import numero_do_codigo
 from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS
 
@@ -138,11 +139,20 @@ def nome_exibicao_usuario(usuario):
 
 
 def rotulo_processo(processo):
-    """Rótulo padrão "Título — Número" de Processo em qualquer seletor
-    do sistema (ver ProcessoChoiceField, apps/processos/forms.py)."""
+    """Rótulo padrão "Código · Título — Número" de Processo em qualquer
+    seletor do sistema (ver ProcessoChoiceField, apps/processos/forms.py)."""
     if processo.numero:
-        return f"{processo.titulo} — {processo.numero}"
-    return processo.titulo
+        return f"{processo} — {processo.numero}"
+    return str(processo)
+
+
+def filtrar_processos_por_busca(processos, busca):
+    """Termo no formato de código (P12) casa só o código exato; qualquer
+    outro termo busca por título ou número."""
+    numero = numero_do_codigo(busca, "P")
+    if numero is not None:
+        return processos.filter(numero_interno=numero)
+    return processos.filter(Q(titulo__icontains=busca) | Q(numero__icontains=busca))
 
 
 def processos_do_cliente(cliente_id):

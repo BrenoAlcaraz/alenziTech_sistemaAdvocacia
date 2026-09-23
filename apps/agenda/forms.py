@@ -5,12 +5,12 @@ from .models import Compromisso
 from apps.processos.forms import PROCESSO_SELECT_ATTRS, ProcessoChoiceField
 from apps.processos.models import Processo
 from apps.clientes.models import Cliente
+from apps.accounts.codigo_interno import rotulo_usuario
 
 
 class _LabelNomeUsernameMixin:
     def label_from_instance(self, obj):
-        nome = obj.get_full_name()
-        return f"{nome} (@{obj.username})" if nome else f"@{obj.username}"
+        return rotulo_usuario(obj)
 
 
 class ParticipanteChoiceField(_LabelNomeUsernameMixin, forms.ModelChoiceField):

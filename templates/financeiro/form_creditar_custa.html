@@ -29,7 +29,7 @@
           <p class="input bg-gray-50 text-gray-600">{{ grupo.nome }}</p>
         {% else %}
           <p class="label">Cliente</p>
-          <p class="input bg-gray-50 text-gray-600">{{ cliente.nome_razao_social }} — {{ cliente.cpf_cnpj|default:"—" }}</p>
+          <p class="input bg-gray-50 text-gray-600">{{ cliente }} — {{ cliente.cpf_cnpj|default:"—" }}</p>
         {% endif %}
       </div>
 

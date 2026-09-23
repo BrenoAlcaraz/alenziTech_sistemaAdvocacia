@@ -30,7 +30,7 @@
             onclick="window.location='{% url 'dashboard:gestor_usuario' item.usuario.pk %}'">
           <td class="px-5 py-4">
             <p class="font-medium text-gray-900">{{ item.usuario.get_full_name|default:item.usuario.username }}</p>
-            <p class="text-xs text-gray-400">@{{ item.usuario.username }}</p>
+            <p class="text-xs text-gray-400">{% if item.usuario.perfil.codigo %}{{ item.usuario.perfil.codigo }} · {% endif %}@{{ item.usuario.username }}</p>
           </td>
           <td class="px-5 py-4 text-gray-600">{{ item.papel_nome }}</td>
           <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_hoje }}</td>

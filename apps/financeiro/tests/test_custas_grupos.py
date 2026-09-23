@@ -324,8 +324,8 @@ class TestExtratos(GruposBase):
 
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.context["saldo"], "+ R$ 700,00")
-        self.assertContains(r, "Cliente: Filial Alfa")
-        self.assertContains(r, "Processo: Processo da Alfa")
+        self.assertContains(r, f"Cliente: {self.filial_a}")
+        self.assertContains(r, f"Processo: {processo}")
         self.assertEqual(len(r.context["lancamentos"]), 1)
         self.assertEqual(len(r.context["creditos"]), 1)
         self.assertEqual({m.cliente_id for m in r.context["membros"]}, {self.filial_a.pk, self.filial_b.pk})

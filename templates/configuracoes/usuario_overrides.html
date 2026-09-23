@@ -14,7 +14,7 @@
       {% endif %}
     </h1>
     <p class="text-sm text-gray-500 mt-0.5">
-      @{{ usuario_alvo.username }} — estado atual de cada módulo e habilitação.
+      {% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}@{{ usuario_alvo.username }} — estado atual de cada módulo e habilitação.
     </p>
   </div>
   <a href="{% url 'configuracoes:index' %}" class="btn-secondary text-sm flex-shrink-0">

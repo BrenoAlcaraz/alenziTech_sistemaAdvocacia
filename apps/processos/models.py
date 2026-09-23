@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from apps.accounts.models import SequenciaCodigoInterno
 from apps.clientes.models import Cliente
 from apps.saas_tenants.storage import (
     PROTEGIDO,
@@ -136,6 +137,7 @@ class Processo(models.Model):
         verbose_name="Integrantes habilitados",
     )
     prazo_proximo = models.DateField(null=True, blank=True)
+    numero_interno = models.PositiveIntegerField(unique=True, editable=False)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -163,7 +165,16 @@ class Processo(models.Model):
         return f"em {dias} dias"
 
     def __str__(self):
-        return self.titulo
+        return f"{self.codigo} · {self.titulo}" if self.codigo else self.titulo
+
+    @property
+    def codigo(self):
+        return f"P{self.numero_interno}" if self.numero_interno else ""
+
+    def save(self, *args, **kwargs):
+        if self.numero_interno is None:
+            self.numero_interno = SequenciaCodigoInterno.proximo(SequenciaCodigoInterno.PROCESSO)
+        super().save(*args, **kwargs)
 
 
 class Documento(models.Model):

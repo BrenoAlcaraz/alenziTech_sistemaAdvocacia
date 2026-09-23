@@ -1,5 +1,5 @@
 """
-Testes do padrão "Título — Número" + busca (combobox) em todo campo de
+Testes do padrão "Código · Título — Número" + busca (combobox) em todo campo de
 seleção de Processo do sistema (specs/processos-seletor-busca-formularios.md).
 """
 
@@ -31,15 +31,15 @@ class TestRotuloProcesso(ProcessosEscopoBase):
         super().setUp()
         self.user = self._user("dono_rotulo")
 
-    def test_com_numero_exibe_titulo_traco_numero(self):
+    def test_com_numero_exibe_codigo_titulo_traco_numero(self):
         processo = self._processo(self.user, None, "Ação de Cobrança")
         Processo.objects.filter(pk=processo.pk).update(numero="0000001-00.2026.8.00.0001")
         processo.refresh_from_db()
-        self.assertEqual(rotulo_processo(processo), "Ação de Cobrança — 0000001-00.2026.8.00.0001")
+        self.assertEqual(rotulo_processo(processo), "P1 · Ação de Cobrança — 0000001-00.2026.8.00.0001")
 
-    def test_sem_numero_exibe_so_o_titulo(self):
+    def test_sem_numero_exibe_codigo_e_titulo(self):
         processo = self._processo(self.user, None, "Ação sem número ainda")
-        self.assertEqual(rotulo_processo(processo), "Ação sem número ainda")
+        self.assertEqual(rotulo_processo(processo), "P1 · Ação sem número ainda")
 
 
 class TestSeletorProcessoEmTodosOsFormularios(ProcessosEscopoBase):

@@ -1,5 +1,4 @@
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
@@ -48,6 +47,7 @@ from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.processos.services import (
     AdministradorResponsavelIndisponivel,
+    filtrar_processos_por_busca,
     transferir_processos_de_usuarios_sem_acesso,
     usuarios_com_acesso_processos,
 )
@@ -869,14 +869,14 @@ def usuario_processos_habilitados(request, user_pk):
             processo.integrantes_habilitados.remove(usuario_alvo)
             registrar_atividade(
                 request.user, "processo_integrante_removido",
-                f"Removeu a habilitação de {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo.titulo}",
+                f"Removeu a habilitação de {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo}",
                 processo=processo,
             )
         else:
             processo.integrantes_habilitados.add(usuario_alvo)
             registrar_atividade(
                 request.user, "processo_integrante_adicionado",
-                f"Habilitou {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo.titulo}",
+                f"Habilitou {usuario_alvo.get_full_name() or usuario_alvo.username} no processo {processo}",
                 processo=processo,
             )
         querystring = request.GET.urlencode()
@@ -896,7 +896,7 @@ def usuario_processos_habilitados(request, user_pk):
     if data:
         processos = processos.filter(data_distribuicao=data)
     if busca:
-        processos = processos.filter(Q(titulo__icontains=busca) | Q(numero__icontains=busca))
+        processos = filtrar_processos_por_busca(processos, busca)
     processos = processos.order_by("titulo")
 
     ids_habilitados = set(

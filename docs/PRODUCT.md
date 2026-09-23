@@ -66,6 +66,29 @@ interface" vale para todos e não é repetido em cada um. Processos e
 Financeiro têm arquivo próprio em `docs/modules/` por volume real de
 regra (múltiplas decisões e sub-áreas); os demais cabem aqui.
 
+### Códigos internos (Processo, Cliente, Usuário)
+
+Identificador curto e estável para referência rápida no dia a dia
+(falada, escrita, busca) — inclusive processo ainda sem nº CNJ e
+clientes homônimos. Complementa, sem substituir, nº CNJ, CPF/CNPJ e
+nome.
+
+- Atribuído automaticamente na criação: Processo `P1, P2…`, Cliente
+  `C1, C2…`, Usuário `U1, U2…`. Sequência independente por escritório
+  e por entidade; prefixos fixos, não configuráveis.
+- Imutável e não editável. Número nunca é reutilizado: exclusão deixa
+  buraco na sequência. Usuário desativado mantém o código.
+- O Administrador do escritório (único por escritório) aparece como
+  **ADM** e não consome número da sequência U.
+- Busca: termo no formato prefixo + número (`P12`, `p12`) casa só o
+  código exato (`P1` não traz `P10`); número sem prefixo não é tratado
+  como código.
+- Aparece em listagens, seletores, cabeçalho do detalhe, log de
+  atividade (inclusive o código de quem executou), notificações e nas
+  referências a processo/cliente em Tarefas, Agenda e Financeiro.
+- Nunca aparece nos campos de mesclagem de Modelos nem em documentos
+  que saem do escritório.
+
 ### Clientes
 
 Pasta canônica de clientes e seus vínculos com processos/documentos.

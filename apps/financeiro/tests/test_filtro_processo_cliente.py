@@ -130,7 +130,7 @@ class TestEndpointProcessosPorCliente(FiltroProcessoClienteBase):
         )
         self.assertEqual(r.status_code, 403)
 
-    def test_label_segue_o_padrao_titulo_traco_numero(self):
+    def test_label_segue_o_padrao_codigo_titulo_traco_numero(self):
         Processo.objects.filter(pk=self.processo_a.pk).update(numero="0000001-00.2026.8.00.0001")
         self.client.force_login(self.user)
         r = self.client.get(
@@ -140,5 +140,5 @@ class TestEndpointProcessosPorCliente(FiltroProcessoClienteBase):
         )
         self.assertEqual(
             r.json()["processos"][0]["label"],
-            "Processo A — 0000001-00.2026.8.00.0001",
+            f"{self.processo_a.codigo} · Processo A — 0000001-00.2026.8.00.0001",
         )
