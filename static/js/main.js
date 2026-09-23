@@ -41,7 +41,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // ── Alternância Quadro / Lista em Tarefas ───────────────────────────────────
+  // ── Alternância de visões (Agenda Jurídica) ─────────────────────────────────
+  // Só troca o painel visível; a visão escolhida vai para o campo oculto
+  // [data-view-input] e para a URL, para filtrar/recarregar sem perdê-la.
   document.querySelectorAll("[data-view-toggle]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const view = btn.dataset.viewToggle;
@@ -53,6 +55,12 @@ document.addEventListener("DOMContentLoaded", () => {
         b.classList.toggle("text-gray-900", b.dataset.viewToggle === view);
         b.classList.toggle("text-gray-500", b.dataset.viewToggle !== view);
       });
+      document.querySelectorAll("[data-view-input]").forEach((input) => {
+        input.value = view;
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.set("visao", view);
+      window.history.replaceState(null, "", url);
     });
   });
 

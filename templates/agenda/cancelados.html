@@ -1,19 +1,19 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Compromissos cancelados — Jurídico SaaS{% endblock %}
+{% block title %}Cancelados — Agenda Jurídica{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Compromissos cancelados</h1>
+    <h1 class="text-2xl font-bold text-gray-900">Cancelados</h1>
     <p class="text-sm text-gray-500 mt-0.5">
       Fora da agenda operacional &bull;
-      <a href="{% url 'agenda:index' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">← Voltar à agenda</a>
+      <a href="{% url 'agenda:index' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">← Voltar à Agenda Jurídica</a>
     </p>
   </div>
 </div>
 
 <div class="mb-4 px-4 py-3 rounded-lg bg-amber-50 text-amber-700 text-sm">
-  Compromisso cancelado fica disponível aqui só para consulta por 7 dias após o cancelamento — depois disso é excluído automaticamente.
+  Item cancelado fica disponível aqui só para consulta por 7 dias após o cancelamento — depois disso é excluído automaticamente.
 </div>
 
 {% if escopo_maximo == "todos" %}
@@ -35,8 +35,8 @@
       </div>
       <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
         <span>
-          <span class="font-semibold text-gray-900">Início:</span>
-          {{ c.data_hora_inicio|date:"d/m/Y H:i" }}
+          <span class="font-semibold text-gray-900">{{ c.get_tipo_display }}:</span>
+          {% if c.data_hora_inicio %}{{ c.data_hora_inicio|date:"d/m/Y H:i" }}{% else %}{{ c.data_referencia|date:"d/m/Y"|default:"sem data" }}{% endif %}
         </span>
         {% if c.responsavel %}
           <span class="max-w-full truncate" title="{{ c.responsavel }}">
@@ -55,7 +55,7 @@
       </div>
     </div>
   {% empty %}
-    {% include "components/empty_state.html" with mensagem="Nenhum compromisso cancelado." %}
+    {% include "components/empty_state.html" with mensagem="Nenhum item cancelado." %}
   {% endfor %}
 </div>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}{% if modo == "editar" %}Editar compromisso{% else %}Novo compromisso{% endif %} — Agenda{% endblock %}
+{% block title %}{% if modo == "editar" %}Editar item{% else %}Novo item{% endif %} — Agenda Jurídica{% endblock %}
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
@@ -8,7 +8,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
   </a>
-  <h1 class="text-xl font-bold text-gray-900">{% if modo == "editar" %}Editar compromisso{% else %}Novo compromisso{% endif %}</h1>
+  <h1 class="text-xl font-bold text-gray-900">{% if modo == "editar" %}Editar {{ compromisso.get_tipo_display|lower }}{% else %}Novo item na agenda{% endif %}</h1>
 </div>
 
 <div class="card p-6 max-w-2xl">
@@ -28,12 +28,12 @@
 
       {% if usuario_travado %}
         <p class="text-xs text-juridico-ouro bg-juridico-bege px-3 py-2 rounded-lg">
-          Este compromisso será criado na agenda de <strong>{{ usuario_travado.get_full_name|default:usuario_travado.username }}</strong>.
+          Este item será criado na agenda de <strong>{{ usuario_travado.get_full_name|default:usuario_travado.username }}</strong>.
         </p>
       {% endif %}
 
-      {# Tipo | Responsável — classificação do compromisso vem primeiro #}
-      <div class="grid grid-cols-2 gap-4">
+      {# Tipo primeiro: define a natureza e, com ela, os campos exibidos. #}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="label">Tipo</label>
           {{ form.tipo }}
@@ -42,7 +42,7 @@
           {% endif %}
         </div>
         <div>
-          <label class="label">Responsável (Agenda de)</label>
+          <label class="label">Responsável</label>
           {{ form.responsavel }}
           {% if form.responsavel.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
@@ -59,37 +59,83 @@
         {% endif %}
       </div>
 
-      {# Data/hora início | Data/hora fim #}
-      <div class="grid grid-cols-2 gap-4">
+      {# Afazer (Tarefa, Prazo, Protocolo, Retorno) #}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-toggle-panel="natureza" data-toggle-values="{{ form.tipos_afazer_csv }}" data-campos-natureza="afazer">
         <div>
-          <label class="label">Data e hora de início</label>
-          {{ form.data_hora_inicio }}
-          {% if form.data_hora_inicio.errors %}
-            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_inicio.errors|join:", " }}</p>
+          <label class="label">Data para fazer <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.data_para_fazer }}
+          {% if form.data_para_fazer.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_para_fazer.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
-          <label class="label">Data e hora de fim <span class="text-gray-400 font-normal">(opcional)</span></label>
-          {{ form.data_hora_fim }}
-          {% if form.data_hora_fim.errors %}
-            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_fim.errors|join:", " }}</p>
+          <label class="label">Hora <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.hora_para_fazer }}
+          {% if form.hora_para_fazer.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.hora_para_fazer.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label">Data fatal <span class="text-gray-400 font-normal">(obrigatória em Prazo)</span></label>
+          {% if compromisso.gerado_pelo_processo %}
+            {# Prazo gerado: a fatal só muda no andamento de origem. #}
+            <p class="input bg-gray-50 text-gray-700" data-fatal-travada>{{ compromisso.data_fatal|date:"d/m/Y" }}</p>
+            <a href="{% url 'processos:detalhe' compromisso.movimentacao_origem.processo_id %}?aba=andamentos#andamento-{{ compromisso.movimentacao_origem_id }}"
+               class="text-xs text-juridico-verde hover:underline mt-1 inline-block">Alterar no andamento →</a>
+          {% else %}
+            {{ form.data_fatal }}
+          {% endif %}
+          {% if form.data_fatal.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_fatal.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label">Prioridade</label>
+          {{ form.prioridade }}
+          {% if form.prioridade.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.prioridade.errors|join:", " }}</p>
           {% endif %}
         </div>
       </div>
 
-      {# Dia inteiro — junto dos campos de horário que ele substitui #}
-      <div class="flex items-center gap-2 -mt-2">
-        {{ form.dia_inteiro }}
-        <label for="{{ form.dia_inteiro.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
-          Dia inteiro (sem horário específico)
-        </label>
-        {% if form.dia_inteiro.errors %}
-          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.dia_inteiro.errors|join:", " }}</p>
-        {% endif %}
+      {# Evento (Audiência, Reunião, Perícia, Julgamento) #}
+      <div class="flex flex-col gap-4" data-toggle-panel="natureza" data-toggle-values="{{ form.tipos_evento_csv }}" data-campos-natureza="evento">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="label">Data e hora de início</label>
+            {{ form.data_hora_inicio }}
+            {% if form.data_hora_inicio.errors %}
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_inicio.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label class="label">Data e hora de fim <span class="text-gray-400 font-normal">(opcional)</span></label>
+            {{ form.data_hora_fim }}
+            {% if form.data_hora_fim.errors %}
+              <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_fim.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          {{ form.dia_inteiro }}
+          <label for="{{ form.dia_inteiro.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">
+            Dia inteiro (sem horário específico)
+          </label>
+          {% if form.dia_inteiro.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.dia_inteiro.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
+          {{ form.local }}
+          {% if form.local.errors %}
+            <p class="erro-campo text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
+          {% endif %}
+        </div>
       </div>
 
       {# Cliente | Processo — cliente filtra as opções de processo, por isso vem primeiro #}
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
           {{ form.cliente }}
@@ -106,19 +152,10 @@
         </div>
       </div>
 
-      {# Local — mesmo grupo de vínculo do compromisso (cliente/processo/local) #}
-      <div>
-        <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
-        {{ form.local }}
-        {% if form.local.errors %}
-          <p class="erro-campo text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
-        {% endif %}
-      </div>
-
       {% if modo != "editar" %}
-      {# Participantes — só na criação; na edição, gestão fica na seção dedicada abaixo #}
+      {# Atribuir a — só na criação: além do responsável, os demais atribuídos entram como participantes (em Evento, confirmam presença). Na edição, a gestão fica na seção dedicada abaixo. #}
       <div>
-        <label class="label">Participantes <span class="text-gray-400 font-normal">(opcional)</span></label>
+        <label class="label">Atribuir também a <span class="text-gray-400 font-normal">(participantes, opcional)</span></label>
         {% include "components/equipe_botoes.html" with alvo="#participantes-lista" %}
         <div class="mb-2">
           <button type="button" class="btn-secondary text-xs" data-marcar-todos="#participantes-lista">Adicionar todos os usuários</button>
@@ -157,7 +194,7 @@
     </div>
 
     <div class="flex gap-3 pt-5 border-t border-gray-100 mt-5">
-      <button type="submit" class="btn-primary">{% if modo == "editar" %}Salvar alterações{% else %}Criar compromisso{% endif %}</button>
+      <button type="submit" class="btn-primary">{% if modo == "editar" %}Salvar alterações{% else %}Criar{% endif %}</button>
       <a href="{% url 'agenda:index' %}" class="btn-secondary">Cancelar</a>
     </div>
   </form>

@@ -1,0 +1,89 @@
+{# Barra de filtros única: vale para Meu dia, Calendário e Kanban. A visão atual segue no campo oculto (atualizado ao alternar), então filtrar não troca de visão. #}
+<form method="get" id="filtros-agenda" class="card px-4 py-3 mb-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-end">
+  <input type="hidden" name="visao" value="{{ visao }}" data-view-input>
+
+  <div>
+    <label class="label" for="filtro-tipo">Tipo</label>
+    <select id="filtro-tipo" name="tipo" class="select" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% for valor, rotulo in tipos_afazer %}<option value="{{ valor }}" {% if filtros.tipo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+      {% for valor, rotulo in tipos_evento %}<option value="{{ valor }}" {% if filtros.tipo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="label" for="filtro-natureza">Natureza</label>
+    <select id="filtro-natureza" name="natureza" class="select" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="afazer" {% if filtros.natureza == "afazer" %}selected{% endif %}>Afazer</option>
+      <option value="evento" {% if filtros.natureza == "evento" %}selected{% endif %}>Evento</option>
+    </select>
+  </div>
+
+  {% if escopo_maximo == "todos" and not usuario_filtro and not filtros.delegados %}
+  <div>
+    <label class="label" for="filtro-escopo">Escopo</label>
+    <select id="filtro-escopo" name="escopo" class="select" onchange="this.form.submit()">
+      <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os meus</option>
+      <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+    </select>
+  </div>
+  {% endif %}
+
+  {% if pode_ver_outro_usuario %}
+  <div>
+    <label class="label" for="filtro-usuario">Pessoa</label>
+    <select id="filtro-usuario" name="usuario" class="select" onchange="this.form.submit()">
+      <option value="">—</option>
+      {% for u in usuarios_outros %}
+        <option value="{{ u.pk }}" {% if usuario_filtro.pk == u.pk %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+
+  <div>
+    <label class="label" for="filtro-origem">Origem</label>
+    <select id="filtro-origem" name="origem" class="select" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      <option value="manual" {% if filtros.origem == "manual" %}selected{% endif %}>Manual</option>
+      <option value="processo" {% if filtros.origem == "processo" %}selected{% endif %}>Gerado pelo processo</option>
+    </select>
+  </div>
+
+  <div>
+    <label class="label" for="filtro-cliente">Cliente</label>
+    <select id="filtro-cliente" name="cliente" class="select" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% if cliente_fora_das_opcoes %}<option value="{{ filtros.cliente }}" selected>Cliente selecionado</option>{% endif %}
+      {% for cl in clientes_opcoes %}
+        <option value="{{ cl.pk }}" {% if filtros.cliente == cl.pk %}selected{% endif %}>{{ cl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="label" for="filtro-processo">Processo</label>
+    <select id="filtro-processo" name="processo" class="select" onchange="this.form.submit()">
+      <option value="">Todos</option>
+      {% if processo_fora_das_opcoes %}<option value="{{ filtros.processo }}" selected>Processo selecionado</option>{% endif %}
+      {% for p in processos_opcoes %}
+        <option value="{{ p.pk }}" {% if filtros.processo == p.pk %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-span-2 sm:col-span-1 flex items-center gap-4 flex-wrap pb-2">
+    {% if pode_criar_para_outros %}
+    <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+      <input type="checkbox" name="delegados" value="1" class="rounded border-gray-300" {% if filtros.delegados %}checked{% endif %} onchange="this.form.submit()">
+      Delegados por mim
+    </label>
+    {% endif %}
+    {% if filtros_query %}
+      <a href="?visao={{ visao }}" class="text-xs text-gray-400 hover:text-gray-600 underline" data-limpar-filtros>Limpar filtros</a>
+    {% endif %}
+  </div>
+
+  <noscript><button type="submit" class="btn-secondary text-sm">Filtrar</button></noscript>
+</form>

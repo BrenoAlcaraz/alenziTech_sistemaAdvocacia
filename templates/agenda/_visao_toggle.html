@@ -1,11 +1,9 @@
-{# Lista/Calendário alternam no cliente (data-view-toggle/data-view, static/js/main.js) — as duas visões já chegam prontas no mesmo request, sem recarregar a página. #}
-<div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-6">
-  <button type="button" data-view-toggle="lista"
-     class="px-4 py-2 rounded-lg text-sm font-medium {% if visao == 'lista' %}bg-white text-gray-900{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Lista
+{# Meu dia / Calendário / Kanban alternam no cliente (data-view-toggle/data-view, static/js/main.js) — as três visões chegam prontas no mesmo request, com os mesmos filtros. #}
+<div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit max-w-full overflow-x-auto mb-6">
+  {% for valor, rotulo in visoes_opcoes %}
+  <button type="button" data-view-toggle="{{ valor }}"
+     class="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap {% if visao == valor %}bg-white text-gray-900{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+    {{ rotulo }}
   </button>
-  <button type="button" data-view-toggle="calendario"
-     class="px-4 py-2 rounded-lg text-sm font-medium {% if visao == 'calendario' %}bg-white text-gray-900{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Calendário
-  </button>
+  {% endfor %}
 </div>

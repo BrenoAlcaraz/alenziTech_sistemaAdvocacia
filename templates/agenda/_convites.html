@@ -1,0 +1,39 @@
+{# Aviso fixo de convites de delegação recebidos (PDR-0033) — responde sem sair da página. #}
+{% if convites_recebidos %}
+<div class="mb-6 rounded-lg border border-amber-200 bg-amber-50" data-convites-recebidos>
+  <p class="px-4 py-3 text-sm font-semibold text-amber-700">
+    Convites recebidos ({{ convites_recebidos|length }})
+  </p>
+  <div class="px-4 pb-4 flex flex-col gap-3">
+    {% for convite in convites_recebidos %}
+      <div class="card p-4">
+        <p class="font-semibold text-gray-900 mb-0.5">
+          {% if convite.item %}{{ convite.item.get_tipo_display }}: {{ convite.item.titulo }}{% endif %}
+        </p>
+        <p class="text-xs text-gray-500 mb-3">
+          Delegado por {{ convite.delegante.get_full_name|default:convite.delegante.username }}
+        </p>
+        <div class="flex items-start gap-3 flex-wrap">
+          <form method="post" action="{% url 'agenda:convite_responder' convite.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="aceitar">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <button type="submit" class="btn-primary text-sm">Aceitar</button>
+          </form>
+          <details>
+            <summary class="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer list-none py-2">Recusar</summary>
+            <form method="post" action="{% url 'agenda:convite_responder' convite.pk %}" class="mt-2 flex flex-col gap-2">
+              {% csrf_token %}
+              <input type="hidden" name="acao" value="recusar">
+              <input type="hidden" name="next" value="{{ next_url }}">
+              <textarea name="justificativa" rows="2" placeholder="Justificativa (opcional)"
+                        class="input h-20 resize-none text-sm"></textarea>
+              <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-700 self-start">Confirmar recusa</button>
+            </form>
+          </details>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

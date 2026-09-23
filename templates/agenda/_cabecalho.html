@@ -1,17 +1,38 @@
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-start justify-between gap-3 flex-wrap mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Agenda</h1>
+    <h1 class="text-2xl font-bold text-gray-900">Agenda Jurídica</h1>
     <p class="text-sm text-gray-500 mt-0.5">
-      Compromissos, audiências e prazos do escritório &bull;
-      <a href="{% url 'agenda:cancelados' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">Ver compromissos cancelados</a>
+      Afazeres, prazos e compromissos &bull;
+      <a href="{% url 'agenda:cancelados' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">Cancelados</a>
     </p>
   </div>
-  <a href="{% url 'agenda:novo' %}" class="btn-primary">+ Novo compromisso</a>
+
+  {# "+ Novo": o tipo é escolhido antes de abrir o formulário. #}
+  <details class="relative" data-novo-item>
+    <summary class="btn-primary cursor-pointer list-none">+ Novo</summary>
+    <div class="absolute right-0 z-20 mt-2 w-56 card p-2 shadow-lg">
+      <p class="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Afazer</p>
+      {% for valor, rotulo in tipos_afazer %}
+        <a href="{% url 'agenda:novo' %}?tipo={{ valor }}{% if filtros.processo %}&processo={{ filtros.processo }}{% endif %}{% if filtros.cliente %}&cliente={{ filtros.cliente }}{% endif %}"
+           class="block px-3 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50">{{ rotulo }}</a>
+      {% endfor %}
+      <p class="px-3 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">Evento</p>
+      {% for valor, rotulo in tipos_evento %}
+        <a href="{% url 'agenda:novo' %}?tipo={{ valor }}{% if filtros.processo %}&processo={{ filtros.processo }}{% endif %}{% if filtros.cliente %}&cliente={{ filtros.cliente }}{% endif %}"
+           class="block px-3 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50">{{ rotulo }}</a>
+      {% endfor %}
+    </div>
+  </details>
 </div>
 
 {% if usuario_filtro %}
-<div class="mb-4 px-4 py-2.5 rounded-lg bg-juridico-bege text-sm text-gray-700 flex items-center justify-between">
+<div class="mb-4 px-4 py-2.5 rounded-lg bg-juridico-bege text-sm text-gray-700 flex items-center justify-between flex-wrap gap-2">
   <span>Mostrando a agenda de <strong>{{ usuario_filtro.get_full_name|default:usuario_filtro.username }}</strong></span>
-  <a href="{% url 'agenda:index' %}" class="text-juridico-ouro font-medium hover:underline">Ver a minha →</a>
+  <span class="flex items-center gap-3">
+    {% if pode_criar_para_outros %}
+      <a href="{% url 'agenda:novo' %}?para_usuario={{ usuario_filtro.pk }}" class="btn-primary text-sm">+ Novo para esta pessoa</a>
+    {% endif %}
+    <a href="{% url 'agenda:index' %}" class="text-juridico-ouro font-medium hover:underline">Ver a minha →</a>
+  </span>
 </div>
 {% endif %}
