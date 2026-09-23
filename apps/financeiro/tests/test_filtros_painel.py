@@ -12,6 +12,7 @@ from django_tenants.test.cases import TenantTestCase
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_FINANCEIRO, NIVEL_DADOS_TODOS
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
+from apps.financeiro.services import janela_do_periodo
 
 
 class TestFiltrosDestinoDoPainel(TenantTestCase):
@@ -58,16 +59,48 @@ class TestFiltrosDestinoDoPainel(TenantTestCase):
         self._lancamento("Receber atrasado", tipo="receita", data_vencimento=self.mes_anterior)
         self._lancamento("Pago hoje", status="pago", data_pagamento=self.hoje)
 
-        self.assertEqual(self._descricoes("filtro=apagar_hoje"), ["Pagar hoje"])
-        self.assertEqual(self._descricoes("filtro=areceber_hoje"), ["Receber hoje"])
+        self.assertEqual(self._descricoes("filtro=apagar_periodo&periodo=dia"), ["Pagar hoje"])
+        self.assertEqual(self._descricoes("filtro=areceber_periodo&periodo=dia"), ["Receber hoje"])
+        # Sem período, "vence no período" é o dia.
+        self.assertEqual(self._descricoes("filtro=apagar_periodo"), ["Pagar hoje"])
         self.assertEqual(self._descricoes("filtro=apagar_atrasados"), ["Pagar atrasado"])
         self.assertEqual(self._descricoes("filtro=areceber_atrasados"), ["Receber atrasado"])
 
+    def test_vence_no_periodo_vai_de_hoje_ao_fim_da_semana_ou_do_mes(self):
+        _, fim_semana = janela_do_periodo("semana", self.hoje)
+        _, fim_mes = janela_do_periodo("mes", self.hoje)
+        self._lancamento("Hoje")
+        self._lancamento("Fim da semana", data_vencimento=fim_semana)
+        self._lancamento("Fim do mês", data_vencimento=fim_mes)
+        self._lancamento("Atrasado", data_vencimento=self.mes_anterior)
+
+        semana = self._descricoes("filtro=apagar_periodo&periodo=semana")
+        mes = self._descricoes("filtro=apagar_periodo&periodo=mes")
+
+        self.assertIn("Fim da semana", semana)
+        self.assertNotIn("Atrasado", semana)
+        esperado_mes = {"Hoje", "Fim do mês"} | ({"Fim da semana"} if fim_semana <= fim_mes else set())
+        self.assertEqual(mes, sorted(esperado_mes))
+
+    def test_recorte_por_periodo_no_resumo_do_financeiro(self):
+        _, fim_semana = janela_do_periodo("semana", self.hoje)
+        self._lancamento("Pagar hoje", valor="10.00")
+        self._lancamento("Pagar fim da semana", valor="5.00", data_vencimento=fim_semana)
+
+        dia = self.client.get("/financeiro/?periodo=dia", HTTP_HOST=self.http_host).context
+        semana = self.client.get("/financeiro/?periodo=semana", HTTP_HOST=self.http_host).context
+
+        self.assertTrue(dia["recorte_periodo"])
+        esperado_dia = "R$ 15,00" if fim_semana == self.hoje else "R$ 10,00"
+        self.assertEqual(dia["resumo"]["a_pagar"], esperado_dia)
+        self.assertEqual(semana["resumo"]["a_pagar"], "R$ 15,00")
+
     def test_solicitacoes_filtradas_por_vencimento(self):
+        _, fim_mes = janela_do_periodo("mes", self.hoje)
         for descricao, vencimento, status in (
             ("Vencida", self.hoje - timedelta(days=1), "aprovada"),
             ("Vence hoje", self.hoje, "solicitada"),
-            ("Futura", self.hoje + timedelta(days=1), "solicitada"),
+            ("Fora do mês", fim_mes + timedelta(days=1), "solicitada"),
             ("Paga vencida", self.hoje - timedelta(days=1), "paga"),
         ):
             SolicitacaoFinanceira.objects.create(
@@ -83,4 +116,5 @@ class TestFiltrosDestinoDoPainel(TenantTestCase):
             return [s.descricao for s in resposta.context["solicitacoes"]]
 
         self.assertEqual(descricoes("vencidas"), ["Vencida"])
-        self.assertEqual(descricoes("hoje"), ["Vence hoje"])
+        self.assertEqual(descricoes("dia"), ["Vence hoje"])
+        self.assertEqual(descricoes("mes"), ["Vence hoje"])

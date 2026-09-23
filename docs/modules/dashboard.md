@@ -30,42 +30,54 @@ com `status="arquivado"`.
 
 Cards financeiros por nível de acesso ao módulo Financeiro. Cada número
 usa a mesma regra e o mesmo escopo do filtro do Financeiro para onde o
-clique leva. Cancelado (lançamento/honorário) e rejeitada (solicitação)
-nunca entram. "Atrasado" = pendente vencido antes de hoje, de qualquer
-mês, sempre exibido separado do que vence hoje.
+clique leva (o clique carrega o período). Cancelado (lançamento/
+honorário) e rejeitada (solicitação) nunca entram. "Atrasado" =
+pendente vencido antes de hoje, de qualquer mês, sempre exibido separado
+do que vence no período.
+
+**Período** (`?periodo=dia|semana|mes`): seletor Dia | Semana | Mês
+acima dos cards financeiros — só eles mudam. Dia = hoje; Semana =
+segunda a domingo corrente; Mês = mês civil corrente (fuso local).
+Padrão Dia, e o período nunca é lembrado: sem o parâmetro (ou com valor
+inválido) o Painel volta a Dia. O que é "vence no período" vai de hoje
+ao fim do período (o que venceu antes já é atrasado); saldo previsto e
+honorários usam a janela inteira. Fila de solicitações abertas e custas
+a cobrar são estado atual e não mudam com o período.
 
 - **Nível `solicitacoes`** (só as próprias solicitações):
   - *Solicitações pendentes*: quantidade e valor das abertas
-    (`solicitada`/`em_analise`/`aprovada`), com "X vencidas" → lista
-    `situacao=pendentes` (vencidas → `vencimento=vencidas`).
-  - *Pagas nos últimos 7 dias*: `paga` com `data_pagamento` entre
-    hoje−6 e hoje → lista `situacao=pagas` com `pago_de`/`pago_ate`.
+    (`solicitada`/`em_analise`/`aprovada`), com "X vencidas" e "X
+    vencem no período" → lista `situacao=pendentes`
+    (`vencimento=vencidas` / `vencimento=dia|semana|mes`).
+  - *Pagas no período*: `paga` com `data_pagamento` na janela → lista
+    `situacao=pagas` com `pago_de`/`pago_ate`.
 - **Nível de dados** (`dados_proprios` só lançamentos em que é
   `responsavel`; `dados_todos` o escritório):
-  - *A pagar hoje* / *A receber hoje*: despesas/receitas pendentes com
-    vencimento hoje, mais a linha de atrasadas → filtros
-    `apagar_hoje`/`areceber_hoje` e `apagar_atrasados`/
-    `areceber_atrasados`. Contam todos os lançamentos pendentes (o que
-    há para pagar/receber), inclusive custas e reembolsos de cliente —
-    a exclusão do PDR-0029 vale para os totais do mês, não para a fila
-    do dia.
+  - *A pagar* / *A receber*: despesas/receitas pendentes que vencem no
+    período, mais a linha de atrasadas → filtros
+    `apagar_periodo`/`areceber_periodo` (com `periodo=`) e
+    `apagar_atrasados`/`areceber_atrasados`. Contam todos os
+    lançamentos pendentes (o que há para pagar/receber), inclusive
+    custas e reembolsos de cliente — a exclusão do PDR-0029 vale para os
+    totais de resumo, não para a fila de pendências.
   - *Solicitações em aberto*: total do escritório (mesmo número de
     "Solicitações (n)"), dividido em aguardando análise
     (`solicitada`+`em_analise`) e aprovadas aguardando pagamento, com
-    destaque para vencidas e que vencem hoje (`vencimento=vencidas`/
-    `hoje`).
+    destaque para vencidas e que vencem no período.
 - **Administrador do escritório**: os cards do nível de dados, mais:
-  - *Saldo previsto do mês*: o mesmo saldo previsto do Financeiro no mês
-    corrente (PDR-0029), com "realizado até agora" (recebido − pago) →
-    Financeiro sem filtro. Atrasados de meses anteriores não entram.
-  - *Honorários previstos no mês*: receitas de honorários/sucumbência
-    com vencimento no mês (pagas em recebido e previsto) + saldo
-    pendente do contratual de valor único ainda previsto no mês
+  - *Saldo previsto*: a fórmula do saldo previsto do Financeiro
+    (PDR-0029: a receber + recebido − a pagar − pago, pendentes pelo
+    vencimento e pagos pela data de pagamento) aplicada à janela, com
+    "realizado até agora" (recebido − pago) → Financeiro com o mesmo
+    `periodo=` (em Mês, é exatamente o saldo do mês corrente).
+  - *Honorários previstos*: receitas de honorários/sucumbência com
+    vencimento na janela (pagas em recebido e previsto) + saldo
+    pendente do contratual de valor único ainda previsto na janela
     (`valor_efetivo`, ou `valor_estimado`, − `valor_recebido`), que só
     vira lançamento ao ser confirmado. Êxito e sucumbência sem
-    lançamento não entram; nada é contado duas vezes → aba Honorários.
-    Honorário único pendente aparece só aqui — não entra no saldo
-    previsto nem no a receber.
+    lançamento não entram; nada é contado duas vezes → aba Honorários
+    (sem filtro). Honorário único pendente aparece só aqui — não entra
+    no saldo previsto nem no a receber.
   - *Custas a cobrar*: soma dos saldos de custas negativos e quantidade
     de devedores — os mesmos do filtro "Em débito" da tela de Custas
     (clientes ativos fora de grupo e grupos) → `custas?saldo=em_debito`.

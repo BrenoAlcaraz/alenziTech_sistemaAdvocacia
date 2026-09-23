@@ -1,6 +1,6 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
@@ -364,26 +364,44 @@ def _soma(lancamentos):
     return lancamentos.aggregate(total=Sum("valor"))["total"] or Decimal("0")
 
 
-def totais_do_mes(escopo, ano, mes, *, incluir_custas):
-    """Cards do mês: a receber, a pagar, recebido e pago. `incluir_custas`
-    soma ao "pago" as custas adiantadas ainda não reembolsadas do mês —
-    dado global do escritório, então só para quem enxerga todos os dados."""
-    primeiro = date(ano, mes, 1)
-    ultimo = date(ano, mes, monthrange(ano, mes)[1])
+PERIODOS = ("dia", "semana", "mes")
+
+
+def janela_do_periodo(periodo, hoje):
+    """(início, fim) do período corrente: hoje, semana de segunda a
+    domingo ou mês civil."""
+    if periodo == "semana":
+        inicio = hoje - timedelta(days=hoje.weekday())
+        return inicio, inicio + timedelta(days=6)
+    if periodo == "mes":
+        return date(hoje.year, hoje.month, 1), date(hoje.year, hoje.month, monthrange(hoje.year, hoje.month)[1])
+    return hoje, hoje
+
+
+def totais_da_janela(escopo, inicio, fim, *, incluir_custas):
+    """Cards de resumo: a receber, a pagar, recebido e pago na janela —
+    pendências pelo vencimento, pagamentos pela data de pagamento.
+    `incluir_custas` soma ao "pago" as custas adiantadas ainda não
+    reembolsadas da janela — dado global do escritório, então só para
+    quem enxerga todos os dados."""
     operacionais = lancamentos_operacionais(escopo)
-    no_mes = operacionais.filter(data_vencimento__gte=primeiro, data_vencimento__lte=ultimo)
-    pagos_no_mes = operacionais.filter(
-        status="pago", data_pagamento__year=ano, data_pagamento__month=mes,
-    )
-    pago = _soma(pagos_no_mes.filter(tipo="despesa"))
+    na_janela = operacionais.filter(data_vencimento__gte=inicio, data_vencimento__lte=fim)
+    pagos = operacionais.filter(status="pago", data_pagamento__gte=inicio, data_pagamento__lte=fim)
+    pago = _soma(pagos.filter(tipo="despesa"))
     if incluir_custas:
-        pago += total_custas_a_recuperar(inicio=primeiro, fim=ultimo)
+        pago += total_custas_a_recuperar(inicio=inicio, fim=fim)
     return {
-        "a_receber": _soma(no_mes.filter(tipo="receita", status="pendente")),
-        "a_pagar": _soma(no_mes.filter(tipo="despesa", status="pendente")),
-        "recebido": _soma(pagos_no_mes.filter(tipo="receita")),
+        "a_receber": _soma(na_janela.filter(tipo="receita", status="pendente")),
+        "a_pagar": _soma(na_janela.filter(tipo="despesa", status="pendente")),
+        "recebido": _soma(pagos.filter(tipo="receita")),
         "pago": pago,
     }
+
+
+def totais_do_mes(escopo, ano, mes, *, incluir_custas):
+    primeiro = date(ano, mes, 1)
+    ultimo = date(ano, mes, monthrange(ano, mes)[1])
+    return totais_da_janela(escopo, primeiro, ultimo, incluir_custas=incluir_custas)
 
 
 def saldo_previsto(totais):
@@ -391,8 +409,12 @@ def saldo_previsto(totais):
     return totais["a_receber"] + totais["recebido"] - totais["a_pagar"] - totais["pago"]
 
 
-def vencendo_hoje(lancamentos, tipo, hoje):
-    return lancamentos.filter(tipo=tipo, status="pendente", data_vencimento=hoje)
+def vencendo_no_periodo(lancamentos, tipo, hoje, fim):
+    """Pendentes que vencem de hoje até o fim do período — o que venceu
+    antes de hoje já é atrasado e nunca entra aqui."""
+    return lancamentos.filter(
+        tipo=tipo, status="pendente", data_vencimento__gte=hoje, data_vencimento__lte=fim,
+    )
 
 
 def atrasados(lancamentos, hoje, tipo=None):
@@ -406,13 +428,13 @@ def _total_e_quantidade(lancamentos):
     return {"total": agregado["total"] or Decimal("0"), "quantidade": agregado["quantidade"]}
 
 
-def pendencias_do_dia(escopo, hoje):
-    """Cards "A pagar/A receber hoje" do Painel: o que vence hoje e,
+def pendencias_do_periodo(escopo, hoje, fim):
+    """Cards "A pagar/A receber" do Painel: o que vence no período e,
     separado, o que já está atrasado — mesmos conjuntos dos filtros da
     lista de Lançamentos para onde cada card leva."""
     return {
         chave: {
-            "hoje": _total_e_quantidade(vencendo_hoje(escopo, tipo, hoje)),
+            "periodo": _total_e_quantidade(vencendo_no_periodo(escopo, tipo, hoje, fim)),
             "atrasados": _total_e_quantidade(atrasados(escopo, hoje, tipo)),
         }
         for chave, tipo in (("a_pagar", "despesa"), ("a_receber", "receita"))
@@ -427,15 +449,13 @@ def _pendente_do_honorario_unico(honorario):
     return max(esperado - (honorario.valor_recebido or Decimal("0")), Decimal("0"))
 
 
-def honorarios_do_mes(ano, mes):
-    """Card "Honorários do mês" do Painel (dado global do escritório).
-    Receitas de honorário com vencimento no mês — o que já foi pago
+def honorarios_da_janela(primeiro, ultimo):
+    """Card "Honorários" do Painel (dado global do escritório).
+    Receitas de honorário com vencimento na janela — o que já foi pago
     entra em recebido e em previsto — mais o saldo pendente do contratual
-    de valor único ainda previsto no mês, que só vira lançamento ao ser
+    de valor único ainda previsto na janela, que só vira lançamento ao ser
     confirmado (sem dupla contagem: esse não tem lançamentos vinculados).
     Sucumbência e êxito sem lançamento ficam de fora."""
-    primeiro = date(ano, mes, 1)
-    ultimo = date(ano, mes, monthrange(ano, mes)[1])
     receitas = LancamentoFinanceiro.objects.filter(
         tipo="receita", categoria__in=_CATEGORIAS_HONORARIO,
         data_vencimento__gte=primeiro, data_vencimento__lte=ultimo,
@@ -475,13 +495,13 @@ def solicitacoes_vencidas(solicitacoes, hoje):
     )
 
 
-def solicitacoes_vencendo_hoje(solicitacoes, hoje):
+def solicitacoes_vencendo_no_periodo(solicitacoes, hoje, fim):
     return solicitacoes.filter(
-        status__in=SolicitacaoFinanceira.STATUS_ABERTOS, vencimento=hoje,
+        status__in=SolicitacaoFinanceira.STATUS_ABERTOS, vencimento__gte=hoje, vencimento__lte=fim,
     )
 
 
-def resumo_solicitacoes_abertas(solicitacoes, hoje):
+def resumo_solicitacoes_abertas(solicitacoes, hoje, fim):
     """Fila de solicitações em aberto do Painel, pela etapa que falta."""
     abertas = solicitacoes.filter(status__in=SolicitacaoFinanceira.STATUS_ABERTOS)
     agregado = abertas.aggregate(total=Sum("valor"), quantidade=Count("id"))
@@ -491,7 +511,7 @@ def resumo_solicitacoes_abertas(solicitacoes, hoje):
         "aguardando_analise": abertas.filter(status__in=("solicitada", "em_analise")).count(),
         "aguardando_pagamento": abertas.filter(status="aprovada").count(),
         "vencidas": solicitacoes_vencidas(solicitacoes, hoje).count(),
-        "vencem_hoje": solicitacoes_vencendo_hoje(solicitacoes, hoje).count(),
+        "vencem_no_periodo": solicitacoes_vencendo_no_periodo(solicitacoes, hoje, fim).count(),
     }
 
 

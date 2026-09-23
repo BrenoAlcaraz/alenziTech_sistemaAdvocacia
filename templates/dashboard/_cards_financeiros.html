@@ -1,4 +1,15 @@
-{# Cards financeiros da Visão geral por nível de acesso — specs/painel-cards-financeiros.md #}
+{# Cards financeiros da Visão geral por nível de acesso e período — docs/modules/dashboard.md #}
+<div class="col-span-2 flex items-center gap-3">
+  <span class="text-sm font-medium text-gray-500">Financeiro</span>
+  <div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit" role="group" aria-label="Período dos cards financeiros">
+    {% for chave, rotulo in periodos %}
+    <a href="?periodo={{ chave }}"
+       class="px-3 py-1 rounded-lg text-sm font-medium {% if cards.periodo == chave %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}"
+       {% if cards.periodo == chave %}aria-current="true"{% endif %}>{{ rotulo }}</a>
+    {% endfor %}
+  </div>
+</div>
+
 {% if cards.solicitante %}
   {% with pendentes=cards.solicitante.pendentes pagas=cards.solicitante.pagas %}
   <div class="card p-5 flex flex-col gap-1">
@@ -11,28 +22,33 @@
       {{ pendentes.vencidas }} vencida{{ pendentes.vencidas|pluralize }}
     </a>
     {% endif %}
+    {% if pendentes.vencem_no_periodo %}
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento={{ cards.periodo }}" class="text-xs font-medium text-amber-600 hover:underline">
+      {{ pendentes.vencem_no_periodo }} vence{{ pendentes.vencem_no_periodo|pluralize:"m" }} {{ cards.rotulo.no }}
+    </a>
+    {% endif %}
   </div>
 
   <a href="{% url 'financeiro:solicitacoes_lista' %}?{{ pagas.query }}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
     <p class="text-2xl font-bold text-gray-900">{{ pagas.quantidade }}</p>
-    <p class="text-sm text-gray-500">Pagas nos últimos 7 dias · {{ pagas.total }}</p>
+    <p class="text-sm text-gray-500">Pagas {{ cards.rotulo.no }} · {{ pagas.total }}</p>
   </a>
   {% endwith %}
 {% else %}
 
   {% if cards.admin %}
   {% with admin=cards.admin %}
-  <a href="{% url 'financeiro:index' %}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
+  <a href="{% url 'financeiro:index' %}?periodo={{ cards.periodo }}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
     <p class="text-2xl font-bold {% if admin.saldo_previsto_negativo %}text-juridico-vermelho{% else %}text-gray-900{% endif %}">
       {% if admin.saldo_previsto_negativo %}&minus; {% endif %}{{ admin.saldo_previsto }}
     </p>
-    <p class="text-sm text-gray-500">Saldo previsto do mês</p>
+    <p class="text-sm text-gray-500">Saldo previsto {{ cards.rotulo.do }}</p>
     <p class="text-xs text-gray-400">Realizado até agora: {% if admin.realizado_negativo %}&minus; {% endif %}{{ admin.realizado }}</p>
   </a>
 
   <a href="{% url 'financeiro:honorarios_lista' %}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
     <p class="text-2xl font-bold text-gray-900">{{ admin.honorarios_previsto }}</p>
-    <p class="text-sm text-gray-500">Honorários previstos no mês</p>
+    <p class="text-sm text-gray-500">Honorários previstos {{ cards.rotulo.no }}</p>
     <p class="text-xs text-gray-400">Recebido: {{ admin.honorarios_recebido }}</p>
   </a>
 
@@ -46,9 +62,9 @@
 
   {% with pagar=cards.pendencias.a_pagar receber=cards.pendencias.a_receber %}
   <div class="card p-5 flex flex-col gap-1">
-    <a href="{% url 'financeiro:index' %}?filtro=apagar_hoje" class="hover:underline">
-      <p class="text-2xl font-bold text-gray-900">{{ pagar.hoje.total }}</p>
-      <p class="text-sm text-gray-500">A pagar hoje · {{ pagar.hoje.quantidade }}</p>
+    <a href="{% url 'financeiro:index' %}?filtro=apagar_periodo&periodo={{ cards.periodo }}" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ pagar.periodo.total }}</p>
+      <p class="text-sm text-gray-500">A pagar {{ cards.rotulo.no }} · {{ pagar.periodo.quantidade }}</p>
     </a>
     {% if pagar.atrasados.quantidade %}
     <a href="{% url 'financeiro:index' %}?filtro=apagar_atrasados" class="text-xs font-medium text-juridico-vermelho hover:underline">
@@ -58,9 +74,9 @@
   </div>
 
   <div class="card p-5 flex flex-col gap-1">
-    <a href="{% url 'financeiro:index' %}?filtro=areceber_hoje" class="hover:underline">
-      <p class="text-2xl font-bold text-gray-900">{{ receber.hoje.total }}</p>
-      <p class="text-sm text-gray-500">A receber hoje · {{ receber.hoje.quantidade }}</p>
+    <a href="{% url 'financeiro:index' %}?filtro=areceber_periodo&periodo={{ cards.periodo }}" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ receber.periodo.total }}</p>
+      <p class="text-sm text-gray-500">A receber {{ cards.rotulo.no }} · {{ receber.periodo.quantidade }}</p>
     </a>
     {% if receber.atrasados.quantidade %}
     <a href="{% url 'financeiro:index' %}?filtro=areceber_atrasados" class="text-xs font-medium text-juridico-vermelho hover:underline">
@@ -82,9 +98,9 @@
       {{ fila.vencidas }} vencida{{ fila.vencidas|pluralize }}
     </a>
     {% endif %}
-    {% if fila.vencem_hoje %}
-    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento=hoje" class="text-xs font-medium text-amber-600 hover:underline">
-      {{ fila.vencem_hoje }} vence{{ fila.vencem_hoje|pluralize:"m" }} hoje
+    {% if fila.vencem_no_periodo %}
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento={{ cards.periodo }}" class="text-xs font-medium text-amber-600 hover:underline">
+      {{ fila.vencem_no_periodo }} vence{{ fila.vencem_no_periodo|pluralize:"m" }} {{ cards.rotulo.no }}
     </a>
     {% endif %}
   </div>

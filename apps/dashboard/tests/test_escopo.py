@@ -311,6 +311,6 @@ class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["acesso_financeiro"])
         a_receber = resposta.context["cards_financeiros"]["pendencias"]["a_receber"]
-        self.assertEqual(a_receber["hoje"]["total"], "R$ 1.000,00")
+        self.assertEqual(a_receber["periodo"]["total"], "R$ 1.000,00")
         self.assertContains(resposta, "Honorário Próprio")
         self.assertNotContains(resposta, "Honorário Alheio")

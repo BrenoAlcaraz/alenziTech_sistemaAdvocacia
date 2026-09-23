@@ -41,12 +41,14 @@ from apps.tarefas.models import Tarefa
 from apps.agenda.models import Compromisso, ParticipanteCompromisso
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.financeiro.services import (
+    PERIODOS,
     custas_em_debito,
-    honorarios_do_mes,
-    pendencias_do_dia,
+    honorarios_da_janela,
+    janela_do_periodo,
+    pendencias_do_periodo,
     resumo_solicitacoes_abertas,
     saldo_previsto,
-    totais_do_mes,
+    totais_da_janela,
 )
 
 
@@ -56,7 +58,12 @@ _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 _NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
 _NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, *_NIVEIS_FINANCEIRO_DADOS}
 _NAO_INFORMADO = "__na__"
-DIAS_SOLICITACOES_PAGAS = 7
+PERIODO_PADRAO = "dia"
+_ROTULOS_PERIODO = {
+    "dia": {"botao": "Dia", "no": "hoje", "do": "do dia"},
+    "semana": {"botao": "Semana", "no": "nesta semana", "do": "da semana"},
+    "mes": {"botao": "Mês", "no": "neste mês", "do": "do mês"},
+}
 
 
 def _nivel_escopo(user, modulo):
@@ -185,30 +192,27 @@ def _moeda_e_quantidade(agregado):
     return {"total": _formatar_moeda(agregado["total"]), "quantidade": agregado["quantidade"]}
 
 
-def _cards_solicitante(user, hoje):
+def _cards_solicitante(user, hoje, inicio, fim):
     """Nível `solicitacoes`: só as próprias solicitações."""
     proprias = SolicitacaoFinanceira.objects.filter(solicitante=user)
-    resumo = resumo_solicitacoes_abertas(proprias, hoje)
-    inicio_janela = hoje - timedelta(days=DIAS_SOLICITACOES_PAGAS - 1)
-    pagas = proprias.filter(status="paga", data_pagamento__gte=inicio_janela, data_pagamento__lte=hoje)
+    resumo = resumo_solicitacoes_abertas(proprias, hoje, fim)
+    pagas = proprias.filter(status="paga", data_pagamento__gte=inicio, data_pagamento__lte=fim)
     agregado_pagas = pagas.aggregate(total=Sum("valor"), quantidade=Count("id"))
     return {
         "pendentes": {**resumo, "total": _formatar_moeda(resumo["total"])},
         "pagas": {
             **_moeda_e_quantidade(agregado_pagas),
-            "query": urlencode({
-                "situacao": "pagas", "pago_de": inicio_janela.isoformat(), "pago_ate": hoje.isoformat(),
-            }),
+            "query": urlencode({"situacao": "pagas", "pago_de": inicio.isoformat(), "pago_ate": fim.isoformat()}),
         },
     }
 
 
-def _cards_admin(hoje):
-    """Administrador do escritório: visão do mês do escritório inteiro."""
-    totais = totais_do_mes(LancamentoFinanceiro.objects.all(), hoje.year, hoje.month, incluir_custas=True)
+def _cards_admin(inicio, fim):
+    """Administrador do escritório: visão do escritório inteiro na janela."""
+    totais = totais_da_janela(LancamentoFinanceiro.objects.all(), inicio, fim, incluir_custas=True)
     saldo = saldo_previsto(totais)
     realizado = totais["recebido"] - totais["pago"]
-    honorarios = honorarios_do_mes(hoje.year, hoje.month)
+    honorarios = honorarios_da_janela(inicio, fim)
     custas = custas_em_debito()
     return {
         "saldo_previsto": _formatar_moeda(abs(saldo)),
@@ -221,26 +225,26 @@ def _cards_admin(hoje):
     }
 
 
-def _cards_financeiros(user, hoje, *, acesso_dados):
-    """Cards financeiros da Visão geral por nível de acesso
-    (specs/painel-cards-financeiros.md). Cada número usa a mesma regra
-    do filtro do Financeiro para onde o card leva."""
+def _cards_financeiros(user, hoje, periodo, *, acesso_dados):
+    """Cards financeiros da Visão geral por nível de acesso, no período
+    escolhido (dia/semana/mês). Cada número usa a mesma regra do filtro
+    do Financeiro para onde o card leva."""
+    inicio, fim = janela_do_periodo(periodo, hoje)
+    cards = {"periodo": periodo, "rotulo": _ROTULOS_PERIODO[periodo]}
     if not acesso_dados:
-        return {"solicitante": _cards_solicitante(user, hoje)}
+        cards["solicitante"] = _cards_solicitante(user, hoje, inicio, fim)
+        return cards
     escopo = LancamentoFinanceiro.objects.all()
     if _nivel_financeiro(user) == NIVEL_DADOS_PROPRIOS:
         escopo = escopo.filter(responsavel=user)
-    pendencias = pendencias_do_dia(escopo, hoje)
-    fila = resumo_solicitacoes_abertas(SolicitacaoFinanceira.objects.all(), hoje)
-    cards = {
-        "pendencias": {
-            chave: {janela: _moeda_e_quantidade(valores) for janela, valores in grupo.items()}
-            for chave, grupo in pendencias.items()
-        },
-        "fila_solicitacoes": fila,
+    pendencias = pendencias_do_periodo(escopo, hoje, fim)
+    cards["pendencias"] = {
+        chave: {janela: _moeda_e_quantidade(valores) for janela, valores in grupo.items()}
+        for chave, grupo in pendencias.items()
     }
+    cards["fila_solicitacoes"] = resumo_solicitacoes_abertas(SolicitacaoFinanceira.objects.all(), hoje, fim)
     if usuario_admin_escritorio(user):
-        cards["admin"] = _cards_admin(hoje)
+        cards["admin"] = _cards_admin(inicio, fim)
     return cards
 
 
@@ -293,9 +297,14 @@ def painel(request):
     if acesso_agenda:
         resumo["compromissos_proximos"] = _compromissos_confirmados(request.user, hoje).count()
 
+    # Período dos cards financeiros: nunca lembrado entre visitas — sem
+    # `?periodo=` válido o Painel volta sempre ao padrão.
+    periodo = request.GET.get("periodo")
+    if periodo not in PERIODOS:
+        periodo = PERIODO_PADRAO
     cards_financeiros = None
     if acesso_financeiro or acesso_financeiro_solicitacoes:
-        cards_financeiros = _cards_financeiros(request.user, hoje, acesso_dados=acesso_financeiro)
+        cards_financeiros = _cards_financeiros(request.user, hoje, periodo, acesso_dados=acesso_financeiro)
 
     if acesso_usuarios_ativos:
         resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
@@ -356,6 +365,7 @@ def painel(request):
         "compromissos_pendentes_dashboard": compromissos_pendentes_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
         "cards_financeiros": cards_financeiros,
+        "periodos": [(chave, rotulos["botao"]) for chave, rotulos in _ROTULOS_PERIODO.items()],
         "movimentacao": movimentacao,
         "paralisados": paralisados,
         "prazos": prazos,

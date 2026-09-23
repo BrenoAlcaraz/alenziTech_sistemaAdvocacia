@@ -61,10 +61,12 @@ from .services import (
     registrar_credito_cliente,
     saldo_liquido_custas,
     saldo_previsto,
-    solicitacoes_vencendo_hoje,
+    PERIODOS,
+    janela_do_periodo,
+    solicitacoes_vencendo_no_periodo,
     solicitacoes_vencidas,
-    totais_do_mes,
-    vencendo_hoje,
+    totais_da_janela,
+    vencendo_no_periodo,
 )
 
 
@@ -92,19 +94,27 @@ FILTROS_LANCAMENTOS_VALIDOS = {
     "areceber",
     "atrasados",
     "solicitados",
-    "apagar_hoje",
-    "areceber_hoje",
+    "apagar_periodo",
+    "areceber_periodo",
     "apagar_atrasados",
     "areceber_atrasados",
 }
 
 # Filtros de ação do Painel: o próprio filtro define a janela de datas
-# (hoje ou tudo o que já venceu), então ignoram o mês navegado.
+# (de hoje ao fim do período, ou tudo o que já venceu), então ignoram o
+# mês navegado.
 FILTROS_PAINEL = {
-    "apagar_hoje": "A pagar — vence hoje",
-    "areceber_hoje": "A receber — vence hoje",
+    "apagar_periodo": "A pagar — vence {vence}",
+    "areceber_periodo": "A receber — vence {vence}",
     "apagar_atrasados": "A pagar — atrasados",
     "areceber_atrasados": "A receber — atrasados",
+}
+
+# Rótulos do período (`?periodo=`) vindo do Painel.
+ROTULOS_PERIODO = {
+    "dia": {"no": "hoje", "do": "de hoje", "vence": "hoje"},
+    "semana": {"no": "na semana", "do": "da semana", "vence": "nesta semana"},
+    "mes": {"no": "no mês", "do": "do mês", "vence": "neste mês"},
 }
 
 MESES = [
@@ -190,15 +200,24 @@ def index(request):
         return redirect("financeiro:solicitacoes_lista")
     hoje = timezone.localdate()
     filtro = _normalizar_filtro_lancamentos(request.GET.get("filtro", "todos"))
+    periodo = request.GET.get("periodo")
+    if periodo not in PERIODOS:
+        periodo = None
     ano, mes = _resolver_mes_ano(request, hoje)
-    _, dias_no_mes = monthrange(ano, mes)
-    primeiro_dia = date(ano, mes, 1)
-    ultimo_dia = date(ano, mes, dias_no_mes)
+    # Dia/semana vindos do Painel recortam lista e resumo por essa janela
+    # no lugar do mês navegado; "mes" é o próprio mês corrente.
+    recorte_periodo = periodo in ("dia", "semana")
+    if recorte_periodo:
+        inicio_janela, fim_janela = janela_do_periodo(periodo, hoje)
+    else:
+        inicio_janela = date(ano, mes, 1)
+        fim_janela = date(ano, mes, monthrange(ano, mes)[1])
+    fim_do_periodo = janela_do_periodo(periodo or "dia", hoje)[1]
 
     escopo = _lancamentos_no_escopo(request.user)
-    escopo_mes = escopo.filter(data_vencimento__gte=primeiro_dia, data_vencimento__lte=ultimo_dia)
+    escopo_janela = escopo.filter(data_vencimento__gte=inicio_janela, data_vencimento__lte=fim_janela)
 
-    lancamentos = escopo_mes
+    lancamentos = escopo_janela
     if filtro == "receitas":
         lancamentos = lancamentos.filter(tipo="receita")
     elif filtro == "despesas":
@@ -215,10 +234,10 @@ def index(request):
         # Atrasado de mês anterior continua atrasado — nunca some por
         # causa do mês navegado.
         lancamentos = atrasados(escopo, hoje)
-    elif filtro == "apagar_hoje":
-        lancamentos = vencendo_hoje(escopo, "despesa", hoje)
-    elif filtro == "areceber_hoje":
-        lancamentos = vencendo_hoje(escopo, "receita", hoje)
+    elif filtro == "apagar_periodo":
+        lancamentos = vencendo_no_periodo(escopo, "despesa", hoje, fim_do_periodo)
+    elif filtro == "areceber_periodo":
+        lancamentos = vencendo_no_periodo(escopo, "receita", hoje, fim_do_periodo)
     elif filtro == "apagar_atrasados":
         lancamentos = atrasados(escopo, hoje, "despesa")
     elif filtro == "areceber_atrasados":
@@ -229,8 +248,8 @@ def index(request):
     # Reembolso/custas de cliente ficam fora de recebido/pago; as custas
     # adiantadas e não reembolsadas entram em "pago" (dado global — só
     # para quem vê todos os dados).
-    totais = totais_do_mes(
-        escopo, ano, mes,
+    totais = totais_da_janela(
+        escopo, inicio_janela, fim_janela,
         incluir_custas=_nivel_financeiro(request.user) == NIVEL_DADOS_TODOS,
     )
     a_receber, a_pagar = totais["a_receber"], totais["a_pagar"]
@@ -254,7 +273,13 @@ def index(request):
         "resumo": resumo,
         "lancamentos": lancamentos,
         "filtro": filtro,
-        "filtro_painel": FILTROS_PAINEL.get(filtro),
+        "filtro_painel": FILTROS_PAINEL.get(filtro, "").format(**ROTULOS_PERIODO[periodo or "dia"]),
+        "periodo": periodo,
+        "recorte_periodo": recorte_periodo,
+        "rotulo_janela": ROTULOS_PERIODO[periodo if recorte_periodo else "mes"],
+        "inicio_janela": inicio_janela,
+        "fim_janela": fim_janela,
+        "query_janela": f"periodo={periodo}" if recorte_periodo else f"ano={ano}&mes={mes}",
         "next_url": request.get_full_path(),
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
@@ -1114,9 +1139,17 @@ SITUACOES_SOLICITACAO = {
 }
 
 
+def _vencendo_no(periodo):
+    return lambda qs, hoje: solicitacoes_vencendo_no_periodo(qs, hoje, janela_do_periodo(periodo, hoje)[1])
+
+
+# "Vencem no período" vai de hoje ao fim do período — o que venceu antes
+# de hoje é "vencida".
 FILTROS_VENCIMENTO_SOLICITACAO = {
     "vencidas": ("Vencidas", solicitacoes_vencidas),
-    "hoje": ("Vencem hoje", solicitacoes_vencendo_hoje),
+    "dia": ("Vencem hoje", _vencendo_no("dia")),
+    "semana": ("Vencem nesta semana", _vencendo_no("semana")),
+    "mes": ("Vencem neste mês", _vencendo_no("mes")),
 }
 
 

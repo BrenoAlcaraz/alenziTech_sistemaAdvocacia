@@ -11,6 +11,15 @@
 
 {% abas_financeiro %}
 
+{% if recorte_periodo %}
+{# Recorte por período vindo do Painel (dia/semana) no lugar do navegador de mês #}
+<div class="flex items-center gap-3 mb-6 text-sm">
+  <span class="px-3 py-1.5 rounded-xl bg-gray-100 font-semibold text-gray-900">
+    {% if periodo == "dia" %}Hoje, {{ inicio_janela|date:"d/m/Y" }}{% else %}Esta semana, {{ inicio_janela|date:"d/m" }} a {{ fim_janela|date:"d/m/Y" }}{% endif %}
+  </span>
+  <a href="?filtro={{ filtro }}" class="text-gray-500 underline">Ver mês atual</a>
+</div>
+{% else %}
 {# Navegador de mês #}
 <div class="flex items-center gap-2 mb-6 p-1 bg-gray-100 rounded-xl w-fit">
   <a href="?ano={{ mes_ano_anterior }}&mes={{ mes_mes_anterior }}&filtro={{ filtro }}"
@@ -32,8 +41,9 @@
     <span class="px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-juridico-verde shadow-sm">Mês atual</span>
   {% endif %}
 </div>
+{% endif %}
 
-{# Cards de resumo financeiro — dados reais, referentes ao mês navegado acima #}
+{# Cards de resumo financeiro — dados reais, referentes ao mês navegado (ou ao período) acima #}
 <div class="grid grid-cols-2 gap-3 mb-6">
 
   <div class="card p-5 flex items-center gap-4">
@@ -68,7 +78,7 @@
     </div>
     <div>
       <p class="text-2xl font-bold {% if resumo.saldo_atual_mes_positivo %}text-juridico-verde{% else %}text-juridico-vermelho{% endif %}">{{ resumo.saldo_atual_mes }}</p>
-      <p class="text-xs text-gray-500">Saldo atual do mês</p>
+      <p class="text-xs text-gray-500">Saldo atual {{ rotulo_janela.do }}</p>
     </div>
   </div>
 
@@ -80,7 +90,7 @@
     </div>
     <div>
       <p class="text-2xl font-bold text-gray-900">{{ resumo.recebido_mes }}</p>
-      <p class="text-xs text-gray-500">Recebido no mês</p>
+      <p class="text-xs text-gray-500">Recebido {{ rotulo_janela.no }}</p>
     </div>
   </div>
 
@@ -92,7 +102,7 @@
     </div>
     <div>
       <p class="text-2xl font-bold text-gray-900">{{ resumo.pago_mes }}</p>
-      <p class="text-xs text-gray-500">Pago no mês</p>
+      <p class="text-xs text-gray-500">Pago {{ rotulo_janela.no }}</p>
     </div>
   </div>
 
@@ -113,39 +123,39 @@
 {# Filtros reais + botão novo lançamento #}
 <div class="flex items-start justify-between gap-4 mb-4">
   <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit">
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=todos"
+    <a href="?{{ query_janela }}&filtro=todos"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Todos
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=receitas"
+    <a href="?{{ query_janela }}&filtro=receitas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'receitas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Receitas
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=despesas"
+    <a href="?{{ query_janela }}&filtro=despesas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'despesas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Despesas
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=pagos"
+    <a href="?{{ query_janela }}&filtro=pagos"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'pagos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Pagos
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=recebidos"
+    <a href="?{{ query_janela }}&filtro=recebidos"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'recebidos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Recebidos
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=apagar"
+    <a href="?{{ query_janela }}&filtro=apagar"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'apagar' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       A pagar
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=areceber"
+    <a href="?{{ query_janela }}&filtro=areceber"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'areceber' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       A receber
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=atrasados"
+    <a href="?{{ query_janela }}&filtro=atrasados"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Atrasados
     </a>
-    <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=solicitados"
+    <a href="?{{ query_janela }}&filtro=solicitados"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'solicitados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Pagamentos solicitados
     </a>
@@ -155,8 +165,8 @@
 {% if filtro_painel %}
 <div class="mb-4 flex items-center gap-3 text-sm">
   <span class="px-3 py-1 rounded-lg bg-amber-50 text-amber-700 font-medium">{{ filtro_painel }}</span>
-  <span class="text-xs text-gray-500">Todos os meses</span>
-  <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=todos" class="text-gray-500 underline">Limpar</a>
+  {% if "atrasados" in filtro %}<span class="text-xs text-gray-500">Todos os meses</span>{% endif %}
+  <a href="?{{ query_janela }}&filtro=todos" class="text-gray-500 underline">Limpar</a>
 </div>
 {% endif %}
 
