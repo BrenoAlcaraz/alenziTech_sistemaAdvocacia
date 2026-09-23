@@ -4,10 +4,14 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
-from .models import CustaJudicial, Honorario, LancamentoFinanceiro, MembroGrupoCustas
+from apps.clientes.models import Cliente
+
+from .models import (
+    CustaJudicial, Honorario, LancamentoFinanceiro, MembroGrupoCustas, SolicitacaoFinanceira,
+)
 
 # Recorrência "indeterminado" não tem data final — gera um horizonte
 # fixo de ocorrências futuras (PDR-0021 só decidiu as periodicidades,
@@ -379,6 +383,115 @@ def totais_do_mes(escopo, ano, mes, *, incluir_custas):
         "a_pagar": _soma(no_mes.filter(tipo="despesa", status="pendente")),
         "recebido": _soma(pagos_no_mes.filter(tipo="receita")),
         "pago": pago,
+    }
+
+
+def saldo_previsto(totais):
+    """Saldo previsto do mês (PDR-0029) sobre o resultado de `totais_do_mes`."""
+    return totais["a_receber"] + totais["recebido"] - totais["a_pagar"] - totais["pago"]
+
+
+def vencendo_hoje(lancamentos, tipo, hoje):
+    return lancamentos.filter(tipo=tipo, status="pendente", data_vencimento=hoje)
+
+
+def atrasados(lancamentos, hoje, tipo=None):
+    """Pendentes vencidos antes de hoje, de qualquer mês."""
+    qs = lancamentos.filter(status="pendente", data_vencimento__lt=hoje)
+    return qs.filter(tipo=tipo) if tipo else qs
+
+
+def _total_e_quantidade(lancamentos):
+    agregado = lancamentos.aggregate(total=Sum("valor"), quantidade=Count("id"))
+    return {"total": agregado["total"] or Decimal("0"), "quantidade": agregado["quantidade"]}
+
+
+def pendencias_do_dia(escopo, hoje):
+    """Cards "A pagar/A receber hoje" do Painel: o que vence hoje e,
+    separado, o que já está atrasado — mesmos conjuntos dos filtros da
+    lista de Lançamentos para onde cada card leva."""
+    return {
+        chave: {
+            "hoje": _total_e_quantidade(vencendo_hoje(escopo, tipo, hoje)),
+            "atrasados": _total_e_quantidade(atrasados(escopo, hoje, tipo)),
+        }
+        for chave, tipo in (("a_pagar", "despesa"), ("a_receber", "receita"))
+    }
+
+
+_CATEGORIAS_HONORARIO = ("honorario", "honorario_sucumbencia")
+
+
+def _pendente_do_honorario_unico(honorario):
+    esperado = honorario.valor_efetivo or honorario.valor_estimado or Decimal("0")
+    return max(esperado - (honorario.valor_recebido or Decimal("0")), Decimal("0"))
+
+
+def honorarios_do_mes(ano, mes):
+    """Card "Honorários do mês" do Painel (dado global do escritório).
+    Receitas de honorário com vencimento no mês — o que já foi pago
+    entra em recebido e em previsto — mais o saldo pendente do contratual
+    de valor único ainda previsto no mês, que só vira lançamento ao ser
+    confirmado (sem dupla contagem: esse não tem lançamentos vinculados).
+    Sucumbência e êxito sem lançamento ficam de fora."""
+    primeiro = date(ano, mes, 1)
+    ultimo = date(ano, mes, monthrange(ano, mes)[1])
+    receitas = LancamentoFinanceiro.objects.filter(
+        tipo="receita", categoria__in=_CATEGORIAS_HONORARIO,
+        data_vencimento__gte=primeiro, data_vencimento__lte=ultimo,
+    )
+    recebido = _soma(receitas.filter(status="pago"))
+    pendente = _soma(receitas.filter(status="pendente"))
+    unicos = Honorario.objects.filter(
+        tipo__in=("contratual", "outro"), status="previsto",
+        data_prevista__gte=primeiro, data_prevista__lte=ultimo,
+    ).exclude(modalidade="exito").exclude(classificacao__in=("parcelado", "recorrente"))
+    pendente += sum(
+        (_pendente_do_honorario_unico(h) for h in unicos if not h.lancamentos.exists()),
+        Decimal("0"),
+    )
+    return {"previsto": recebido + pendente, "recebido": recebido}
+
+
+def custas_em_debito():
+    """Card "Custas a cobrar" do Painel: os mesmos devedores que a tela de
+    Custas lista no filtro "Em débito" — grupos e clientes ativos fora de
+    grupo com saldo negativo."""
+    devedores = custas_a_recuperar()
+    ids_clientes = [id_ for tipo, id_ in devedores if tipo == "cliente"]
+    listados = set(
+        Cliente.objects.filter(pk__in=ids_clientes, ativo=True, grupo_custas__isnull=True)
+        .values_list("pk", flat=True)
+    )
+    valores = [
+        valor for (tipo, id_), valor in devedores.items() if tipo == "grupo" or id_ in listados
+    ]
+    return {"total": sum(valores, Decimal("0")), "quantidade": len(valores)}
+
+
+def solicitacoes_vencidas(solicitacoes, hoje):
+    return solicitacoes.filter(
+        status__in=SolicitacaoFinanceira.STATUS_ABERTOS, vencimento__lt=hoje,
+    )
+
+
+def solicitacoes_vencendo_hoje(solicitacoes, hoje):
+    return solicitacoes.filter(
+        status__in=SolicitacaoFinanceira.STATUS_ABERTOS, vencimento=hoje,
+    )
+
+
+def resumo_solicitacoes_abertas(solicitacoes, hoje):
+    """Fila de solicitações em aberto do Painel, pela etapa que falta."""
+    abertas = solicitacoes.filter(status__in=SolicitacaoFinanceira.STATUS_ABERTOS)
+    agregado = abertas.aggregate(total=Sum("valor"), quantidade=Count("id"))
+    return {
+        "quantidade": agregado["quantidade"],
+        "total": agregado["total"] or Decimal("0"),
+        "aguardando_analise": abertas.filter(status__in=("solicitada", "em_analise")).count(),
+        "aguardando_pagamento": abertas.filter(status="aprovada").count(),
+        "vencidas": solicitacoes_vencidas(solicitacoes, hoje).count(),
+        "vencem_hoje": solicitacoes_vencendo_hoje(solicitacoes, hoje).count(),
     }
 
 

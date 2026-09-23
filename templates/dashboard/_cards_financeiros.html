@@ -1,0 +1,92 @@
+{# Cards financeiros da Visão geral por nível de acesso — specs/painel-cards-financeiros.md #}
+{% if cards.solicitante %}
+  {% with pendentes=cards.solicitante.pendentes pagas=cards.solicitante.pagas %}
+  <div class="card p-5 flex flex-col gap-1">
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ pendentes.quantidade }}</p>
+      <p class="text-sm text-gray-500">Solicitações pendentes · {{ pendentes.total }}</p>
+    </a>
+    {% if pendentes.vencidas %}
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento=vencidas" class="text-xs font-medium text-juridico-vermelho hover:underline">
+      {{ pendentes.vencidas }} vencida{{ pendentes.vencidas|pluralize }}
+    </a>
+    {% endif %}
+  </div>
+
+  <a href="{% url 'financeiro:solicitacoes_lista' %}?{{ pagas.query }}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
+    <p class="text-2xl font-bold text-gray-900">{{ pagas.quantidade }}</p>
+    <p class="text-sm text-gray-500">Pagas nos últimos 7 dias · {{ pagas.total }}</p>
+  </a>
+  {% endwith %}
+{% else %}
+
+  {% if cards.admin %}
+  {% with admin=cards.admin %}
+  <a href="{% url 'financeiro:index' %}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
+    <p class="text-2xl font-bold {% if admin.saldo_previsto_negativo %}text-juridico-vermelho{% else %}text-gray-900{% endif %}">
+      {% if admin.saldo_previsto_negativo %}&minus; {% endif %}{{ admin.saldo_previsto }}
+    </p>
+    <p class="text-sm text-gray-500">Saldo previsto do mês</p>
+    <p class="text-xs text-gray-400">Realizado até agora: {% if admin.realizado_negativo %}&minus; {% endif %}{{ admin.realizado }}</p>
+  </a>
+
+  <a href="{% url 'financeiro:honorarios_lista' %}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
+    <p class="text-2xl font-bold text-gray-900">{{ admin.honorarios_previsto }}</p>
+    <p class="text-sm text-gray-500">Honorários previstos no mês</p>
+    <p class="text-xs text-gray-400">Recebido: {{ admin.honorarios_recebido }}</p>
+  </a>
+
+  <a href="{% url 'financeiro:custas' %}?saldo=em_debito" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
+    <p class="text-2xl font-bold text-gray-900">{{ admin.custas_a_cobrar.total }}</p>
+    <p class="text-sm text-gray-500">Custas a cobrar</p>
+    <p class="text-xs text-gray-400">{{ admin.custas_a_cobrar.quantidade }} cliente{{ admin.custas_a_cobrar.quantidade|pluralize }}/grupo{{ admin.custas_a_cobrar.quantidade|pluralize }} em débito</p>
+  </a>
+  {% endwith %}
+  {% endif %}
+
+  {% with pagar=cards.pendencias.a_pagar receber=cards.pendencias.a_receber %}
+  <div class="card p-5 flex flex-col gap-1">
+    <a href="{% url 'financeiro:index' %}?filtro=apagar_hoje" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ pagar.hoje.total }}</p>
+      <p class="text-sm text-gray-500">A pagar hoje · {{ pagar.hoje.quantidade }}</p>
+    </a>
+    {% if pagar.atrasados.quantidade %}
+    <a href="{% url 'financeiro:index' %}?filtro=apagar_atrasados" class="text-xs font-medium text-juridico-vermelho hover:underline">
+      Atrasadas: {{ pagar.atrasados.total }} ({{ pagar.atrasados.quantidade }})
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="card p-5 flex flex-col gap-1">
+    <a href="{% url 'financeiro:index' %}?filtro=areceber_hoje" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ receber.hoje.total }}</p>
+      <p class="text-sm text-gray-500">A receber hoje · {{ receber.hoje.quantidade }}</p>
+    </a>
+    {% if receber.atrasados.quantidade %}
+    <a href="{% url 'financeiro:index' %}?filtro=areceber_atrasados" class="text-xs font-medium text-juridico-vermelho hover:underline">
+      Atrasadas: {{ receber.atrasados.total }} ({{ receber.atrasados.quantidade }})
+    </a>
+    {% endif %}
+  </div>
+  {% endwith %}
+
+  {% with fila=cards.fila_solicitacoes %}
+  <div class="card p-5 flex flex-col gap-1">
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes" class="hover:underline">
+      <p class="text-2xl font-bold text-gray-900">{{ fila.quantidade }}</p>
+      <p class="text-sm text-gray-500">Solicitações em aberto</p>
+    </a>
+    <p class="text-xs text-gray-400">{{ fila.aguardando_analise }} aguardando análise · {{ fila.aguardando_pagamento }} aprovada{{ fila.aguardando_pagamento|pluralize }} aguardando pagamento</p>
+    {% if fila.vencidas %}
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento=vencidas" class="text-xs font-medium text-juridico-vermelho hover:underline">
+      {{ fila.vencidas }} vencida{{ fila.vencidas|pluralize }}
+    </a>
+    {% endif %}
+    {% if fila.vencem_hoje %}
+    <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento=hoje" class="text-xs font-medium text-amber-600 hover:underline">
+      {{ fila.vencem_hoje }} vence{{ fila.vencem_hoje|pluralize:"m" }} hoje
+    </a>
+    {% endif %}
+  </div>
+  {% endwith %}
+{% endif %}

@@ -82,60 +82,8 @@
   </a>
   {% endif %}
 
-  {% if acesso_financeiro %}
-  {# A receber / A pagar / Diferença (saldo) — card combinado #}
-  <a href="{% url 'financeiro:index' %}" class="card p-5 col-span-2 flex flex-wrap items-center gap-x-8 gap-y-3 hover:shadow-md transition-shadow duration-150">
-    <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-        </svg>
-      </div>
-      <div>
-        <p class="text-2xl font-bold text-gray-900">{{ resumo.a_receber }}</p>
-        <p class="text-sm text-gray-500">A receber</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-4">
-      <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5 text-juridico-vermelho" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 17H5m0 0v-8m0 8l8-8 4 4 6-6"/>
-        </svg>
-      </div>
-      <div>
-        <p class="text-2xl font-bold text-gray-900">{{ resumo.a_pagar }}</p>
-        <p class="text-sm text-gray-500">A pagar</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-4 pl-8 border-l border-gray-100">
-      <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
-        <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M3 6h18v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6z"/>
-        </svg>
-      </div>
-      <div>
-        <p class="text-2xl font-bold {% if resumo.saldo_negativo %}text-juridico-vermelho{% else %}text-gray-900{% endif %}">
-          {% if resumo.saldo_negativo %}&minus; {% endif %}{{ resumo.saldo }}
-        </p>
-        <p class="text-sm text-gray-500">Diferença (saldo)</p>
-      </div>
-    </div>
-  </a>
-  {% endif %}
-
-  {% if acesso_financeiro_solicitacoes %}
-  {# Minhas solicitações financeiras (perfil "solicitações", sem acesso ao caixa geral) #}
-  <a href="{% url 'financeiro:solicitacoes_lista' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
-    <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-juridico-verde" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-      </svg>
-    </div>
-    <div>
-      <p class="text-2xl font-bold text-gray-900">{{ resumo.minhas_solicitacoes_abertas }}</p>
-      <p class="text-sm text-gray-500">Minhas solicitações financeiras</p>
-    </div>
-  </a>
+  {% if cards_financeiros %}
+  {% include "dashboard/_cards_financeiros.html" with cards=cards_financeiros %}
   {% endif %}
 
   {% if acesso_usuarios_ativos %}

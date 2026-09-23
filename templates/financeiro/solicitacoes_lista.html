@@ -69,6 +69,15 @@
       <input type="date" name="solicitado_ate" value="{{ filtros.solicitado_ate }}" class="input">
     </div>
   </div>
+  {% if situacao == "pendentes" %}
+  <div>
+    <label for="f-vencimento" class="text-xs font-medium text-gray-500">Vencimento</label>
+    <select id="f-vencimento" name="vencimento" class="select">
+      <option value="">Todos</option>
+      {% for chave, rotulo in filtros_vencimento %}<option value="{{ chave }}" {% if filtros.vencimento == chave %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
   {% if situacao == "pagas" %}
   <div>
     <label class="text-xs font-medium text-gray-500">Paga entre</label>

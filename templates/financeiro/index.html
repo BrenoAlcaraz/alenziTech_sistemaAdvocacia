@@ -152,6 +152,13 @@
   </div>
   <a href="{% url 'financeiro:form_lancamento' %}" class="btn-primary flex-shrink-0">+ Novo lançamento</a>
 </div>
+{% if filtro_painel %}
+<div class="mb-4 flex items-center gap-3 text-sm">
+  <span class="px-3 py-1 rounded-lg bg-amber-50 text-amber-700 font-medium">{{ filtro_painel }}</span>
+  <span class="text-xs text-gray-500">Todos os meses</span>
+  <a href="?ano={{ mes_ano }}&mes={{ mes_mes }}&filtro=todos" class="text-gray-500 underline">Limpar</a>
+</div>
+{% endif %}
 
 {# Lista de lançamentos #}
 <div class="flex flex-col gap-2">

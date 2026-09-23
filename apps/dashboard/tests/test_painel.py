@@ -104,8 +104,7 @@ class TestPainelFinanceiroSemAcesso(TenantTestCase):
         resposta = self.client.get("/", HTTP_HOST=self.http_host)
 
         self.assertEqual(resposta.status_code, 200)
-        self.assertNotIn("a_receber", resposta.context["resumo"])
-        self.assertNotIn("a_pagar", resposta.context["resumo"])
+        self.assertIsNone(resposta.context["cards_financeiros"])
         self.assertEqual(list(resposta.context["financeiro_dashboard"]), [])
         self.assertNotContains(resposta, "Honorário Pendente")
 
@@ -143,7 +142,7 @@ class TestPainelFinanceiroComAcesso(TenantTestCase):
         resposta = self.client.get("/", HTTP_HOST=self.http_host)
 
         self.assertEqual(resposta.status_code, 200)
-        self.assertIn("a_receber", resposta.context["resumo"])
+        self.assertIn("pendencias", resposta.context["cards_financeiros"])
         self.assertEqual(len(resposta.context["financeiro_dashboard"]), 1)
         self.assertContains(resposta, "Honorário Pendente")
 
@@ -201,13 +200,16 @@ class TestPainelFinanceiroSolicitacoes(TenantTestCase):
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["acesso_financeiro_solicitacoes"])
         self.assertFalse(resposta.context["acesso_financeiro"])
-        self.assertEqual(resposta.context["resumo"]["minhas_solicitacoes_abertas"], 2)
+        pendentes = resposta.context["cards_financeiros"]["solicitante"]["pendentes"]
+        self.assertEqual(pendentes["quantidade"], 2)
+        self.assertEqual(pendentes["total"], "R$ 300,00")
 
     def test_nao_recebe_card_combinado_do_caixa_geral(self):
         resposta = self.client.get("/", HTTP_HOST=self.http_host)
 
-        self.assertNotIn("a_receber", resposta.context["resumo"])
-        self.assertNotContains(resposta, "Diferença (saldo)")
+        self.assertNotIn("pendencias", resposta.context["cards_financeiros"])
+        self.assertNotContains(resposta, "A pagar hoje")
+        self.assertNotContains(resposta, "Saldo previsto do mês")
 
 
 class TestPainelClientesProcessosAgendaSemAcesso(TenantTestCase):

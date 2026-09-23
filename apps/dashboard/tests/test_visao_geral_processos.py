@@ -1,7 +1,7 @@
 """
 Painéis derivados de Processos na Visão geral do Dashboard (Movimentação
-processual, Processos paralisados, Prazos a vencer), card financeiro
-combinado (saldo) e card "Usuários ativos" —
+processual, Processos paralisados, Prazos a vencer) e card "Usuários
+ativos" —
 specs/dashboard-abas-visao-geral-analise-dados.md.
 """
 
@@ -14,14 +14,11 @@ from django_tenants.test.cases import TenantTestCase
 from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_USUARIO,
-    MODULO_FINANCEIRO,
     MODULO_GERIR,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
-    NIVEL_DADOS_TODOS,
     NIVEL_TODOS,
 )
-from apps.financeiro.models import LancamentoFinanceiro
 from apps.processos.models import MovimentacaoProcessual, Processo
 
 
@@ -157,37 +154,6 @@ class TestPrazosAVencer(DashboardProcessosBase):
         self.assertIn(p_amanha, prazos["3dias"]["processos"])
         self.assertIn(p_3d, prazos["5dias"]["processos"])
         self.assertIn(p_5d, prazos["5dias"]["processos"])
-
-
-class TestCardFinanceiroCombinado(DashboardProcessosBase):
-    @classmethod
-    def get_test_schema_name(cls):
-        return "wi_dashboard_saldo"
-
-    def setUp(self):
-        super().setUp()
-        PermissaoPapel.objects.create(
-            papel=self.papel,
-            modulo=MODULO_FINANCEIRO,
-            ativo=True,
-            nivel=NIVEL_DADOS_TODOS,
-        )
-
-    def test_saldo_negativo_quando_a_pagar_maior(self):
-        LancamentoFinanceiro.objects.create(
-            tipo="receita", descricao="Honorário", valor="1000.00",
-            data_vencimento=timezone.localdate(), status="pendente",
-        )
-        LancamentoFinanceiro.objects.create(
-            tipo="despesa", descricao="Aluguel", valor="1500.00",
-            data_vencimento=timezone.localdate(), status="pendente",
-        )
-
-        resposta = self._get()
-        resumo = resposta.context["resumo"]
-
-        self.assertTrue(resumo["saldo_negativo"])
-        self.assertIn("500", resumo["saldo"])
 
 
 class TestCardUsuariosAtivos(DashboardProcessosBase):

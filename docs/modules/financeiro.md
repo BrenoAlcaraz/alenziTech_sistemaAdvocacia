@@ -36,7 +36,11 @@ especificação não determina quantas tabelas existirão; modelagem física
   Despesas, Pagos (despesas pagas), Recebidos (receitas pagas), A pagar
   (despesas pendentes), A receber (receitas pendentes), Atrasados,
   Pagamentos solicitados (lançamento originado de uma Solicitação
-  Financeira) — mesmo conjunto do protótipo.
+  Financeira) — mesmo conjunto do protótipo. "Atrasados" considera
+  todos os meses, não só o navegado. Filtros extras usados pelos cards
+  do Painel (sem aba própria, com etiqueta e "Limpar" quando ativos),
+  também independentes do mês: a pagar/a receber que vencem hoje e a
+  pagar/a receber atrasados.
 
 - Categoria acompanha o tipo; o backend recusa a combinação inválida.
   Receita: honorários, honorários de sucumbência, reembolso, consultoria,
@@ -192,7 +196,8 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   filtros de cliente, processo, solicitado por e pagamento realizado
   por (só para quem vê todos os dados) e datas de solicitação/pagamento.
   Reembolso não tem vencimento, pagamento não tem data do gasto, e o
-  processo é opcional nos dois.
+  processo é opcional nos dois. Em Pendentes, filtro de vencimento:
+  vencidas ou que vencem hoje.
 
 ## Honorários (PDR-0007, recebimento parcial e correção em PDR-0022)
 

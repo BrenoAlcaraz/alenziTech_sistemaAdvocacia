@@ -8,6 +8,7 @@ sobre django_tenants.test.cases.TenantTestCase.
 """
 
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
@@ -228,8 +229,7 @@ class TestPainelFinanceiroNivelSolicitacoes(DashboardEscopoBase):
 
         self.assertEqual(resposta.status_code, 200)
         self.assertFalse(resposta.context["acesso_financeiro"])
-        self.assertNotIn("a_receber", resposta.context["resumo"])
-        self.assertNotIn("a_pagar", resposta.context["resumo"])
+        self.assertNotIn("pendencias", resposta.context["cards_financeiros"])
         self.assertEqual(list(resposta.context["financeiro_dashboard"]), [])
         self.assertNotContains(resposta, "Honorário Pendente")
 
@@ -263,7 +263,7 @@ class TestPainelFinanceiroNivelDados(DashboardEscopoBase):
 
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["acesso_financeiro"])
-        self.assertIn("a_receber", resposta.context["resumo"])
+        self.assertIn("pendencias", resposta.context["cards_financeiros"])
         self.assertContains(resposta, "Honorário Pendente")
 
 
@@ -292,7 +292,7 @@ class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
             tipo="receita",
             descricao="Honorário Próprio",
             valor="1000.00",
-            data_vencimento="2026-09-30",
+            data_vencimento=timezone.localdate(),
             status="pendente",
             responsavel=self.usuario,
         )
@@ -300,7 +300,7 @@ class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
             tipo="receita",
             descricao="Honorário Alheio",
             valor="5000.00",
-            data_vencimento="2026-09-30",
+            data_vencimento=timezone.localdate(),
             status="pendente",
             responsavel=self.outro,
         )
@@ -310,6 +310,7 @@ class TestPainelFinanceiroNivelDadosProprios(DashboardEscopoBase):
 
         self.assertEqual(resposta.status_code, 200)
         self.assertTrue(resposta.context["acesso_financeiro"])
-        self.assertEqual(resposta.context["resumo"]["a_receber"], "R$ 1.000,00")
+        a_receber = resposta.context["cards_financeiros"]["pendencias"]["a_receber"]
+        self.assertEqual(a_receber["hoje"]["total"], "R$ 1.000,00")
         self.assertContains(resposta, "Honorário Próprio")
         self.assertNotContains(resposta, "Honorário Alheio")

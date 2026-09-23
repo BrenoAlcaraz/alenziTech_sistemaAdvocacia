@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Max, Q, Sum
+from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 
 from apps.accounts.decorators import usuario_admin_escritorio
@@ -40,6 +40,14 @@ from apps.processos.services import patrocinio_do_processo, responsaveis_elegive
 from apps.tarefas.models import Tarefa
 from apps.agenda.models import Compromisso, ParticipanteCompromisso
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
+from apps.financeiro.services import (
+    custas_em_debito,
+    honorarios_do_mes,
+    pendencias_do_dia,
+    resumo_solicitacoes_abertas,
+    saldo_previsto,
+    totais_do_mes,
+)
 
 
 User = get_user_model()
@@ -48,6 +56,7 @@ _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
 _NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
 _NIVEIS_FINANCEIRO_VALIDOS = {NIVEL_SOLICITACOES, *_NIVEIS_FINANCEIRO_DADOS}
 _NAO_INFORMADO = "__na__"
+DIAS_SOLICITACOES_PAGAS = 7
 
 
 def _nivel_escopo(user, modulo):
@@ -172,6 +181,69 @@ def _prazos_a_vencer(processos_qs, hoje):
     return {chave: {"total": len(itens), "processos": itens} for chave, itens in grupos.items()}
 
 
+def _moeda_e_quantidade(agregado):
+    return {"total": _formatar_moeda(agregado["total"]), "quantidade": agregado["quantidade"]}
+
+
+def _cards_solicitante(user, hoje):
+    """Nível `solicitacoes`: só as próprias solicitações."""
+    proprias = SolicitacaoFinanceira.objects.filter(solicitante=user)
+    resumo = resumo_solicitacoes_abertas(proprias, hoje)
+    inicio_janela = hoje - timedelta(days=DIAS_SOLICITACOES_PAGAS - 1)
+    pagas = proprias.filter(status="paga", data_pagamento__gte=inicio_janela, data_pagamento__lte=hoje)
+    agregado_pagas = pagas.aggregate(total=Sum("valor"), quantidade=Count("id"))
+    return {
+        "pendentes": {**resumo, "total": _formatar_moeda(resumo["total"])},
+        "pagas": {
+            **_moeda_e_quantidade(agregado_pagas),
+            "query": urlencode({
+                "situacao": "pagas", "pago_de": inicio_janela.isoformat(), "pago_ate": hoje.isoformat(),
+            }),
+        },
+    }
+
+
+def _cards_admin(hoje):
+    """Administrador do escritório: visão do mês do escritório inteiro."""
+    totais = totais_do_mes(LancamentoFinanceiro.objects.all(), hoje.year, hoje.month, incluir_custas=True)
+    saldo = saldo_previsto(totais)
+    realizado = totais["recebido"] - totais["pago"]
+    honorarios = honorarios_do_mes(hoje.year, hoje.month)
+    custas = custas_em_debito()
+    return {
+        "saldo_previsto": _formatar_moeda(abs(saldo)),
+        "saldo_previsto_negativo": saldo < 0,
+        "realizado": _formatar_moeda(abs(realizado)),
+        "realizado_negativo": realizado < 0,
+        "honorarios_previsto": _formatar_moeda(honorarios["previsto"]),
+        "honorarios_recebido": _formatar_moeda(honorarios["recebido"]),
+        "custas_a_cobrar": _moeda_e_quantidade(custas),
+    }
+
+
+def _cards_financeiros(user, hoje, *, acesso_dados):
+    """Cards financeiros da Visão geral por nível de acesso
+    (specs/painel-cards-financeiros.md). Cada número usa a mesma regra
+    do filtro do Financeiro para onde o card leva."""
+    if not acesso_dados:
+        return {"solicitante": _cards_solicitante(user, hoje)}
+    escopo = LancamentoFinanceiro.objects.all()
+    if _nivel_financeiro(user) == NIVEL_DADOS_PROPRIOS:
+        escopo = escopo.filter(responsavel=user)
+    pendencias = pendencias_do_dia(escopo, hoje)
+    fila = resumo_solicitacoes_abertas(SolicitacaoFinanceira.objects.all(), hoje)
+    cards = {
+        "pendencias": {
+            chave: {janela: _moeda_e_quantidade(valores) for janela, valores in grupo.items()}
+            for chave, grupo in pendencias.items()
+        },
+        "fila_solicitacoes": fila,
+    }
+    if usuario_admin_escritorio(user):
+        cards["admin"] = _cards_admin(hoje)
+    return cards
+
+
 @login_required
 def painel(request):
     if not tem_permissao_modulo(request.user, MODULO_PAINEL):
@@ -187,9 +259,8 @@ def painel(request):
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and _tem_acesso_dados_financeiro(request.user)
     )
-    # Perfil "solicitações" (Painel #4, specs/painel-novos-recortes-
-    # analise.md): sem acesso ao caixa geral, mas com um mini-card próprio
-    # das solicitações financeiras que ele mesmo abriu.
+    # Perfil "solicitações": sem acesso ao caixa geral, só com os cards das
+    # solicitações financeiras que ele mesmo abriu.
     acesso_financeiro_solicitacoes = (
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and not acesso_financeiro
@@ -222,31 +293,9 @@ def painel(request):
     if acesso_agenda:
         resumo["compromissos_proximos"] = _compromissos_confirmados(request.user, hoje).count()
 
-    if acesso_financeiro:
-        qs_lancamentos = LancamentoFinanceiro.objects.all()
-        if _nivel_financeiro(request.user) == NIVEL_DADOS_PROPRIOS:
-            qs_lancamentos = qs_lancamentos.filter(responsavel=request.user)
-        a_receber = (
-            qs_lancamentos.filter(tipo="receita", status="pendente")
-            .aggregate(total=Sum("valor"))["total"]
-            or Decimal("0")
-        )
-        a_pagar = (
-            qs_lancamentos.filter(tipo="despesa", status="pendente")
-            .aggregate(total=Sum("valor"))["total"]
-            or Decimal("0")
-        )
-        saldo = a_receber - a_pagar
-        resumo["a_receber"] = _formatar_moeda(a_receber)
-        resumo["a_pagar"] = _formatar_moeda(a_pagar)
-        resumo["saldo"] = _formatar_moeda(abs(saldo))
-        resumo["saldo_negativo"] = saldo < 0
-
-    if acesso_financeiro_solicitacoes:
-        resumo["minhas_solicitacoes_abertas"] = SolicitacaoFinanceira.objects.filter(
-            solicitante=request.user,
-            status__in=["solicitada", "em_analise", "aprovada"],
-        ).count()
+    cards_financeiros = None
+    if acesso_financeiro or acesso_financeiro_solicitacoes:
+        cards_financeiros = _cards_financeiros(request.user, hoje, acesso_dados=acesso_financeiro)
 
     if acesso_usuarios_ativos:
         resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
@@ -306,6 +355,7 @@ def painel(request):
         "compromissos_dashboard": compromissos_dashboard,
         "compromissos_pendentes_dashboard": compromissos_pendentes_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
+        "cards_financeiros": cards_financeiros,
         "movimentacao": movimentacao,
         "paralisados": paralisados,
         "prazos": prazos,

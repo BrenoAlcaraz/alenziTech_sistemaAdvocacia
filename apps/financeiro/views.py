@@ -46,6 +46,7 @@ from .models import (
 )
 from .services import (
     analise_de_dados,
+    atrasados,
     calcular_correcao_honorario,
     calcular_honorario_sucumbencial,
     cancelar_lancamentos_futuros_do_honorario,
@@ -59,7 +60,11 @@ from .services import (
     reembolsar_custa,
     registrar_credito_cliente,
     saldo_liquido_custas,
+    saldo_previsto,
+    solicitacoes_vencendo_hoje,
+    solicitacoes_vencidas,
     totais_do_mes,
+    vencendo_hoje,
 )
 
 
@@ -87,6 +92,19 @@ FILTROS_LANCAMENTOS_VALIDOS = {
     "areceber",
     "atrasados",
     "solicitados",
+    "apagar_hoje",
+    "areceber_hoje",
+    "apagar_atrasados",
+    "areceber_atrasados",
+}
+
+# Filtros de ação do Painel: o próprio filtro define a janela de datas
+# (hoje ou tudo o que já venceu), então ignoram o mês navegado.
+FILTROS_PAINEL = {
+    "apagar_hoje": "A pagar — vence hoje",
+    "areceber_hoje": "A receber — vence hoje",
+    "apagar_atrasados": "A pagar — atrasados",
+    "areceber_atrasados": "A receber — atrasados",
 }
 
 MESES = [
@@ -194,10 +212,17 @@ def index(request):
     elif filtro == "areceber":
         lancamentos = lancamentos.filter(tipo="receita", status="pendente")
     elif filtro == "atrasados":
-        lancamentos = lancamentos.filter(
-            status="pendente",
-            data_vencimento__lt=hoje,
-        )
+        # Atrasado de mês anterior continua atrasado — nunca some por
+        # causa do mês navegado.
+        lancamentos = atrasados(escopo, hoje)
+    elif filtro == "apagar_hoje":
+        lancamentos = vencendo_hoje(escopo, "despesa", hoje)
+    elif filtro == "areceber_hoje":
+        lancamentos = vencendo_hoje(escopo, "receita", hoje)
+    elif filtro == "apagar_atrasados":
+        lancamentos = atrasados(escopo, hoje, "despesa")
+    elif filtro == "areceber_atrasados":
+        lancamentos = atrasados(escopo, hoje, "receita")
     elif filtro == "solicitados":
         lancamentos = lancamentos.filter(solicitacao_origem__isnull=False)
 
@@ -217,7 +242,7 @@ def index(request):
         "a_pagar": _formatar_moeda(a_pagar),
         "recebido_mes": _formatar_moeda(recebido_mes),
         "pago_mes": _formatar_moeda(pago_mes),
-        "saldo_previsto": _formatar_moeda(a_receber + recebido_mes - a_pagar - pago_mes),
+        "saldo_previsto": _formatar_moeda(saldo_previsto(totais)),
         "saldo_atual_mes": _formatar_saldo(saldo_atual_mes),
         "saldo_atual_mes_positivo": saldo_atual_mes >= 0,
     }
@@ -229,6 +254,7 @@ def index(request):
         "resumo": resumo,
         "lancamentos": lancamentos,
         "filtro": filtro,
+        "filtro_painel": FILTROS_PAINEL.get(filtro),
         "next_url": request.get_full_path(),
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
@@ -1088,6 +1114,12 @@ SITUACOES_SOLICITACAO = {
 }
 
 
+FILTROS_VENCIMENTO_SOLICITACAO = {
+    "vencidas": ("Vencidas", solicitacoes_vencidas),
+    "hoje": ("Vencem hoje", solicitacoes_vencendo_hoje),
+}
+
+
 def _query_sem(params, *chaves):
     restantes = params.copy()
     for chave in chaves:
@@ -1123,6 +1155,9 @@ def _filtrar_solicitacoes(qs, params, *, tem_acesso_dados):
         valor = _data_ou_none(params.get(parametro))
         if valor:
             qs = qs.filter(**{campo: valor})
+    vencimento = params.get("vencimento")
+    if vencimento in FILTROS_VENCIMENTO_SOLICITACAO:
+        qs = FILTROS_VENCIMENTO_SOLICITACAO[vencimento][1](qs, timezone.localdate())
     return qs
 
 
@@ -1153,6 +1188,7 @@ def solicitacoes_lista(request):
         "solicitantes_filtro": User.objects.filter(pk__in=escopo.values("solicitante_id")),
         "pagadores_filtro": User.objects.filter(pk__in=escopo.values("pagamento_realizado_por_id")),
         "tem_acesso_dados": tem_acesso_dados,
+        "filtros_vencimento": [(chave, rotulo) for chave, (rotulo, _) in FILTROS_VENCIMENTO_SOLICITACAO.items()],
         "aba_ativa": "solicitacoes",
         "item_ativo": "financeiro",
     })

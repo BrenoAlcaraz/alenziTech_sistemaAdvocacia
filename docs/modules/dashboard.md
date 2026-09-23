@@ -26,18 +26,49 @@ com `status="arquivado"`.
 - **Prazos a vencer**: usa `Processo.prazo_proximo` (não nulo, não
   vencido). Grupos cumulativos: hoje, amanhã, até 3 dias, até 5 dias.
 
-## Card financeiro combinado e "Usuários ativos"
+## Cards financeiros e "Usuários ativos"
 
-- O bloco financeiro do card de resumo mostra A receber, A pagar e
-  Diferença (saldo = a_receber − a_pagar) num único card — mesma regra
-  de acesso já existente (`dados_proprios`/`dados_todos`).
-- Quem só tem o nível `solicitacoes` no módulo Financeiro (sem acesso ao
-  caixa geral) não vê o card combinado — vê em vez disso o mini-card
-  "Minhas solicitações financeiras", com a contagem das próprias
-  `SolicitacaoFinanceira` em status aberto (`solicitada`/`em_analise`/
-  `aprovada` — exclui `rejeitada`/`paga`), levando para
-  `financeiro:solicitacoes_lista` (já filtrada ao próprio solicitante
-  para quem não tem acesso a dados).
+Cards financeiros por nível de acesso ao módulo Financeiro. Cada número
+usa a mesma regra e o mesmo escopo do filtro do Financeiro para onde o
+clique leva. Cancelado (lançamento/honorário) e rejeitada (solicitação)
+nunca entram. "Atrasado" = pendente vencido antes de hoje, de qualquer
+mês, sempre exibido separado do que vence hoje.
+
+- **Nível `solicitacoes`** (só as próprias solicitações):
+  - *Solicitações pendentes*: quantidade e valor das abertas
+    (`solicitada`/`em_analise`/`aprovada`), com "X vencidas" → lista
+    `situacao=pendentes` (vencidas → `vencimento=vencidas`).
+  - *Pagas nos últimos 7 dias*: `paga` com `data_pagamento` entre
+    hoje−6 e hoje → lista `situacao=pagas` com `pago_de`/`pago_ate`.
+- **Nível de dados** (`dados_proprios` só lançamentos em que é
+  `responsavel`; `dados_todos` o escritório):
+  - *A pagar hoje* / *A receber hoje*: despesas/receitas pendentes com
+    vencimento hoje, mais a linha de atrasadas → filtros
+    `apagar_hoje`/`areceber_hoje` e `apagar_atrasados`/
+    `areceber_atrasados`. Contam todos os lançamentos pendentes (o que
+    há para pagar/receber), inclusive custas e reembolsos de cliente —
+    a exclusão do PDR-0029 vale para os totais do mês, não para a fila
+    do dia.
+  - *Solicitações em aberto*: total do escritório (mesmo número de
+    "Solicitações (n)"), dividido em aguardando análise
+    (`solicitada`+`em_analise`) e aprovadas aguardando pagamento, com
+    destaque para vencidas e que vencem hoje (`vencimento=vencidas`/
+    `hoje`).
+- **Administrador do escritório**: os cards do nível de dados, mais:
+  - *Saldo previsto do mês*: o mesmo saldo previsto do Financeiro no mês
+    corrente (PDR-0029), com "realizado até agora" (recebido − pago) →
+    Financeiro sem filtro. Atrasados de meses anteriores não entram.
+  - *Honorários previstos no mês*: receitas de honorários/sucumbência
+    com vencimento no mês (pagas em recebido e previsto) + saldo
+    pendente do contratual de valor único ainda previsto no mês
+    (`valor_efetivo`, ou `valor_estimado`, − `valor_recebido`), que só
+    vira lançamento ao ser confirmado. Êxito e sucumbência sem
+    lançamento não entram; nada é contado duas vezes → aba Honorários.
+    Honorário único pendente aparece só aqui — não entra no saldo
+    previsto nem no a receber.
+  - *Custas a cobrar*: soma dos saldos de custas negativos e quantidade
+    de devedores — os mesmos do filtro "Em débito" da tela de Custas
+    (clientes ativos fora de grupo e grupos) → `custas?saldo=em_debito`.
 - "Usuários ativos" (contagem de `User` ativos, link para
   `configuracoes:index`) não depende do módulo Painel nem de
   Processos — aparece para quem tem a habilitação `gerir_criar_usuario`
