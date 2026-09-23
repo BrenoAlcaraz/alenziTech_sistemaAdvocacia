@@ -3,7 +3,6 @@
 PAGINAS_RAIZ = {
     "dashboard:painel",
     "processos:lista",
-    "laboratorio:index",
     "modelos:lista",
     "financeiro:index",
     "chat:lista",

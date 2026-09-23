@@ -20,6 +20,7 @@ from apps.accounts.permissoes_constants import (
     HAB_PROCESSOS_DOCUMENTO_EXCLUIR,
     HAB_PROCESSOS_EDITAR,
     HAB_PROCESSOS_EXCLUIR,
+    HAB_PROCESSOS_USAR_LABORATORIO,
     MODULO_FINANCEIRO,
     MODULO_GERIR,
     MODULO_PROCESSOS,
@@ -116,6 +117,18 @@ def _processos_mutaveis(request):
 def lista(request):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
+    pode_usar_laboratorio = tem_habilitacao(
+        request.user, MODULO_PROCESSOS, HAB_PROCESSOS_USAR_LABORATORIO
+    )
+    if request.GET.get("aba") == "laboratorio":
+        if not pode_usar_laboratorio:
+            raise PermissionDenied
+        return render(request, "processos/lista.html", {
+            "item_ativo": "processos",
+            "aba_ativa": "laboratorio",
+            "pode_usar_laboratorio": True,
+        })
+
     escopo, escopo_maximo = _resolver_escopo(request)
     processos = _processos_no_escopo(request, escopo).exclude(status="arquivado")
 
@@ -140,6 +153,8 @@ def lista(request):
     return render(request, "processos/lista.html", {
         "processos": processos,
         "item_ativo": "processos",
+        "aba_ativa": "processos",
+        "pode_usar_laboratorio": pode_usar_laboratorio,
         "novo_url": reverse("processos:novo"),
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,

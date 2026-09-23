@@ -1,11 +1,7 @@
-{% extends "base/base_auth.html" %}
-{% block title %}Laboratório Jurídico — Jurídico SaaS{% endblock %}
-
-{% block content %}
+{# Aba Laboratório Jurídico de processos:lista (?aba=laboratorio). #}
 <div class="flex items-start justify-between mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Laboratório Jurídico</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Inicie um caso novo: anexe os documentos do cliente e gere a peça inicial</p>
+    <p class="text-sm text-gray-500">Inicie um caso novo: anexe os documentos do cliente e gere a peça inicial</p>
   </div>
   {# Badge IA — placeholder visual, sem integração real nesta fase #}
   <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-juridico-ouro-claro text-juridico-ouro text-xs font-medium bg-amber-50">
@@ -96,4 +92,3 @@
     </div>
   </form>
 </div>
-{% endblock %}

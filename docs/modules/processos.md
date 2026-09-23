@@ -12,9 +12,11 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   `processos_editar` e `processos_andamento_adicionar` já são
   habilitações granulares aplicadas (PDR-0017), condicionando
   respectivamente `novo`, `editar` e `adicionar_movimentacao`.
-  `processos_usar_laboratorio` passou a ter ponto de aplicação — gate
-  do shell em `apps/laboratorio/views.py::index` (módulo `processos`
-  mais a habilitação, mesmo padrão de duas camadas). `processos_usar_ia`
+  `processos_usar_laboratorio` condiciona a aba "Laboratório Jurídico"
+  da tela de Processos (`processos:lista?aba=laboratorio`, módulo
+  `processos` mais a habilitação, mesmo padrão de duas camadas); sem a
+  habilitação a aba não aparece e o acesso direto é negado. A rota
+  antiga `/laboratorio/` só redireciona para a aba. `processos_usar_ia`
   continua sem nenhum ponto de aplicação (PDR-0010, PDR-0008); arquivar,
   reabrir, apensos e partes seguem regidos apenas pela autorização de
   módulo.

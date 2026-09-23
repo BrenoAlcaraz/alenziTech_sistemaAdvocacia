@@ -87,8 +87,9 @@ Financeiro têm arquivo próprio em `docs/modules/` por volume real de
 regra (múltiplas decisões e sub-áreas); os demais cabem aqui.
 
 Navegação: a barra lateral lista só os módulos, nesta ordem — Painel,
-Clientes, Processos, Modelos, Financeiro, Agenda Jurídica, Chat,
-Laboratório Jurídico. Abre expandida (ícone + nome) e pode ser recolhida
+Clientes, Processos, Modelos, Financeiro, Agenda Jurídica, Chat. O
+Laboratório Jurídico não tem item próprio: é uma aba da tela de
+Processos, visível só a quem tem `processos_usar_laboratorio`. Abre expandida (ícone + nome) e pode ser recolhida
 (só ícones, nome no tooltip); em tela estreita começa recolhida, e a
 escolha do usuário é lembrada no navegador. Configurações e Sair ficam
 no menu do usuário, no cabeçalho.
