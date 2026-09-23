@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import connection
-from django_tenants.utils import get_tenant_domain_model, remove_www
+from django_tenants.utils import get_public_schema_name, get_tenant_domain_model, remove_www
 
 
 def _hostname_da_conexao(scope):
@@ -75,7 +75,8 @@ def _resolver_tenant_e_usuario(scope):
         except domain_model.DoesNotExist:
             tenant = None
 
-    if tenant is None:
+    # Domínio da plataforma não tem as tabelas de escritório usadas pelos consumers.
+    if tenant is None or tenant.schema_name == get_public_schema_name():
         return None, AnonymousUser()
 
     connection.set_tenant(tenant)

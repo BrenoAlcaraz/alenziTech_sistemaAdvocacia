@@ -529,6 +529,15 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   financeira futura exigiria novo PDR (PDR-0003).
 - Administração da plataforma SaaS é do Platform Admin, não do
   Administrador do escritório.
+- Plataforma e escritório são áreas isoladas: Platform Admin é
+  superuser do schema `public` e só usa o Django Admin no domínio da
+  plataforma (escritórios, domínios, identidade visual, billing), sem
+  ver dados internos de escritório. Domínio de escritório não tem
+  `/admin/`; domínio da plataforma não serve telas de escritório.
+  `is_superuser`/`is_staff` não concedem poder algum dentro do
+  escritório.
+- Usuário da plataforma não é excluído, só desativado (campo "Ativo"
+  no Django Admin).
 - Fora de escopo: exclusão física de usuário, enforcement automático de
   limite de plano, upgrade/downgrade completo.
 

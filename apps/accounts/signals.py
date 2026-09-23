@@ -3,11 +3,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from apps.accounts.models import PerfilUsuario
+from apps.saas_tenants.schema import no_schema_publico
 
 User = get_user_model()
 
 
 @receiver(post_save, sender=User)
 def criar_perfil_usuario(sender, instance, created, **kwargs):
-    if created:
+    if created and not no_schema_publico():
         PerfilUsuario.objects.get_or_create(user=instance)

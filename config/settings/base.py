@@ -74,6 +74,14 @@ TEST_RUNNER = "apps.saas_tenants.testing.TenantAwareTestRunner"
 
 # ─── Aplicação ─────────────────────────────────────────────────────────────────
 ROOT_URLCONF = "config.urls"
+# Domínio da plataforma (schema public) serve só o Django Admin; telas
+# de escritório e /admin/ nunca coexistem no mesmo domínio.
+PUBLIC_SCHEMA_URLCONF = "config.urls_public"
+
+# SESSION_COOKIE_DOMAIN fica propositalmente indefinido: django_session é
+# única (public) e guarda só o id do usuário, que é outra pessoa em cada
+# escritório — cookie compartilhado entre subdomínios abriria sessão em
+# outro escritório como outro usuário.
 
 MIDDLEWARE = [
     "django_tenants.middleware.main.TenantMainMiddleware",

@@ -205,3 +205,34 @@ class TestTenantWebsocketMiddleware(TenantTestCase):
             await communicator_b.disconnect()
 
         async_to_sync(cenario)()
+
+    def test_dominio_da_plataforma_e_rejeitado(self):
+        with schema_context("public"):
+            plataforma = Escritorio(schema_name="public", nome="Plataforma", slug="plataforma")
+            plataforma.save()
+            Dominio.objects.create(tenant=plataforma, domain="plataforma.test.com", is_primary=True)
+            usuario_plataforma = User.objects.create_superuser("plataforma", password="senha-teste-123")
+            session_key = _criar_sessao_para(usuario_plataforma)
+        self.addCleanup(self._remover_plataforma, plataforma.pk, usuario_plataforma.pk)
+        connection.set_tenant(self.tenant)
+
+        async def cenario():
+            communicator = WebsocketCommunicator(
+                _aplicacao_de_teste(), CAMINHO_QUALQUER, headers=_headers("plataforma.test.com", session_key)
+            )
+            conectado, codigo = await communicator.connect()
+            self.assertFalse(conectado)
+            self.assertEqual(codigo, 4403)
+
+        async_to_sync(cenario)()
+
+    def _remover_plataforma(self, escritorio_pk, usuario_pk):
+        # SQL direto: `Escritorio.delete()` derrubaria o schema public e o
+        # collector do ORM, ao apagar User, consulta tabelas de escritório
+        # que não existem no public.
+        connection.set_schema_to_public()
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM saas_tenants_dominio WHERE tenant_id = %s", [escritorio_pk])
+            cursor.execute("DELETE FROM saas_tenants_escritorio WHERE id = %s", [escritorio_pk])
+            cursor.execute("DELETE FROM auth_user WHERE id = %s", [usuario_pk])
+        connection.set_tenant(self.tenant)

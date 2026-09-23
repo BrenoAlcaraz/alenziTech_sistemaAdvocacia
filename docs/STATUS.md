@@ -9,6 +9,7 @@ o "porquê" de uma regra, ver [PRODUCT.md](PRODUCT.md)/
 | Área | Estado | Gap principal |
 |---|---|---|
 | Multitenancy | Feito, testado | — |
+| Separação plataforma × escritório | Feito, testado (domínio da plataforma serve só Django Admin via `PUBLIC_SCHEMA_URLCONF`; `/admin/` inexistente nos domínios de escritório; signals/context processor/websocket ignoram o `public`; usuário da plataforma só desativado, nunca excluído) | Platform Admin segue no Django Admin padrão, sem tela própria; criação de escritório por comando ainda pendente (`specs/criar-escritorio.md`) |
 | Códigos internos P/C/U/ADM | Feito, testado (sequência por escritório em `accounts.SequenciaCodigoInterno`; busca exata por código nas listagens de Processos/Clientes e no seletor de Processo; usuários não têm busca própria em Configurações) | — |
 | Storage de arquivo (`MEDIA_ROOT`) | Feito, testado (namespaces por tenant; arquivos protegidos sem URL pública; identidade visual pública resolvida pelo tenant; arquivo removido do storage via signal `post_delete` ao excluir o registro que o referencia — `Documento`, `Mensagem`, `SolicitacaoFinanceira`) | — |
 | Autorização — kernel (`apps/accounts`) | Feito, testado (105 testes; inclui `ConviteDelegacao`/`apps.accounts.delegacao` — mecanismo compartilhado de convite de delegação, PDR-0033, reaproveitado por Tarefas e Agenda) | — |

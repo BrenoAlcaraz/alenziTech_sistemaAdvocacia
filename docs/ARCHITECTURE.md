@@ -33,8 +33,15 @@ TENANT — cada tenant tem sua própria tabela `auth_user`.
 
 **Resolução do tenant**: `TenantMainMiddleware` (primeiro middleware)
 resolve o schema a partir do domínio (`Dominio → Escritorio`) antes de
-qualquer view rodar. `ROOT_URLCONF` é único, compartilhado entre
-público e tenant.
+qualquer view rodar. `ROOT_URLCONF` (`config/urls.py`) serve só os
+domínios de escritório; o domínio da plataforma (schema `public`) usa
+`PUBLIC_SCHEMA_URLCONF` (`config/urls_public.py`) — só Django Admin.
+Models de `TENANT_APPS` não se registram no Django Admin (suas tabelas
+não existem no `public`). Signal, context processor ou middleware que
+toca tabela de escritório checa `no_schema_publico()`
+(`apps/saas_tenants/schema.py`) e não faz nada no `public`.
+`SESSION_COOKIE_DOMAIN` nunca é definido: `django_session` é única e
+guarda só o id do usuário, que é outra pessoa em cada escritório.
 
 **Storage de arquivos**: uploads usam namespaces
 `tenants/<schema>/<publico|protegido>/...`. Arquivos protegidos usam um
@@ -543,7 +550,7 @@ não podem estourar o layout nem invadir a coluna vizinha em grade
   backend compartilhado (ex.: Redis); decisão ainda não tomada (ver
   `docs/STATUS.md`, módulo Chat).
 - Platform Admin não tem mecanismo de autorização dedicado — hoje é
-  só superuser do Django Admin padrão.
+  só superuser do schema `public` no Django Admin padrão.
 
 ## Referências
 
