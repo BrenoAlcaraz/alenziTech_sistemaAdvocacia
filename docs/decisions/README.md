@@ -43,11 +43,11 @@ serem efetivamente decididas.
 | PDR-0013 | Partes de processo: modelo simplificado | accepted | [PDR-0013-partes-processo-modelo-simplificado.md](PDR-0013-partes-processo-modelo-simplificado.md) |
 | PDR-0014 | Responsável principal e integrantes habilitados de Processos | accepted | [PDR-0014-responsavel-integrantes-processos.md](PDR-0014-responsavel-integrantes-processos.md) |
 | PDR-0015 | Fluxo de aprovação das solicitações financeiras | accepted | [PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md](PDR-0015-fluxo-aprovacao-solicitacoes-financeiras.md) |
-| PDR-0016 | Notificações de Tarefas e Agenda | accepted | [PDR-0016-notificacoes-tarefas-agenda.md](PDR-0016-notificacoes-tarefas-agenda.md) |
+| PDR-0016 | Notificações de Tarefas e Agenda | accepted; partially superseded by PDR-0034 | [PDR-0016-notificacoes-tarefas-agenda.md](PDR-0016-notificacoes-tarefas-agenda.md) |
 | PDR-0017 | Habilitações granulares de criar, editar e adicionar andamento em Processos | accepted | [PDR-0017-habilitacoes-criar-editar-andamento-processos.md](PDR-0017-habilitacoes-criar-editar-andamento-processos.md) |
 | PDR-0018 | Banco compartilhado de Modelos de Peça — CRUD por autoria e habilitações de edição/exclusão alheia | accepted | [PDR-0018-modelos-banco-compartilhado-autoria.md](PDR-0018-modelos-banco-compartilhado-autoria.md) |
 | PDR-0019 | Autorização do módulo Gerir aplicada às views administrativas de Configurações | accepted | [PDR-0019-autorizacao-gerir-configuracoes.md](PDR-0019-autorizacao-gerir-configuracoes.md) |
-| PDR-0020 | Participantes e confirmação de presença em Compromisso (Agenda) | accepted | [PDR-0020-participantes-confirmacao-agenda.md](PDR-0020-participantes-confirmacao-agenda.md) |
+| PDR-0020 | Participantes e confirmação de presença em Compromisso (Agenda) | accepted; partially superseded by PDR-0034 | [PDR-0020-participantes-confirmacao-agenda.md](PDR-0020-participantes-confirmacao-agenda.md) |
 | PDR-0021 | Periodicidades da recorrência financeira | accepted | [PDR-0021-periodicidades-financeiras.md](PDR-0021-periodicidades-financeiras.md) |
 | PDR-0022 | Honorários — recebimento parcial e correção monetária/juros | accepted | [PDR-0022-honorarios-recebimento-parcial-correcao.md](PDR-0022-honorarios-recebimento-parcial-correcao.md) |
 | PDR-0023 | Partes — catálogo de papéis estendido com pares por tipo de ação | accepted | [PDR-0023-partes-catalogo-pares-por-tipo-acao.md](PDR-0023-partes-catalogo-pares-por-tipo-acao.md) |
@@ -60,3 +60,4 @@ serem efetivamente decididas.
 | PDR-0030 | Papel de acesso como único mecanismo e exclusão de usuário com senha | accepted | [PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md](PDR-0030-papel-de-acesso-unico-e-exclusao-de-usuario-com-senha.md) |
 | PDR-0031 | Custas judiciais por grupo de clientes | accepted | [PDR-0031-custas-por-grupo-de-clientes.md](PDR-0031-custas-por-grupo-de-clientes.md) |
 | PDR-0032 | Honorários: contratual, sucumbência, êxito e IPCA | accepted | [PDR-0032-honorarios-contratual-sucumbencia-ipca.md](PDR-0032-honorarios-contratual-sucumbencia-ipca.md) |
+| PDR-0034 | Agenda Jurídica — fusão de Tarefas e Agenda | accepted | [PDR-0034-agenda-juridica-unificada.md](PDR-0034-agenda-juridica-unificada.md) |
