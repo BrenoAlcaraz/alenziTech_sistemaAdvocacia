@@ -76,6 +76,11 @@ urlpatterns = [
         name="confirmar_recebimento_honorario",
     ),
     path("financeiro/honorarios/<int:pk>/cancelar/", views.cancelar_honorario, name="cancelar_honorario"),
+    path(
+        "financeiro/honorarios/<int:pk>/regime/",
+        views.definir_regime_honorario,
+        name="definir_regime_honorario",
+    ),
     path("financeiro/solicitacoes/", views.solicitacoes_lista, name="solicitacoes_lista"),
     path("financeiro/solicitacoes/nova/", views.form_solicitacao, name="form_solicitacao"),
     path("financeiro/solicitacoes/<int:pk>/editar/", views.editar_solicitacao, name="editar_solicitacao"),

@@ -1,0 +1,36 @@
+{% load moeda %}
+<div class="card px-5 py-4">
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+    <div class="min-w-0">
+      <p class="font-medium text-gray-900">Sucumbência{% if h.processo %} — {{ h.processo }}{% endif %}</p>
+      <p class="text-xs text-gray-500 mt-0.5">
+        Ente público: {% if h.esferas_rotulo %}{{ h.esferas_rotulo }}{% else %}esfera não informada{% endif %}
+        &bull; Valor considerado R$ {{ h.valor_precatorio|moeda_br }}
+      </p>
+    </div>
+    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium flex-shrink-0
+      {% if h.regime_pagamento == "precatorio" %}bg-amber-100 text-amber-700{% elif h.regime_pagamento == "rpv" %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+      {% if h.regime_pagamento %}{{ h.get_regime_pagamento_display }}{% else %}A definir{% endif %}
+    </span>
+  </div>
+
+  <p class="text-xs mt-2 {% if h.sugestao_regime.regime %}text-gray-600{% else %}text-amber-700{% endif %}">
+    {% if h.sugestao_regime.regime %}
+      Sugestão: <strong>{% if h.sugestao_regime.regime == "precatorio" %}Precatório{% else %}RPV{% endif %}</strong>
+      — {{ h.sugestao_regime.motivo }}: R$ {{ h.sugestao_regime.limite|moeda_br }}.
+    {% else %}
+      {{ h.sugestao_regime.motivo }}
+    {% endif %}
+  </p>
+
+  <form method="post" action="{% url 'financeiro:definir_regime_honorario' h.pk %}" class="flex flex-wrap items-center gap-2 mt-3">
+    {% csrf_token %}
+    <select name="regime_pagamento" class="select text-xs" aria-label="Regime de pagamento">
+      <option value="" {% if not h.regime_pagamento %}selected{% endif %}>A definir</option>
+      {% for valor, rotulo in regime_choices %}
+        <option value="{{ valor }}" {% if h.regime_pagamento == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-secondary text-xs">Salvar regime</button>
+  </form>
+</div>

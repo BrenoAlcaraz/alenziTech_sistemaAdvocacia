@@ -44,6 +44,7 @@ from .forms import (
 from .models import (
     CustaJudicial, GrupoCustas, Honorario, LancamentoFinanceiro, MembroGrupoCustas, SolicitacaoFinanceira,
 )
+from .precatorio import ROTULO_ESFERA, elegivel_para_precatorio, esferas_publicas_do_processo, sugerir_regime
 from .services import (
     analise_de_dados,
     atrasados,
@@ -895,6 +896,19 @@ def _honorarios_no_escopo():
     return Honorario.objects.select_related("cliente", "processo")
 
 
+def _preparar_precatorio(honorarios, hoje):
+    """Sucumbências pagas pela Fazenda, com a sugestão de regime. O valor
+    comparado ao teto é só o da sucumbência — o êxito do contrato segue o
+    crédito do cliente, não este honorário."""
+    elegiveis = [h for h in honorarios if elegivel_para_precatorio(h)]
+    for h in elegiveis:
+        h.valor_precatorio = h.calculo["sucumbencia"] if h.calculado else (h.valor_efetivo or h.valor_estimado)
+        h.esferas_publicas = esferas_publicas_do_processo(h.processo)
+        h.esferas_rotulo = ", ".join(ROTULO_ESFERA[e] for e in h.esferas_publicas)
+        h.sugestao_regime = sugerir_regime(esferas=h.esferas_publicas, valor=h.valor_precatorio, data=hoje)
+    return elegiveis
+
+
 def _calculo_sucumbencial(honorario, ate):
     """Total da sucumbência já com o aviso de êxito dos contratos "pelo
     ganho" do mesmo processo (PDR-0032)."""
@@ -916,7 +930,7 @@ def honorarios_lista(request):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     hoje = timezone.localdate()
-    honorarios = list(_honorarios_no_escopo().order_by("-criado_em"))
+    honorarios = list(_honorarios_no_escopo().prefetch_related("processo__partes").order_by("-criado_em"))
     for h in honorarios:
         if h.calculado:
             # Total sempre recalculado dos parâmetros — nunca o valor gravado.
@@ -945,6 +959,9 @@ def honorarios_lista(request):
         # legados (não mais criáveis, PDR-0032) e entram em Contratuais.
         "honorarios_contratuais": [h for h in honorarios if h.tipo != "sucumbencial"],
         "honorarios_sucumbencia": [h for h in honorarios if h.tipo == "sucumbencial"],
+        "honorarios_precatorio": _preparar_precatorio(honorarios, hoje),
+        "sub_aba": request.GET.get("aba", "contratuais"),
+        "regime_choices": Honorario.REGIME_PAGAMENTO_CHOICES,
         "is_admin": usuario_admin_escritorio(request.user),
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",
@@ -1139,6 +1156,24 @@ def cancelar_honorario(request, pk):
                 processo=honorario.processo,
             )
     return redirect("financeiro:honorarios_lista")
+
+
+@login_required
+def definir_regime_honorario(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk, tipo="sucumbencial")
+    regime = request.POST.get("regime_pagamento", "")
+    if request.method == "POST" and regime in dict(Honorario.REGIME_PAGAMENTO_CHOICES) | {"": ""}:
+        honorario.regime_pagamento = regime
+        honorario.save(update_fields=["regime_pagamento"])
+        registrar_atividade(
+            request.user, "honorario_editado",
+            f"Definiu o regime de pagamento do honorário: {honorario.get_regime_pagamento_display() or 'a definir'}",
+            processo=honorario.processo,
+        )
+    return redirect(f"{reverse('financeiro:honorarios_lista')}?aba=precatorio")
 
 
 def _solicitacoes_no_escopo(request):

@@ -229,8 +229,12 @@ class ParteProcessoForm(forms.ModelForm):
 
     class Meta:
         model = ParteProcesso
-        fields = ["papel", "nome", "cpf_cnpj", "advogado_nome", "advogado_oab"]
+        fields = ["papel", "nome", "cpf_cnpj", "ente_publico", "advogado_nome", "advogado_oab"]
         widgets = {
+            "ente_publico": forms.Select(attrs={
+                "class": "select",
+                "title": "Autarquias e fundações: use a esfera do ente a que pertencem.",
+            }),
             "nome": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "Nome completo ou razão social",
@@ -252,6 +256,7 @@ class ParteProcessoForm(forms.ModelForm):
     def __init__(self, *args, processo=None, **kwargs):
         self._processo = processo
         super().__init__(*args, **kwargs)
+        self.fields["ente_publico"].choices = [("", "Não é ente público")] + ParteProcesso.ENTE_PUBLICO_CHOICES
 
     def clean(self):
         cleaned = super().clean()

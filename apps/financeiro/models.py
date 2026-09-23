@@ -439,6 +439,14 @@ class Honorario(models.Model):
     duracao_quantidade = models.PositiveSmallIntegerField(null=True, blank=True)
     duracao_data_final = models.DateField(null=True, blank=True)
 
+    # Regime de pagamento pela Fazenda, decidido pelo usuário (a sugestão
+    # por teto é só exibida, nunca gravada). Vazio = a definir.
+    REGIME_PAGAMENTO_CHOICES = [
+        ("rpv", "RPV"),
+        ("precatorio", "Precatório"),
+    ]
+    regime_pagamento = models.CharField(max_length=10, choices=REGIME_PAGAMENTO_CHOICES, blank=True)
+
     class Meta:
         verbose_name = "Honorário"
         verbose_name_plural = "Honorários"

@@ -254,6 +254,17 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
 - A aba Honorários é dividida em sub-abas Contratuais e Sucumbência
   (client-side, sem reload). Os tipos legados `exito`/`outro` (não mais
   criáveis, ver acima) entram em Contratuais — não têm sub-aba própria.
+- Sub-aba **Precatório** (MVP, [spec](../../specs/honorarios-precatorio.md)):
+  lista as sucumbências não canceladas cujo processo tem parte marcada
+  como ente público (polo ativo/passivo) ou com devedor "ente estatal".
+  Sugere RPV ou precatório comparando só o valor da sucumbência (sem o
+  êxito contratual, que segue o crédito do cliente) com o teto da
+  esfera: federal 60 SM, estadual 40 SM (padrão, sujeito a lei
+  estadual), municipal sem sugestão; mais de uma esfera ou esfera não
+  informada = sem sugestão. Salário mínimo em tabela anual mantida à mão
+  (`apps/financeiro/precatorio.py`). A sugestão nunca é gravada: o
+  regime (`regime_pagamento`: RPV/Precatório/a definir) é sempre
+  escolha do usuário.
 
 ## Relação com billing SaaS
 

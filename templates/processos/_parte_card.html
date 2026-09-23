@@ -3,6 +3,7 @@
     <div class="min-w-0">
       <p class="font-medium text-gray-900 truncate" title="{{ parte.nome }}">{{ parte.nome }}</p>
       {% if parte.cpf_cnpj %}<p class="text-xs text-gray-400">{{ parte.cpf_cnpj }}</p>{% endif %}
+      {% if parte.ente_publico %}<p class="text-xs text-amber-700">Ente público — {{ parte.get_ente_publico_display }}</p>{% endif %}
     </div>
     <span class="badge-area">{{ parte.get_papel_display }}</span>
   </div>
@@ -25,6 +26,7 @@
       {{ parte.form_editar.papel }}
       {{ parte.form_editar.nome }}
       {{ parte.form_editar.cpf_cnpj }}
+      {{ parte.form_editar.ente_publico }}
       {{ parte.form_editar.advogado_nome }}
       {{ parte.form_editar.advogado_oab }}
       <button type="submit" class="btn-secondary text-sm self-start">Salvar</button>

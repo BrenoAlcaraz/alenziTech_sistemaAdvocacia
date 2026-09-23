@@ -573,6 +573,18 @@ class ParteProcesso(models.Model):
     advogado_nome = models.CharField(max_length=255, blank=True)
     advogado_oab = models.CharField(max_length=30, blank=True)
 
+    # Esfera do ente público (autarquia/fundação seguem a do seu ente).
+    # Vazio = particular ou não informado. Preenchimento manual.
+    ENTE_PUBLICO_CHOICES = [
+        ("federal", "Federal (União, autarquias e fundações federais)"),
+        ("estadual", "Estadual/DF (Estado, DF, autarquias e fundações)"),
+        ("municipal", "Municipal (Município, autarquias e fundações)"),
+    ]
+    ente_publico = models.CharField(
+        max_length=10, choices=ENTE_PUBLICO_CHOICES, blank=True,
+        verbose_name="Ente público",
+    )
+
     class Meta:
         verbose_name = "Parte do Processo"
         verbose_name_plural = "Partes do Processo"

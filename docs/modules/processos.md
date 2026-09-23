@@ -75,6 +75,10 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   a parte bate com um dos Clientes por CPF/CNPJ.
 - Advogado é texto livre (nome + OAB) associado à parte, no máximo um
   por parte — nunca uma parte em si do processo.
+- Parte pode ser marcada como ente público, por esfera (Federal,
+  Estadual/DF, Municipal; autarquias e fundações seguem o ente a que
+  pertencem). Opcional e manual, sem inferência por nome/CNPJ. Usado
+  hoje pela sub-aba Precatório de Honorários.
 - PDR-0013 substitui PDR-0001/PDR-0011 (modelo de três dimensões:
   vínculo/posição estrutural/qualificação processual, representantes
   normalizados, histórico de classificação). O modelo antigo não deve
