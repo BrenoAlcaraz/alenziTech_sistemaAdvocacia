@@ -269,3 +269,37 @@ class ReatribuicaoItemAgenda(models.Model):
 
     def __str__(self):
         return f"{self.item_id}: {self.responsavel_anterior} → {self.responsavel_novo}"
+
+
+class AvisoItemAgenda(models.Model):
+    """Registro de aviso por data já enviado — garante uma notificação por
+    item/destinatário/motivo. `referencia` é a data que motivou o aviso:
+    se a data do item muda, o aviso da nova data volta a valer."""
+
+    MOTIVO_FATAL_VESPERA = "fatal_vespera"
+    MOTIVO_FATAL_HOJE = "fatal_hoje"
+    MOTIVO_PARA_FAZER_VENCIDA = "para_fazer_vencida"
+    MOTIVO_CHOICES = [
+        (MOTIVO_FATAL_VESPERA, "Véspera da data fatal"),
+        (MOTIVO_FATAL_HOJE, "Dia da data fatal"),
+        (MOTIVO_PARA_FAZER_VENCIDA, "Data para fazer vencida"),
+    ]
+
+    item = models.ForeignKey(ItemAgenda, on_delete=models.CASCADE, related_name="avisos")
+    destinatario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    motivo = models.CharField(max_length=30, choices=MOTIVO_CHOICES)
+    referencia = models.DateField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Aviso de item da agenda"
+        verbose_name_plural = "Avisos de item da agenda"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item", "destinatario", "motivo", "referencia"],
+                name="agenda_aviso_unico_por_motivo",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.item_id} → {self.destinatario_id}: {self.motivo} ({self.referencia})"

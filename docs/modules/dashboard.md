@@ -23,8 +23,11 @@ com `status="arquivado"`.
   nenhuma. Grupos cumulativos: +1 mês (>30 dias), +3 meses (>90 dias),
   +6 meses (>180 dias) — um processo de 6 meses parado também conta nos
   outros dois grupos.
-- **Prazos a vencer**: usa `Processo.prazo_proximo` (não nulo, não
-  vencido). Grupos cumulativos: hoje, amanhã, até 3 dias, até 5 dias.
+- **Prazos a vencer**: itens tipo Prazo da Agenda Jurídica em aberto,
+  pela data fatal (não vencida), no escopo de leitura da agenda do
+  usuário (PDR-0034) — exige o módulo Agenda Jurídica, não Processos.
+  Grupos cumulativos: hoje, amanhã, até 3 dias, até 5 dias; cada prazo
+  leva ao item.
 
 ## Cards financeiros e "Usuários ativos"
 
@@ -179,7 +182,7 @@ a view tem no momento da ação).
   `editar_parte`, `adicionar_apenso`, `remover_apenso`,
   `adicionar_integrante`, `remover_integrante`, `adicionar_documento`,
   `excluir_documento`); e, no mesmo padrão, os pontos de escrita de
-  Tarefas, Agenda, Financeiro (lançamentos, custas, honorários,
+  Agenda Jurídica, Financeiro (lançamentos, custas, honorários,
   solicitações), Clientes e Configurações (usuários, equipes, papéis,
   permissões, dados do escritório). Chat e Modelos seguem fora do
   catálogo — entram depois, sob demanda, reaproveitando o mesmo
@@ -211,10 +214,9 @@ a view tem no momento da ação).
     Mesma habilitação de `adicionar_integrante`/`remover_integrante`
     (`gerir_habilitar_usuario_processos`), e gera o mesmo
     `LogAtividade` que esses dois pontos de entrada.
-  - "Ir para Tarefas"/"Ir para Agenda" → `tarefas:quadro?usuario=<id>`
-    e `agenda:index?usuario=<id>` (novo suporte a esse parâmetro): só
-    tem efeito para quem tem `gerir`/é Administrador — para qualquer
-    outro usuário o parâmetro é ignorado (nunca vira brecha de escopo).
+  - "Ir para Agenda Jurídica" → `agenda:index?usuario=<id>`: só tem
+    efeito para quem tem `gerir`/é Administrador — para qualquer outro
+    usuário o parâmetro é ignorado (nunca vira brecha de escopo).
 
 ## Fora de escopo
 

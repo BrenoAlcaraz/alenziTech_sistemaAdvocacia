@@ -168,7 +168,7 @@ class TestBlocoPendentesDeConfirmacao(DashboardAgendaPessoalBase):
     def test_bloco_pendentes_lista_so_participacoes_pendentes_do_usuario(self):
         resposta = self._get_painel()
         pendentes = resposta.context["compromissos_pendentes_dashboard"]
-        titulos = [p.compromisso.titulo for p in pendentes]
+        titulos = [p.item.titulo for p in pendentes]
         self.assertIn("Convite Pendente", titulos)
         self.assertNotIn("Já Confirmado", titulos)
 

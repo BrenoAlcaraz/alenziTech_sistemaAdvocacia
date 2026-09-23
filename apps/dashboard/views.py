@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Max, Q, Sum
+from django.db.models import Count, F, Max, Q, Sum
 from django.utils import timezone
 
 from apps.accounts.decorators import usuario_admin_escritorio
@@ -39,11 +39,13 @@ from apps.processos.services import patrocinio_do_processo, responsaveis_elegive
 from apps.agenda.models import (
     STATUS_A_FAZER,
     STATUS_ENCERRADOS,
+    TIPO_PRAZO,
     TIPOS_AFAZER,
     TIPOS_EVENTO,
     ItemAgenda,
     ParticipanteItemAgenda,
 )
+from apps.agenda.services import anexar_urls, itens_visiveis_para
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.financeiro.services import (
     PERIODOS,
@@ -177,21 +179,27 @@ def _processos_paralisados(processos_qs, hoje):
     return {chave: {"total": len(itens), "processos": itens} for chave, itens in grupos.items()}
 
 
-def _prazos_a_vencer(processos_qs, hoje):
-    """Processos com prazo_proximo a vencer hoje/amanhã/em até 3/5 dias (cumulativo)."""
+def _prazos_a_vencer(user, hoje):
+    """Itens Prazo em aberto, no escopo da Agenda Jurídica do usuário, com
+    data fatal hoje/amanhã/em até 3/5 dias (cumulativo)."""
     grupos = {"hoje": [], "amanha": [], "3dias": [], "5dias": []}
-    qs = processos_qs.filter(prazo_proximo__isnull=False, prazo_proximo__gte=hoje).order_by("prazo_proximo")
-    for processo in qs:
-        dias = (processo.prazo_proximo - hoje).days
+    prazos = list(
+        itens_visiveis_para(user)
+        .filter(tipo=TIPO_PRAZO, data_fatal__gte=hoje, data_fatal__lte=hoje + timedelta(days=5))
+        .exclude(status__in=STATUS_ENCERRADOS)
+        .select_related("processo")
+        .order_by("data_fatal", "pk")
+    )
+    for item in anexar_urls(prazos, user):
+        dias = (item.data_fatal - hoje).days
         if dias == 0:
-            grupos["hoje"].append(processo)
+            grupos["hoje"].append(item)
         if dias == 1:
-            grupos["amanha"].append(processo)
+            grupos["amanha"].append(item)
         if dias <= 3:
-            grupos["3dias"].append(processo)
-        if dias <= 5:
-            grupos["5dias"].append(processo)
-    return {chave: {"total": len(itens), "processos": itens} for chave, itens in grupos.items()}
+            grupos["3dias"].append(item)
+        grupos["5dias"].append(item)
+    return {chave: {"total": len(itens), "itens": itens} for chave, itens in grupos.items()}
 
 
 def _moeda_e_quantidade(agregado):
@@ -264,8 +272,6 @@ def painel(request):
     acesso_clientes = tem_permissao_modulo(request.user, MODULO_CLIENTES)
     acesso_processos = tem_permissao_modulo(request.user, MODULO_PROCESSOS)
     acesso_agenda = tem_permissao_modulo(request.user, MODULO_AGENDA)
-    # Tarefas foi incorporado à Agenda Jurídica: o bloco lê afazeres.
-    acesso_tarefas = acesso_agenda
     acesso_financeiro = (
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and _tem_acesso_dados_financeiro(request.user)
@@ -294,14 +300,11 @@ def painel(request):
             qs_processos = qs_processos.filter(responsavel=request.user)
         resumo["processos_ativos"] = qs_processos.count()
 
-    escopo_tarefas = _nivel_escopo(request.user, MODULO_AGENDA) if acesso_tarefas else None
-    if acesso_tarefas:
-        qs_tarefas = ItemAgenda.objects.filter(tipo__in=TIPOS_AFAZER).exclude(status__in=STATUS_ENCERRADOS)
-        if escopo_tarefas == NIVEL_SOMENTE_SEUS:
-            qs_tarefas = qs_tarefas.filter(responsavel=request.user)
-        resumo["tarefas_pendentes"] = qs_tarefas.count()
-
+    afazeres_pendentes = (
+        itens_visiveis_para(request.user).filter(tipo__in=TIPOS_AFAZER).exclude(status__in=STATUS_ENCERRADOS)
+    )
     if acesso_agenda:
+        resumo["tarefas_pendentes"] = afazeres_pendentes.count()
         resumo["compromissos_proximos"] = _compromissos_confirmados(request.user, hoje).count()
 
     # Período dos cards financeiros: nunca lembrado entre visitas — sem
@@ -316,14 +319,14 @@ def painel(request):
     if acesso_usuarios_ativos:
         resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
 
-    tarefas_dashboard = ItemAgenda.objects.none()
-    if acesso_tarefas:
-        tarefas_dashboard = ItemAgenda.objects.select_related(
-            "cliente", "processo", "responsavel"
-        ).filter(tipo__in=TIPOS_AFAZER).exclude(status__in=STATUS_ENCERRADOS)
-        if escopo_tarefas == NIVEL_SOMENTE_SEUS:
-            tarefas_dashboard = tarefas_dashboard.filter(responsavel=request.user)
-        tarefas_dashboard = tarefas_dashboard.order_by("data_fatal", "data_para_fazer", "-prioridade")[:5]
+    afazeres_dashboard = []
+    prazos = None
+    if acesso_agenda:
+        afazeres_dashboard = anexar_urls(list(
+            afazeres_pendentes.select_related("cliente", "processo", "responsavel")
+            .order_by(F("data_fatal").asc(nulls_last=True), F("data_para_fazer").asc(nulls_last=True), "-prioridade")[:5]
+        ), request.user)
+        prazos = _prazos_a_vencer(request.user, hoje)
 
     compromissos_dashboard = ItemAgenda.objects.none()
     compromissos_pendentes_dashboard = ParticipanteItemAgenda.objects.none()
@@ -352,13 +355,11 @@ def painel(request):
 
     movimentacao = None
     paralisados = None
-    prazos = None
     intimacoes = None
     if acesso_processos:
         processos_escopo = _processos_escopo_ativos(request.user, escopo_processos)
         movimentacao = _movimentacao_processual(processos_escopo)
         paralisados = _processos_paralisados(processos_escopo, hoje)
-        prazos = _prazos_a_vencer(processos_escopo, hoje)
         intimacoes = Intimacao.objects.filter(
             status="pendente", processo__in=processos_escopo
         ).select_related("processo").order_by("prazo_manifestacao")
@@ -368,7 +369,7 @@ def painel(request):
 
     return render(request, "dashboard/painel.html", {
         "resumo": resumo,
-        "tarefas_dashboard": tarefas_dashboard,
+        "tarefas_dashboard": afazeres_dashboard,
         "compromissos_dashboard": compromissos_dashboard,
         "compromissos_pendentes_dashboard": compromissos_pendentes_dashboard,
         "financeiro_dashboard": financeiro_dashboard,
@@ -380,7 +381,6 @@ def painel(request):
         "intimacoes": intimacoes,
         "acesso_clientes": acesso_clientes,
         "acesso_processos": acesso_processos,
-        "acesso_tarefas": acesso_tarefas,
         "acesso_agenda": acesso_agenda,
         "acesso_financeiro": acesso_financeiro,
         "acesso_financeiro_solicitacoes": acesso_financeiro_solicitacoes,

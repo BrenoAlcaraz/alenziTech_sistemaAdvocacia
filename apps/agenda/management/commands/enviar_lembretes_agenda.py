@@ -13,6 +13,11 @@ item vencido há muito tempo sem ter sido concluído/cancelado não
 deve gerar lembrete tardio na primeira execução do job ou após uma
 pausa longa do agendador — o valor de "faltam 15 minutos" já não existe
 depois desse ponto.
+
+Na mesma passada, os avisos por data dos afazeres (PDR-0034: véspera e
+dia da data fatal, data para fazer de Prazo vencida) — ver
+`apps.agenda.avisos.enviar_avisos_de_data`, com envio único garantido
+por `AvisoItemAgenda`.
 """
 
 from datetime import timedelta
@@ -23,6 +28,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django_tenants.utils import schema_context
 
+from apps.agenda.avisos import enviar_avisos_de_data
 from apps.agenda.models import STATUS_A_FAZER, TIPOS_EVENTO, ItemAgenda, ParticipanteItemAgenda
 from apps.notificacoes.models import Notificacao
 from apps.saas_tenants.models import Escritorio
@@ -32,8 +38,9 @@ MINUTOS_ANTECEDENCIA = 15
 
 class Command(BaseCommand):
     help = (
-        "Gera notificação de lembrete para items de Agenda a "
-        f"partir de {MINUTOS_ANTECEDENCIA} minutos antes do horário marcado."
+        "Gera notificação de lembrete para eventos da Agenda Jurídica a "
+        f"partir de {MINUTOS_ANTECEDENCIA} minutos antes do horário marcado "
+        "e os avisos de data fatal/data para fazer dos afazeres."
     )
 
     def handle(self, *args, **options):
@@ -43,6 +50,7 @@ class Command(BaseCommand):
         for escritorio in Escritorio.objects.filter(ativo=True):
             with schema_context(escritorio.schema_name):
                 self._notificar_tenant(janela_inicio, janela_fim)
+                enviar_avisos_de_data(timezone.localdate())
 
     def _notificar_tenant(self, janela_inicio, janela_fim):
         na_janela = Q(

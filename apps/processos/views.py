@@ -26,6 +26,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.agenda.services import agenda_do_vinculo, anexar_urls, itens_visiveis_para
 from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
@@ -154,6 +155,17 @@ def lista(request):
     })
 
 
+def _anexar_item_do_prazo(user, prazos):
+    """`mov.item_prazo`: o Prazo da Agenda Jurídica gerado pelo andamento,
+    só quando o usuário o enxerga na agenda."""
+    itens = anexar_urls(list(
+        itens_visiveis_para(user).filter(movimentacao_origem__in=[mov.pk for mov in prazos])
+    ), user)
+    por_andamento = {item.movimentacao_origem_id: item for item in itens}
+    for mov in prazos:
+        mov.item_prazo = por_andamento.get(mov.pk)
+
+
 @login_required
 def detalhe(request, pk):
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
@@ -236,14 +248,8 @@ def detalhe(request, pk):
         (mov for mov in movimentacoes if mov.data_prazo),
         key=lambda mov: mov.data_prazo,
     )
-    # Card segue mostrando só itens tipo Tarefa da Agenda Jurídica.
-    tarefas_relacionadas_qs = processo.itens_agenda.filter(tipo="tarefa")
-    tarefas_relacionadas_total = tarefas_relacionadas_qs.count()
-    tarefas_relacionadas = list(
-        tarefas_relacionadas_qs.select_related("responsavel")
-        .exclude(status="cancelado")
-        .order_by("data_fatal")[:5]
-    )
+    agenda_do_processo = agenda_do_vinculo(request.user, processo=processo)
+    _anexar_item_do_prazo(request.user, prazos)
     custas_financeiras = list(
         SolicitacaoFinanceira.objects.filter(processo=processo)
         .select_related("solicitante")
@@ -255,8 +261,7 @@ def detalhe(request, pk):
         "prazos": prazos,
         "parte_contraria": parte_contraria_do_processo(processo, partes=partes),
         "faixa_status": faixa_status_do_processo(processo, movimentacoes=movimentacoes),
-        "tarefas_relacionadas": tarefas_relacionadas,
-        "tarefas_relacionadas_total": tarefas_relacionadas_total,
+        "agenda_do_processo": agenda_do_processo,
         "custas_financeiras": custas_financeiras,
         "custas_total": len(custas_financeiras),
         "pode_criar_solicitacao_financeira": tem_permissao_modulo(request.user, MODULO_FINANCEIRO),

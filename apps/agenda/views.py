@@ -1,7 +1,5 @@
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models import F, Q
-from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -36,6 +34,8 @@ from apps.processos.services import processos_do_cliente, rotulo_processo
 from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
 
 from . import visoes
+from .avisos import avisar_atribuicao, avisar_convite
+from .services import itens_mutaveis_por, ordenar_por_data, restringir_ao_usuario
 from .models import (
     NATUREZA_AFAZER,
     NATUREZA_EVENTO,
@@ -59,7 +59,6 @@ ORIGENS_VALIDAS = {"manual", "processo"}
 # Parâmetros da barra de filtros — os únicos repassados ao alternar
 # visão, navegar no calendário ou ordenar o kanban.
 PARAMETROS_FILTRO = ("tipo", "natureza", "escopo", "usuario", "delegados", "origem", "processo", "cliente", "ordem")
-_CONVITES_QUE_OCULTAM = [ConviteDelegacao.STATUS_PENDENTE, ConviteDelegacao.STATUS_RECUSADO]
 
 
 # Tipos do log de atividade herdados de Tarefas (afazer) e Compromisso
@@ -81,13 +80,6 @@ _TIPOS_ATIVIDADE = {
 def _tipo_atividade(item, acao):
     afazer, evento = _TIPOS_ATIVIDADE[acao]
     return evento if item.eh_evento else afazer
-
-
-def _excluir_ocultos_por_convite(qs):
-    """Remove item com convite de delegação pendente/recusado — ainda não
-    é (ou nunca será) atribuição ativa do responsável (PDR-0033). Item
-    sem convite (direto) ou com convite aceito não é afetado."""
-    return qs.exclude(convite_delegacao__status__in=_CONVITES_QUE_OCULTAM)
 
 
 def _redirect_seguro(request):
@@ -144,24 +136,8 @@ def _aplicar_escopo(qs, request, escopo):
     if usuario_filtro_id and _pode_ver_outro_usuario(request.user):
         return qs.filter(responsavel_id=usuario_filtro_id)
     if escopo == NIVEL_SOMENTE_SEUS:
-        qs = qs.filter(
-            Q(responsavel=request.user) | Q(participacoes__usuario=request.user)
-        ).distinct()
-        qs = _excluir_ocultos_por_convite(qs)
+        qs = restringir_ao_usuario(qs, request.user)
     return qs
-
-
-def _com_data_referencia(qs):
-    """`data_ref`: dia em que o item cai na agenda — início (evento), data
-    para fazer ou, sem ela, data fatal (afazer). Nulo em afazer sem data,
-    que só aparece sem filtro de data."""
-    return qs.annotate(
-        data_ref=Coalesce(TruncDate("data_hora_inicio"), "data_para_fazer", "data_fatal")
-    )
-
-
-def _ordenar_por_data(qs):
-    return qs.order_by(F("data_ref").asc(nulls_last=True), "data_hora_inicio", "hora_para_fazer")
 
 
 def _ler_filtros(request):
@@ -258,11 +234,7 @@ def _itens_mutaveis(request):
     do escritório alcança qualquer item do tenant para mutação —
     inclusive um item ainda oculto por convite de delegação.
     """
-    qs = ItemAgenda.objects.all()
-    if not usuario_admin_escritorio(request.user):
-        qs = qs.filter(responsavel=request.user)
-        qs = _excluir_ocultos_por_convite(qs)
-    return qs
+    return itens_mutaveis_por(request.user)
 
 
 def _pode_atribuir_a_outros(request):
@@ -422,7 +394,7 @@ def index(request):
 
     filtros = _ler_filtros(request)
     visiveis = _itens_visiveis(request, escopo, usuario_filtro, filtros["delegados"])
-    itens = list(_ordenar_por_data(_com_data_referencia(_aplicar_filtros(visiveis, filtros))))
+    itens = list(ordenar_por_data(_aplicar_filtros(visiveis, filtros)))
     _anexar_minha_participacao(request, itens)
 
     hoje = timezone.localdate()
@@ -669,6 +641,9 @@ def novo(request):
                 convite = criar_convite_delegacao(request.user, item.responsavel, item)
                 item.convite_delegacao = convite
                 item.save(update_fields=["convite_delegacao"])
+                avisar_convite(item, convite)
+            else:
+                avisar_atribuicao(item, request.user)
             registrar_atividade(
                 request.user, _tipo_atividade(item, "criado"),
                 f"Criou {item.get_tipo_display().lower()} {item.titulo}",
@@ -802,6 +777,7 @@ def reatribuir(request, pk):
             item.save(update_fields=["responsavel", "atribuidor", "atribuido_em"])
             # O novo responsável não pode seguir como participante.
             item.participacoes.filter(usuario=novo_responsavel).delete()
+            avisar_atribuicao(item, request.user)
             registrar_atividade(
                 request.user, _tipo_atividade(item, "reatribuido"),
                 f"Reatribuiu {item.get_tipo_display().lower()} {item.titulo} para "

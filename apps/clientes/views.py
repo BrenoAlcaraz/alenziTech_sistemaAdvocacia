@@ -27,6 +27,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.agenda.services import agenda_do_vinculo
 from apps.atividade.services import registrar_atividade
 from apps.modelos.models import CategoriaModeloPeca, ModeloPeca
 from apps.modelos.services import gerar_peca_procuracao
@@ -166,14 +167,6 @@ def detalhe(request, pk):
     escopo, _ = _resolver_escopo(request)
     cliente = get_object_or_404(_clientes_no_escopo(request, escopo, ativo=True), pk=pk)
     processos = cliente.processos.all()
-    # Card segue mostrando só itens tipo Tarefa da Agenda Jurídica.
-    tarefas_relacionadas_qs = cliente.itens_agenda.filter(tipo="tarefa")
-    tarefas_relacionadas_total = tarefas_relacionadas_qs.count()
-    tarefas_relacionadas = list(
-        tarefas_relacionadas_qs.select_related("responsavel")
-        .exclude(status="cancelado")
-        .order_by("data_fatal")[:5]
-    )
     pode_modificar = (
         usuario_admin_escritorio(request.user)
         or cliente.responsavel_id == request.user.pk
@@ -203,8 +196,7 @@ def detalhe(request, pk):
             for c in relacionados
         ],
         "pode_ver_processos": pode_ver_processos,
-        "tarefas_relacionadas": tarefas_relacionadas,
-        "tarefas_relacionadas_total": tarefas_relacionadas_total,
+        "agenda_do_cliente": agenda_do_vinculo(request.user, cliente=cliente),
         "pode_excluir_cliente": pode_modificar and tem_habilitacao(
             request.user, MODULO_CLIENTES, HAB_CLIENTES_EXCLUIR
         ),

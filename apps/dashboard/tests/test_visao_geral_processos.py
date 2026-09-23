@@ -1,7 +1,7 @@
 """
 Painéis derivados de Processos na Visão geral do Dashboard (Movimentação
-processual, Processos paralisados, Prazos a vencer) e card "Usuários
-ativos" —
+processual, Processos paralisados), Prazos a vencer (itens Prazo da
+Agenda Jurídica) e card "Usuários ativos" —
 specs/dashboard-abas-visao-geral-analise-dados.md.
 """
 
@@ -14,11 +14,14 @@ from django_tenants.test.cases import TenantTestCase
 from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_CRIAR_USUARIO,
+    MODULO_AGENDA,
     MODULO_GERIR,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
+    NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
+from apps.agenda.models import ItemAgenda
 from apps.processos.models import MovimentacaoProcessual, Processo
 
 
@@ -129,19 +132,34 @@ class TestProcessosParalisados(DashboardProcessosBase):
 
 
 class TestPrazosAVencer(DashboardProcessosBase):
+    """Prazos a vencer lê os itens Prazo da Agenda Jurídica (PDR-0034),
+    no escopo de leitura da agenda do usuário."""
+
     @classmethod
     def get_test_schema_name(cls):
         return "wi_dashboard_prazos"
 
-    def test_grupos_cumulativos_por_prazo_proximo(self):
-        hoje = timezone.localdate()
-        p_hoje = self._processo("Prazo hoje", prazo_proximo=hoje)
-        p_amanha = self._processo("Prazo amanhã", prazo_proximo=hoje + timedelta(days=1))
-        p_3d = self._processo("Prazo em 3 dias", prazo_proximo=hoje + timedelta(days=3))
-        p_5d = self._processo("Prazo em 5 dias", prazo_proximo=hoje + timedelta(days=5))
-        self._processo("Prazo em 10 dias", prazo_proximo=hoje + timedelta(days=10))
-        self._processo("Prazo vencido", prazo_proximo=hoje - timedelta(days=1))
-        self._processo("Sem prazo")
+    def setUp(self):
+        super().setUp()
+        PermissaoPapel.objects.create(
+            papel=self.papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_SOMENTE_SEUS
+        )
+        self.processo = self._processo("Processo com prazos")
+
+    def _prazo(self, titulo, dias, **extra):
+        dados = {"responsavel": self.usuario, "processo": self.processo}
+        dados.update(extra)
+        return ItemAgenda.objects.create(
+            tipo="prazo", titulo=titulo, data_fatal=timezone.localdate() + timedelta(days=dias), **dados,
+        )
+
+    def test_grupos_cumulativos_por_data_fatal(self):
+        p_hoje = self._prazo("Prazo hoje", 0)
+        p_amanha = self._prazo("Prazo amanhã", 1)
+        p_3d = self._prazo("Prazo em 3 dias", 3)
+        p_5d = self._prazo("Prazo em 5 dias", 5)
+        self._prazo("Prazo em 10 dias", 10)
+        self._prazo("Prazo vencido", -1)
 
         resposta = self._get()
         prazos = resposta.context["prazos"]
@@ -150,10 +168,32 @@ class TestPrazosAVencer(DashboardProcessosBase):
         self.assertEqual(prazos["amanha"]["total"], 1)
         self.assertEqual(prazos["3dias"]["total"], 3)
         self.assertEqual(prazos["5dias"]["total"], 4)
-        self.assertIn(p_hoje, prazos["hoje"]["processos"])
-        self.assertIn(p_amanha, prazos["3dias"]["processos"])
-        self.assertIn(p_3d, prazos["5dias"]["processos"])
-        self.assertIn(p_5d, prazos["5dias"]["processos"])
+        self.assertIn(p_hoje, prazos["hoje"]["itens"])
+        self.assertIn(p_amanha, prazos["3dias"]["itens"])
+        self.assertIn(p_3d, prazos["5dias"]["itens"])
+        self.assertIn(p_5d, prazos["5dias"]["itens"])
+        self.assertContains(resposta, f"/agenda/{p_hoje.pk}/editar/")
+
+    def test_so_prazos_abertos_do_escopo_e_nunca_outro_tipo(self):
+        outro = User.objects.create_user("outro_prazos", password="testpass")
+        self._prazo("Prazo alheio", 0, responsavel=outro)
+        self._prazo("Prazo concluído", 0, status="concluido")
+        ItemAgenda.objects.create(
+            tipo="tarefa", titulo="Tarefa com fatal", data_fatal=timezone.localdate(), responsavel=self.usuario,
+        )
+
+        prazos = self._get().context["prazos"]
+
+        self.assertEqual(prazos["5dias"]["total"], 0)
+
+    def test_sem_modulo_agenda_nao_ha_bloco_de_prazos(self):
+        PermissaoPapel.objects.filter(papel=self.papel, modulo=MODULO_AGENDA).delete()
+        self._prazo("Prazo hoje", 0)
+
+        resposta = self._get()
+
+        self.assertIsNone(resposta.context["prazos"])
+        self.assertNotContains(resposta, "Prazos a vencer")
 
 
 class TestCardUsuariosAtivos(DashboardProcessosBase):

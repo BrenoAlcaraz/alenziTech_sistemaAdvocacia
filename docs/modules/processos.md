@@ -22,7 +22,8 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   responsabilidade obrigatória são a direção vigente. Equipe não
   concede acesso nem filtra Processos.
 - Cada processo tem um único responsável principal obrigatório —
-  referência para prazos na Agenda e indicadores. Pode ter N
+  responsável pelos Prazos gerados na Agenda Jurídica (e quem os recebe
+  quando o responsável muda) e referência dos indicadores. Pode ter N
   integrantes habilitados além dele, que não recebem prazos
   automaticamente.
 - Atribuir/reatribuir responsável exige a habilitação
@@ -85,7 +86,7 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   13/09. Card superior do detalhe do processo lista todos os clientes
   vinculados, cada um linkando para sua própria página.
 - Outros módulos que referenciam "o cliente do processo" para
-  pré-preenchimento automático (Tarefas, Agenda, Financeiro) usam o
+  pré-preenchimento automático (Agenda Jurídica, Financeiro) usam o
   primeiro cliente vinculado como melhor esforço — esses módulos
   continuam com cliente único no próprio cadastro.
 - Criação cruzada Cliente↔Processo: aba Processos do Cliente tem botão
@@ -115,27 +116,30 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   mesmo escopo de mutação de Arquivar (Administrador ou responsável).
 - Remove o Processo e o que é intrínseco a ele — Documentos, Partes,
   Andamentos, vínculos de Apenso, Intimações (cascata já existente no
-  modelo). Lançamentos financeiros, tarefas e compromissos de agenda
+  modelo) — e, com os Andamentos, os Prazos que eles geraram na Agenda
+  Jurídica. Lançamentos financeiros e demais itens da Agenda Jurídica
   vinculados **não são apagados** — só perdem a referência
   (`on_delete=SET_NULL`, já era o padrão).
 - Ação definitiva nesta versão — sem lixeira, sem desfazer.
 
-## Faixa de status, Integrantes e Tarefas relacionadas (detalhe do processo)
+## Faixa de status, Integrantes e Agenda do processo (detalhe do processo)
 
 - Abaixo do card superior, uma faixa somente informativa mostra Fase
   atual (tipo do andamento mais recente), Parado há X dias (dias desde
   o último andamento, ou desde a distribuição sem nenhum andamento) e
   Tempo médio entre andamentos — todos recalculados a cada carregamento
   a partir dos Andamentos, nunca campos próprios do Processo.
-- Integrantes habilitados e Tarefas relacionadas ao processo aparecem
-  como cards funcionais abaixo do card superior, fora do sistema de
-  abas — reunião de 13/09. No card de Tarefas, clicar numa tarefa abre
-  o formulário dela no módulo de Tarefas; "ver todas" filtra o quadro
-  de Tarefas por este processo (`tarefas:quadro?processo=<id>`); "+
-  Nova tarefa" abre o formulário padrão de criação de Tarefas
-  (`tarefas:nova`) com o campo Processo pré-preenchido (`?processo=
-  <id>`, sem travar o campo) e retorna ao detalhe do processo ao
-  salvar — mesmo formulário do módulo de Tarefas, sem fluxo paralelo.
+- Integrantes habilitados e "Agenda do processo" aparecem como cards
+  funcionais abaixo do card superior, fora do sistema de abas — reunião
+  de 13/09. O card da agenda lista os itens em aberto de qualquer tipo
+  vinculados ao processo, no escopo de leitura da Agenda Jurídica do
+  usuário (sem o módulo, o card não aparece); clicar num item abre o
+  formulário dele para quem pode editá-lo, ou a Agenda Jurídica
+  filtrada para quem só o enxerga; "Ver todos" filtra a agenda por este
+  processo (`agenda:index?processo=<id>`); "+ Novo" escolhe o tipo e
+  abre o formulário padrão (`agenda:novo`) com o Processo
+  pré-preenchido, sem travar o campo. O detalhe do Cliente tem o mesmo
+  card ("Agenda do cliente").
 
 ## Custas Judiciais (aba do processo)
 
@@ -205,7 +209,7 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   formulário de criação/edição do processo. **Sem sugestão automática
   por tipo de andamento nesta versão**: o mapeamento tipo→fase precisa
   ser validado pelo sócio advogado antes de ativar (mesma exigência já
-  usada para os prazos automáticos da Agenda — ver OPEN item
+  usada para o catálogo legal de prazos — ver OPEN item
   correspondente em [STATUS.md](../STATUS.md)). Alimenta o bloco "Fase
   do andamento atual" da Análise de dados do Dashboard.
 
@@ -258,7 +262,8 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   dias", vinculado à Intimação que efetivamente disparou a contagem.
   Sem nenhum cálculo automático de data nesta versão — quem lança
   digita a data final já calculada; ver
-  `specs/agenda-prazos-processuais-automaticos.md` (parada) para o
+  `specs/agenda-prazos-processuais-automaticos.md` (evolução futura
+  sobre a Agenda Jurídica) para o
   cálculo automático futuro.
 - `Processo.prazo_proximo` deixou de ser editado manualmente
   ("atualizar próximo prazo" saiu do formulário de Adicionar andamento)
@@ -266,11 +271,13 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   (`services.recalcular_prazo_proximo`) a cada andamento adicionado: o
   `data_prazo` futuro mais próximo entre os andamentos do processo ou,
   se todos já venceram, o vencido mais recente; `None` sem nenhum
-  `data_prazo` marcado. Continua alimentando Dashboard/Agenda
-  normalmente.
+  `data_prazo` marcado. Cada `data_prazo` também gera o item Prazo da
+  Agenda Jurídica (ver [PRODUCT.md](../PRODUCT.md#agenda-jurídica)),
+  que é o que alimenta "Prazos a vencer" do Dashboard.
 - Aba "Prazos" do detalhe do processo agrega automaticamente todos os
   andamentos com `data_prazo`, em timeline cronológica, com estado
-  vazio quando não há nenhum. O prazo também aparece (discreto) na aba
+  vazio quando não há nenhum; cada prazo leva ao item gerado na Agenda
+  Jurídica quando ele está no escopo do usuário. O prazo também aparece (discreto) na aba
   "Andamentos", sem ser o foco ali.
 
 ## Documentos

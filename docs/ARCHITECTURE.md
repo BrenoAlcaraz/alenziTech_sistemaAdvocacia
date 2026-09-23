@@ -26,7 +26,7 @@ versionar nem expor fora do próprio formulário que o consome.
 
 **Schema de cada tenant** (`TENANT_APPS`) — um schema PostgreSQL por
 escritório, criado automaticamente (`auto_create_schema=True`):
-`accounts`, `dashboard`, `clientes`, `processos`, `tarefas`,
+`accounts`, `dashboard`, `clientes`, `processos`,
 `notificacoes`, `financeiro`, `agenda`, `chat`, `modelos`,
 `laboratorio`, `configuracoes`. `django.contrib.auth` está em SHARED e
 TENANT — cada tenant tem sua própria tabela `auth_user`.
@@ -83,11 +83,10 @@ cenário. Referência: `apps/modelos/views.py`
 
 ```
 processos   → clientes, accounts (equipe)
-tarefas     → processos, clientes (opcional), notificacoes
-agenda      → processos, clientes (opcional)
+agenda      → processos (andamento gera Prazo por signal), clientes (opcional), notificacoes
 financeiro  → clientes, processos (opcional)
 modelos     → clientes (opcional — Cliente do caso em peças repetitivas)
-dashboard   → clientes, processos, tarefas, agenda, financeiro (agregação, sem model próprio)
+dashboard   → clientes, processos, agenda, financeiro (agregação, sem model próprio)
 configuracoes → accounts
 ```
 
@@ -204,8 +203,8 @@ url_has_allowed_host_and_scheme(
 Sem `require_https=request.is_secure()`, em produção HTTPS um `next`
 para `http://<mesmo-host>/...` passa na validação (mesmo host, esquema
 diferente) — downgrade de protocolo pós-ação, expondo sessão/cookies a
-interceptação de rede. Referência: `apps/tarefas/views.py::_redirect_seguro`,
-`apps/financeiro/views.py::_redirect_seguro`, `apps/agenda/views.py::_redirect_seguro`.
+interceptação de rede. Referência: `apps/financeiro/views.py::_redirect_seguro`,
+`apps/agenda/views.py::_redirect_seguro`.
 
 ## Campos dependentes em formulário (ex.: Cliente → Processo) — padrão a reutilizar
 
@@ -213,8 +212,7 @@ Quando um campo `ModelChoiceField` deve ser restrito pelo valor de
 outro campo do mesmo formulário (hoje: Processo restrito ao Cliente
 selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
 `HonorarioForm`, `SolicitacaoFinanceiraForm` — `apps/financeiro/forms.py`;
-`TarefaForm` — `apps/tarefas/forms.py`; `CompromissoForm` —
-`apps/agenda/forms.py`):
+`ItemAgendaForm` — `apps/agenda/forms.py`):
 
 - **Filtro inicial no `__init__` do form**: o queryset do campo
   dependente já nasce restrito ao valor do campo "pai" conhecido no
@@ -237,7 +235,7 @@ selecionado, em `LancamentoFinanceiroForm`, `CustaJudicialForm`,
   mora no `clean()` do **model** (não do form):
   `apps/processos/services.py::processo_pertence_ao_cliente` usado no
   `clean()` de `LancamentoFinanceiro`, `CustaJudicial`, `Honorario`,
-  `SolicitacaoFinanceira`, `Tarefa` e `Compromisso` — rejeita salvar
+  `SolicitacaoFinanceira` e `ItemAgenda` — rejeita salvar
   uma combinação inconsistente por qualquer via, incluindo o Django
   Admin desses models (que usa `ModelForm` automático, sem o form
   customizado do app). Colocar a mesma checagem só no `clean()` do
@@ -252,8 +250,8 @@ campos dependentes de Cliente listados acima) usa
 
 - **Label padrão "Código · Título — Número"**: `label_from_instance` delega em
   `apps/processos/services.py::rotulo_processo` — mesma função usada
-  pelos três endpoints `processos-por-cliente` (financeiro, agenda,
-  tarefas) ao montar o `label` do JSON, para o rótulo não regredir
+  pelos endpoints `processos-por-cliente` (financeiro, agenda) ao
+  montar o `label` do JSON, para o rótulo não regredir
   para só o título depois que o filtro por Cliente reconstrói as
   opções via fetch.
 - **Widget com busca (combobox)**: usar `PROCESSO_SELECT_ATTRS`
@@ -366,7 +364,7 @@ sendo o chat por equipe (PDR-0026, `apps/chat/signals.py`).
 - Cada módulo mantém a própria view `adicionar_equipe_*`, com a
   autorização que já tinha; a view valida com o form acima e aplica só
   as pessoas na lista real (`Processo.integrantes_habilitados`,
-  `Tarefa.participantes`, `ParticipanteCompromisso`).
+  `ParticipanteItemAgenda`).
 
 ## Formset dinâmico (Django) — padrão a reutilizar
 
@@ -545,8 +543,9 @@ não podem estourar o layout nem invadir a coluna vizinha em grade
 
 - Sem cache configurado, sem fila assíncrona de jobs (Celery/Redis) —
   qualquer introdução futura precisa carregar contexto de tenant
-  explicitamente. Primeiro job periódico do projeto (PDR-0016, lembrete
-  de Agenda) segue esse padrão via management command (`python manage.py
+  explicitamente. O job periódico da Agenda Jurídica (lembrete de
+  Evento PDR-0016 e avisos por data PDR-0034, com envio único garantido
+  por `AvisoItemAgenda`) segue esse padrão via management command (`python manage.py
   enviar_lembretes_agenda`, `apps/agenda/management/commands/`),
   iterando `Escritorio` ativo e entrando no schema de cada um com
   `schema_context`; disparo periódico real (cron do SO, Task Scheduler)

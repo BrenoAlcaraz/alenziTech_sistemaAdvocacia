@@ -1,7 +1,12 @@
 # Spec — Geração automática de prazos processuais na Agenda
 
-Status: **parada aguardando validação jurídica externa** — não implementar até
-o critério de aceite de validação do catálogo ser cumprido. Pesquisa de apoio
+Status: **evolução futura sobre a Agenda Jurídica (PDR-0034)**, parada
+aguardando validação jurídica externa — não implementar até o critério de
+aceite de validação do catálogo ser cumprido. A base já existe: todo
+andamento com `data_prazo` gera um item Prazo para o responsável do
+processo (ver `docs/PRODUCT.md`, "Agenda Jurídica"); o que resta desta spec
+é o catálogo legal que calcula essa data — ao retomá-la, reescrever o
+comportamento abaixo sobre o item Prazo em vez de "compromisso". Pesquisa de apoio
 em [docs/research/prazos-processuais-brasil.md](../docs/research/prazos-processuais-brasil.md)
 (rascunho, não é aconselhamento jurídico).
 

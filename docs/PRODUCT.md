@@ -105,7 +105,7 @@ nome.
   como código.
 - Aparece em listagens, seletores, cabeçalho do detalhe, log de
   atividade (inclusive o código de quem executou), notificações e nas
-  referências a processo/cliente em Tarefas, Agenda e Financeiro.
+  referências a processo/cliente na Agenda Jurídica e no Financeiro.
 - Nunca aparece nos campos de mesclagem de Modelos nem em documentos
   que saem do escritório.
 
@@ -145,7 +145,7 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   (`None` sem data preenchida ou para PJ).
 - Selo de prioridade "Idoso" (Estatuto do Idoso, idade ≥ 60) ou "Menor
   de idade" (< 18) ao lado do nome do cliente na listagem/detalhe e em
-  Tarefas/Processos vinculados a ele (componente
+  itens da Agenda Jurídica/Processos vinculados a ele (componente
   `templates/components/selo_prioridade.html`) — só indicativo/visual,
   não altera ordenação de fila, prazo ou notificação.
 - Exclusão definitiva (PDR-0025), distinta de desativar — lançamentos
@@ -183,99 +183,123 @@ Pasta canônica de clientes e seus vínculos com processos/documentos.
   processos dentro do escopo de leitura de Processos do usuário; o
   cliente relacionado continua listado mesmo sem nenhum processo visível.
 
-### Tarefas
+### Agenda Jurídica
 
-Delegação de trabalho — direta na maioria dos casos hierárquicos claros,
-por convite (aceitar/recusar) nos demais (PDR-0002/PDR-0033).
+Um único lugar para tudo o que o advogado tem pela frente — afazeres
+internos, prazos processuais e compromissos com hora — no lugar dos
+antigos módulos Tarefas e Agenda (PDR-0034). "Atividade" continua
+reservado ao log de atividade.
 
-- Delegar (atribuir a outro usuário) gera convite pendente, exceto
-  quando quem delega é Administrador do escritório (para qualquer
-  usuário) ou gerente de Equipe delegando para subordinado não-gerente
-  da própria Equipe — nesses dois casos a tarefa aparece imediatamente
-  para o destinatário, sem convite (PDR-0002). Nos demais casos,
-  inclusive gerente para gerente da mesma Equipe, a tarefa só passa a
-  ser atribuição ativa do destinatário depois que ele aceita o convite;
-  recusar (com justificativa opcional) também é uma resposta válida —
-  ver "Delegação por convite" abaixo. Auto-atribuição nunca gera
-  convite. Reatribuição de tarefa **já existente** continua livre, sem
-  convite (comportamento inalterado de PDR-0002).
-- Registra separadamente criador, atribuidor, destinatário da
-  atribuição, data da atribuição e responsável atual — mesmo quando
-  coincidem na mesma pessoa.
-- Status: pendente, em andamento, concluída ou cancelada.
-- Reatribuição preserva responsável anterior, novo responsável, autor
-  e data — nunca sobrescrita silenciosa.
-- Visibilidade: Administrador vê tudo; habilitação de gestão vê a
-  equipe/escopo autorizado; usuário comum vê só o que criou ou lhe foi
-  atribuído.
-- Notificação (PDR-0016): ao concluir, o criador é notificado — exceto
-  se o criador for o próprio responsável ou for a IA. Notificação de
-  atribuição/reatribuição/prazo fica fora de escopo.
-- Faixa de sub-abas abaixo da lista principal: "Recentes (últimas 24h)",
-  "Atribuídas a mim por terceiros" e "Convites recebidos" (PDR-0033)
-  sempre visíveis para qualquer usuário; "Delegadas por mim" e "Ver
-  tarefas de outra pessoa" só para quem já tem a habilitação de
-  atribuir tarefa a terceiros — mesma habilitação nas duas, nenhuma
-  habilitação nova. "Delegadas por mim" mostra o estado do convite
-  (pendente/aceito ou direto/recusado com justificativa) de cada item.
-- Múltiplos participantes: "Atribuir a" aceita vários usuários de uma
-  vez (botão "Atribuir a todos" marca todos de uma vez). Na criação,
-  "Atribuir a" é obrigatório (mínimo um; o usuário logado já vem
-  pré-selecionado) e o "Responsável" é obrigatoriamente um dos
-  atribuídos — não há opção "Eu mesmo"; a lista de responsável mostra
-  só os marcados em "Atribuir a" e, com um único atribuído, ele já vem
-  selecionado. Quem não tem a habilitação de atribuir a terceiros vê
-  só o próprio nome nas duas listas. A regra vale no backend; a
-  reatribuição de tarefa já criada continua livre (qualquer usuário
-  ativo). Continua existindo um único
-  responsável formal (`Tarefa.responsavel`) — os demais entram como
-  `Tarefa.participantes`, sem responsabilidade formal: não concluem a
-  tarefa (só o responsável/Administrador) e não recebem a notificação
-  de conclusão. Participante consegue ver a tarefa (mesmo escopo de
-  leitura do responsável), mas não aparece como quem a concluiu. Uma
-  Equipe pode ser usada como atalho para selecionar vários atribuídos/
-  participantes de uma vez — ver "Equipe como atalho de seleção" abaixo.
-- Fora de escopo: gamificação, avaliação de desempenho.
+**Item tipado, catálogo fixo em duas naturezas:**
 
-### Delegação por convite (Tarefas e Agenda)
+| Natureza | Tipos | Datas | Específico |
+|---|---|---|---|
+| Afazer | Tarefa, Prazo, Protocolo, Retorno | data para fazer (opcional, hora opcional); data fatal (opcional; obrigatória em Prazo) | prioridade; kanban |
+| Evento | Audiência, Reunião, Perícia, Julgamento | início obrigatório com hora; fim opcional; dia inteiro | local; confirmação de presença; lembrete 15 min |
 
-Mesma regra conceitual reaproveitada nos dois módulos (PDR-0033):
-delegar (Tarefa: atribuir; Agenda: definir responsável de outra
-pessoa) gera convite pendente, exceto Administrador→qualquer usuário e
-gerente de Equipe→subordinado não-gerente da própria Equipe, que
-continuam diretos. Entre dois gerentes da mesma Equipe o convite
-continua obrigatório.
+- Afazer sem data é permitido: aparece só em lista/kanban ("Sem data").
+- Status único: A fazer, Em andamento (só Afazer), Concluído,
+  Cancelado; concluído/cancelado podem ser reabertos. Cancelado sai das
+  visões operacionais, fica em "Cancelados" por 7 dias e é expurgado.
+- Integridade cliente↔processo validada no backend.
 
-- Só o próprio destinatário aceita ou recusa o próprio convite, sem
-  checagem de habilitação adicional. Recusar aceita justificativa
-  opcional em texto livre.
-- Enquanto pendente ou recusado, o item não aparece como atribuição
-  ativa do destinatário (fora das listas/quadro/agenda operacionais
-  dele) — só como convite aguardando resposta na sub-aba "Convites
-  recebidos".
-- Não confundir com a confirmação de presença de **participante** de
-  Compromisso (PDR-0020) — decide presença, não quem é o responsável;
-  não muda com esta regra.
-- Reatribuição de item **já existente** para outro responsável
-  continua livre, sem convite, nos dois módulos.
-- Fora de escopo: notificação de convite, expiração/lembrete/
-  cancelamento de convite pendente.
+**Responsável, participantes, delegação:**
+
+- Um responsável formal; só ele ou o Administrador edita, muda status,
+  reatribui, exclui e gerencia participantes. "Todos" é escopo de
+  leitura, nunca de mutação.
+- Criação: "Atribuir a" (vários) + "Responsável" entre os atribuídos;
+  responsável ≠ criador exige a habilitação "atribuir a outros". Equipe
+  como atalho de seleção (ver abaixo).
+- Delegação por convite (PDR-0033), para qualquer tipo: direta só
+  quando quem delega é Administrador ou gerente de Equipe → subordinado
+  não-gerente da própria Equipe; convite (aceitar/recusar com
+  justificativa opcional) nos demais casos, inclusive gerente→gerente.
+  Enquanto pendente/recusado, o item não é atribuição ativa do
+  destinatário. Auto-atribuição nunca gera convite.
+- Reatribuição livre (sem convite), com histórico (anterior, novo,
+  autor, data), para qualquer item.
+- Participante sempre vê o item. Em Evento confirma/recusa presença
+  (PDR-0020), recebe lembrete se confirmado e, se o evento é
+  reagendado, volta a pendente e é avisado. Verificação de
+  disponibilidade de convidado é só informativa (exige `gerir`/Admin).
+
+**Prazo gerado pelo processo:**
+
+- Todo andamento com `data_prazo` (manual ou, no futuro, por API) gera
+  exatamente um item Prazo para o responsável do processo, sem convite,
+  vinculado ao andamento, processo e cliente.
+- Data fatal = `data_prazo`, editável só no andamento; data para fazer
+  padrão = fatal − 2 dias corridos, editável. Alterar a data no
+  andamento atualiza o item e avisa o responsável; remover o prazo ou
+  apagar o andamento remove o item.
+- Troca de responsável do processo leva junto os Prazos gerados ainda
+  abertos; concluído/cancelado guardam o histórico.
+
+**Notificações (in-app), cada uma uma única vez por
+item/destinatário/motivo, nunca para item concluído/cancelado:**
+
+- Evento: lembrete 15 min antes ao responsável e aos participantes
+  confirmados (PDR-0016/PDR-0020).
+- Afazer com data fatal: aviso ao responsável na véspera e no dia da
+  fatal.
+- Prazo: aviso ao responsável quando a data para fazer passa sem
+  conclusão (enquanto a fatal não venceu).
+- Atribuição direta, reatribuição (inclusive automática pela troca de
+  responsável do processo) e convite recebido: aviso ao destinatário.
+- Prazo gerado pelo andamento: aviso ao responsável do processo quando
+  o item é criado; data fatal alterada no andamento: novo aviso ao
+  responsável.
+- Conclusão: aviso ao criador, se não for o próprio responsável
+  (PDR-0016). Cancelamento: aviso ao responsável e participantes.
+- Canais externos (e-mail/push/SMS) e antecedência configurável ficam
+  fora de escopo.
+
+**Tela:** menu "Agenda Jurídica"; cabeçalho com "+ Novo" (escolha de
+tipo) e "Cancelados"; aviso "Convites recebidos (n)" com
+aceitar/recusar na própria página; barra de filtros única (Tipo,
+Natureza, Escopo, Pessoa — só `gerir`/Admin, com "+ Novo para esta
+pessoa" —, Delegados por mim, Origem, Processo, Cliente) preservada ao
+alternar as visões Meu dia/Semana (padrão: Atrasados · Hoje · Amanhã ·
+Próximos 7 dias · Sem data), Calendário mensal e Kanban (só afazeres).
+Rotas antigas `/tarefas/...` redirecionam para a Agenda Jurídica.
+
+**Integrações:**
+
+- Detalhe de Processo e de Cliente: card "Agenda do processo/cliente"
+  com os itens em aberto de qualquer tipo no escopo de leitura da
+  agenda do usuário, "+ Novo" pré-preenchido e "Ver todos" filtrado.
+  Sem o módulo Agenda Jurídica, o card não aparece.
+- Aba Prazos do processo: cada prazo leva ao item gerado, quando ele
+  está no escopo do usuário.
+- Dashboard: "Afazeres pendentes", "Agenda próxima" (confirmados e
+  pendentes de confirmação) e "Prazos a vencer" (itens Prazo por data
+  fatal) no escopo da agenda. Painel do gestor: atalho único "Ir para
+  Agenda Jurídica" filtrado pelo usuário.
+- Log de atividade registra criação, edição, status, reatribuição,
+  participantes e exclusão.
+
+Fora de escopo: gamificação/avaliação de desempenho, arrastar e soltar,
+recorrência, checklist/subtarefas, fluxos de trabalho, dias
+úteis/feriados, catálogo legal de prazos
+(`specs/agenda-prazos-processuais-automaticos.md`, evolução futura),
+Google/Outlook, múltiplos fusos, catálogo de tipos configurável.
 
 ### Equipe como atalho de seleção
 
-Em Processos ("Integrantes habilitados", PDR-0014), Agenda
-(participantes do compromisso) e Tarefas (atribuídos/participantes),
+Em Processos ("Integrantes habilitados", PDR-0014) e na Agenda
+Jurídica (atribuídos/participantes do item),
 escolher uma Equipe só seleciona seus membros ativos como pessoas
 individuais — nenhum vínculo com a equipe é gravado (PDR-0028).
 Equipe inativa não é oferecida; sem equipe ativa cadastrada a tela
 mostra "Nenhuma equipe cadastrada ainda".
 
-- Criação (Tarefa: "Atribuir a"; Agenda: participantes): uma linha de
+- Criação (Agenda Jurídica: "Atribuir a"): uma linha de
   botões de equipe acima da lista marca as caixinhas dos membros
   ativos (pode clicar em várias equipes; depois desmarca-se quem não
-  deve entrar). Em Tarefas, a lista de "Responsável" acompanha os
-  marcados; a equipe nunca é responsável.
-- Edição (Processos: card "Integrantes"; Tarefas e Agenda: card de
+  deve entrar). A lista de "Responsável" acompanha os marcados; a
+  equipe nunca é responsável.
+- Edição (Processos: card "Integrantes"; Agenda Jurídica: card de
   participantes): "Adicionar pessoa" e "Adicionar equipe" são
   rotulados. Escolher a equipe abre a lista dos membros ativos,
   todos marcados; quem já está no alvo aparece marcado e desabilitado.
@@ -286,46 +310,12 @@ mostra "Nenhuma equipe cadastrada ainda".
   da equipe não perde acesso automaticamente — a remoção é manual.
 - O servidor valida cada usuário (elegível no módulo e membro ativo da
   equipe informada); não confia no JS.
-- Em Processos não afeta o responsável principal; em Agenda cada
-  participante passa pela confirmação de presença normal (PDR-0020).
+- Em Processos não afeta o responsável principal; em Evento da Agenda
+  Jurídica cada participante passa pela confirmação de presença normal
+  (PDR-0020).
   Nenhuma habilitação nova — cada módulo exige a mesma que já exige
   para gerenciar integrante/participante. O grupo de chat automático
   por equipe (PDR-0026) não muda.
-
-### Agenda
-
-Compromissos manuais e originados de processo, lista + calendário
-mensal (mesmos dados, duas visões) convivendo na mesma página, com
-alternância dinâmica sem recarregar.
-
-- Prazo processual relevante deve poder aparecer na agenda, preservando
-  a referência de origem mesmo após edição.
-- Notificação (PDR-0016): todo compromisso/prazo notifica automaticamente
-  dentro do sistema 15 minutos antes, por verificação periódica em
-  segundo plano, sem ação do usuário. Canais externos (e-mail/push/SMS)
-  e antecedência configurável ficam fora de escopo.
-- Sincronização bidirecional automática prazo↔evento não está
-  claramente aprovada em nenhum PDR — não presumir esse comportamento.
-- Faixa de sub-abas abaixo da lista/calendário: "Novos na sua agenda
-  (últimas 24h)", "Adicionado por terceiro" e "Convites recebidos"
-  (PDR-0033) sempre visíveis para qualquer usuário; "Delegados por mim"
-  e "Agenda de outros usuários" só para quem já tem, respectivamente, a
-  habilitação de criar compromisso para outros e a Permissão
-  "Agenda"/"Todos" + Gerir — nenhuma habilitação nova. Definir outro
-  usuário como responsável do compromisso segue a regra de "Delegação
-  por convite" (ver seção em Tarefas) — direto só para Administrador ou
-  gerente→subordinado da própria Equipe, convite nos demais casos;
-  "Delegados por mim" mostra o estado do convite de cada item. Não
-  confundir com a confirmação de presença de participante logo abaixo.
-- Verificar disponibilidade de um convidado ao adicioná-lo como
-  participante (mostra os compromissos que ele já tem no horário)
-  é só informativo — nunca impede a criação do compromisso — e exige a
-  mesma permissão da aba "Agenda de outros usuários".
-- Fora de escopo: Google Calendar, múltiplos fusos, recorrência de
-  evento.
-
-- Criar/editar compromisso: botão "Adicionar todos os usuários" como
-  participantes (cada um com confirmação de presença normal).
 
 ### Equipes
 
@@ -586,8 +576,8 @@ equipes, identidade do escritório, consulta ao plano SaaS.
 
 Ver "Dois produtos de IA" acima e
 [PDR-0008](decisions/PDR-0008-ia-apos-nucleo-funcional.md). Nenhuma
-funcionalidade essencial do núcleo (Clientes, Processos, Tarefas,
-Agenda, Financeiro) exige IA para operar. Honorário sugerido por IA
+funcionalidade essencial do núcleo (Clientes, Processos, Agenda
+Jurídica, Financeiro) exige IA para operar. Honorário sugerido por IA
 depende de confirmação humana (PDR-0007); resultado de IA nunca amplia
 acesso a documento que o usuário não tivesse antes.
 
