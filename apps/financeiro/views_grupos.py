@@ -25,8 +25,12 @@ from .services import (
     remover_membro_do_grupo,
     saldo_de_custas_do,
     saldo_do_grupo,
+    uso_do_credito,
+    uso_do_credito_por_custa,
 )
-from .views import _exige_nivel_dados, _formatar_moeda, _formatar_saldo
+from .views import (
+    _anotar_uso_do_credito, _exige_nivel_dados, _formatar_moeda, _formatar_saldo, _resumo_uso_do_credito,
+)
 
 
 def _exige_acesso_custas(user):
@@ -66,6 +70,7 @@ def extrato_custas_grupo(request, grupo_id):
     lancamentos = [c for c in custas_grupo if c.tipo in ("adiantamento", "paga_pelo_cliente")]
     creditos = [c for c in custas_grupo if c.tipo == "deposito_cliente"]
     saldo = saldo_do_grupo(grupo)
+    _anotar_uso_do_credito(lancamentos, uso_do_credito_por_custa(custas_grupo))
     membros_com_lancamentos = {c.cliente_id for c in custas_grupo if c.cliente_id}
 
     return render(request, "financeiro/extrato_custas_grupo.html", {
@@ -156,8 +161,9 @@ def apagar_grupo(request, grupo_id):
 
 @login_required
 def aviso_saldo_custa(request):
-    """Saldo atual e saldo após o débito, para o aviso do formulário de
-    lançar débito ("Adiantado pelo escritório"). Só informativo."""
+    """Saldo atual, quanto do débito sai do crédito e quanto fica a cobrar,
+    e saldo após o débito, para o aviso do formulário de lançar débito
+    ("Adiantado pelo escritório"). Só informativo."""
     _exige_acesso_custas(request.user)
     cliente_id = request.GET.get("cliente") or ""
     cliente = Cliente.objects.filter(pk=cliente_id, ativo=True).first() if cliente_id.isdigit() else None
@@ -183,4 +189,5 @@ def aviso_saldo_custa(request):
         "depois_negativo": depois < 0,
         "valor_informado": valor > 0,
         "valor": _formatar_moeda(valor),
+        "uso_credito": _resumo_uso_do_credito(*uso_do_credito(saldo, valor)),
     })

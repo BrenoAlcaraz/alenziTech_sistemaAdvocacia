@@ -478,6 +478,101 @@ class TestAvisoDeSaldo(GruposBase):
         self.assertEqual(services.saldo_individual_do_cliente(self.holding), Decimal("0"))
 
 
+class TestUsoDoCredito(GruposBase):
+    """Custa paga pelo escritório: quanto sai do crédito e quanto fica a
+    cobrar — no aviso do formulário e em cada débito do extrato."""
+
+    AVISO = "/financeiro/custas/aviso-saldo/"
+
+    def test_desdobramento_pelo_saldo_antes_da_custa(self):
+        casos = [
+            ("500", "300", "300", "0"),
+            ("200", "450", "200", "250"),
+            ("0", "100", "0", "100"),
+            ("-50", "100", "0", "100"),
+        ]
+        for saldo, valor, debitado, a_cobrar in casos:
+            self.assertEqual(
+                services.uso_do_credito(Decimal(saldo), Decimal(valor)),
+                (Decimal(debitado), Decimal(a_cobrar)),
+                (saldo, valor),
+            )
+
+    def test_aviso_com_credito_suficiente(self):
+        self._custa(tipo="deposito_cliente", valor="500.00")
+
+        dados = self._get(self.AVISO, cliente=self.holding.pk, valor="300").json()
+
+        self.assertEqual(dados["uso_credito"], "R$ 300,00 debitado do crédito")
+
+    def test_aviso_com_credito_insuficiente(self):
+        self._custa(tipo="deposito_cliente", valor="200.00")
+
+        dados = self._get(self.AVISO, cliente=self.holding.pk, valor="450").json()
+
+        self.assertEqual(dados["uso_credito"], "R$ 200,00 debitado do crédito e R$ 250,00 a cobrar")
+
+    def test_aviso_sem_credito(self):
+        dados = self._get(self.AVISO, cliente=self.holding.pk, valor="100").json()
+
+        self.assertEqual(dados["uso_credito"], "R$ 100,00 a cobrar")
+
+    def test_aviso_de_grupo_usa_credito_do_grupo(self):
+        self._credito_grupo("100.00")
+
+        dados = self._get(self.AVISO, cliente=self.filial_a.pk, valor="150").json()
+
+        self.assertEqual(dados["uso_credito"], "R$ 100,00 debitado do crédito e R$ 50,00 a cobrar")
+
+    def test_extrato_do_cliente_anota_cada_debito_em_ordem_cronologica(self):
+        self._custa(tipo="deposito_cliente", valor="500.00", data="2026-09-01")
+        guia = self._custa(valor="300.00", data="2026-09-02", descricao="Guia")
+        pericia = self._custa(valor="450.00", data="2026-09-03", descricao="Perícia")
+        pago_pelo_cliente = self._custa(tipo="paga_pelo_cliente", valor="80.00", data="2026-09-04")
+
+        r = self._get(f"/financeiro/custas/cliente/{self.holding.pk}/")
+
+        uso = {c.pk: getattr(c, "uso_credito", "") for c in r.context["lancamentos"]}
+        self.assertEqual(uso[guia.pk], "R$ 300,00 debitado do crédito")
+        self.assertEqual(uso[pericia.pk], "R$ 200,00 debitado do crédito e R$ 250,00 a cobrar")
+        self.assertEqual(uso[pago_pelo_cliente.pk], "")
+        self.assertContains(r, "R$ 200,00 debitado do crédito e R$ 250,00 a cobrar")
+        self.assertEqual(r.context["saldo"], "− R$ 250,00")
+
+    def test_anotacao_acompanha_o_filtro_sem_mudar_o_calculo(self):
+        self._custa(tipo="deposito_cliente", valor="100.00", data="2026-09-01")
+        self._custa(valor="100.00", data="2026-09-02")
+        segunda = self._custa(valor="100.00", data="2026-09-03", processo=self._processo(self.holding))
+
+        r = self._get(f"/financeiro/custas/cliente/{self.holding.pk}/", processo=segunda.processo_id)
+
+        self.assertEqual([c.uso_credito for c in r.context["lancamentos"]], ["R$ 100,00 a cobrar"])
+
+    def test_ficha_do_membro_anota_pelo_saldo_do_grupo(self):
+        self._credito_grupo("100.00")
+        self._custa(cliente=self.filial_b, valor="60.00", data="2026-09-02")
+        debito_alfa = self._custa(cliente=self.filial_a, valor="100.00", data="2026-09-03")
+
+        r = self._get(f"/financeiro/custas/cliente/{self.filial_a.pk}/")
+
+        self.assertEqual(
+            {c.pk: c.uso_credito for c in r.context["lancamentos"]},
+            {debito_alfa.pk: "R$ 40,00 debitado do crédito e R$ 60,00 a cobrar"},
+        )
+
+    def test_extrato_do_grupo_anota_cada_debito(self):
+        self._credito_grupo("100.00")
+        debito = self._custa(cliente=self.filial_a, valor="150.00", data="2026-09-02")
+
+        r = self._get(f"/financeiro/custas/grupo/{self.grupo.pk}/")
+
+        self.assertEqual(
+            {c.pk: c.uso_credito for c in r.context["lancamentos"]},
+            {debito.pk: "R$ 100,00 debitado do crédito e R$ 50,00 a cobrar"},
+        )
+        self.assertContains(r, "R$ 100,00 debitado do crédito e R$ 50,00 a cobrar")
+
+
 class TestAutorizacaoDeGrupos(GruposBase):
     def _urls_get(self):
         return [

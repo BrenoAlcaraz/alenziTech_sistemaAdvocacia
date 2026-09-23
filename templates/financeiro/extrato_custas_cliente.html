@@ -76,6 +76,9 @@
           {% if c.grupo %}
             <p class="text-xs text-gray-500 mt-0.5">Pago pelo saldo do Grupo {{ c.grupo.nome }}</p>
           {% endif %}
+          {% if c.uso_credito %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ c.uso_credito }}</p>
+          {% endif %}
           {% if c.anexo %}
             <div class="flex items-center gap-2 mt-1">
               <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>

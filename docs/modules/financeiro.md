@@ -124,6 +124,15 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   saldo (com crédito / em débito / sem saldo pendente). Formulário de
   débito "Adiantado pelo escritório" mostra saldo atual e após o débito,
   inclusive negativo (informativo).
+- Uso do crédito: custa paga pelo escritório consome primeiro o crédito
+  disponível (cliente ou grupo); o que exceder fica a cobrar (saldo
+  negativo). O formulário de débito e cada débito nos extratos do
+  cliente e do grupo mostram "R$ X debitado do crédito", "R$ X debitado
+  do crédito e R$ Y a cobrar" ou "R$ Y a cobrar", pelo saldo acumulado
+  em ordem cronológica antes do débito — vale também para a custa gerada
+  por solicitação paga. É só exibição: recalculado a cada leitura, nunca
+  gravado, sem alterar a fórmula do saldo. O lançamento do financeiro
+  geral nunca movimenta esse saldo.
 
 ## Solicitações financeiras (PDR-0006, fluxo em PDR-0015)
 

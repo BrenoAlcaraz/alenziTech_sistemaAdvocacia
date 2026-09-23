@@ -266,6 +266,27 @@ def saldo_liquido_custas(custas):
     return sum((_EFEITO_SALDO_POR_TIPO.get(c.tipo, 0) * c.valor for c in custas), Decimal("0"))
 
 
+def uso_do_credito(saldo_antes, valor):
+    """`(debitado do crédito, a cobrar)` de uma custa paga pelo escritório,
+    dado o saldo antes dela. Só desdobra o efeito para exibição — o saldo
+    continua sendo a fórmula acima, nada disso é gravado."""
+    debitado = min(valor, max(saldo_antes, Decimal("0")))
+    return debitado, valor - debitado
+
+
+def uso_do_credito_por_custa(custas):
+    """`{pk: (debitado, a_cobrar)}` de cada adiantamento, pelo saldo
+    acumulado em ordem cronológica. `custas` precisa ser o histórico
+    inteiro de um mesmo saldo (cliente individual ou grupo)."""
+    saldo = Decimal("0")
+    uso = {}
+    for custa in sorted(custas, key=lambda c: (c.data, c.criado_em, c.pk)):
+        if custa.tipo == "adiantamento":
+            uso[custa.pk] = uso_do_credito(saldo, custa.valor)
+        saldo += _EFEITO_SALDO_POR_TIPO.get(custa.tipo, 0) * custa.valor
+    return uso
+
+
 def saldo_individual_do_cliente(cliente):
     """Só as custas sem grupo: o que foi debitado do saldo de um grupo
     nunca mexe no saldo individual do membro."""

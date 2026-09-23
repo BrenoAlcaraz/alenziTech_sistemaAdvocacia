@@ -61,6 +61,7 @@ from .services import (
     registrar_credito_cliente,
     saldo_liquido_custas,
     saldo_previsto,
+    uso_do_credito_por_custa,
     PERIODOS,
     janela_do_periodo,
     solicitacoes_vencendo_no_periodo,
@@ -161,6 +162,21 @@ def _formatar_saldo(valor):
     valor = valor or Decimal("0")
     sinal = "+ " if valor >= 0 else "− "
     return sinal + _formatar_moeda(abs(valor))
+
+
+def _resumo_uso_do_credito(debitado, a_cobrar):
+    partes = []
+    if debitado:
+        partes.append(f"{_formatar_moeda(debitado)} debitado do crédito")
+    if a_cobrar:
+        partes.append(f"{_formatar_moeda(a_cobrar)} a cobrar")
+    return " e ".join(partes)
+
+
+def _anotar_uso_do_credito(lancamentos, uso):
+    for custa in lancamentos:
+        if custa.pk in uso:
+            custa.uso_credito = _resumo_uso_do_credito(*uso[custa.pk])
 
 
 _NIVEIS_FINANCEIRO_DADOS = {NIVEL_DADOS_PROPRIOS, NIVEL_DADOS_TODOS}
@@ -491,8 +507,16 @@ def extrato_custas_cliente(request, cliente_id):
     creditos = [c for c in custas_cliente if c.tipo == "deposito_cliente"]
     # Débitos pagos pelo saldo do grupo aparecem no histórico do membro,
     # mas o saldo individual só considera o que não é do grupo.
-    saldo = saldo_liquido_custas(c for c in custas_cliente if not c.grupo_id)
+    individuais = [c for c in custas_cliente if not c.grupo_id]
+    saldo = saldo_liquido_custas(individuais)
     membro = MembroGrupoCustas.objects.select_related("grupo").filter(cliente=cliente).first()
+
+    # Débito pago pelo saldo de um grupo só se desdobra olhando o histórico
+    # do grupo inteiro, não só o do membro.
+    uso = uso_do_credito_por_custa(individuais)
+    for grupo_id in {c.grupo_id for c in lancamentos if c.grupo_id}:
+        uso.update(uso_do_credito_por_custa(CustaJudicial.objects.filter(grupo_id=grupo_id)))
+    _anotar_uso_do_credito(lancamentos, uso)
 
     # Filtros só da lista de lançamentos (custas), nunca do saldo.
     processos_do_extrato = {c.processo_id: c.processo for c in lancamentos if c.processo_id}

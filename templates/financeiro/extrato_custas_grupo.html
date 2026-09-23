@@ -44,6 +44,9 @@
           <p class="text-xs text-gray-400 truncate" title="{{ c.get_tipo_display }}{% if c.cliente %} &bull; Cliente: {{ c.cliente }}{% endif %}{% if c.processo %} &bull; Processo: {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}">
             {{ c.get_tipo_display }}{% if c.cliente %} &bull; Cliente: {{ c.cliente }}{% endif %}{% if c.processo %} &bull; Processo: {{ c.processo }}{% endif %} &bull; {{ c.data|date:"d/m/Y" }}
           </p>
+          {% if c.uso_credito %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ c.uso_credito }}</p>
+          {% endif %}
           {% if c.anexo %}
             <div class="flex items-center gap-2 mt-1">
               <span class="truncate text-xs text-gray-500" title="{{ c.anexo.name }}">{{ c.anexo.name }}</span>

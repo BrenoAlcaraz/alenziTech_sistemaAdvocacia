@@ -196,8 +196,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ── Aviso de saldo no lançamento de custa ───────────────────────────────────
-  // Só para "Adiantado pelo escritório": mostra o saldo atual e o saldo após o
-  // débito (cliente ou grupo). O cálculo é do backend (data-aviso-saldo-url);
+  // Só para "Adiantado pelo escritório": mostra o saldo atual, quanto do
+  // débito sai do crédito e quanto fica a cobrar, e o saldo após o débito
+  // (cliente ou grupo). O cálculo é do backend (data-aviso-saldo-url);
   // aqui só se consulta e se exibe — informativo, não bloqueia o envio.
   document.querySelectorAll("[data-aviso-saldo-url]").forEach((form) => {
     const aviso = form.querySelector("#aviso-saldo-custa");
@@ -216,8 +217,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }`;
       const linhas = [`Saldo atual de ${dados.origem}: ${dados.atual}`];
       if (dados.valor_informado) {
-        linhas.push(`Saldo após este débito de ${dados.valor}: ${dados.depois}`);
-        if (negativo) linhas.push("O saldo ficará negativo (a cobrar).");
+        linhas.push(`Este débito de ${dados.valor}: ${dados.uso_credito}.`);
+        linhas.push(`Saldo após o débito: ${dados.depois}`);
       }
       aviso.replaceChildren(...linhas.map((texto) => {
         const p = document.createElement("p");
