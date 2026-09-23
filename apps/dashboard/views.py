@@ -27,7 +27,6 @@ from apps.accounts.permissoes_constants import (
     MODULO_GERIR,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
-    MODULO_TAREFAS,
     NIVEL_DADOS_PROPRIOS,
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
@@ -37,8 +36,14 @@ from apps.accounts.permissoes_constants import (
 from apps.clientes.models import Cliente
 from apps.processos.models import Intimacao, MovimentacaoProcessual, Processo
 from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
-from apps.tarefas.models import Tarefa
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import (
+    STATUS_A_FAZER,
+    STATUS_ENCERRADOS,
+    TIPOS_AFAZER,
+    TIPOS_EVENTO,
+    ItemAgenda,
+    ParticipanteItemAgenda,
+)
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
 from apps.financeiro.services import (
     PERIODOS,
@@ -98,19 +103,20 @@ def _formatar_moeda(valor):
 
 def _compromissos_confirmados(user, hoje):
     """
-    Compromissos dos próximos 7 dias onde `user` é responsável ou
+    Eventos dos próximos 7 dias onde `user` é responsável ou
     participante confirmado — sempre pessoal, independente do nível
     somente_seus/todos do módulo Agenda (só rege a tela de Agenda).
     """
-    return Compromisso.objects.filter(
-        status="agendado",
+    return ItemAgenda.objects.filter(
+        tipo__in=TIPOS_EVENTO,
+        status=STATUS_A_FAZER,
         data_hora_inicio__date__gte=hoje,
         data_hora_inicio__date__lte=hoje + timedelta(days=7),
     ).filter(
         Q(responsavel=user)
         | Q(
             participacoes__usuario=user,
-            participacoes__status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+            participacoes__status=ParticipanteItemAgenda.STATUS_CONFIRMADO,
         )
     ).distinct()
 
@@ -257,8 +263,9 @@ def painel(request):
 
     acesso_clientes = tem_permissao_modulo(request.user, MODULO_CLIENTES)
     acesso_processos = tem_permissao_modulo(request.user, MODULO_PROCESSOS)
-    acesso_tarefas = tem_permissao_modulo(request.user, MODULO_TAREFAS)
     acesso_agenda = tem_permissao_modulo(request.user, MODULO_AGENDA)
+    # Tarefas foi incorporado à Agenda Jurídica: o bloco lê afazeres.
+    acesso_tarefas = acesso_agenda
     acesso_financeiro = (
         tem_permissao_modulo(request.user, MODULO_FINANCEIRO)
         and _tem_acesso_dados_financeiro(request.user)
@@ -287,9 +294,9 @@ def painel(request):
             qs_processos = qs_processos.filter(responsavel=request.user)
         resumo["processos_ativos"] = qs_processos.count()
 
-    escopo_tarefas = _nivel_escopo(request.user, MODULO_TAREFAS) if acesso_tarefas else None
+    escopo_tarefas = _nivel_escopo(request.user, MODULO_AGENDA) if acesso_tarefas else None
     if acesso_tarefas:
-        qs_tarefas = Tarefa.objects.exclude(status__in=["concluida", "cancelada"])
+        qs_tarefas = ItemAgenda.objects.filter(tipo__in=TIPOS_AFAZER).exclude(status__in=STATUS_ENCERRADOS)
         if escopo_tarefas == NIVEL_SOMENTE_SEUS:
             qs_tarefas = qs_tarefas.filter(responsavel=request.user)
         resumo["tarefas_pendentes"] = qs_tarefas.count()
@@ -309,29 +316,30 @@ def painel(request):
     if acesso_usuarios_ativos:
         resumo["usuarios_ativos"] = User.objects.filter(is_active=True).count()
 
-    tarefas_dashboard = Tarefa.objects.none()
+    tarefas_dashboard = ItemAgenda.objects.none()
     if acesso_tarefas:
-        tarefas_dashboard = Tarefa.objects.select_related(
+        tarefas_dashboard = ItemAgenda.objects.select_related(
             "cliente", "processo", "responsavel"
-        ).exclude(status__in=["concluida", "cancelada"])
+        ).filter(tipo__in=TIPOS_AFAZER).exclude(status__in=STATUS_ENCERRADOS)
         if escopo_tarefas == NIVEL_SOMENTE_SEUS:
             tarefas_dashboard = tarefas_dashboard.filter(responsavel=request.user)
-        tarefas_dashboard = tarefas_dashboard.order_by("prazo", "-prioridade")[:5]
+        tarefas_dashboard = tarefas_dashboard.order_by("data_fatal", "data_para_fazer", "-prioridade")[:5]
 
-    compromissos_dashboard = Compromisso.objects.none()
-    compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.none()
+    compromissos_dashboard = ItemAgenda.objects.none()
+    compromissos_pendentes_dashboard = ParticipanteItemAgenda.objects.none()
     if acesso_agenda:
         compromissos_dashboard = _compromissos_confirmados(request.user, hoje).select_related(
             "cliente", "processo", "responsavel"
         ).order_by("data_hora_inicio")[:5]
 
-        compromissos_pendentes_dashboard = ParticipanteCompromisso.objects.select_related(
-            "compromisso", "compromisso__cliente", "compromisso__processo"
+        compromissos_pendentes_dashboard = ParticipanteItemAgenda.objects.select_related(
+            "item", "item__cliente", "item__processo"
         ).filter(
             usuario=request.user,
-            status=ParticipanteCompromisso.STATUS_PENDENTE,
-            compromisso__status="agendado",
-        ).order_by("compromisso__data_hora_inicio")
+            status=ParticipanteItemAgenda.STATUS_PENDENTE,
+            item__tipo__in=TIPOS_EVENTO,
+            item__status=STATUS_A_FAZER,
+        ).order_by("item__data_hora_inicio")
 
     financeiro_dashboard = LancamentoFinanceiro.objects.none()
     if acesso_financeiro:

@@ -9,7 +9,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, MODULO_GERIR, NIVEL_TODOS
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 
 
 class TestUsuarioFiltroAgenda(TenantTestCase):
@@ -25,7 +25,7 @@ class TestUsuarioFiltroAgenda(TenantTestCase):
         self.http_host = dominio.domain if dominio else "localhost"
 
         self.alvo = User.objects.create_user("alvo_agenda", password="testpass")
-        self.compromisso_alvo = Compromisso.objects.create(
+        self.compromisso_alvo = ItemAgenda.objects.create(tipo="reuniao", 
             titulo="Compromisso do alvo",
             responsavel=self.alvo,
             data_hora_inicio=timezone.now(),
@@ -48,7 +48,7 @@ class TestUsuarioFiltroAgenda(TenantTestCase):
         self.client.force_login(comum)
 
         resposta = self.client.get(
-            "/agenda/", {"usuario": self.alvo.pk, "filtro": "todos"}, HTTP_HOST=self.http_host
+            "/agenda/", {"usuario": self.alvo.pk}, HTTP_HOST=self.http_host
         )
         self.assertEqual(resposta.status_code, 200)
         self.assertIsNone(resposta.context["usuario_filtro"])
@@ -59,8 +59,8 @@ class TestUsuarioFiltroAgenda(TenantTestCase):
         self.client.force_login(gestor)
 
         resposta = self.client.get(
-            "/agenda/", {"usuario": self.alvo.pk, "filtro": "todos"}, HTTP_HOST=self.http_host
+            "/agenda/", {"usuario": self.alvo.pk}, HTTP_HOST=self.http_host
         )
         self.assertEqual(resposta.status_code, 200)
         self.assertEqual(resposta.context["usuario_filtro"], self.alvo)
-        self.assertIn(self.compromisso_alvo, resposta.context["compromissos"])
+        self.assertIn(self.compromisso_alvo, resposta.context["itens"])

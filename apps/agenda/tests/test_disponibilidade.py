@@ -12,7 +12,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, MODULO_GERIR, NIVEL_TODOS
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 
 
 class AgendaDisponibilidadeBase(TenantTestCase):
@@ -100,7 +100,7 @@ class TestDisponibilidadeConflito(AgendaDisponibilidadeBase):
         self.assertEqual(r.json()["compromissos"], [])
 
     def test_com_conflito_retorna_compromisso_existente(self):
-        Compromisso.objects.create(
+        ItemAgenda.objects.create(tipo="reuniao", 
             titulo="Audiência do convidado",
             responsavel=self.convidado,
             data_hora_inicio="2026-09-20T10:00:00Z",
@@ -117,7 +117,7 @@ class TestDisponibilidadeConflito(AgendaDisponibilidadeBase):
 
     def test_nao_impede_criacao_do_compromisso(self):
         """Critério de aceite: disponibilidade é informativa, nunca bloqueia."""
-        Compromisso.objects.create(
+        ItemAgenda.objects.create(tipo="reuniao", 
             titulo="Já ocupado",
             responsavel=self.convidado,
             data_hora_inicio="2026-09-20T10:00:00Z",
@@ -126,7 +126,7 @@ class TestDisponibilidadeConflito(AgendaDisponibilidadeBase):
             "/agenda/novo/",
             {
                 "titulo": "Novo Compromisso",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-20T10:00",
                 "responsavel": self.gestor.pk,
                 "participantes": [self.convidado.pk],
@@ -134,10 +134,10 @@ class TestDisponibilidadeConflito(AgendaDisponibilidadeBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
-        self.assertTrue(Compromisso.objects.filter(titulo="Novo Compromisso").exists())
+        self.assertTrue(ItemAgenda.objects.filter(titulo="Novo Compromisso").exists())
 
     def test_horario_diferente_nao_gera_conflito(self):
-        Compromisso.objects.create(
+        ItemAgenda.objects.create(tipo="reuniao", 
             titulo="Manhã",
             responsavel=self.convidado,
             data_hora_inicio="2026-09-20T08:00:00Z",

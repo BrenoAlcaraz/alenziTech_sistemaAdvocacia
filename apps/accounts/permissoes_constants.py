@@ -15,7 +15,6 @@ NOME_PAPEL_LIMITADO = "Limitado"
 MODULO_PROCESSOS = "processos"
 MODULO_CLIENTES = "clientes"
 MODULO_FINANCEIRO = "financeiro"
-MODULO_TAREFAS = "tarefas"
 MODULO_MODELOS = "modelos"
 MODULO_CHAT = "chat"
 MODULO_PAINEL = "painel"
@@ -26,11 +25,10 @@ MODULO_CHOICES = [
     (MODULO_PROCESSOS, "Processos"),
     (MODULO_CLIENTES, "Clientes"),
     (MODULO_FINANCEIRO, "Financeiro"),
-    (MODULO_TAREFAS, "Tarefas"),
     (MODULO_MODELOS, "Modelos de peças"),
     (MODULO_CHAT, "Chat"),
     (MODULO_PAINEL, "Painel"),
-    (MODULO_AGENDA, "Agenda"),
+    (MODULO_AGENDA, "Agenda Jurídica"),
     (MODULO_GERIR, "Gerir"),
 ]
 
@@ -40,9 +38,8 @@ MODULO_HABILITACAO_CHOICES = [
     (MODULO_PROCESSOS, "Processos"),
     (MODULO_CLIENTES, "Clientes"),
     (MODULO_FINANCEIRO, "Financeiro"),
-    (MODULO_TAREFAS, "Tarefas"),
     (MODULO_MODELOS, "Modelos de peças"),
-    (MODULO_AGENDA, "Agenda"),
+    (MODULO_AGENDA, "Agenda Jurídica"),
     (MODULO_GERIR, "Gerir"),
 ]
 
@@ -68,7 +65,6 @@ NIVEL_CHOICES = [
 NIVEIS_POR_MODULO = {
     MODULO_PROCESSOS: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_CLIENTES: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
-    MODULO_TAREFAS: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_MODELOS: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_PAINEL: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
     MODULO_AGENDA: [NIVEL_SOMENTE_SEUS, NIVEL_TODOS],
@@ -97,15 +93,13 @@ HAB_CLIENTES_EXCLUIR = "clientes_excluir"
 HAB_CLIENTES_DOCUMENTO_ADICIONAR = "clientes_documento_adicionar"
 HAB_CLIENTES_DOCUMENTO_EXCLUIR = "clientes_documento_excluir"
 
-HAB_TAREFAS_ATRIBUIR_OUTROS = "tarefas_atribuir_outros"
-
 HAB_MODELOS_CRIAR = "modelos_criar"
 HAB_MODELOS_EDITAR_ESTILO = "modelos_editar_estilo"
 HAB_MODELOS_EDITAR_ALHEIO = "modelos_editar_alheio"
 HAB_MODELOS_EXCLUIR_ALHEIO = "modelos_excluir_alheio"
 HAB_MODELOS_GERIR_CATEGORIAS = "modelos_gerir_categorias"
 
-HAB_AGENDA_CRIAR_PARA_OUTROS = "agenda_criar_para_outros"
+HAB_AGENDA_ATRIBUIR_OUTROS = "agenda_atribuir_outros"
 
 HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO = "financeiro_reabrir_lancamento_pago"
 
@@ -131,13 +125,12 @@ ITEM_CHOICES = [
     (HAB_CLIENTES_EXCLUIR, "Excluir cliente definitivamente"),
     (HAB_CLIENTES_DOCUMENTO_ADICIONAR, "Adicionar documento ao cliente"),
     (HAB_CLIENTES_DOCUMENTO_EXCLUIR, "Excluir documento do cliente"),
-    (HAB_TAREFAS_ATRIBUIR_OUTROS, "Atribuir tarefa a outros usuários"),
     (HAB_MODELOS_CRIAR, "Criar modelo de peça"),
     (HAB_MODELOS_EDITAR_ESTILO, "Editar estilo de peças"),
     (HAB_MODELOS_EDITAR_ALHEIO, "Editar modelo de peça de outro usuário"),
     (HAB_MODELOS_EXCLUIR_ALHEIO, "Excluir modelo de peça de outro usuário"),
     (HAB_MODELOS_GERIR_CATEGORIAS, "Gerir tipos de peça"),
-    (HAB_AGENDA_CRIAR_PARA_OUTROS, "Criar compromisso para outros usuários"),
+    (HAB_AGENDA_ATRIBUIR_OUTROS, "Atribuir itens da agenda a outros usuários"),
     (HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO, "Reabrir lançamento gerado por solicitação paga"),
     (HAB_GERIR_CRIAR_USUARIO, "Criar usuário"),
     (HAB_GERIR_HABILITAR_USUARIO_PROCESSOS, "Habilitar usuário em processos"),
@@ -166,9 +159,6 @@ ITENS_POR_MODULO = {
         HAB_CLIENTES_DOCUMENTO_ADICIONAR,
         HAB_CLIENTES_DOCUMENTO_EXCLUIR,
     ],
-    MODULO_TAREFAS: [
-        HAB_TAREFAS_ATRIBUIR_OUTROS,
-    ],
     MODULO_MODELOS: [
         HAB_MODELOS_CRIAR,
         HAB_MODELOS_EDITAR_ESTILO,
@@ -177,7 +167,7 @@ ITENS_POR_MODULO = {
         HAB_MODELOS_GERIR_CATEGORIAS,
     ],
     MODULO_AGENDA: [
-        HAB_AGENDA_CRIAR_PARA_OUTROS,
+        HAB_AGENDA_ATRIBUIR_OUTROS,
     ],
     MODULO_FINANCEIRO: [
         HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO,
@@ -199,11 +189,10 @@ NOMES_MODULOS = {
     MODULO_PROCESSOS: "Processos",
     MODULO_CLIENTES: "Clientes",
     MODULO_FINANCEIRO: "Financeiro",
-    MODULO_TAREFAS: "Tarefas",
     MODULO_MODELOS: "Modelos de peças",
     MODULO_CHAT: "Chat",
     MODULO_PAINEL: "Painel",
-    MODULO_AGENDA: "Agenda",
+    MODULO_AGENDA: "Agenda Jurídica",
     MODULO_GERIR: "Gerir",
 }
 
@@ -232,13 +221,12 @@ NOMES_ITENS = {
     HAB_CLIENTES_EXCLUIR: "Excluir cliente definitivamente",
     HAB_CLIENTES_DOCUMENTO_ADICIONAR: "Adicionar documento ao cliente",
     HAB_CLIENTES_DOCUMENTO_EXCLUIR: "Excluir documento do cliente",
-    HAB_TAREFAS_ATRIBUIR_OUTROS: "Atribuir tarefa a outros usuários",
     HAB_MODELOS_CRIAR: "Criar modelo de peça",
     HAB_MODELOS_EDITAR_ESTILO: "Editar estilo de peças",
     HAB_MODELOS_EDITAR_ALHEIO: "Editar modelo de peça de outro usuário",
     HAB_MODELOS_EXCLUIR_ALHEIO: "Excluir modelo de peça de outro usuário",
     HAB_MODELOS_GERIR_CATEGORIAS: "Gerir tipos de peça",
-    HAB_AGENDA_CRIAR_PARA_OUTROS: "Criar compromisso para outros usuários",
+    HAB_AGENDA_ATRIBUIR_OUTROS: "Atribuir itens da agenda a outros usuários",
     HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO: "Reabrir lançamento gerado por solicitação paga",
     HAB_GERIR_CRIAR_USUARIO: "Criar usuário",
     HAB_GERIR_HABILITAR_USUARIO_PROCESSOS: "Habilitar usuário em processos",

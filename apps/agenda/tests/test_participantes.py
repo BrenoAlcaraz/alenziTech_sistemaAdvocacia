@@ -22,7 +22,7 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import MODULO_AGENDA, NIVEL_SOMENTE_SEUS
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 from apps.notificacoes.models import Notificacao
 
 
@@ -61,15 +61,16 @@ class AgendaParticipantesBase(TenantTestCase):
 
     def _compromisso(self, *, responsavel, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Compromisso Teste",
             "data_hora_inicio": "2026-09-10T10:00:00Z",
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(responsavel=responsavel, **defaults)
+        return ItemAgenda.objects.create(responsavel=responsavel, **defaults)
 
-    def _participacao(self, compromisso, usuario, *, status=ParticipanteCompromisso.STATUS_PENDENTE):
-        return ParticipanteCompromisso.objects.create(
-            compromisso=compromisso, usuario=usuario, status=status
+    def _participacao(self, compromisso, usuario, *, status=ParticipanteItemAgenda.STATUS_PENDENTE):
+        return ParticipanteItemAgenda.objects.create(
+            item=compromisso, usuario=usuario, status=status
         )
 
 
@@ -100,28 +101,28 @@ class TestVisibilidadeParticipante(AgendaParticipantesBase):
 
     def test_participante_ve_compromisso_em_somente_seus(self):
         self.client.force_login(self.participante)
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Reunião com participante", titulos)
 
     def test_estranho_nao_ve_compromisso_em_somente_seus(self):
         self.client.force_login(self.estranho)
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertNotIn("Reunião com participante", titulos)
 
     def test_participante_recusado_continua_vendo_o_compromisso(self):
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.participante
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.participante
         )
-        participacao.status = ParticipanteCompromisso.STATUS_RECUSADO
+        participacao.status = ParticipanteItemAgenda.STATUS_RECUSADO
         participacao.save(update_fields=["status"])
 
         self.client.force_login(self.participante)
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Reunião com participante", titulos)
 
 
@@ -163,10 +164,10 @@ class TestGerenciarParticipantes(AgendaParticipantesBase):
         self.assertRedirects(
             r, f"/agenda/{self.compromisso.pk}/editar/", fetch_redirect_response=False
         )
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.convidado
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.convidado
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_PENDENTE)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_PENDENTE)
         notificacao = Notificacao.objects.get(destinatario=self.convidado)
         self.assertIn(self.compromisso.titulo, notificacao.mensagem)
 
@@ -179,7 +180,7 @@ class TestGerenciarParticipantes(AgendaParticipantesBase):
         )
         self.assertEqual(r.status_code, 404)
         self.assertFalse(
-            ParticipanteCompromisso.objects.filter(compromisso=self.compromisso).exists()
+            ParticipanteItemAgenda.objects.filter(item=self.compromisso).exists()
         )
 
     def test_responsavel_nao_convida_a_si_mesmo(self):
@@ -202,8 +203,8 @@ class TestGerenciarParticipantes(AgendaParticipantesBase):
             r, f"/agenda/{self.compromisso.pk}/editar/", fetch_redirect_response=False
         )
         self.assertFalse(
-            ParticipanteCompromisso.objects.filter(
-                compromisso=self.compromisso, usuario=self.convidado
+            ParticipanteItemAgenda.objects.filter(
+                item=self.compromisso, usuario=self.convidado
             ).exists()
         )
 
@@ -216,8 +217,8 @@ class TestGerenciarParticipantes(AgendaParticipantesBase):
         )
         self.assertEqual(r.status_code, 404)
         self.assertTrue(
-            ParticipanteCompromisso.objects.filter(
-                compromisso=self.compromisso, usuario=self.convidado
+            ParticipanteItemAgenda.objects.filter(
+                item=self.compromisso, usuario=self.convidado
             ).exists()
         )
 
@@ -234,8 +235,8 @@ class TestGerenciarParticipantes(AgendaParticipantesBase):
             r, f"/agenda/{self.compromisso.pk}/editar/", fetch_redirect_response=False
         )
         self.assertTrue(
-            ParticipanteCompromisso.objects.filter(
-                compromisso=self.compromisso, usuario=self.convidado
+            ParticipanteItemAgenda.objects.filter(
+                item=self.compromisso, usuario=self.convidado
             ).exists()
         )
 
@@ -273,10 +274,10 @@ class TestConfirmarRecusarPresenca(AgendaParticipantesBase):
             f"/agenda/{self.compromisso.pk}/confirmar-presenca/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.participante
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.participante
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_CONFIRMADO)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_CONFIRMADO)
 
     def test_participante_recusa_a_propria_presenca(self):
         self.client.force_login(self.participante)
@@ -284,20 +285,20 @@ class TestConfirmarRecusarPresenca(AgendaParticipantesBase):
             f"/agenda/{self.compromisso.pk}/recusar-presenca/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.participante
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.participante
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_RECUSADO)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_RECUSADO)
 
     def test_confirmar_nao_afeta_participacao_de_outro_usuario(self):
         self.client.force_login(self.participante)
         self.client.post(
             f"/agenda/{self.compromisso.pk}/confirmar-presenca/", HTTP_HOST=self.http_host
         )
-        outro = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.outro_participante
+        outro = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.outro_participante
         )
-        self.assertEqual(outro.status, ParticipanteCompromisso.STATUS_PENDENTE)
+        self.assertEqual(outro.status, ParticipanteItemAgenda.STATUS_PENDENTE)
 
     def test_responsavel_nao_confirma_presenca_de_outro_participante(self):
         self.client.force_login(self.responsavel)
@@ -346,10 +347,10 @@ class TestResetConfirmacaoPorReagendamento(AgendaParticipantesBase):
             data_hora_inicio="2026-09-10T10:00:00Z",
         )
         self._participacao(
-            self.compromisso, self.confirmado, status=ParticipanteCompromisso.STATUS_CONFIRMADO
+            self.compromisso, self.confirmado, status=ParticipanteItemAgenda.STATUS_CONFIRMADO
         )
         self._participacao(
-            self.compromisso, self.pendente, status=ParticipanteCompromisso.STATUS_PENDENTE
+            self.compromisso, self.pendente, status=ParticipanteItemAgenda.STATUS_PENDENTE
         )
 
     def _editar_data(self, nova_data):
@@ -358,7 +359,7 @@ class TestResetConfirmacaoPorReagendamento(AgendaParticipantesBase):
             f"/agenda/{self.compromisso.pk}/editar/",
             {
                 "titulo": self.compromisso.titulo,
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": nova_data,
             },
             HTTP_HOST=self.http_host,
@@ -368,10 +369,10 @@ class TestResetConfirmacaoPorReagendamento(AgendaParticipantesBase):
         r = self._editar_data("2026-09-15T14:00")
         self.assertRedirects(r, "/agenda/", fetch_redirect_response=False)
 
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.confirmado
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.confirmado
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_PENDENTE)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_PENDENTE)
         notificacao = Notificacao.objects.get(destinatario=self.confirmado)
         self.assertIn("reagendado", notificacao.mensagem)
 
@@ -388,8 +389,8 @@ class TestResetConfirmacaoPorReagendamento(AgendaParticipantesBase):
             self.compromisso.data_hora_inicio
         ).strftime("%Y-%m-%dT%H:%M")
         self._editar_data(mesma_data_local)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.confirmado
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.confirmado
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_CONFIRMADO)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_CONFIRMADO)
         self.assertFalse(Notificacao.objects.filter(destinatario=self.confirmado).exists())

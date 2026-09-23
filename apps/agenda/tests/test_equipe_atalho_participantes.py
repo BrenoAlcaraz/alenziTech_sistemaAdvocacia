@@ -1,6 +1,6 @@
 """
 Equipe como atalho de seleção na Agenda (PDR-0028): a lista de
-conferência envia só pessoas; cada uma vira ParticipanteCompromisso
+conferência envia só pessoas; cada uma vira ParticipanteItemAgenda
 individual e passa pela confirmação de presença de sempre (PDR-0020).
 Autorização é a mesma de `adicionar_participante` (edição do
 compromisso), sem habilitação nova.
@@ -11,7 +11,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import Equipe, MembroEquipe, PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, NIVEL_TODOS
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 
 
 class TestEquipeAtalhoParticipantes(TenantTestCase):
@@ -32,7 +32,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
         self.equipe = Equipe.objects.create(nome="Equipe Agenda")
         MembroEquipe.objects.create(usuario=self.membro_a, equipe=self.equipe, ativo=True)
         MembroEquipe.objects.create(usuario=self.membro_b, equipe=self.equipe, ativo=True)
-        self.compromisso = Compromisso.objects.create(
+        self.compromisso = ItemAgenda.objects.create(tipo="reuniao", 
             titulo="Compromisso Atalho",
             data_hora_inicio="2026-09-10T10:00:00Z",
             responsavel=self.responsavel,
@@ -58,17 +58,17 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
 
     def _participantes(self):
         return set(
-            ParticipanteCompromisso.objects.filter(compromisso=self.compromisso)
+            ParticipanteItemAgenda.objects.filter(item=self.compromisso)
             .values_list("usuario__username", flat=True)
         )
 
     def test_desmarcar_um_membro_convida_todos_menos_ele_como_pendentes(self):
         r = self._adicionar(self.equipe, [self.membro_a])
         self.assertRedirects(r, f"/agenda/{self.compromisso.pk}/editar/", fetch_redirect_response=False)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.membro_a
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.membro_a
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_PENDENTE)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_PENDENTE)
         self.assertEqual(self._participantes(), {"membro_a_agenda_atalho"})
 
     def test_membro_confirma_presenca_normalmente(self):
@@ -78,10 +78,10 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
             f"/agenda/{self.compromisso.pk}/confirmar-presenca/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=self.compromisso, usuario=self.membro_a
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=self.compromisso, usuario=self.membro_a
         )
-        self.assertEqual(participacao.status, ParticipanteCompromisso.STATUS_CONFIRMADO)
+        self.assertEqual(participacao.status, ParticipanteItemAgenda.STATUS_CONFIRMADO)
 
     def test_nada_fica_ligado_a_equipe_depois(self):
         self._adicionar(self.equipe, [self.membro_a, self.membro_b])
@@ -99,7 +99,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
         self._adicionar(self.equipe, [self.membro_a, self.membro_b])
         self._adicionar(outra, [self.membro_b, self.fora])
         self.assertEqual(
-            ParticipanteCompromisso.objects.filter(compromisso=self.compromisso).count(), 3
+            ParticipanteItemAgenda.objects.filter(item=self.compromisso).count(), 3
         )
 
     def test_responsavel_nao_vira_participante_mesmo_estando_na_equipe(self):
@@ -150,7 +150,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
-        compromisso = Compromisso.objects.get(titulo="Compromisso por atalho")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso por atalho")
         self.assertEqual(
             set(compromisso.participacoes.values_list("usuario__username", flat=True)),
             {"membro_a_agenda_atalho", "membro_b_agenda_atalho"},
@@ -172,7 +172,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
         )
 
     def test_convidar_todos_cria_participacao_pendente_para_cada_elegivel(self):
-        ParticipanteCompromisso.objects.create(compromisso=self.compromisso, usuario=self.fora)
+        ParticipanteItemAgenda.objects.create(item=self.compromisso, usuario=self.fora)
         r = self._convidar_todos()
         self.assertEqual(r.status_code, 302)
         self.assertEqual(
@@ -185,7 +185,7 @@ class TestEquipeAtalhoParticipantes(TenantTestCase):
         self._convidar_todos()
         self._convidar_todos()
         self.assertEqual(
-            ParticipanteCompromisso.objects.filter(compromisso=self.compromisso).count(), 3
+            ParticipanteItemAgenda.objects.filter(item=self.compromisso).count(), 3
         )
 
     def test_convidar_todos_exige_poder_editar_o_compromisso(self):

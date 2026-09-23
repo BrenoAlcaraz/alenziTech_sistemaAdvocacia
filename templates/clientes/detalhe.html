@@ -131,12 +131,12 @@
   <div class="flex items-center justify-between mb-3">
     <h2 class="text-sm font-semibold text-gray-700">Tarefas relacionadas <span class="text-gray-400">({{ tarefas_relacionadas_total }})</span></h2>
     {% if tarefas_relacionadas_total %}
-    <a href="{% url 'tarefas:quadro' %}?cliente={{ cliente.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
+    <a href="{% url 'agenda:index' %}?cliente={{ cliente.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
     {% endif %}
   </div>
   <div class="flex flex-col gap-2">
     {% for tarefa in tarefas_relacionadas %}
-      <a href="{% url 'tarefas:editar' tarefa.pk %}?next={% url 'clientes:detalhe' cliente.pk %}"
+      <a href="{% url 'agenda:editar' tarefa.pk %}"
          class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
         <p class="text-sm text-gray-900 truncate" title="{{ tarefa.titulo }}">{{ tarefa.titulo }}</p>
         <span class="badge-area flex-shrink-0">{{ tarefa.get_status_display }}</span>

@@ -155,16 +155,16 @@
     <div class="flex items-center justify-between mb-3">
       <h2 class="text-sm font-semibold text-gray-700">Tarefas relacionadas <span class="text-gray-400">({{ tarefas_relacionadas_total }})</span></h2>
       <div class="flex items-center gap-3">
-        <a href="{% url 'tarefas:nova' %}?processo={{ processo.pk }}&next={% url 'processos:detalhe' processo.pk %}" class="text-xs text-juridico-verde hover:underline">+ Nova tarefa</a>
+        <a href="{% url 'agenda:novo' %}?tipo=tarefa&processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">+ Nova tarefa</a>
         {% if tarefas_relacionadas_total %}
-        <a href="{% url 'tarefas:quadro' %}?processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
+        <a href="{% url 'agenda:index' %}?processo={{ processo.pk }}" class="text-xs text-juridico-verde hover:underline">Ver todas</a>
         {% endif %}
       </div>
     </div>
 
     <div class="flex flex-col gap-2">
       {% for tarefa in tarefas_relacionadas %}
-        <a href="{% url 'tarefas:editar' tarefa.pk %}?next={% url 'processos:detalhe' processo.pk %}"
+        <a href="{% url 'agenda:editar' tarefa.pk %}"
            class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
           <p class="text-sm text-gray-900 truncate" title="{{ tarefa.titulo }}">{{ tarefa.titulo }}</p>
           <span class="badge-area flex-shrink-0">{{ tarefa.get_status_display }}</span>
@@ -281,7 +281,7 @@
   {# Timeline de movimentações #}
   <div class="flex flex-col gap-4">
     {% for mov in movimentacoes %}
-      <div class="flex gap-3">
+      <div class="flex gap-3" id="andamento-{{ mov.pk }}">
         <div class="flex flex-col items-center">
           <div class="w-2.5 h-2.5 rounded-full bg-juridico-verde mt-1.5 flex-shrink-0"></div>
           {% if not forloop.last %}<div class="w-px flex-1 bg-gray-200 mt-1"></div>{% endif %}

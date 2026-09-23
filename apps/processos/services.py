@@ -268,12 +268,17 @@ def transferir_processos_de_usuarios_sem_acesso(usuario_ids):
         if tem_permissao_modulo(usuario, MODULO_PROCESSOS):
             continue
 
-        processos = Processo.objects.select_for_update().filter(responsavel=usuario)
-        if not processos.exists():
+        processos = list(Processo.objects.select_for_update().filter(responsavel=usuario))
+        if not processos:
             continue
 
         administrador = _administrador_ativo()
-        transferidos += processos.update(responsavel=administrador)
+        # save() por processo (não update()) para os signals de quem
+        # acompanha o responsável — ex.: Prazos gerados na Agenda.
+        for processo in processos:
+            processo.responsavel = administrador
+            processo.save(update_fields=["responsavel"])
+        transferidos += len(processos)
     return transferidos
 
 

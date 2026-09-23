@@ -11,11 +11,11 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import HabilitacaoPapel, PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import (
-    HAB_AGENDA_CRIAR_PARA_OUTROS,
+    HAB_AGENDA_ATRIBUIR_OUTROS,
     MODULO_AGENDA,
     NIVEL_TODOS,
 )
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 
 
 class AgendaCriarParaUsuarioBase(TenantTestCase):
@@ -38,7 +38,7 @@ class AgendaCriarParaUsuarioBase(TenantTestCase):
             HabilitacaoPapel.objects.create(
                 papel=papel,
                 modulo=MODULO_AGENDA,
-                item=HAB_AGENDA_CRIAR_PARA_OUTROS,
+                item=HAB_AGENDA_ATRIBUIR_OUTROS,
                 ativo=True,
             )
         return papel
@@ -80,7 +80,7 @@ class TestFormularioTravadoParaUsuario(AgendaCriarParaUsuarioBase):
             "/agenda/novo/",
             {
                 "titulo": "Compromisso Delegado",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-20T10:00",
                 "responsavel": self.gestor.pk,  # tentativa de adulteração
                 "para_usuario": self.colega.pk,
@@ -88,7 +88,7 @@ class TestFormularioTravadoParaUsuario(AgendaCriarParaUsuarioBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 302)
-        compromisso = Compromisso.objects.get(titulo="Compromisso Delegado")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Delegado")
         self.assertEqual(compromisso.responsavel_id, self.colega.pk)
         self.assertEqual(compromisso.criado_por_id, self.gestor.pk)
 
@@ -116,16 +116,16 @@ class TestParaUsuarioExigeHabilitacao(AgendaCriarParaUsuarioBase):
         self.client.force_login(self.usuario)
 
     def test_post_sem_habilitacao_retorna_403_e_nao_cria(self):
-        antes = Compromisso.objects.count()
+        antes = ItemAgenda.objects.count()
         r = self.client.post(
             "/agenda/novo/",
             {
                 "titulo": "Tentativa Sem Habilitação",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-20T10:00",
                 "para_usuario": self.colega.pk,
             },
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
-        self.assertEqual(Compromisso.objects.count(), antes)
+        self.assertEqual(ItemAgenda.objects.count(), antes)

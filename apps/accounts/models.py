@@ -191,10 +191,9 @@ class MembroEquipe(models.Model):
 
 class ConviteDelegacao(models.Model):
     """
-    Convite de delegação (specs/delegacao-por-convite-agenda-tarefas.md):
-    mecanismo compartilhado por Tarefas e Agenda. `item` aponta (via
-    content type genérico) para a Tarefa ou o Compromisso delegado, para
-    não criar dependência de `apps.accounts` sobre esses módulos.
+    Convite de delegação (PDR-0033): `item` aponta (via content type
+    genérico) para o item da Agenda Jurídica delegado, para não criar
+    dependência de `apps.accounts` sobre esse módulo.
     """
 
     STATUS_PENDENTE = "pendente"
@@ -426,7 +425,7 @@ class PermissaoPapel(models.Model):
             models.CheckConstraint(
                 condition=(
                     Q(
-                        modulo__in=["processos", "clientes", "tarefas", "modelos", "painel", "agenda"],
+                        modulo__in=["processos", "clientes", "modelos", "painel", "agenda"],
                         nivel__in=["somente_seus", "todos"],
                     )
                     | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados_proprios", "dados_todos"])
@@ -500,7 +499,7 @@ class PermissaoUsuario(models.Model):
             models.CheckConstraint(
                 condition=(
                     Q(
-                        modulo__in=["processos", "clientes", "tarefas", "modelos", "painel", "agenda"],
+                        modulo__in=["processos", "clientes", "modelos", "painel", "agenda"],
                         nivel__in=["somente_seus", "todos"],
                     )
                     | Q(modulo="financeiro", nivel__in=["solicitacoes", "dados_proprios", "dados_todos"])
@@ -587,9 +586,6 @@ class HabilitacaoPapel(models.Model):
                         "clientes_documento_adicionar",
                         "clientes_documento_excluir",
                     ])
-                    | Q(modulo="tarefas", item__in=[
-                        "tarefas_atribuir_outros",
-                    ])
                     | Q(modulo="modelos", item__in=[
                         "modelos_criar",
                         "modelos_editar_estilo",
@@ -598,7 +594,7 @@ class HabilitacaoPapel(models.Model):
                         "modelos_gerir_categorias",
                     ])
                     | Q(modulo="agenda", item__in=[
-                        "agenda_criar_para_outros",
+                        "agenda_atribuir_outros",
                     ])
                     | Q(modulo="financeiro", item__in=[
                         "financeiro_reabrir_lancamento_pago",
@@ -697,9 +693,6 @@ class HabilitacaoUsuario(models.Model):
                         "clientes_documento_adicionar",
                         "clientes_documento_excluir",
                     ])
-                    | Q(modulo="tarefas", item__in=[
-                        "tarefas_atribuir_outros",
-                    ])
                     | Q(modulo="modelos", item__in=[
                         "modelos_criar",
                         "modelos_editar_estilo",
@@ -708,7 +701,7 @@ class HabilitacaoUsuario(models.Model):
                         "modelos_gerir_categorias",
                     ])
                     | Q(modulo="agenda", item__in=[
-                        "agenda_criar_para_outros",
+                        "agenda_atribuir_outros",
                     ])
                     | Q(modulo="financeiro", item__in=[
                         "financeiro_reabrir_lancamento_pago",

@@ -236,11 +236,13 @@ def detalhe(request, pk):
         (mov for mov in movimentacoes if mov.data_prazo),
         key=lambda mov: mov.data_prazo,
     )
-    tarefas_relacionadas_total = processo.tarefas.count()
+    # Card segue mostrando só itens tipo Tarefa da Agenda Jurídica.
+    tarefas_relacionadas_qs = processo.itens_agenda.filter(tipo="tarefa")
+    tarefas_relacionadas_total = tarefas_relacionadas_qs.count()
     tarefas_relacionadas = list(
-        processo.tarefas.select_related("responsavel")
-        .exclude(status="cancelada")
-        .order_by("prazo")[:5]
+        tarefas_relacionadas_qs.select_related("responsavel")
+        .exclude(status="cancelado")
+        .order_by("data_fatal")[:5]
     )
     custas_financeiras = list(
         SolicitacaoFinanceira.objects.filter(processo=processo)
@@ -546,9 +548,10 @@ def reabrir(request, pk):
 def excluir(request, pk):
     """Exclusão definitiva — distinta de arquivar. Remove o Processo e
     tudo que é intrínseco a ele (Documentos, Partes, Andamentos, Apensos,
-    Intimações já cascateiam pelo modelo). Registros de outros módulos
-    (lançamentos financeiros, tarefas, compromissos de agenda) não são
-    apagados — a FK deles já é SET_NULL, então só perdem a referência."""
+    Intimações já cascateiam pelo modelo; os Prazos da agenda gerados
+    pelos andamentos saem junto com eles). Registros de outros módulos
+    (lançamentos financeiros, demais itens da agenda) não são apagados —
+    a FK deles já é SET_NULL, então só perdem a referência."""
     if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
         raise PermissionDenied
     if not _pode_excluir_processo(request.user):

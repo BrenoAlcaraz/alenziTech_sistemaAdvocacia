@@ -1,11 +1,10 @@
 """
-Convite de delegação (specs/delegacao-por-convite-agenda-tarefas.md):
-mecanismo compartilhado por Tarefas e Agenda para decidir se delegar uma
-Tarefa/Compromisso a outro usuário exige convite (aceitar/recusar) ou é
-direta, e para criar/responder esse convite.
+Convite de delegação (PDR-0033): decide se delegar um item da Agenda
+Jurídica a outro usuário exige convite (aceitar/recusar) ou é direta, e
+cria/responde esse convite.
 
 Não confundir com a confirmação de presença de participante de
-Compromisso (PDR-0020) — conceito separado, que este módulo não altera.
+Evento (PDR-0020) — conceito separado, que este módulo não altera.
 """
 
 from django.contrib.contenttypes.models import ContentType
@@ -46,7 +45,7 @@ def delegacao_exige_convite(delegante, destinatario):
 
 def criar_convite_delegacao(delegante, destinatario, item):
     """Cria e retorna um ConviteDelegacao pendente para `item`
-    (Tarefa/Compromisso), sem checar aqui se o convite era necessário —
+    (item da agenda), sem checar aqui se o convite era necessário —
     a decisão é de quem chama, via `delegacao_exige_convite`."""
     return ConviteDelegacao.objects.create(
         delegante=delegante,

@@ -166,11 +166,13 @@ def detalhe(request, pk):
     escopo, _ = _resolver_escopo(request)
     cliente = get_object_or_404(_clientes_no_escopo(request, escopo, ativo=True), pk=pk)
     processos = cliente.processos.all()
-    tarefas_relacionadas_total = cliente.tarefas.count()
+    # Card segue mostrando só itens tipo Tarefa da Agenda Jurídica.
+    tarefas_relacionadas_qs = cliente.itens_agenda.filter(tipo="tarefa")
+    tarefas_relacionadas_total = tarefas_relacionadas_qs.count()
     tarefas_relacionadas = list(
-        cliente.tarefas.select_related("responsavel")
-        .exclude(status="cancelada")
-        .order_by("prazo")[:5]
+        tarefas_relacionadas_qs.select_related("responsavel")
+        .exclude(status="cancelado")
+        .order_by("data_fatal")[:5]
     )
     pode_modificar = (
         usuario_admin_escritorio(request.user)
@@ -334,7 +336,7 @@ def desativar(request, pk):
 @require_POST
 def excluir(request, pk):
     """Exclusão definitiva — distinta de Desativar. Remove o Cliente;
-    lançamentos, custas, honorários, tarefas e compromissos vinculados
+    lançamentos, custas, honorários e itens da agenda vinculados
     permanecem no sistema, só perdem a referência (`on_delete=SET_NULL`,
     já é o padrão hoje nesses modelos). As procurações geradas para o
     cliente (`ModeloPeca.cliente`, CASCADE) saem junto com ele."""

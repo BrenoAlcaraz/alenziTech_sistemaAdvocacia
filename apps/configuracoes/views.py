@@ -552,11 +552,10 @@ _MODULOS_CONFIG = [
     ("processos",  "Processos",       [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
     ("clientes",   "Clientes",        [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
     ("financeiro", "Financeiro",      [("solicitacoes", "Apenas solicitações"), ("dados_proprios", "Dados — só os meus lançamentos"), ("dados_todos", "Dados — todos os lançamentos")]),
-    ("tarefas",    "Tarefas",         [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
     ("modelos",    "Modelos de peças",[("somente_seus", "Somente os seus"), ("todos", "Todos")]),
     ("chat",       "Chat",            []),
     ("painel",     "Painel",          [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
-    ("agenda",     "Agenda",          [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
+    ("agenda",     "Agenda Jurídica", [("somente_seus", "Somente os seus"), ("todos", "Todos")]),
     ("gerir",      "Gerir",           []),
 ]
 
@@ -994,7 +993,7 @@ def identidade_visual(request):
 @requer_admin_escritorio
 def excluir_usuario(request, user_pk):
     """Exclui o usuário do escritório: a conta é inativada (não há como
-    apagar o registro — processos, clientes e tarefas o referenciam) e os
+    apagar o registro — processos, clientes e itens da agenda o referenciam) e os
     processos sob a responsabilidade dele passam ao Administrador
     (PDR-0010). Não vale para si mesmo nem para o Administrador. Exige a
     senha de quem está logado (PDR-0030)."""

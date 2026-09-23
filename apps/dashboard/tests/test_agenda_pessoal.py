@@ -20,7 +20,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, MODULO_PAINEL, NIVEL_TODOS
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 
 
 class DashboardAgendaPessoalBase(TenantTestCase):
@@ -45,12 +45,13 @@ class DashboardAgendaPessoalBase(TenantTestCase):
 
     def _compromisso(self, *, responsavel, dias_a_frente=2, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Compromisso Teste",
-            "status": "agendado",
+            "status": "a_fazer",
             "data_hora_inicio": timezone.now() + timedelta(days=dias_a_frente),
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(responsavel=responsavel, **defaults)
+        return ItemAgenda.objects.create(responsavel=responsavel, **defaults)
 
     def _get_painel(self):
         return self.client.get("/", HTTP_HOST=self.http_host)
@@ -83,19 +84,19 @@ class TestBlocoConfirmados(DashboardAgendaPessoalBase):
         self.participante_confirmado = self._compromisso(
             titulo="Participante Confirmado", responsavel=self.outro
         )
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.participante_confirmado,
+        ParticipanteItemAgenda.objects.create(
+            item=self.participante_confirmado,
             usuario=self.usuario,
-            status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+            status=ParticipanteItemAgenda.STATUS_CONFIRMADO,
         )
 
         self.participante_pendente = self._compromisso(
             titulo="Participante Pendente", responsavel=self.outro
         )
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.participante_pendente,
+        ParticipanteItemAgenda.objects.create(
+            item=self.participante_pendente,
             usuario=self.usuario,
-            status=ParticipanteCompromisso.STATUS_PENDENTE,
+            status=ParticipanteItemAgenda.STATUS_PENDENTE,
         )
 
         self.alheio = self._compromisso(titulo="Totalmente Alheio", responsavel=self.outro)
@@ -125,11 +126,11 @@ class TestBlocoConfirmados(DashboardAgendaPessoalBase):
         """
         convidado_1 = self._user("dashboard_convidado_1")
         convidado_2 = self._user("dashboard_convidado_2")
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.proprio, usuario=convidado_1
+        ParticipanteItemAgenda.objects.create(
+            item=self.proprio, usuario=convidado_1
         )
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.proprio, usuario=convidado_2
+        ParticipanteItemAgenda.objects.create(
+            item=self.proprio, usuario=convidado_2
         )
 
         resposta = self._get_painel()
@@ -151,17 +152,17 @@ class TestBlocoPendentesDeConfirmacao(DashboardAgendaPessoalBase):
         self.client.force_login(self.usuario)
 
         self.pendente = self._compromisso(titulo="Convite Pendente", responsavel=self.outro)
-        self.participacao_pendente = ParticipanteCompromisso.objects.create(
-            compromisso=self.pendente,
+        self.participacao_pendente = ParticipanteItemAgenda.objects.create(
+            item=self.pendente,
             usuario=self.usuario,
-            status=ParticipanteCompromisso.STATUS_PENDENTE,
+            status=ParticipanteItemAgenda.STATUS_PENDENTE,
         )
 
         confirmado = self._compromisso(titulo="Já Confirmado", responsavel=self.outro)
-        ParticipanteCompromisso.objects.create(
-            compromisso=confirmado,
+        ParticipanteItemAgenda.objects.create(
+            item=confirmado,
             usuario=self.usuario,
-            status=ParticipanteCompromisso.STATUS_CONFIRMADO,
+            status=ParticipanteItemAgenda.STATUS_CONFIRMADO,
         )
 
     def test_bloco_pendentes_lista_so_participacoes_pendentes_do_usuario(self):
@@ -180,5 +181,5 @@ class TestBlocoPendentesDeConfirmacao(DashboardAgendaPessoalBase):
         self.assertRedirects(r, "/", fetch_redirect_response=False)
         self.participacao_pendente.refresh_from_db()
         self.assertEqual(
-            self.participacao_pendente.status, ParticipanteCompromisso.STATUS_CONFIRMADO
+            self.participacao_pendente.status, ParticipanteItemAgenda.STATUS_CONFIRMADO
         )

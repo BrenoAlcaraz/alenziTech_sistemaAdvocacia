@@ -20,7 +20,7 @@ from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.utils import schema_context, tenant_context
 
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 from apps.notificacoes.models import Notificacao
 from apps.saas_tenants.models import Escritorio
 
@@ -36,17 +36,18 @@ class LembretesAgendaBase(TenantTestCase):
 
     def _compromisso(self, *, minutos_para_inicio, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Audiência de instrução",
             "data_hora_inicio": timezone.now() + timedelta(minutes=minutos_para_inicio),
-            "status": "agendado",
+            "status": "a_fazer",
             "responsavel": self.responsavel,
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(**defaults)
+        return ItemAgenda.objects.create(**defaults)
 
-    def _participacao(self, compromisso, usuario, *, status=ParticipanteCompromisso.STATUS_CONFIRMADO):
-        return ParticipanteCompromisso.objects.create(
-            compromisso=compromisso, usuario=usuario, status=status
+    def _participacao(self, compromisso, usuario, *, status=ParticipanteItemAgenda.STATUS_CONFIRMADO):
+        return ParticipanteItemAgenda.objects.create(
+            item=compromisso, usuario=usuario, status=status
         )
 
     def _rodar_comando(self):
@@ -175,10 +176,10 @@ class TestLembreteIsolamentoMultiTenant(LembretesAgendaBase):
         try:
             with tenant_context(outro_tenant):
                 responsavel_b = User.objects.create_user("responsavel_b", password="testpass")
-                Compromisso.objects.create(
+                ItemAgenda.objects.create(tipo="reuniao", 
                     titulo="Compromisso tenant B",
                     data_hora_inicio=timezone.now() + timedelta(minutes=10),
-                    status="agendado",
+                    status="a_fazer",
                     responsavel=responsavel_b,
                 )
 
@@ -209,8 +210,8 @@ class TestLembreteParticipanteConfirmado(LembretesAgendaBase):
 
         notificacao = Notificacao.objects.get(destinatario=participante)
         self.assertIn(compromisso.titulo, notificacao.mensagem)
-        participacao = ParticipanteCompromisso.objects.get(
-            compromisso=compromisso, usuario=participante
+        participacao = ParticipanteItemAgenda.objects.get(
+            item=compromisso, usuario=participante
         )
         self.assertTrue(participacao.lembrete_enviado)
 
@@ -221,7 +222,7 @@ class TestLembreteParticipanteConfirmado(LembretesAgendaBase):
         participante = User.objects.create_user("participante_pendente", password="testpass")
         compromisso = self._compromisso(minutos_para_inicio=10)
         self._participacao(
-            compromisso, participante, status=ParticipanteCompromisso.STATUS_PENDENTE
+            compromisso, participante, status=ParticipanteItemAgenda.STATUS_PENDENTE
         )
 
         self._rodar_comando()
@@ -232,7 +233,7 @@ class TestLembreteParticipanteConfirmado(LembretesAgendaBase):
         participante = User.objects.create_user("participante_recusado", password="testpass")
         compromisso = self._compromisso(minutos_para_inicio=10)
         self._participacao(
-            compromisso, participante, status=ParticipanteCompromisso.STATUS_RECUSADO
+            compromisso, participante, status=ParticipanteItemAgenda.STATUS_RECUSADO
         )
 
         self._rodar_comando()

@@ -5,7 +5,7 @@ Testes do segundo visor e do selo de prioridade idoso/menor de idade
 Cobre: cálculo de idade (incluindo os limiares exatos 60 e 18 anos);
 PJ e cliente sem data de nascimento nunca têm idade/selo; form limpa
 data_nascimento para PJ; o selo aparece na listagem/detalhe do cliente,
-no processo e na tarefa vinculados — sem quebrar quando não há selo.
+no processo vinculado — sem quebrar quando não há selo.
 """
 
 from datetime import date
@@ -18,13 +18,11 @@ from apps.accounts.permissoes_constants import (
     HAB_CLIENTES_CRIAR,
     MODULO_CLIENTES,
     MODULO_PROCESSOS,
-    MODULO_TAREFAS,
     NIVEL_TODOS,
 )
 from apps.clientes.forms import ClienteForm
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
-from apps.tarefas.models import Tarefa
 
 
 def _data_com_idade(anos):
@@ -171,7 +169,7 @@ class TestSeloApareceNaListaEDetalheDoCliente(SeloPrioridadeViewBase):
         self.assertNotContains(r, "Menor de idade")
 
 
-class TestSeloApareceEmProcessoETarefaVinculados(SeloPrioridadeViewBase):
+class TestSeloApareceEmProcessoVinculado(SeloPrioridadeViewBase):
     @classmethod
     def get_test_schema_name(cls):
         return "clientes_selo_processo_tarefa"
@@ -181,7 +179,6 @@ class TestSeloApareceEmProcessoETarefaVinculados(SeloPrioridadeViewBase):
         self.user = self._user("dono_processo_tarefa_selo")
         self._dar_modulo(self.user, MODULO_CLIENTES, habilitacao=HAB_CLIENTES_CRIAR)
         self._dar_modulo(self.user, MODULO_PROCESSOS)
-        self._dar_modulo(self.user, MODULO_TAREFAS)
         self.client.force_login(self.user)
         self.menor = Cliente.objects.create(
             responsavel=self.user, tipo="PF", nome_razao_social="Cliente Menor",
@@ -189,22 +186,9 @@ class TestSeloApareceEmProcessoETarefaVinculados(SeloPrioridadeViewBase):
         )
         self.processo = Processo.objects.create(responsavel=self.user, titulo="Processo Teste Selo")
         self.processo.clientes.add(self.menor)
-        self.tarefa = Tarefa.objects.create(
-            titulo="Tarefa Teste Selo", cliente=self.menor,
-            criador=self.user, atribuidor=self.user,
-        )
 
     def test_processo_detalhe_mostra_selo_do_cliente_vinculado(self):
         r = self.client.get(f"/processos/{self.processo.pk}/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Menor de idade")
 
-    def test_tarefas_lista_mostra_selo_do_cliente_vinculado(self):
-        r = self.client.get("/tarefas/lista/", HTTP_HOST=self.http_host)
-        self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Menor de idade")
-
-    def test_tarefas_quadro_mostra_selo_do_cliente_vinculado(self):
-        r = self.client.get("/tarefas/", HTTP_HOST=self.http_host)
-        self.assertEqual(r.status_code, 200)
-        self.assertContains(r, "Menor de idade")

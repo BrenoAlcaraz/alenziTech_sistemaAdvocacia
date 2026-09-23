@@ -3,7 +3,7 @@ Testes do padrão "Código · Título — Número" + busca (combobox) em todo ca
 seleção de Processo do sistema (specs/processos-seletor-busca-formularios.md).
 """
 
-from apps.agenda.forms import CompromissoForm
+from apps.agenda.forms import ItemAgendaForm
 from apps.financeiro.forms import (
     CreditarCustaForm,
     CustaJudicialForm,
@@ -19,7 +19,6 @@ from apps.processos.forms import (
 from apps.processos.models import Processo
 from apps.processos.services import rotulo_processo
 from apps.processos.tests.test_escopo import ProcessosEscopoBase
-from apps.tarefas.forms import TarefaForm
 
 
 class TestRotuloProcesso(ProcessosEscopoBase):
@@ -88,8 +87,6 @@ class TestSeletorProcessoEmTodosOsFormularios(ProcessosEscopoBase):
     def test_solicitacao_financeira(self):
         self._assert_campo_busca(SolicitacaoFinanceiraForm(), "processo")
 
-    def test_compromisso_agenda(self):
-        self._assert_campo_busca(CompromissoForm(), "processo")
+    def test_item_agenda(self):
+        self._assert_campo_busca(ItemAgendaForm(), "processo")
 
-    def test_tarefa(self):
-        self._assert_campo_busca(TarefaForm(), "processo")

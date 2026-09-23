@@ -22,11 +22,11 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import (
-    HAB_AGENDA_CRIAR_PARA_OUTROS,
+    HAB_AGENDA_ATRIBUIR_OUTROS,
     MODULO_AGENDA,
     NIVEL_TODOS,
 )
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 
 
 class AgendaAutorizacaoBase(TenantTestCase):
@@ -64,11 +64,12 @@ class AgendaAutorizacaoBase(TenantTestCase):
 
     def _compromisso(self, *, responsavel, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Compromisso Teste",
             "data_hora_inicio": "2026-09-10T10:00:00Z",
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(responsavel=responsavel, **defaults)
+        return ItemAgenda.objects.create(responsavel=responsavel, **defaults)
 
 
 class TestAgendaAutorizacaoModuloNegado(AgendaAutorizacaoBase):
@@ -101,18 +102,18 @@ class TestAgendaAutorizacaoModuloNegado(AgendaAutorizacaoBase):
         self.assertEqual(r.status_code, 403)
 
     def test_novo_post_negado_nao_cria_compromisso(self):
-        antes = Compromisso.objects.count()
+        antes = ItemAgenda.objects.count()
         r = self.client.post(
             "/agenda/novo/",
             {
                 "titulo": "Tentativa Negada",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
             },
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
-        self.assertEqual(Compromisso.objects.count(), antes)
+        self.assertEqual(ItemAgenda.objects.count(), antes)
 
     def test_editar_get_negado(self):
         r = self.client.get(
@@ -126,7 +127,7 @@ class TestAgendaAutorizacaoModuloNegado(AgendaAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 403)
         self.compromisso.refresh_from_db()
-        self.assertEqual(self.compromisso.status, "agendado")
+        self.assertEqual(self.compromisso.status, "a_fazer")
 
     def test_cancelar_negado(self):
         r = self.client.post(
@@ -145,7 +146,7 @@ class TestAgendaAutorizacaoModuloNegado(AgendaAutorizacaoBase):
             f"/agenda/{self.compromisso.pk}/excluir/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 403)
-        self.assertTrue(Compromisso.objects.filter(pk=self.compromisso.pk).exists())
+        self.assertTrue(ItemAgenda.objects.filter(pk=self.compromisso.pk).exists())
 
 
 class TestAgendaAutorizacaoModuloConcedido(AgendaAutorizacaoBase):
@@ -186,13 +187,13 @@ class TestAgendaAutorizacaoModuloConcedido(AgendaAutorizacaoBase):
             "/agenda/novo/",
             {
                 "titulo": "Compromisso Próprio",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
             },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/agenda/", fetch_redirect_response=False)
-        criado = Compromisso.objects.get(titulo="Compromisso Próprio")
+        criado = ItemAgenda.objects.get(titulo="Compromisso Próprio")
         self.assertEqual(criado.criado_por_id, self.user.pk)
 
     def test_editar_get_autorizado(self):
@@ -214,7 +215,7 @@ class TestAgendaAutorizacaoModuloConcedido(AgendaAutorizacaoBase):
             f"/agenda/{self.compromisso.pk}/excluir/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
-        self.assertFalse(Compromisso.objects.filter(pk=self.compromisso.pk).exists())
+        self.assertFalse(ItemAgenda.objects.filter(pk=self.compromisso.pk).exists())
 
 
 class TestAgendaCriarParaOutrosAusente(AgendaAutorizacaoBase):
@@ -240,31 +241,31 @@ class TestAgendaCriarParaOutrosAusente(AgendaAutorizacaoBase):
         papel = self._new_papel("Papel Agenda Sem Criar Para Outros")
         self._assign_papel(self.user, papel)
         self._pp(papel, MODULO_AGENDA)
-        # Nenhuma HabilitacaoPapel para HAB_AGENDA_CRIAR_PARA_OUTROS —
+        # Nenhuma HabilitacaoPapel para HAB_AGENDA_ATRIBUIR_OUTROS —
         # módulo aberto, habilitação de criação para outros ausente.
         self.client.force_login(self.user)
 
     def test_criar_para_outro_usuario_negado(self):
-        antes = Compromisso.objects.count()
+        antes = ItemAgenda.objects.count()
         r = self.client.post(
             "/agenda/novo/",
             {
                 "titulo": "Tentativa de Delegação",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
                 "responsavel": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(r.status_code, 403)
-        self.assertEqual(Compromisso.objects.count(), antes)
+        self.assertEqual(ItemAgenda.objects.count(), antes)
 
     def test_criar_para_si_mesmo_permitido(self):
         r = self.client.post(
             "/agenda/novo/",
             {
                 "titulo": "Compromisso Para Mim",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
             },
             HTTP_HOST=self.http_host,
@@ -291,7 +292,7 @@ class TestAgendaCriarParaOutrosConcedido(AgendaAutorizacaoBase):
         papel = self._new_papel("Papel Agenda Com Criar Para Outros")
         self._assign_papel(self.user, papel)
         self._pp(papel, MODULO_AGENDA)
-        self._hp(papel, MODULO_AGENDA, HAB_AGENDA_CRIAR_PARA_OUTROS)
+        self._hp(papel, MODULO_AGENDA, HAB_AGENDA_ATRIBUIR_OUTROS)
         self.client.force_login(self.user)
 
     def test_criar_para_outro_usuario_permitido(self):
@@ -299,14 +300,14 @@ class TestAgendaCriarParaOutrosConcedido(AgendaAutorizacaoBase):
             "/agenda/novo/",
             {
                 "titulo": "Delegação Autorizada",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
                 "responsavel": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/agenda/", fetch_redirect_response=False)
-        compromisso = Compromisso.objects.get(titulo="Delegação Autorizada")
+        compromisso = ItemAgenda.objects.get(titulo="Delegação Autorizada")
         self.assertEqual(compromisso.responsavel_id, self.outro_user.pk)
 
 
@@ -334,12 +335,12 @@ class TestAgendaCriarParaOutrosAdmin(AgendaAutorizacaoBase):
             "/agenda/novo/",
             {
                 "titulo": "Delegação Pelo Admin",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-10T10:00",
                 "responsavel": self.outro_user.pk,
             },
             HTTP_HOST=self.http_host,
         )
         self.assertRedirects(r, "/agenda/", fetch_redirect_response=False)
-        compromisso = Compromisso.objects.get(titulo="Delegação Pelo Admin")
+        compromisso = ItemAgenda.objects.get(titulo="Delegação Pelo Admin")
         self.assertEqual(compromisso.responsavel_id, self.outro_user.pk)

@@ -15,7 +15,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, NIVEL_SOMENTE_SEUS, NIVEL_TODOS
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 from apps.notificacoes.models import Notificacao
 
 
@@ -40,16 +40,17 @@ class AgendaCancelamentoBase(TenantTestCase):
 
     def _compromisso(self, *, responsavel, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Compromisso Teste",
             "data_hora_inicio": "2026-09-10T10:00:00Z",
-            "status": "agendado",
+            "status": "a_fazer",
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(responsavel=responsavel, **defaults)
+        return ItemAgenda.objects.create(responsavel=responsavel, **defaults)
 
-    def _participacao(self, compromisso, usuario, *, status=ParticipanteCompromisso.STATUS_PENDENTE):
-        return ParticipanteCompromisso.objects.create(
-            compromisso=compromisso, usuario=usuario, status=status
+    def _participacao(self, compromisso, usuario, *, status=ParticipanteItemAgenda.STATUS_PENDENTE):
+        return ParticipanteItemAgenda.objects.create(
+            item=compromisso, usuario=usuario, status=status
         )
 
 
@@ -73,8 +74,8 @@ class TestCancelarNotificaEExclui(AgendaCancelamentoBase):
         self.compromisso = self._compromisso(
             titulo="Reunião a Cancelar", responsavel=self.responsavel
         )
-        self._participacao(self.compromisso, self.confirmado, status=ParticipanteCompromisso.STATUS_CONFIRMADO)
-        self._participacao(self.compromisso, self.pendente, status=ParticipanteCompromisso.STATUS_PENDENTE)
+        self._participacao(self.compromisso, self.confirmado, status=ParticipanteItemAgenda.STATUS_CONFIRMADO)
+        self._participacao(self.compromisso, self.pendente, status=ParticipanteItemAgenda.STATUS_PENDENTE)
 
     def test_cancelar_notifica_responsavel_e_todos_os_participantes(self):
         self.client.force_login(self.responsavel)
@@ -100,7 +101,7 @@ class TestCancelarNotificaEExclui(AgendaCancelamentoBase):
         self.client.post(f"/agenda/{self.compromisso.pk}/reabrir/", HTTP_HOST=self.http_host)
         self.compromisso.refresh_from_db()
         self.assertIsNone(self.compromisso.cancelado_em)
-        self.assertEqual(self.compromisso.status, "agendado")
+        self.assertEqual(self.compromisso.status, "a_fazer")
 
     def test_compromisso_cancelado_some_da_grade_operacional_para_todos(self):
         self.client.force_login(self.responsavel)
@@ -110,8 +111,8 @@ class TestCancelarNotificaEExclui(AgendaCancelamentoBase):
             if user != self.responsavel:
                 self._dar_acesso_agenda(user)
             self.client.force_login(user)
-            r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
-            titulos = [c.titulo for c in r.context["compromissos"]]
+            r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
+            titulos = [c.titulo for c in r.context["itens"]]
             self.assertNotIn("Reunião a Cancelar", titulos)
 
 
@@ -141,7 +142,7 @@ class TestCancelarEIdempotente(AgendaCancelamentoBase):
             titulo="Reunião a Cancelar Duas Vezes", responsavel=self.responsavel
         )
         self._participacao(
-            self.compromisso, self.confirmado, status=ParticipanteCompromisso.STATUS_CONFIRMADO
+            self.compromisso, self.confirmado, status=ParticipanteItemAgenda.STATUS_CONFIRMADO
         )
         self.client.force_login(self.responsavel)
         self.client.post(f"/agenda/{self.compromisso.pk}/cancelar/", HTTP_HOST=self.http_host)

@@ -1,6 +1,6 @@
 """
-Regressão: o status "cancelada" de Tarefa (apps/tarefas, delegação de
-tarefas) não deve ser contado como pendente no painel.
+Regressão: item de agenda cancelado não deve ser contado como afazer
+pendente no painel.
 
 Também cobre a autorização de módulo aplicada ao painel: usuário sem
 acesso a um módulo não recebe totais/listas correspondentes no
@@ -19,13 +19,12 @@ from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
-    MODULO_TAREFAS,
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
     NIVEL_TODOS,
 )
 from apps.financeiro.models import LancamentoFinanceiro, SolicitacaoFinanceira
-from apps.tarefas.models import Tarefa
+from apps.agenda.models import ItemAgenda
 
 
 class TestPainelTarefasPendentes(TenantTestCase):
@@ -43,7 +42,7 @@ class TestPainelTarefasPendentes(TenantTestCase):
         papel = PapelAcesso.objects.create(nome="Papel Tarefas Painel", ativo=True)
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
-            papel=papel, modulo=MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS
         )
         PermissaoPapel.objects.create(
             papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS
@@ -51,16 +50,18 @@ class TestPainelTarefasPendentes(TenantTestCase):
         self.client.force_login(self.usuario)
 
     def test_tarefa_cancelada_nao_conta_como_pendente(self):
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa cancelada",
-            criador=self.usuario,
+            criado_por=self.usuario,
             atribuidor=self.usuario,
             responsavel=self.usuario,
-            status="cancelada",
+            status="cancelado",
         )
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa a fazer",
-            criador=self.usuario,
+            criado_por=self.usuario,
             atribuidor=self.usuario,
             responsavel=self.usuario,
             status="a_fazer",
@@ -270,4 +271,5 @@ class TestPainelClientesProcessosAgendaComAcesso(TenantTestCase):
         self.assertIn("clientes_ativos", resposta.context["resumo"])
         self.assertIn("processos_ativos", resposta.context["resumo"])
         self.assertIn("compromissos_proximos", resposta.context["resumo"])
-        self.assertNotIn("tarefas_pendentes", resposta.context["resumo"])
+        # Afazeres vêm com o módulo Agenda Jurídica (PDR-0034).
+        self.assertIn("tarefas_pendentes", resposta.context["resumo"])

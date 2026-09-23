@@ -42,7 +42,6 @@ from apps.accounts.permissoes_constants import (
     MODULO_PROCESSOS,
     MODULO_CLIENTES,
     MODULO_FINANCEIRO,
-    MODULO_TAREFAS,
     MODULO_MODELOS,
     MODULO_CHAT,
     HAB_PROCESSOS_CRIAR,
@@ -461,7 +460,7 @@ class TestKernelMultiPapel(KernelBase):
         papel_a = self._new_papel("Sem PP A")
         papel_b = self._new_papel("Sem PP B")
         self._pp(papel_a, MODULO_CLIENTES, ativo=True, nivel=NIVEL_TODOS)
-        self._pp(papel_b, MODULO_TAREFAS, ativo=True, nivel=NIVEL_TODOS)
+        self._pp(papel_b, MODULO_MODELOS, ativo=True, nivel=NIVEL_TODOS)
         self._assign_papel(u, papel_a)
         self._assign_papel(u, papel_b)
 

@@ -54,7 +54,7 @@
 
   {% if acesso_tarefas %}
   {# Tarefas pendentes #}
-  <a href="{% url 'tarefas:quadro' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
+  <a href="{% url 'agenda:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
     <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
       <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -111,17 +111,17 @@
   <div class="card p-4 flex flex-col gap-3 min-w-0">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Tarefas pendentes</h2>
-      <a href="{% url 'tarefas:quadro' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver todas →</a>
+      <a href="{% url 'agenda:index' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver todas →</a>
     </div>
     <div class="flex flex-col">
       {% for t in tarefas_dashboard %}
         <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm font-medium text-gray-900 truncate" title="{{ t.titulo }}">{{ t.titulo }}</p>
-            {% if t.prazo_urgente %}
-              <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{{ t.prazo_label }}</span>
-            {% elif t.prazo %}
-              <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ t.prazo_label }}</span>
+            {% if t.fatal_urgente %}
+              <span class="flex-shrink-0 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{{ t.fatal_label }}</span>
+            {% elif t.data_fatal %}
+              <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ t.fatal_label }}</span>
             {% else %}
               <span class="flex-shrink-0 text-xs text-gray-400">sem prazo</span>
             {% endif %}
@@ -157,16 +157,16 @@
         {% for participacao in compromissos_pendentes_dashboard %}
           <div class="flex items-center justify-between gap-2">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ participacao.compromisso.titulo }}">{{ participacao.compromisso.titulo }}</p>
-              <p class="text-xs text-gray-400">{{ participacao.compromisso.data_hora_inicio|date:"d/m/Y H:i" }}</p>
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ participacao.item.titulo }}">{{ participacao.item.titulo }}</p>
+              <p class="text-xs text-gray-400">{{ participacao.item.data_hora_inicio|date:"d/m/Y H:i" }}</p>
             </div>
             <div class="flex items-center gap-1 flex-shrink-0">
-              <form method="post" action="{% url 'agenda:confirmar_presenca' participacao.compromisso.pk %}">
+              <form method="post" action="{% url 'agenda:confirmar_presenca' participacao.item.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
                 <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors">Confirmar</button>
               </form>
-              <form method="post" action="{% url 'agenda:recusar_presenca' participacao.compromisso.pk %}">
+              <form method="post" action="{% url 'agenda:recusar_presenca' participacao.item.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
                 <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 transition-colors">Recusar</button>

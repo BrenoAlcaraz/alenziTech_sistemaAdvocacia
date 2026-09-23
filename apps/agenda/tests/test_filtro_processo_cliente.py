@@ -11,7 +11,7 @@ from django_tenants.test.cases import TenantTestCase
 
 from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_AGENDA, NIVEL_TODOS
-from apps.agenda.forms import CompromissoForm
+from apps.agenda.forms import ItemAgendaForm
 from apps.clientes.models import Cliente
 from apps.processos.models import Processo
 from apps.saas_tenants.models import Dominio
@@ -59,22 +59,22 @@ class TestCompromissoFormValidaProcessoDoCliente(FiltroProcessoClienteAgendaBase
         self.processo_b = self._processo("Processo B", cliente=self.cliente_b, responsavel=self.user)
 
     def _dados_base(self, **extra):
-        dados = {"titulo": "Compromisso Teste", "tipo": "outro", "data_hora_inicio": "2026-09-10T10:00"}
+        dados = {"titulo": "Compromisso Teste", "tipo": "reuniao", "data_hora_inicio": "2026-09-10T10:00"}
         dados.update(extra)
         return dados
 
     def test_queryset_do_processo_e_restrito_ao_cliente_ja_selecionado(self):
-        form = CompromissoForm(data=self._dados_base(cliente=self.cliente_a.id))
+        form = ItemAgendaForm(data=self._dados_base(cliente=self.cliente_a.id))
         self.assertIn(self.processo_a, form.fields["processo"].queryset)
         self.assertNotIn(self.processo_b, form.fields["processo"].queryset)
 
     def test_processo_de_outro_cliente_e_rejeitado_na_validacao(self):
-        form = CompromissoForm(data=self._dados_base(cliente=self.cliente_a.id, processo=self.processo_b.id))
+        form = ItemAgendaForm(data=self._dados_base(cliente=self.cliente_a.id, processo=self.processo_b.id))
         self.assertFalse(form.is_valid())
         self.assertIn("processo", form.errors)
 
     def test_processo_do_mesmo_cliente_e_aceito(self):
-        form = CompromissoForm(data=self._dados_base(cliente=self.cliente_a.id, processo=self.processo_a.id))
+        form = ItemAgendaForm(data=self._dados_base(cliente=self.cliente_a.id, processo=self.processo_a.id))
         self.assertTrue(form.is_valid(), form.errors)
 
 

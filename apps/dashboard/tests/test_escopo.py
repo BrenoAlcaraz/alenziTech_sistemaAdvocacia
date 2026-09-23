@@ -3,7 +3,7 @@ Regressão: escopo de responsável aplicado aos blocos do Dashboard
 (specs/dashboard-escopo-responsavel.md, apagada após promoção do
 conhecimento durável para docs/STATUS.md).
 
-Segue o mesmo padrão de fixtures de apps/tarefas/tests/test_escopo.py
+Segue o mesmo padrão de fixtures de apps/agenda/tests/test_escopo.py
 sobre django_tenants.test.cases.TenantTestCase.
 """
 
@@ -18,18 +18,16 @@ from apps.accounts.permissoes_constants import (
     MODULO_FINANCEIRO,
     MODULO_PAINEL,
     MODULO_PROCESSOS,
-    MODULO_TAREFAS,
     NIVEL_DADOS_PROPRIOS,
     NIVEL_DADOS_TODOS,
     NIVEL_SOLICITACOES,
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 from apps.clientes.models import Cliente
 from apps.financeiro.models import LancamentoFinanceiro
 from apps.processos.models import Processo
-from apps.tarefas.models import Tarefa
 
 
 class DashboardEscopoBase(TenantTestCase):
@@ -76,7 +74,6 @@ class TestPainelEscopoSomenteSeus(DashboardEscopoBase):
             {
                 MODULO_CLIENTES: NIVEL_SOMENTE_SEUS,
                 MODULO_PROCESSOS: NIVEL_SOMENTE_SEUS,
-                MODULO_TAREFAS: NIVEL_SOMENTE_SEUS,
                 MODULO_AGENDA: NIVEL_SOMENTE_SEUS,
                 MODULO_PAINEL: NIVEL_TODOS,
             },
@@ -104,16 +101,18 @@ class TestPainelEscopoSomenteSeus(DashboardEscopoBase):
             responsavel=self.outro,
         )
 
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa Própria",
-            criador=self.usuario,
+            criado_por=self.usuario,
             atribuidor=self.usuario,
             responsavel=self.usuario,
             status="a_fazer",
         )
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa Alheia",
-            criador=self.outro,
+            criado_por=self.outro,
             atribuidor=self.outro,
             responsavel=self.outro,
             status="a_fazer",
@@ -122,15 +121,17 @@ class TestPainelEscopoSomenteSeus(DashboardEscopoBase):
         from django.utils import timezone
 
         daqui_2_dias = timezone.now() + timezone.timedelta(days=2)
-        Compromisso.objects.create(
+        ItemAgenda.objects.create(
+            tipo="reuniao",
             titulo="Compromisso Próprio",
-            status="agendado",
+            status="a_fazer",
             data_hora_inicio=daqui_2_dias,
             responsavel=self.usuario,
         )
-        Compromisso.objects.create(
+        ItemAgenda.objects.create(
+            tipo="reuniao",
             titulo="Compromisso Alheio",
-            status="agendado",
+            status="a_fazer",
             data_hora_inicio=daqui_2_dias,
             responsavel=self.outro,
         )
@@ -167,21 +168,23 @@ class TestPainelEscopoTodosVeTudo(DashboardEscopoBase):
         self.usuario = self._user("dashboard_nivel_todos")
         self.outro = self._user("dashboard_outro_nivel_todos")
         papel = self._papel_com_niveis(
-            "Papel Dashboard Todos", {MODULO_TAREFAS: NIVEL_TODOS, MODULO_PAINEL: NIVEL_TODOS}
+            "Papel Dashboard Todos", {MODULO_AGENDA: NIVEL_TODOS, MODULO_PAINEL: NIVEL_TODOS}
         )
         UsuarioPapel.objects.create(usuario=self.usuario, papel=papel, ativo=True)
         self.client.force_login(self.usuario)
 
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa Própria",
-            criador=self.usuario,
+            criado_por=self.usuario,
             atribuidor=self.usuario,
             responsavel=self.usuario,
             status="a_fazer",
         )
-        Tarefa.objects.create(
+        ItemAgenda.objects.create(
+            tipo="tarefa",
             titulo="Tarefa Alheia",
-            criador=self.outro,
+            criado_por=self.outro,
             atribuidor=self.outro,
             responsavel=self.outro,
             status="a_fazer",

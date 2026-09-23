@@ -23,8 +23,8 @@ from apps.accounts.models import (
     PermissaoPapel,
     UsuarioPapel,
 )
-from apps.accounts.permissoes_constants import HAB_AGENDA_CRIAR_PARA_OUTROS, MODULO_AGENDA, NIVEL_SOMENTE_SEUS, NIVEL_TODOS
-from apps.agenda.models import Compromisso
+from apps.accounts.permissoes_constants import HAB_AGENDA_ATRIBUIR_OUTROS, MODULO_AGENDA, NIVEL_SOMENTE_SEUS, NIVEL_TODOS
+from apps.agenda.models import ItemAgenda
 
 
 class AgendaConviteBase(TenantTestCase):
@@ -51,7 +51,7 @@ class AgendaConviteBase(TenantTestCase):
     def _dar_acesso_com_criar_para_outros(self, user):
         papel = self._dar_acesso_modulo(user)
         HabilitacaoPapel.objects.create(
-            papel=papel, modulo=MODULO_AGENDA, item=HAB_AGENDA_CRIAR_PARA_OUTROS, ativo=True
+            papel=papel, modulo=MODULO_AGENDA, item=HAB_AGENDA_ATRIBUIR_OUTROS, ativo=True
         )
         return papel
 
@@ -88,7 +88,7 @@ class TestCriacaoExigeConvite(AgendaConviteBase):
 
     def test_convite_pendente_e_criado_e_vinculado_ao_compromisso(self):
         self._criar(destinatario=self.destinatario)
-        compromisso = Compromisso.objects.get(titulo="Compromisso Convite")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Convite")
         self.assertIsNotNone(compromisso.convite_delegacao)
         self.assertEqual(compromisso.convite_delegacao.status, ConviteDelegacao.STATUS_PENDENTE)
         self.assertEqual(compromisso.convite_delegacao.delegante_id, self.delegante.pk)
@@ -102,17 +102,14 @@ class TestCriacaoExigeConvite(AgendaConviteBase):
         self.client.force_login(self.destinatario)
 
         r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
-        titulos_novidades = [c.titulo for c in r.context["compromissos_novidades"]]
-        titulos_terceiro = [c.titulo for c in r.context["compromissos_terceiro"]]
-        titulos_lista = [c.titulo for c in r.context["compromissos"]]
-        self.assertNotIn("Compromisso Convite", titulos_novidades)
-        self.assertNotIn("Compromisso Convite", titulos_terceiro)
+        titulos_lista = [c.titulo for c in r.context["itens"]]
         self.assertNotIn("Compromisso Convite", titulos_lista)
 
     def test_compromisso_aparece_em_delegados_por_mim_com_status_pendente(self):
         self._criar(destinatario=self.destinatario)
-        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
-        titulos = [c.titulo for c in r.context["compromissos_delegados"]]
+        # Reunião em 01/10: aparece no dia do calendário.
+        r = self.client.get("/agenda/?delegados=1&ano=2026&mes=10&dia=1", HTTP_HOST=self.http_host)
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Convite", titulos)
         self.assertContains(r, "Convite pendente")
 
@@ -128,7 +125,7 @@ class TestCriacaoExigeConvite(AgendaConviteBase):
 
     def test_destinatario_nao_consegue_acessar_compromisso_pendente_diretamente(self):
         self._criar(destinatario=self.destinatario)
-        compromisso = Compromisso.objects.get(titulo="Compromisso Convite")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Convite")
         self.client.logout()
         self._dar_acesso_modulo(self.destinatario, nivel=NIVEL_SOMENTE_SEUS)
         self.client.force_login(self.destinatario)
@@ -156,7 +153,7 @@ class TestResponderConvite(AgendaConviteBase):
         self._dar_acesso_modulo(self.terceiro, nivel=NIVEL_SOMENTE_SEUS)
         self.client.force_login(self.delegante)
         self._criar(destinatario=self.destinatario)
-        self.compromisso = Compromisso.objects.get(titulo="Compromisso Convite")
+        self.compromisso = ItemAgenda.objects.get(titulo="Compromisso Convite")
         self.client.logout()
 
     def test_destinatario_aceita_e_compromisso_passa_a_aparecer(self):
@@ -171,7 +168,7 @@ class TestResponderConvite(AgendaConviteBase):
         self.assertEqual(self.compromisso.convite_delegacao.status, ConviteDelegacao.STATUS_ACEITO)
 
         r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
-        titulos = [c.titulo for c in r.context["compromissos_novidades"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Convite", titulos)
 
     def test_destinatario_recusa_com_justificativa(self):
@@ -229,13 +226,13 @@ class TestDelegacaoDireta(AgendaConviteBase):
     def test_admin_delega_direto_sem_convite(self):
         self.client.force_login(self.admin)
         self._criar(destinatario=self.destinatario)
-        compromisso = Compromisso.objects.get(titulo="Compromisso Convite")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Convite")
         self.assertIsNone(compromisso.convite_delegacao)
 
     def test_gerente_delega_direto_para_subordinado_da_propria_equipe(self):
         self.client.force_login(self.gerente)
         self._criar(destinatario=self.subordinado)
-        compromisso = Compromisso.objects.get(titulo="Compromisso Convite")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Convite")
         self.assertIsNone(compromisso.convite_delegacao)
 
     def test_auto_atribuicao_nunca_gera_convite(self):
@@ -243,5 +240,5 @@ class TestDelegacaoDireta(AgendaConviteBase):
         self._dar_acesso_com_criar_para_outros(comum)
         self.client.force_login(comum)
         self._criar(destinatario=comum, titulo="Compromisso Para Mim Mesmo")
-        compromisso = Compromisso.objects.get(titulo="Compromisso Para Mim Mesmo")
+        compromisso = ItemAgenda.objects.get(titulo="Compromisso Para Mim Mesmo")
         self.assertIsNone(compromisso.convite_delegacao)

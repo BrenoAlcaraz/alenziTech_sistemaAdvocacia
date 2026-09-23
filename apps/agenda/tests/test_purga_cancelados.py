@@ -21,7 +21,7 @@ from django.utils import timezone
 from django_tenants.test.cases import TenantTestCase
 from django_tenants.utils import schema_context, tenant_context
 
-from apps.agenda.models import Compromisso
+from apps.agenda.models import ItemAgenda
 from apps.saas_tenants.models import Escritorio
 
 
@@ -36,6 +36,7 @@ class PurgaCanceladosBase(TenantTestCase):
 
     def _compromisso(self, *, status="cancelado", cancelado_em=None, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Audiência cancelada",
             "data_hora_inicio": timezone.now() + timedelta(days=1),
             "status": status,
@@ -43,7 +44,7 @@ class PurgaCanceladosBase(TenantTestCase):
             "cancelado_em": cancelado_em,
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(**defaults)
+        return ItemAgenda.objects.create(**defaults)
 
     def _rodar_comando(self):
         call_command("expurgar_compromissos_cancelados")
@@ -55,14 +56,14 @@ class TestExpurgoDeCanceladosAntigos(PurgaCanceladosBase):
             cancelado_em=timezone.now() - timedelta(days=8)
         )
         self._rodar_comando()
-        self.assertFalse(Compromisso.objects.filter(pk=compromisso.pk).exists())
+        self.assertFalse(ItemAgenda.objects.filter(pk=compromisso.pk).exists())
 
     def test_cancelado_exatamente_no_limite_e_excluido(self):
         compromisso = self._compromisso(
             cancelado_em=timezone.now() - timedelta(days=7, seconds=1)
         )
         self._rodar_comando()
-        self.assertFalse(Compromisso.objects.filter(pk=compromisso.pk).exists())
+        self.assertFalse(ItemAgenda.objects.filter(pk=compromisso.pk).exists())
 
 
 class TestExpurgoPreservaOQueNaoDeveSerExcluido(PurgaCanceladosBase):
@@ -71,21 +72,21 @@ class TestExpurgoPreservaOQueNaoDeveSerExcluido(PurgaCanceladosBase):
             cancelado_em=timezone.now() - timedelta(days=2)
         )
         self._rodar_comando()
-        self.assertTrue(Compromisso.objects.filter(pk=compromisso.pk).exists())
+        self.assertTrue(ItemAgenda.objects.filter(pk=compromisso.pk).exists())
 
     def test_agendado_com_data_original_antiga_nao_e_excluido(self):
         compromisso = self._compromisso(
-            status="agendado",
+            status="a_fazer",
             cancelado_em=None,
             data_hora_inicio=timezone.now() - timedelta(days=30),
         )
         self._rodar_comando()
-        self.assertTrue(Compromisso.objects.filter(pk=compromisso.pk).exists())
+        self.assertTrue(ItemAgenda.objects.filter(pk=compromisso.pk).exists())
 
     def test_concluido_nao_e_excluido_mesmo_sem_cancelado_em(self):
         compromisso = self._compromisso(status="concluido", cancelado_em=None)
         self._rodar_comando()
-        self.assertTrue(Compromisso.objects.filter(pk=compromisso.pk).exists())
+        self.assertTrue(ItemAgenda.objects.filter(pk=compromisso.pk).exists())
 
 
 class TestExpurgoIsolamentoMultiTenant(PurgaCanceladosBase):
@@ -122,19 +123,19 @@ class TestExpurgoIsolamentoMultiTenant(PurgaCanceladosBase):
         try:
             with tenant_context(outro_tenant):
                 responsavel_b = User.objects.create_user("responsavel_b", password="testpass")
-                preservado_b = Compromisso.objects.create(
+                preservado_b = ItemAgenda.objects.create(tipo="reuniao", 
                     titulo="Ainda agendado tenant B",
                     data_hora_inicio=timezone.now() + timedelta(days=1),
-                    status="agendado",
+                    status="a_fazer",
                     responsavel=responsavel_b,
                 )
 
             self._rodar_comando()
 
-            self.assertFalse(Compromisso.objects.filter(pk=elegivel_a.pk).exists())
+            self.assertFalse(ItemAgenda.objects.filter(pk=elegivel_a.pk).exists())
 
             with tenant_context(outro_tenant):
-                self.assertTrue(Compromisso.objects.filter(pk=preservado_b.pk).exists())
+                self.assertTrue(ItemAgenda.objects.filter(pk=preservado_b.pk).exists())
         finally:
             with schema_context("public"):
                 outro_tenant.delete(force_drop=True)

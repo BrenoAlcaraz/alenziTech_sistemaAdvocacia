@@ -23,7 +23,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_SOMENTE_SEUS,
     NIVEL_TODOS,
 )
-from apps.agenda.models import Compromisso, ParticipanteCompromisso
+from apps.agenda.models import ItemAgenda, ParticipanteItemAgenda
 
 
 class AgendaEscopoBase(TenantTestCase):
@@ -56,11 +56,12 @@ class AgendaEscopoBase(TenantTestCase):
 
     def _compromisso(self, *, responsavel, **kwargs):
         defaults = {
+            "tipo": "reuniao",
             "titulo": "Compromisso Teste",
             "data_hora_inicio": "2026-09-10T10:00:00Z",
         }
         defaults.update(kwargs)
-        return Compromisso.objects.create(responsavel=responsavel, **defaults)
+        return ItemAgenda.objects.create(responsavel=responsavel, **defaults)
 
 
 class TestAgendaEscopoSomenteSeus(AgendaEscopoBase):
@@ -96,9 +97,9 @@ class TestAgendaEscopoSomenteSeus(AgendaEscopoBase):
         )
 
     def test_index_mostra_apenas_compromissos_proprios(self):
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Próprio", titulos)
         self.assertNotIn("Compromisso Alheio", titulos)
 
@@ -111,16 +112,16 @@ class TestAgendaEscopoSomenteSeus(AgendaEscopoBase):
         """
         convidado_1 = self._user("convidado_1")
         convidado_2 = self._user("convidado_2")
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.compromisso_proprio, usuario=convidado_1
+        ParticipanteItemAgenda.objects.create(
+            item=self.compromisso_proprio, usuario=convidado_1
         )
-        ParticipanteCompromisso.objects.create(
-            compromisso=self.compromisso_proprio, usuario=convidado_2
+        ParticipanteItemAgenda.objects.create(
+            item=self.compromisso_proprio, usuario=convidado_2
         )
 
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertEqual(titulos.count("Compromisso Próprio"), 1)
 
     def test_editar_alheio_retorna_404(self):
@@ -135,14 +136,14 @@ class TestAgendaEscopoSomenteSeus(AgendaEscopoBase):
         )
         self.assertEqual(r.status_code, 404)
         self.compromisso_alheio.refresh_from_db()
-        self.assertEqual(self.compromisso_alheio.status, "agendado")
+        self.assertEqual(self.compromisso_alheio.status, "a_fazer")
 
     def test_excluir_alheio_retorna_404_sem_apagar(self):
         r = self.client.post(
             f"/agenda/{self.compromisso_alheio.pk}/excluir/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 404)
-        self.assertTrue(Compromisso.objects.filter(pk=self.compromisso_alheio.pk).exists())
+        self.assertTrue(ItemAgenda.objects.filter(pk=self.compromisso_alheio.pk).exists())
 
     def test_concluir_proprio_funciona(self):
         r = self.client.post(
@@ -210,18 +211,18 @@ class TestAgendaEscopoTodos(AgendaEscopoBase):
         )
 
     def test_index_padrao_mostra_todos(self):
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Próprio", titulos)
         self.assertIn("Compromisso Alheio", titulos)
 
     def test_reduzir_para_somente_seus_funciona(self):
         r = self.client.get(
-            "/agenda/?filtro=todos&escopo=somente_seus", HTTP_HOST=self.http_host
+            "/agenda/?escopo=somente_seus", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Próprio", titulos)
         self.assertNotIn("Compromisso Alheio", titulos)
 
@@ -241,7 +242,7 @@ class TestAgendaEscopoTodos(AgendaEscopoBase):
         )
         self.assertEqual(r.status_code, 404)
         self.compromisso_alheio.refresh_from_db()
-        self.assertEqual(self.compromisso_alheio.status, "agendado")
+        self.assertEqual(self.compromisso_alheio.status, "a_fazer")
 
     def test_editar_proprio_funciona_com_nivel_todos(self):
         r = self.client.get(
@@ -274,9 +275,9 @@ class TestAgendaEscopoAdmin(AgendaEscopoBase):
         )
 
     def test_index_admin_ve_compromisso_alheio(self):
-        r = self.client.get("/agenda/?filtro=todos", HTTP_HOST=self.http_host)
+        r = self.client.get("/agenda/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
-        titulos = [c.titulo for c in r.context["compromissos"]]
+        titulos = [c.titulo for c in r.context["itens"]]
         self.assertIn("Compromisso Alheio", titulos)
 
     def test_admin_edita_compromisso_alheio(self):
@@ -298,7 +299,7 @@ class TestAgendaEscopoAdmin(AgendaEscopoBase):
             f"/agenda/{self.compromisso_alheio.pk}/excluir/", HTTP_HOST=self.http_host
         )
         self.assertEqual(r.status_code, 302)
-        self.assertFalse(Compromisso.objects.filter(pk=self.compromisso_alheio.pk).exists())
+        self.assertFalse(ItemAgenda.objects.filter(pk=self.compromisso_alheio.pk).exists())
 
 
 class TestAgendaEditarPreservaResponsavel(AgendaEscopoBase):
@@ -335,7 +336,7 @@ class TestAgendaEditarPreservaResponsavel(AgendaEscopoBase):
             f"/agenda/{self.compromisso.pk}/editar/",
             {
                 "titulo": "Compromisso Editado",
-                "tipo": "outro",
+                "tipo": "reuniao",
                 "data_hora_inicio": "2026-09-11T10:00",
                 "responsavel": self.outro_user.pk,
             },

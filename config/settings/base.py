@@ -37,7 +37,6 @@ TENANT_APPS = [
     "apps.dashboard",
     "apps.clientes",
     "apps.processos",
-    "apps.tarefas",
     "apps.notificacoes",
     "apps.financeiro",
     "apps.agenda",
