@@ -31,6 +31,13 @@ escritório, criado automaticamente (`auto_create_schema=True`):
 `laboratorio`, `configuracoes`. `django.contrib.auth` está em SHARED e
 TENANT — cada tenant tem sua própria tabela `auth_user`.
 
+**Criação de escritório**: único caminho é
+`apps/saas_tenants/onboarding.py::criar_escritorio` (exposto pelo
+comando `criar_escritorio`) — valida tudo antes, cria o tenant e, se
+algo falhar depois do schema existir, remove o escritório inteiro
+(`delete(force_drop=True)`). Domínio de escritório é sempre
+`<slug>.<DOMINIO_BASE>` (setting vinda do `.env`).
+
 **Resolução do tenant**: `TenantMainMiddleware` (primeiro middleware)
 resolve o schema a partir do domínio (`Dominio → Escritorio`) antes de
 qualquer view rodar. `ROOT_URLCONF` (`config/urls.py`) serve só os

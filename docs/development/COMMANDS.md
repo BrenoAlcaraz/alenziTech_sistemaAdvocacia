@@ -29,10 +29,15 @@ python manage.py makemigrations --check --dry-run
 ```
 
 `python manage.py migrate` é, neste projeto, o mesmo comando que
-`migrate_schemas` (django-tenants substitui o `migrate` padrão). Não há
-fluxo canônico documentado de provisioning de tenant — `create_tenant`/
-`create_domain`/`create_tenant_superuser` existem (django-tenants) mas
-nenhum procedimento oficial define ordem/parâmetros.
+`migrate_schemas` (django-tenants substitui o `migrate` padrão).
+
+Criar escritório (fluxo canônico; não usar `create_tenant`/
+`create_domain`/`create_tenant_superuser` do django-tenants). Exige
+`DOMINIO_BASE` no `.env` (`localhost` em dev):
+
+```bash
+python manage.py criar_escritorio --nome "Silva Advogados" --slug silva   --admin-usuario joao --admin-email joao@silva.adv.br --admin-nome "João Silva"
+```
 
 ## Testes
 

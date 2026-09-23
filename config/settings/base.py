@@ -53,6 +53,9 @@ INSTALLED_APPS = list(SHARED_APPS) + [
 
 TENANT_MODEL = "saas_tenants.Escritorio"
 TENANT_DOMAIN_MODEL = "saas_tenants.Dominio"
+# Base do subdomínio de cada escritório (<slug>.<DOMINIO_BASE>):
+# "localhost" em dev, domínio da plataforma em produção.
+DOMINIO_BASE = os.getenv("DOMINIO_BASE", "")
 
 # ─── Banco de Dados ────────────────────────────────────────────────────────────
 DATABASES = {

@@ -57,6 +57,26 @@ Termos históricos depreciados (não usar em decisão nova): "Perfil
 mestre", "Departamento", "Grupo gerente", "Grupo advogado",
 "microserviço" (para descrever um app).
 
+## Criação de escritório (onboarding)
+
+A cada venda, o operador da plataforma roda um único comando
+(`criar_escritorio`, ver [COMMANDS.md](development/COMMANDS.md)) que
+deixa o escritório pronto para o dono usar.
+
+- Cria, tudo ou nada: escritório (schema = slug), domínio principal
+  `<slug>.<DOMINIO_BASE>`, identidade visual com cores padrão e o
+  usuário dono. Qualquer falha desfaz tudo e informa o motivo.
+- Slug: só letras minúsculas e números, começando por letra, até 30
+  caracteres (vale como schema PostgreSQL e subdomínio). Slugs
+  reservados são recusados (`SLUGS_RESERVADOS` em
+  `apps/saas_tenants/onboarding.py`). Slug é permanente.
+- O comando só cria; slug/domínio já existente é recusado, nunca
+  alterado nem sobrescrito. Sem `DOMINIO_BASE` configurado, recusa.
+- O dono nasce Administrador do escritório (código ADM), sem
+  superuser/staff — é o Administrador titular, um por escritório.
+- Senha forte aleatória exibida uma única vez no terminal; é provisória
+  até existir o fluxo de e-mail "defina sua senha" (ainda não feito).
+
 ## Módulos
 
 Cada módulo abaixo: objetivo, regras de negócio que já são decisão

@@ -11,6 +11,12 @@ class EscritorioAdmin(TenantAdminMixin, admin.ModelAdmin):
     list_filter = ["ativo"]
     search_fields = ["nome", "slug"]
 
+    def get_readonly_fields(self, request, obj=None):
+        # Slug é nome do schema e subdomínio: permanente após a criação.
+        if obj is not None:
+            return [*super().get_readonly_fields(request, obj), "slug", "schema_name"]
+        return super().get_readonly_fields(request, obj)
+
 
 @admin.register(Dominio)
 class DominioAdmin(admin.ModelAdmin):
