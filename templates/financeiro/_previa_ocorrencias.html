@@ -1,0 +1,49 @@
+{# Prévia das cobranças que o parcelado/recorrente vai gerar — só na criação. #}
+{# Espera `campo_valor` e `campo_data` (nomes dos campos de valor e 1º vencimento no form). #}
+{# O texto vem de financeiro:previa_ocorrencias, que usa o mesmo cronograma da geração. #}
+<p id="previa-ocorrencias" class="hidden col-span-2 text-sm text-gray-700 rounded-lg bg-gray-50 px-3 py-2" aria-live="polite"
+   data-url="{% url 'financeiro:previa_ocorrencias' %}" data-campo-valor="{{ campo_valor }}" data-campo-data="{{ campo_data }}"></p>
+<script>
+  (function () {
+    var previa = document.getElementById("previa-ocorrencias");
+    var form = previa.closest("form");
+    var campos = {
+      classificacao: "classificacao", valor: previa.dataset.campoValor, data_vencimento: previa.dataset.campoData,
+      periodicidade: "periodicidade", numero_parcelas: "numero_parcelas", duracao_tipo: "duracao_tipo",
+      duracao_quantidade: "duracao_quantidade", duracao_data_final: "duracao_data_final",
+    };
+    var pedido = 0;
+    var espera;
+
+    function mostrar(texto) {
+      previa.textContent = texto;
+      previa.classList.toggle("hidden", !texto);
+    }
+
+    function atualizar() {
+      var params = new URLSearchParams();
+      Object.keys(campos).forEach(function (param) {
+        var el = document.getElementById("id_" + campos[param]);
+        params.set(param, el ? el.value : "");
+      });
+      if (["parcelado", "recorrente"].indexOf(params.get("classificacao")) === -1) {
+        pedido++;
+        mostrar("");
+        return;
+      }
+      var este = ++pedido;
+      fetch(previa.dataset.url + "?" + params.toString(), { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : { texto: "" }; })
+        .then(function (dados) { if (este === pedido) mostrar(dados.texto); })
+        .catch(function () { if (este === pedido) mostrar(""); });
+    }
+
+    function agendar() {
+      clearTimeout(espera);
+      espera = setTimeout(atualizar, 250);
+    }
+    form.addEventListener("input", agendar);
+    form.addEventListener("change", agendar);
+    atualizar();
+  })();
+</script>

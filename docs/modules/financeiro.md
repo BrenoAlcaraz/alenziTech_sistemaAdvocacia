@@ -18,9 +18,24 @@ especificação não determina quantas tabelas existirão; modelagem física
   último dia do mês, sem "derivar" nas parcelas posteriores: 31/01 →
   28/02 → 31/03). Só a 1ª pode nascer paga; as demais nascem sempre
   pendentes.
-- Recorrente: periodicidade + primeiro vencimento, duração/data
-  final/indeterminado. Cada ocorrência nasce como lançamento
-  individual ligado à origem.
+- Recorrente: periodicidade + primeiro vencimento + término. Cada
+  ocorrência nasce como lançamento individual ligado à origem.
+- Parcelado × recorrente: o parcelado é **uma obrigação com total
+  definido**, dividida no tempo. O valor digitado é o total, e encerrar
+  antes do fim é renegociação, porque o saldo existia. O recorrente são
+  **cobranças independentes, uma por período**. O valor digitado é o de
+  cada cobrança, e encerrar antes é o fim do contrato, sem saldo.
+  "R$ X por mês durante 8 meses" é parcelado se há um total devido, e
+  recorrente com 8 cobranças se é remuneração por período.
+- O término do recorrente tem três formas equivalentes: sem data de
+  término, termina em uma data (inclusive) e termina após N cobranças.
+  "Após N" existe para contratos redigidos por prazo ("12 meses",
+  "3 anuidades"), sem obrigar o usuário a calcular a data.
+- Na criação de parcelado/recorrente (lançamento e honorário
+  contratual), o formulário mostra uma prévia do que será gerado:
+  quantidade, valor de cada cobrança (e da última, se diferente),
+  primeiro e último vencimento e total. Sem data de término, não mostra
+  total. A prévia usa o mesmo cronograma da geração e nunca grava nada.
 - Cancelar recorrência futura não apaga nem reescreve ocorrências já
   realizadas; confirmar/cancelar uma ocorrência não reescreve as demais.
 - "Cancelado" nunca é escolhido no formulário (criar/editar oferece só

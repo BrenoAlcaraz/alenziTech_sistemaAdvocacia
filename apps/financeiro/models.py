@@ -177,7 +177,7 @@ class LancamentoFinanceiro(models.Model):
             if self.periodicidade not in dict(self.PERIODICIDADE_CHOICES):
                 erros["periodicidade"] = "Selecione mensal ou anual."
             if self.duracao_tipo == "quantidade" and not self.duracao_quantidade:
-                erros["duracao_quantidade"] = "Informe a quantidade de ocorrências."
+                erros["duracao_quantidade"] = "Informe o número de cobranças."
             elif self.duracao_tipo == "data_final":
                 if not self.duracao_data_final:
                     erros["duracao_data_final"] = "Informe a data final."

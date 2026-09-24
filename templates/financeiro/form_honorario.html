@@ -42,11 +42,19 @@
             {% include "financeiro/_campo_honorario.html" with campo=form.classificacao %}
           </div>
           <div class="grid grid-cols-2 gap-4">
-            {% include "financeiro/_campo_honorario.html" with campo=form.valor_estimado %}
+            <div>
+              <label class="label" for="{{ form.valor_estimado.id_for_label }}">
+                <span data-toggle-panel="pagamento" data-toggle-values=",unica">{{ form.valor_estimado.label }}</span>
+                <span data-toggle-panel="pagamento" data-toggle-values="parcelado" class="hidden">Valor total (R$)</span>
+                <span data-toggle-panel="pagamento" data-toggle-values="recorrente" class="hidden">Valor de cada cobrança (R$)</span>
+              </label>
+              {{ form.valor_estimado }}
+              {% if form.valor_estimado.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.valor_estimado.errors|join:", " }}</p>{% endif %}
+            </div>
             {% include "financeiro/_campo_honorario.html" with campo=form.data_prevista dica="opcional no pagamento único" %}
           </div>
           <p data-toggle-panel="pagamento" data-toggle-values="parcelado" class="text-xs text-gray-400">O valor é o total: será dividido em parcelas mensais, cada uma gerando uma receita pendente no Financeiro.</p>
-          <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-400">O valor é o de cada ocorrência; cada uma gera uma receita pendente no Financeiro. Sem duração definida, gera uma janela de ocorrências futuras.</p>
+          <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-400">O valor é o de cada cobrança; cada uma gera uma receita pendente no Financeiro. Sem data de término, gera uma janela de cobranças futuras.</p>
           {% if form.ja_recebido %}
             {# Recebimento já ocorrido, registrado junto (só Administrador, só no cadastro) #}
             <div class="rounded-xl bg-gray-50 p-4 flex flex-col gap-3">
@@ -71,6 +79,11 @@
               {% include "financeiro/_campo_honorario.html" with campo=form.duracao_data_final %}
             </div>
           </div>
+          {% if modo != "editar" %}
+            <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual">
+              {% include "financeiro/_previa_ocorrencias.html" with campo_valor="valor_estimado" campo_data="data_prevista" %}
+            </div>
+          {% endif %}
         </div>
 
         <div data-toggle-panel="honorario_tipo" data-toggle-values="contratual">

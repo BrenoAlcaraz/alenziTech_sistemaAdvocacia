@@ -14,6 +14,17 @@ from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente
 
 
+# Opções de término da recorrência como o usuário as lê — só a
+# apresentação; os valores gravados são os de
+# `LancamentoFinanceiro.DURACAO_TIPO_CHOICES`.
+TERMINO_RECORRENCIA_CHOICES = [
+    ("", "Selecione"),
+    ("indeterminado", "Sem data de término"),
+    ("data_final", "Termina em uma data"),
+    ("quantidade", "Termina após N cobranças"),
+]
+
+
 def _cliente_id_atual(form):
     """Cliente já conhecido no form (reenvio, edição ou pré-seleção) para
     filtrar o queryset de Processo antes de qualquer interação via JS."""
@@ -83,8 +94,8 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         labels = {
             "classificacao": "Classificação",
             "numero_parcelas": "Quantidade de parcelas",
-            "duracao_tipo": "Duração da recorrência",
-            "duracao_quantidade": "Quantidade de ocorrências",
+            "duracao_tipo": "Término",
+            "duracao_quantidade": "Número de cobranças",
             "duracao_data_final": "Data final",
             "anexo": "Boleto/documento da despesa",
             "comprovante_pagamento": "Comprovante de pagamento",
@@ -124,6 +135,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["periodicidade"].required = False
         self.fields["numero_parcelas"].required = False
         self.fields["duracao_tipo"].required = False
+        self.fields["duracao_tipo"].choices = TERMINO_RECORRENCIA_CHOICES
         self.fields["duracao_quantidade"].required = False
         self.fields["duracao_data_final"].required = False
         self.fields["duracao_data_final"].input_formats = ["%Y-%m-%d"]
@@ -192,7 +204,7 @@ class LancamentoFinanceiroForm(forms.ModelForm):
                 self.add_error("periodicidade", "Selecione mensal ou anual.")
             duracao_tipo = cleaned_data.get("duracao_tipo")
             if duracao_tipo == "quantidade" and not cleaned_data.get("duracao_quantidade"):
-                self.add_error("duracao_quantidade", "Informe a quantidade de ocorrências.")
+                self.add_error("duracao_quantidade", "Informe o número de cobranças.")
             elif duracao_tipo == "data_final":
                 data_final = cleaned_data.get("duracao_data_final")
                 data_venc = cleaned_data.get("data_vencimento")
@@ -433,8 +445,8 @@ class HonorarioForm(forms.ModelForm):
             "data_prevista": "Vencimento (ou 1º vencimento)",
             "classificacao": "Pagamento do valor",
             "numero_parcelas": "Quantidade de parcelas",
-            "duracao_tipo": "Duração da recorrência",
-            "duracao_quantidade": "Quantidade de ocorrências",
+            "duracao_tipo": "Término",
+            "duracao_quantidade": "Número de cobranças",
             "duracao_data_final": "Data final",
             "exito_percentual": "Percentual de êxito (%)",
             "exito_base": "Base do êxito",
@@ -487,10 +499,10 @@ class HonorarioForm(forms.ModelForm):
             if valor in Honorario.TIPOS_NOVOS or valor == self.instance.tipo
         ]
         self.fields["modalidade"].choices = Honorario.MODALIDADE_CHOICES
+        self.fields["duracao_tipo"].choices = TERMINO_RECORRENCIA_CHOICES
         self.fields["classificacao"].choices = LancamentoFinanceiro.CLASSIFICACAO_CHOICES
         for nome, opcoes in (
             ("periodicidade", LancamentoFinanceiro.PERIODICIDADE_CHOICES),
-            ("duracao_tipo", LancamentoFinanceiro.DURACAO_TIPO_CHOICES),
             ("exito_base", Honorario.EXITO_BASE_CHOICES),
             ("forma_condenacao", Honorario.FORMA_CONDENACAO_CHOICES),
             ("devedor_tipo", Honorario.DEVEDOR_CHOICES),

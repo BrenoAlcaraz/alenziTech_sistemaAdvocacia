@@ -48,11 +48,13 @@
         {# Valor #}
         <div>
           <label class="label">
-            <span data-toggle-panel="classificacao" data-toggle-values="unica,recorrente">Valor (R$)</span>
+            <span data-toggle-panel="classificacao" data-toggle-values="unica">Valor (R$)</span>
             {% if modo == "novo" %}
               <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor total (R$)</span>
+              <span data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden">Valor de cada cobrança (R$)</span>
             {% else %}
               <span data-toggle-panel="classificacao" data-toggle-values="parcelado" class="hidden">Valor desta parcela (R$)</span>
+              <span data-toggle-panel="classificacao" data-toggle-values="recorrente" class="hidden">Valor desta cobrança (R$)</span>
             {% endif %}
           </label>
           {{ form.valor }}
@@ -157,6 +159,10 @@
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_vencimento.errors|join:", " }}</p>
           {% endif %}
         </div>
+
+        {% if modo == "novo" %}
+          {% include "financeiro/_previa_ocorrencias.html" with campo_valor="valor" campo_data="data_vencimento" %}
+        {% endif %}
 
         {# Data de pagamento — só com status Pago #}
         <div data-toggle-panel="status" data-toggle-values="pago" class="hidden">

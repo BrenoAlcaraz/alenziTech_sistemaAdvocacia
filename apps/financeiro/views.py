@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Sum
 from django.http import Http404, JsonResponse
 from django.utils import timezone
@@ -52,6 +52,7 @@ from .services import (
     calcular_honorario_sucumbencial,
     cancelar_lancamentos_futuros_do_honorario,
     contratos_de_exito_pelo_ganho,
+    cronograma_ocorrencias,
     gerar_lancamentos_do_honorario,
     cancelar_ocorrencias_futuras,
     custas_a_recuperar,
@@ -573,6 +574,66 @@ def processos_por_cliente(request):
     return JsonResponse({
         "processos": [{"id": p.id, "label": rotulo_processo(p)} for p in processos],
     })
+
+
+# Campos do lançamento que definem o cronograma de parcelado/recorrente.
+_CAMPOS_PREVIA = (
+    "classificacao", "valor", "data_vencimento", "periodicidade", "numero_parcelas",
+    "duracao_tipo", "duracao_quantidade", "duracao_data_final",
+)
+
+
+def _lancamento_da_previa(params):
+    """Lançamento em memória com os campos do cronograma, validados como
+    no cadastro; `None` se incompleto ou inválido."""
+    lancamento = LancamentoFinanceiro()
+    try:
+        for nome in _CAMPOS_PREVIA:
+            campo = LancamentoFinanceiro._meta.get_field(nome)
+            bruto = (params.get(nome) or "").strip()
+            if not bruto:
+                valor = None if campo.null else ""
+            else:
+                # `clean` (não só `to_python`) para valer também o limite do
+                # campo — ninguém pede prévia de milhões de cobranças.
+                valor = campo.clean(bruto, lancamento)
+            setattr(lancamento, nome, valor)
+        if lancamento.classificacao not in ("parcelado", "recorrente"):
+            return None
+        if not lancamento.data_vencimento or not lancamento.valor or lancamento.valor <= 0:
+            return None
+        lancamento.clean()
+    except ValidationError:
+        return None
+    return lancamento
+
+
+def _texto_previa(lancamento):
+    cronograma = cronograma_ocorrencias(lancamento)
+    (inicio, valor), (fim, valor_ultima) = cronograma[0], cronograma[-1]
+    if lancamento.classificacao == "recorrente" and lancamento.duracao_tipo == "indeterminado":
+        periodo = "por mês" if lancamento.periodicidade == "mensal" else "por ano"
+        return f"{_formatar_moeda(valor)} {periodo}, sem data de término, a partir de {inicio:%d/%m/%Y}."
+    if len(cronograma) == 1:
+        return f"1 cobrança de {_formatar_moeda(valor)}, em {inicio:%d/%m/%Y}."
+    nome = "parcelas" if lancamento.classificacao == "parcelado" else "cobranças"
+    texto = f"{len(cronograma)} {nome} de {_formatar_moeda(valor)}"
+    if valor_ultima != valor:
+        texto += f" (a última de {_formatar_moeda(valor_ultima)})"
+    total = sum(v for _, v in cronograma)
+    return texto + f", de {inicio:%d/%m/%Y} a {fim:%d/%m/%Y} — total {_formatar_moeda(total)}."
+
+
+@login_required
+def previa_ocorrencias(request):
+    """Prévia, nos formulários de lançamento e de honorário, das cobranças
+    que um parcelado/recorrente vai gerar — pelo mesmo
+    `cronograma_ocorrencias` da geração. Não grava nada; dados incompletos
+    ou inválidos dão texto vazio (a validação que vale é a do envio)."""
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    lancamento = _lancamento_da_previa(request.GET)
+    return JsonResponse({"texto": _texto_previa(lancamento) if lancamento else ""})
 
 
 @login_required

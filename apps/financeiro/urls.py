@@ -8,6 +8,7 @@ urlpatterns = [
     path("financeiro/grafico/", views.grafico, name="grafico"),
     path("financeiro/processos-por-cliente/", views.processos_por_cliente, name="processos_por_cliente"),
     path("financeiro/custas/", views.custas, name="custas"),
+    path("financeiro/previa-ocorrencias/", views.previa_ocorrencias, name="previa_ocorrencias"),
     path("financeiro/lancamentos/novo/", views.form_lancamento, name="form_lancamento"),
     path("financeiro/lancamentos/<int:pk>/editar/", views.editar_lancamento, name="editar_lancamento"),
     path("financeiro/lancamentos/<int:pk>/marcar-pago/", views.marcar_pago, name="marcar_pago"),

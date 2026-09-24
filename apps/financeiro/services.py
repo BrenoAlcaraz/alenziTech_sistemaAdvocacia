@@ -58,17 +58,57 @@ def _copiar_para_ocorrencia(origem, data_vencimento):
     )
 
 
+def cronograma_ocorrencias(lancamento):
+    """[(vencimento, valor), ...] de todas as ocorrências — a 1ª inclusa —
+    que um lançamento parcelado ou recorrente gera (PDR-0021). Não grava
+    nada: é a fonte única de `gerar_ocorrencias` e da prévia do
+    formulário, para as duas nunca divergirem.
+
+    Parcelado: o valor é o total a parcelar. É dividido igualmente entre
+    as parcelas (arredondado ao centavo); a última absorve o resíduo do
+    arredondamento, para a soma bater exatamente com o total — mesma
+    convenção do honorário contratual parcelado (PDR-0032,
+    `gerar_lancamentos_do_honorario`).
+    """
+    inicio = lancamento.data_vencimento
+    # str() antes de Decimal(): aceita tanto Decimal quanto valor ainda
+    # não normalizado pelo form (ex.: `.objects.create(valor="...")`
+    # direto, fora do fluxo de tela), sem perder precisão.
+    valor = Decimal(str(lancamento.valor))
+
+    if lancamento.classificacao == "parcelado":
+        total_parcelas = lancamento.numero_parcelas or 1
+        valor_parcela = (valor / total_parcelas).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
+        cronograma = [(_somar_meses(inicio, i), valor_parcela) for i in range(total_parcelas)]
+        if total_parcelas > 1:
+            cronograma[-1] = (cronograma[-1][0], valor - valor_parcela * (total_parcelas - 1))
+        return cronograma
+
+    if lancamento.classificacao != "recorrente":
+        return [(inicio, valor)]
+
+    passo = _passo_em_meses(lancamento.periodicidade)
+    if lancamento.duracao_tipo == "quantidade":
+        total = lancamento.duracao_quantidade or 1
+    elif lancamento.duracao_tipo == "data_final":
+        total = 1
+        while (
+            total <= MAXIMO_OCORRENCIAS_POR_SEGURANCA
+            and _somar_meses(inicio, passo * total) <= lancamento.duracao_data_final
+        ):
+            total += 1
+    else:  # indeterminado
+        total = HORIZONTE_OCORRENCIAS_INDETERMINADO.get(lancamento.periodicidade, 12)
+    return [(_somar_meses(inicio, passo * i), valor) for i in range(total)]
+
+
 def gerar_ocorrencias(lancamento):
     """Gera as ocorrências futuras de um lançamento parcelado ou
     recorrente recém-criado, vinculadas a ele via `lancamento_origem`
-    (PDR-0021). Idempotente: não gera de novo se já existem ocorrências,
-    então é seguro chamar tanto na criação quanto na edição.
-
-    Parcelado: o valor digitado é o total a parcelar. É dividido
-    igualmente entre as parcelas (arredondado ao centavo); a última
-    parcela absorve o resíduo do arredondamento, para a soma bater
-    exatamente com o total — mesma convenção do honorário contratual
-    parcelado (PDR-0032, `gerar_lancamentos_do_honorario`).
+    (PDR-0021), conforme `cronograma_ocorrencias`. Idempotente: não gera
+    de novo se já existem ocorrências, então é seguro chamar tanto na
+    criação quanto na edição. No parcelado, a própria origem passa a
+    valer a 1ª parcela.
     """
     if lancamento.classificacao not in ("parcelado", "recorrente"):
         return
@@ -80,44 +120,16 @@ def gerar_ocorrencias(lancamento):
     if lancamento.ocorrencias.exists():
         return
 
+    (_, valor_primeira), *seguintes = cronograma_ocorrencias(lancamento)
+    if Decimal(str(lancamento.valor)) != valor_primeira:
+        lancamento.valor = valor_primeira
+        lancamento.save(update_fields=["valor"])
+
     novas = []
-    if lancamento.classificacao == "parcelado":
-        total_parcelas = lancamento.numero_parcelas or 1
-        # str() antes de Decimal(): aceita tanto Decimal quanto valor
-        # ainda não normalizado pelo form (ex.: `.objects.create(valor="...")`
-        # direto, fora do fluxo de tela), sem perder precisão.
-        total = Decimal(str(lancamento.valor))
-        valor_parcela = (total / total_parcelas).quantize(_CENTAVOS, rounding=ROUND_HALF_UP)
-        if lancamento.valor != valor_parcela:
-            lancamento.valor = valor_parcela
-            lancamento.save(update_fields=["valor"])
-        for i in range(1, total_parcelas):
-            data = _somar_meses(lancamento.data_vencimento, i)
-            novas.append(_copiar_para_ocorrencia(lancamento, data))
-        if novas:
-            novas[-1].valor = total - valor_parcela * (total_parcelas - 1)
-
-    elif lancamento.classificacao == "recorrente":
-        passo = _passo_em_meses(lancamento.periodicidade)
-        if lancamento.duracao_tipo == "quantidade":
-            total = lancamento.duracao_quantidade or 1
-            for i in range(1, total):
-                data = _somar_meses(lancamento.data_vencimento, passo * i)
-                novas.append(_copiar_para_ocorrencia(lancamento, data))
-        elif lancamento.duracao_tipo == "data_final":
-            i = 1
-            while i <= MAXIMO_OCORRENCIAS_POR_SEGURANCA:
-                data = _somar_meses(lancamento.data_vencimento, passo * i)
-                if data > lancamento.duracao_data_final:
-                    break
-                novas.append(_copiar_para_ocorrencia(lancamento, data))
-                i += 1
-        else:  # indeterminado
-            total = HORIZONTE_OCORRENCIAS_INDETERMINADO.get(lancamento.periodicidade, 12)
-            for i in range(1, total):
-                data = _somar_meses(lancamento.data_vencimento, passo * i)
-                novas.append(_copiar_para_ocorrencia(lancamento, data))
-
+    for data, valor in seguintes:
+        ocorrencia = _copiar_para_ocorrencia(lancamento, data)
+        ocorrencia.valor = valor
+        novas.append(ocorrencia)
     LancamentoFinanceiro.objects.bulk_create(novas)
 
 
