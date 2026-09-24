@@ -127,6 +127,15 @@
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'todos' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Todos
     </a>
+    {# Filas automáticas: todos os meses; a contagem é o total de linhas da fila #}
+    <a href="?{{ query_janela }}&filtro=atrasados"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      Vencidas <span class="tabular-nums">({{ total_fila_vencidas }})</span>
+    </a>
+    <a href="?{{ query_janela }}&filtro=vencer_7dias"
+       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'vencer_7dias' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
+      A vencer em 7 dias <span class="tabular-nums">({{ total_fila_a_vencer }})</span>
+    </a>
     <a href="?{{ query_janela }}&filtro=receitas"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'receitas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       Receitas
@@ -150,10 +159,6 @@
     <a href="?{{ query_janela }}&filtro=areceber"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'areceber' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
       A receber
-    </a>
-    <a href="?{{ query_janela }}&filtro=atrasados"
-       class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'atrasados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-      Atrasados
     </a>
     <a href="?{{ query_janela }}&filtro=solicitados"
        class="px-3 py-1.5 rounded-lg text-sm font-medium {% if filtro == 'solicitados' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">

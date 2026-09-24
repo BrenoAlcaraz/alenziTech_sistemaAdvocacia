@@ -3,9 +3,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Max
 from django.http import Http404
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_js
 from apps.accounts.escopo import equipe_padrao_para_usuario
@@ -46,6 +46,8 @@ from .forms import (
     ProcessoResponsavelForm,
 )
 from .services import (
+    FILAS_PROCESSOS,
+    anotar_ultima_movimentacao,
     faixa_status_do_processo,
     filtrar_processos_por_busca,
     ids_processos_apensos_do,
@@ -167,10 +169,15 @@ def lista(request):
     elif equipe_id:
         processos = processos.filter(equipe_id=equipe_id)
 
-    processos, ordem = ordenar(
-        processos.annotate(ultima_movimentacao=Max("movimentacoes__data")),
-        request, _COLUNAS_LISTA, padrao="-criado",
-    )
+    processos = anotar_ultima_movimentacao(processos)
+    fila = request.GET.get("fila") or ""
+    if fila not in FILAS_PROCESSOS:
+        fila = ""
+    filas = _filas_da_lista(request, processos, fila)
+    if fila:
+        processos = FILAS_PROCESSOS[fila][1](processos, timezone.localdate())
+
+    processos, ordem = ordenar(processos, request, _COLUNAS_LISTA, padrao="-criado")
 
     return render(request, "processos/lista.html", {
         "processos": paginar(request, processos),
@@ -180,6 +187,10 @@ def lista(request):
         "pode_usar_laboratorio": pode_usar_laboratorio,
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
+        "filas": filas,
+        "fila_atual": fila,
+        # "Limpar filtros" mantém o escopo e a fila escolhidos.
+        "query_limpar": f"escopo={escopo}" + (f"&fila={fila}" if fila else ""),
         "filtro_busca": busca,
         "filtro_materia": materia,
         "filtro_status": status,
@@ -190,6 +201,26 @@ def lista(request):
         "clientes_filtro": Cliente.objects.filter(ativo=True).order_by("nome_razao_social"),
         "equipes_filtro": Equipe.objects.filter(ativo=True).order_by("nome"),
     })
+
+
+def _filas_da_lista(request, processos, fila_atual):
+    """Abas "Todos" + filas, com contagem sobre a mesma busca/filtros da
+    tabela — o número da aba é o total de linhas ao clicá-la."""
+    hoje = timezone.localdate()
+    abas = [{"chave": "", "rotulo": "Todos", "total": None}]
+    abas += [
+        {"chave": chave, "rotulo": rotulo, "total": recorte(processos, hoje).count()}
+        for chave, (rotulo, recorte) in FILAS_PROCESSOS.items()
+    ]
+    for aba in abas:
+        query = request.GET.copy()
+        query.pop("pagina", None)
+        query.pop("fila", None)
+        if aba["chave"]:
+            query["fila"] = aba["chave"]
+        aba["url"] = f"?{query.urlencode()}"
+        aba["ativa"] = aba["chave"] == fila_atual
+    return abas
 
 
 def _anexar_item_do_prazo(user, prazos):

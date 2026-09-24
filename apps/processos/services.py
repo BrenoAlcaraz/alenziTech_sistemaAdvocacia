@@ -1,8 +1,9 @@
 import re
+from datetime import datetime, time, timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Q, Subquery
+from django.db.models import Max, Q, Subquery
 from django.utils import timezone
 
 from apps.accounts.codigo_interno import numero_do_codigo
@@ -300,3 +301,43 @@ def transferir_processos_se_sem_acesso(usuario):
     """Operação de domínio reutilizável por futuros fluxos reais de produto."""
     with transaction.atomic():
         return transferir_processos_de_usuarios_sem_acesso([usuario.pk])
+
+
+# ── Filas automáticas da lista (docs/modules/processos.md) ─────────────────
+DIAS_PARADO = 30
+DIAS_PRAZO_FILA = 7
+
+
+def anotar_ultima_movimentacao(processos):
+    return processos.annotate(ultima_movimentacao=Max("movimentacoes__data"))
+
+
+def processos_parados(processos, hoje):
+    """Sem movimento há mais de `DIAS_PARADO` dias: último andamento ou,
+    sem nenhum, a data de distribuição — mesma regra do grupo "+1 mês"
+    do Painel. Exige `anotar_ultima_movimentacao`."""
+    corte = hoje - timedelta(days=DIAS_PARADO)
+    # Andamento é datetime: "antes do dia do corte" no fuso local, como o
+    # Painel compara pela data local.
+    inicio_do_corte = timezone.make_aware(datetime.combine(corte, time.min))
+    return processos.filter(
+        Q(ultima_movimentacao__lt=inicio_do_corte)
+        | Q(ultima_movimentacao__isnull=True, data_distribuicao__lt=corte)
+    )
+
+
+def processos_prazo_proximo(processos, hoje):
+    return processos.filter(
+        prazo_proximo__gte=hoje, prazo_proximo__lte=hoje + timedelta(days=DIAS_PRAZO_FILA),
+    )
+
+
+def processos_responsavel_inativo(processos, hoje):
+    return processos.filter(responsavel__is_active=False)
+
+
+FILAS_PROCESSOS = {
+    "parados": ("Parados", processos_parados),
+    "prazo_7dias": ("Prazo em 7 dias", processos_prazo_proximo),
+    "responsavel_inativo": ("Responsável inativo", processos_responsavel_inativo),
+}

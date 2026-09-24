@@ -1,6 +1,6 @@
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -103,6 +103,7 @@ FILTROS_LANCAMENTOS_VALIDOS = {
     "apagar",
     "areceber",
     "atrasados",
+    "vencer_7dias",
     "solicitados",
     "apagar_periodo",
     "areceber_periodo",
@@ -119,6 +120,10 @@ FILTROS_PAINEL = {
     "apagar_atrasados": "A pagar — atrasados",
     "areceber_atrasados": "A receber — atrasados",
 }
+
+# Filas automáticas (docs/modules/financeiro.md): "atrasados" é a fila
+# Vencidas; ambas ignoram o mês navegado.
+DIAS_FILA_A_VENCER = 7
 
 # Rótulos do período (`?periodo=`) vindo do Painel.
 ROTULOS_PERIODO = {
@@ -234,6 +239,10 @@ _COLUNAS_LANCAMENTOS = {
 }
 
 
+def _a_vencer_na_fila(escopo, hoje):
+    return vencendo_no_periodo(escopo, None, hoje, hoje + timedelta(days=DIAS_FILA_A_VENCER))
+
+
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
@@ -278,6 +287,8 @@ def index(request):
         # Atrasado de mês anterior continua atrasado — nunca some por
         # causa do mês navegado.
         lancamentos = atrasados(escopo, hoje)
+    elif filtro == "vencer_7dias":
+        lancamentos = _a_vencer_na_fila(escopo, hoje)
     elif filtro == "apagar_periodo":
         lancamentos = vencendo_no_periodo(escopo, "despesa", hoje, fim_do_periodo)
     elif filtro == "areceber_periodo":
@@ -323,6 +334,8 @@ def index(request):
         "saldo_lista": _formatar_saldo(totais_lista["saldo"]),
         "ordem_atual": ordem,
         "filtro": filtro,
+        "total_fila_vencidas": atrasados(escopo, hoje).count(),
+        "total_fila_a_vencer": _a_vencer_na_fila(escopo, hoje).count(),
         "filtro_painel": FILTROS_PAINEL.get(filtro, "").format(**ROTULOS_PERIODO[periodo or "dia"]),
         "periodo": periodo,
         "recorte_periodo": recorte_periodo,

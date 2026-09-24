@@ -58,10 +58,15 @@ especificação não determina quantas tabelas existirão; modelagem física
   atual"), nunca a visão consolidada de todos os períodos.
 - Filtros da aba Lançamentos (reunião de 13/09): Todos, Receitas,
   Despesas, Pagos (despesas pagas), Recebidos (receitas pagas), A pagar
-  (despesas pendentes), A receber (receitas pendentes), Atrasados,
-  Pagamentos solicitados (lançamento originado de uma Solicitação
-  Financeira) — mesmo conjunto do protótipo. "Atrasados" considera
-  todos os meses, não só o navegado. Filtros extras usados pelos cards
+  (despesas pendentes), A receber (receitas pendentes), Pagamentos
+  solicitados (lançamento originado de uma Solicitação Financeira).
+  Logo depois de "Todos", as **filas automáticas**, com contagem igual
+  ao número de linhas ao clicar, ambas de todos os meses (ignoram o mês
+  navegado) e no escopo `dados_proprios`/`dados_todos`: **Vencidas**
+  (`filtro=atrasados`: pendente vencido antes de hoje, receitas e
+  despesas — mesma regra e soma dos "Atrasadas" dos cards A pagar/A
+  receber do Painel) e **A vencer em 7 dias** (pendentes de hoje a
+  hoje+7). Pago e cancelado nunca entram. Filtros extras usados pelos cards
   do Painel (sem aba própria, com etiqueta e "Limpar" quando ativos),
   também independentes do mês: a pagar/a receber que vencem no período
   (de hoje ao fim do dia/semana/mês, `periodo=`) e a pagar/a receber

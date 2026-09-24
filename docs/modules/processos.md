@@ -286,6 +286,26 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   Jurídica quando ele está no escopo do usuário. O prazo também aparece (discreto) na aba
   "Andamentos", sem ser o foco ali.
 
+## Filas automáticas (lista de Processos)
+
+Abas acima da tabela de processos ativos — "Todos" e as filas, cada uma
+com contagem calculada sobre a mesma busca/filtros/escopo da tabela
+(`?fila=`, número = linhas ao clicar):
+
+- **Parados**: sem movimento há mais de 30 dias — data do último
+  andamento ou, sem nenhum, a data de distribuição (sem nenhuma das
+  duas, não entra). Mesma regra e mesmo número do grupo "+1 mês" de
+  Processos paralisados no Painel, que leva à fila. Corte fixo, não
+  configurável pelo escritório.
+- **Prazo em 7 dias**: `prazo_proximo` (dos andamentos) de hoje a
+  hoje+7. Não depende do módulo Agenda Jurídica.
+- **Responsável inativo**: responsável é um usuário desativado —
+  carteira a redistribuir. Não existe processo sem responsável
+  (campo obrigatório).
+
+Filas criadas pelo usuário (filtros salvos) e alertas das filas estão
+fora de escopo.
+
 ## Documentos
 
 - Arquivo anexado a um Processo (`Documento`), com storage protegido por

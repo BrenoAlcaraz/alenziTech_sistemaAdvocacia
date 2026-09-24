@@ -473,10 +473,10 @@ def saldo_previsto(totais):
 
 def vencendo_no_periodo(lancamentos, tipo, hoje, fim):
     """Pendentes que vencem de hoje até o fim do período — o que venceu
-    antes de hoje já é atrasado e nunca entra aqui."""
-    return lancamentos.filter(
-        tipo=tipo, status="pendente", data_vencimento__gte=hoje, data_vencimento__lte=fim,
-    )
+    antes de hoje já é atrasado e nunca entra aqui. `tipo=None`: receitas
+    e despesas."""
+    qs = lancamentos.filter(status="pendente", data_vencimento__gte=hoje, data_vencimento__lte=fim)
+    return qs.filter(tipo=tipo) if tipo else qs
 
 
 def atrasados(lancamentos, hoje, tipo=None):
