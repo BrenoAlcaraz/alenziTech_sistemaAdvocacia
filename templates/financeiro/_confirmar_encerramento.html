@@ -1,0 +1,40 @@
+{% load moeda %}
+{% if lancamento.classificacao == "parcelado" %}
+  {% firstof "Encerrar parcelamento" as titulo %}{% firstof "parcela" as item %}{% firstof "parcelas" as itens %}
+{% else %}
+  {% firstof "Encerrar recorrência" as titulo %}{% firstof "ocorrência" as item %}{% firstof "ocorrências" as itens %}
+{% endif %}
+<form method="post" action="{% url 'financeiro:cancelar_recorrencia' lancamento.pk %}" class="p-5 w-96 max-w-full">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <h2 class="text-base font-semibold text-gray-900">{{ titulo }} "{{ lancamento.descricao }}"?</h2>
+
+  {% if resumo.futuras.quantidade %}
+    <ul class="text-sm text-gray-600 mt-3 space-y-2">
+      {% if resumo.pagas %}
+        <li><span class="font-medium text-green-700">{{ resumo.pagas }} paga{{ resumo.pagas|pluralize }}</span>: ficam como estão.</li>
+      {% endif %}
+      {% if resumo.vencidas.quantidade %}
+        <li>
+          <span class="font-medium text-amber-700">{{ resumo.vencidas.quantidade }} vencida{{ resumo.vencidas.quantidade|pluralize }} sem pagamento</span>
+          (R$ {{ resumo.vencidas.total|moeda_br }}): continua{{ resumo.vencidas.quantidade|pluralize:"m" }} em aberto.
+          Se não for{{ resumo.vencidas.quantidade|pluralize:"em" }} mais devida{{ resumo.vencidas.quantidade|pluralize }}, cancele separadamente.
+        </li>
+      {% endif %}
+      <li>
+        <span class="font-medium text-red-600">{{ resumo.futuras.quantidade }} {% if resumo.futuras.quantidade == 1 %}{{ item }} futura será cancelada{% else %}{{ itens }} futuras serão canceladas{% endif %}</span>
+        {% if resumo.futuras.quantidade == 1 %}({{ resumo.futuras.primeira|date:"d/m/Y" }}{% else %}({{ resumo.futuras.primeira|date:"d/m/Y" }} a {{ resumo.futuras.ultima|date:"d/m/Y" }}{% endif %}, total R$ {{ resumo.futuras.total|moeda_br }}).
+      </li>
+    </ul>
+    <p class="text-xs text-gray-500 mt-3">Nada é apagado: as {{ itens }} canceladas continuam no histórico e podem ser reabertas uma a uma.</p>
+    <div class="flex items-center gap-3 mt-4">
+      <button type="submit" class="btn-primary">{{ titulo }}</button>
+      <button type="button" data-fechar-dialogo class="btn-secondary">Voltar</button>
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-600 mt-2">Não há {{ itens }} futuras pendentes para cancelar.</p>
+    <div class="flex items-center gap-3 mt-4">
+      <button type="button" data-fechar-dialogo class="btn-secondary">Fechar</button>
+    </div>
+  {% endif %}
+</form>

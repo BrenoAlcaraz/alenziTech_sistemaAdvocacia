@@ -138,6 +138,9 @@
             <span data-toggle-panel="classificacao" data-toggle-values="parcelado,recorrente" class="hidden">Status da primeira parcela</span>
           </label>
           {{ form.status }}
+          {% if form.status.field.disabled %}
+            <p class="text-xs text-gray-400 mt-1">Lançamento cancelado: use "Reabrir" na lista para voltar a pendente.</p>
+          {% endif %}
           {% if form.status.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.status.errors|join:", " }}</p>
           {% endif %}

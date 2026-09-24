@@ -303,11 +303,8 @@
               <span class="text-xs text-gray-400">Recebimento de honorário: pelo Administrador</span>
               {% endif %}
               <span class="text-gray-200 text-xs">|</span>
-              <form method="post" action="{% url 'financeiro:cancelar_lancamento' l.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ next_url }}">
-                <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
-              </form>
+              <button type="button" data-confirmar-url="{% url 'financeiro:cancelar_lancamento' l.pk %}?next={{ next_url|urlencode }}"
+                      class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
             {% elif l.status == "cancelado" or l.status == "pago" and not l.honorario_id or l.status == "pago" and is_admin and not l.eh_recebimento_de_honorario_unico %}
               <form method="post" action="{% url 'financeiro:reabrir_lancamento' l.pk %}">
                 {% csrf_token %}
@@ -317,13 +314,8 @@
             {% endif %}
             {% if l.classificacao != "unica" %}
               <span class="text-gray-200 text-xs">|</span>
-              <form method="post" action="{% url 'financeiro:cancelar_recorrencia' l.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ next_url }}">
-                <button type="submit"
-                        onclick="return confirm('As ocorrências futuras ainda pendentes desta recorrência/parcelamento serão canceladas. Ocorrências já pagas, vencidas ou canceladas não são afetadas. Continuar?')"
-                        class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar recorrência</button>
-              </form>
+              <button type="button" data-confirmar-url="{% url 'financeiro:cancelar_recorrencia' l.pk %}?next={{ next_url|urlencode }}"
+                      class="text-xs text-gray-400 hover:text-red-500 hover:underline">{% if l.classificacao == "parcelado" %}Encerrar parcelamento{% else %}Encerrar recorrência{% endif %}</button>
             {% endif %}
             <span class="text-gray-200 text-xs">|</span>
             <form method="post" action="{% url 'financeiro:anexar_lancamento' l.pk %}" enctype="multipart/form-data" class="inline">
@@ -355,4 +347,32 @@
     {% include "components/empty_state.html" with mensagem="Nenhum lançamento registrado." %}
   {% endfor %}
 </div>
+
+{# Conteúdo vem do GET da própria ação (resumo calculado no backend). #}
+<dialog id="dlg-confirmar-lancamento" class="rounded-xl p-0 backdrop:bg-black/40"></dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var dialogo = document.getElementById('dlg-confirmar-lancamento');
+    if (!dialogo) return;
+    document.querySelectorAll('[data-confirmar-url]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        fetch(btn.dataset.confirmarUrl, { credentials: 'same-origin' })
+          .then(function (resposta) {
+            if (!resposta.ok) throw new Error(resposta.status);
+            return resposta.text();
+          })
+          .then(function (html) {
+            dialogo.innerHTML = html;
+            dialogo.showModal();
+          });
+      });
+    });
+    dialogo.addEventListener('click', function (evento) {
+      if (evento.target.closest('[data-fechar-dialogo]')) dialogo.close();
+    });
+  })();
+</script>
 {% endblock %}

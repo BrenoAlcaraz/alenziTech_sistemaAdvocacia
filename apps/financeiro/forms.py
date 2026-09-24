@@ -106,6 +106,13 @@ class LancamentoFinanceiroForm(forms.ModelForm):
         self.fields["responsavel"].required = False
         self.fields["responsavel"].empty_label = "Nenhum"
 
+        if self.instance.status == "cancelado":
+            self.fields["status"].disabled = True
+        else:
+            self.fields["status"].choices = [
+                (valor, rotulo) for valor, rotulo in LancamentoFinanceiro.STATUS_CHOICES if valor != "cancelado"
+            ]
+
         self.fields["data_vencimento"].input_formats = ["%Y-%m-%d"]
         self.fields["data_pagamento"].required = False
         self.fields["data_pagamento"].input_formats = ["%Y-%m-%d"]

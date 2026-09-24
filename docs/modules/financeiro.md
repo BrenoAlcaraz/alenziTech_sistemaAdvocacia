@@ -23,6 +23,15 @@ especificação não determina quantas tabelas existirão; modelagem física
   individual ligado à origem.
 - Cancelar recorrência futura não apaga nem reescreve ocorrências já
   realizadas; confirmar/cancelar uma ocorrência não reescreve as demais.
+- "Cancelado" nunca é escolhido no formulário (criar/editar oferece só
+  Pendente ou Pago; lançamento cancelado mostra o status só para
+  leitura). Só se chega a ele pelas ações Cancelar (um lançamento) e
+  Encerrar recorrência/parcelamento (pendentes com vencimento a partir
+  de hoje; vencidas em aberto continuam em aberto); sai dele por
+  Reabrir. Excluir é para lançamento criado por engano.
+- As duas ações pedem confirmação em janela; a do encerramento mostra
+  quantas ocorrências estão pagas, vencidas em aberto e quantas futuras
+  serão canceladas (período e total).
 - Custas processuais não são categoria do financeiro geral — têm área
   própria.
 - Periodicidades disponíveis na primeira versão (PDR-0021): mensal ou

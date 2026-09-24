@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Max, Min, Q, Sum
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
@@ -127,13 +127,32 @@ def cancelar_ocorrencias_futuras(lancamento):
     pagas, canceladas ou vencidas (PDR-0021: "cancelar recorrência
     futura não apaga nem reescreve ocorrências já realizadas").
     """
-    origem_id = lancamento.lancamento_origem_id or lancamento.pk
-    hoje = timezone.localdate()
-    LancamentoFinanceiro.objects.filter(
-        Q(pk=origem_id) | Q(lancamento_origem_id=origem_id),
-        status="pendente",
-        data_vencimento__gte=hoje,
+    _grupo_da_recorrencia(lancamento).filter(
+        status="pendente", data_vencimento__gte=timezone.localdate(),
     ).update(status="cancelado")
+
+
+def resumo_encerramento_recorrencia(lancamento):
+    """O que "Encerrar recorrência/parcelamento" preserva e o que cancela,
+    para a confirmação — mesmo recorte de `cancelar_ocorrencias_futuras`."""
+    grupo = _grupo_da_recorrencia(lancamento)
+    hoje = timezone.localdate()
+    pendentes = grupo.filter(status="pendente")
+    return {
+        "pagas": grupo.filter(status="pago").count(),
+        "vencidas": pendentes.filter(data_vencimento__lt=hoje).aggregate(
+            quantidade=Count("pk"), total=Sum("valor"),
+        ),
+        "futuras": pendentes.filter(data_vencimento__gte=hoje).aggregate(
+            quantidade=Count("pk"), total=Sum("valor"),
+            primeira=Min("data_vencimento"), ultima=Max("data_vencimento"),
+        ),
+    }
+
+
+def _grupo_da_recorrencia(lancamento):
+    origem_id = lancamento.lancamento_origem_id or lancamento.pk
+    return LancamentoFinanceiro.objects.filter(Q(pk=origem_id) | Q(lancamento_origem_id=origem_id))
 
 
 def _meses_entre(inicio, fim):

@@ -60,6 +60,7 @@ from .services import (
     lancamentos_operacionais,
     notificar_recebimento_de_honorario,
     receber_primeira_parcela,
+    resumo_encerramento_recorrencia,
     reembolsar_custa,
     registrar_recebimento_honorario,
     registrar_credito_cliente,
@@ -672,13 +673,17 @@ def cancelar_lancamento(request, pk):
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if lancamento.status == "pago":
         _exige_permissao_recebimento_honorario(request.user, lancamento)
-    if request.method == "POST":
-        lancamento.status = "cancelado"
-        lancamento.save(update_fields=["status"])
-        registrar_atividade(
-            request.user, "lancamento_cancelado", f"Cancelou o lançamento {lancamento.descricao}",
-            processo=lancamento.processo,
-        )
+    if request.method != "POST":
+        return render(request, "financeiro/_confirmar_cancelamento.html", {
+            "lancamento": lancamento,
+            "next_url": request.GET.get("next", ""),
+        })
+    lancamento.status = "cancelado"
+    lancamento.save(update_fields=["status"])
+    registrar_atividade(
+        request.user, "lancamento_cancelado", f"Cancelou o lançamento {lancamento.descricao}",
+        processo=lancamento.processo,
+    )
     return _redirect_seguro(request)
 
 
@@ -691,13 +696,18 @@ def cancelar_recorrencia(request, pk):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
-    if request.method == "POST":
-        cancelar_ocorrencias_futuras(lancamento)
-        registrar_atividade(
-            request.user, "lancamento_recorrencia_cancelada",
-            f"Cancelou a recorrência futura do lançamento {lancamento.descricao}",
-            processo=lancamento.processo,
-        )
+    if request.method != "POST":
+        return render(request, "financeiro/_confirmar_encerramento.html", {
+            "lancamento": lancamento,
+            "resumo": resumo_encerramento_recorrencia(lancamento),
+            "next_url": request.GET.get("next", ""),
+        })
+    cancelar_ocorrencias_futuras(lancamento)
+    registrar_atividade(
+        request.user, "lancamento_recorrencia_cancelada",
+        f"Cancelou a recorrência futura do lançamento {lancamento.descricao}",
+        processo=lancamento.processo,
+    )
     return _redirect_seguro(request)
 
 
