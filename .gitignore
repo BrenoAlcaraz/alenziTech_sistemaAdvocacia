@@ -73,3 +73,8 @@ Thumbs.db
 desktop.ini
 
 .vscode/
+# =========================
+# Impeccable (plugin de design): cache e relatórios de sessão
+# =========================
+.impeccable/hook.cache.json
+.impeccable/critique/

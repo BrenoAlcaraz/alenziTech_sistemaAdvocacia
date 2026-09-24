@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-24T20:00:00Z",
+  "title": "Design System: Breno - LawSystem",
+  "extensions": {
+    "colorMeta": {
+      "tinta-nanquim": {
+        "role": "primary",
+        "displayName": "Tinta Nanquim",
+        "canonical": "rgb(var(--cor-primaria-rgb, 26 26 26))",
+        "tonalRamp": [
+          "#0d0d0d",
+          "#1a1a1a",
+          "#2a2a2a",
+          "#404040",
+          "#5c5c5c",
+          "#8a8a8a",
+          "#c2c2c2",
+          "#ededed"
+        ]
+      },
+      "tinta-nanquim-hover": {
+        "role": "primary",
+        "displayName": "Tinta Nanquim Hover",
+        "canonical": "rgb(var(--cor-primaria-hover-rgb, 42 42 42))"
+      },
+      "bronze-envelhecido": {
+        "role": "secondary",
+        "displayName": "Bronze Envelhecido",
+        "canonical": "rgb(var(--cor-secundaria-rgb, 139 115 85))",
+        "tonalRamp": [
+          "#2e261c",
+          "#4a3d2e",
+          "#6b5943",
+          "#8b7355",
+          "#a68d6c",
+          "#c4a882",
+          "#dccbb3",
+          "#f2ebe1"
+        ]
+      },
+      "bronze-claro": {
+        "role": "secondary",
+        "displayName": "Bronze Claro"
+      },
+      "papel-quente": {
+        "role": "neutral",
+        "displayName": "Papel Quente",
+        "tonalRamp": [
+          "#2b2925",
+          "#4a4640",
+          "#6e6960",
+          "#948e84",
+          "#bab4a9",
+          "#d9d4cb",
+          "#ede8e0",
+          "#f5f3ef"
+        ]
+      },
+      "areia": {
+        "role": "neutral",
+        "displayName": "Areia"
+      },
+      "folha-branca": {
+        "role": "neutral",
+        "displayName": "Folha Branca"
+      },
+      "texto-principal": {
+        "role": "neutral",
+        "displayName": "Texto Principal"
+      },
+      "texto-secundario": {
+        "role": "neutral",
+        "displayName": "Texto Secundário"
+      },
+      "texto-apoio": {
+        "role": "neutral",
+        "displayName": "Texto de Apoio"
+      },
+      "texto-apagado": {
+        "role": "neutral",
+        "displayName": "Texto Apagado"
+      },
+      "borda-campo": {
+        "role": "neutral",
+        "displayName": "Borda de Campo"
+      },
+      "borda-card": {
+        "role": "neutral",
+        "displayName": "Borda de Card"
+      },
+      "credito": {
+        "role": "tertiary",
+        "displayName": "Crédito"
+      },
+      "credito-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo de Crédito"
+      },
+      "alerta": {
+        "role": "tertiary",
+        "displayName": "Alerta"
+      },
+      "alerta-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo de Alerta"
+      },
+      "urgente": {
+        "role": "tertiary",
+        "displayName": "Urgente"
+      },
+      "urgente-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo Urgente"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Título de página de lista/módulo."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Título de página de detalhe e de formulário."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Título de seção dentro de card, em texto secundário."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texto de trabalho, campos, botões, itens de lista."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Metadados, badges, datas; o tamanho mais usado do sistema."
+      },
+      "eyebrow": {
+        "displayName": "Eyebrow",
+        "purpose": "Rótulo de grupo em maiúsculas e badge de área do direito."
+      }
+    },
+    "shadows": [
+      {
+        "name": "repouso",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Todo card: folha apoiada no papel."
+      },
+      {
+        "name": "flutuante",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Só dropdowns e menus sobrepostos ao conteúdo."
+      }
+    ],
+    "motion": [
+      {
+        "name": "cor",
+        "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Transição de cor em hover de botões, itens e links."
+      },
+      {
+        "name": "sidebar",
+        "value": "width 150ms ease",
+        "purpose": "Recolher/expandir a barra lateral; desligado com prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "sidebar-recolhida",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão Primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal do contexto, na tinta do escritório.",
+      "html": "<button class=\"ds-btn-primary\"><svg width=\"16\" height=\"16\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-linecap=\"round\" stroke-width=\"2\" d=\"M12 5v14M5 12h14\"/></svg>Novo processo</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgb(var(--cor-primaria-rgb, 26 26 26)); color: #fff; font: 500 14px/20px Inter, system-ui, sans-serif; border: none; border-radius: 12px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: rgb(var(--cor-primaria-hover-rgb, 42 42 42)); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--cor-primaria-rgb, 26 26 26)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão Secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ações de apoio: contorno cinza sobre branco.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; color: #374151; font: 500 14px/20px Inter, system-ui, sans-serif; border: 1px solid #d1d5db; border-radius: 12px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-secondary:hover { background: #f9fafb; } .ds-btn-secondary:focus-visible { outline: 2px solid rgb(var(--cor-primaria-rgb, 26 26 26)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão de Perigo",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Ação destrutiva: sempre contorno vermelho, nunca cheio.",
+      "html": "<button class=\"ds-btn-danger\">Excluir</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; color: #b91c1c; font: 500 14px/20px Inter, system-ui, sans-serif; border: 1px solid #fca5a5; border-radius: 12px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-danger:hover { background: #fef2f2; } .ds-btn-danger:focus-visible { outline: 2px solid #b91c1c; outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo de Texto",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo padrão com label acima; foco na tinta do escritório.",
+      "html": "<label class=\"ds-label\">Número do processo<input class=\"ds-input\" placeholder=\"0000000-00.0000.0.00.0000\"></label>",
+      "css": ".ds-label { display: block; font: 500 14px/20px Inter, system-ui, sans-serif; color: #374151; } .ds-input { display: block; width: 100%; margin-top: 4px; padding: 8px 12px; font: 400 14px/20px Inter, system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; transition: box-shadow 150ms, border-color 150ms; } .ds-input::placeholder { color: #9ca3af; } .ds-input:focus { outline: none; border-color: transparent; box-shadow: 0 0 0 2px rgb(var(--cor-primaria-rgb, 26 26 26)); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Folha branca sobre papel quente: borda fina e sombra de repouso.",
+      "html": "<div class=\"ds-card\"><h2 class=\"ds-card-title\">Dados do cliente</h2><p class=\"ds-card-body\">Maria Souza · CPF 000.000.000-00</p><p class=\"ds-card-meta\">Atualizado em 24/09/2026</p></div>",
+      "css": ".ds-card { background: #fff; border: 1px solid #f3f4f6; border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); padding: 20px; font-family: Inter, system-ui, sans-serif; } .ds-card-title { margin: 0 0 16px; font: 600 14px/20px Inter, system-ui, sans-serif; color: #374151; } .ds-card-body { margin: 0; font-size: 14px; line-height: 20px; color: #111827; } .ds-card-meta { margin: 4px 0 0; font-size: 12px; line-height: 16px; color: #6b7280; }"
+    },
+    {
+      "name": "Barra Lateral",
+      "kind": "nav",
+      "refersTo": "sidebar",
+      "description": "Navegação por módulos na tinta do escritório; ativo com véu branco de 10%. Sem logo, as iniciais do escritório na cor principal sobre quadrado branco.",
+      "html": "<nav class=\"ds-sidebar\"><span class=\"ds-side-logo\">SS</span><a class=\"ds-side-item ds-side-active\" href=\"#\"><svg width=\"20\" height=\"20\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-width=\"1.5\" d=\"M3 12l9-9 9 9M5 10v10h14V10\"/></svg>Painel</a><a class=\"ds-side-item\" href=\"#\"><svg width=\"20\" height=\"20\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-width=\"1.5\" d=\"M17 20h5v-2a3 3 0 00-5-2M9 20H2v-2a3 3 0 015-2m10-9a3 3 0 11-6 0 3 3 0 016 0z\"/></svg>Clientes</a><a class=\"ds-side-item\" href=\"#\"><svg width=\"20\" height=\"20\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\"><path stroke-width=\"1.5\" d=\"M3 7h18v13H3zM8 7V4h8v3\"/></svg>Processos</a></nav>",
+      "css": ".ds-sidebar { display: flex; flex-direction: column; gap: 4px; width: 212px; padding: 16px 8px; background: rgb(var(--cor-primaria-rgb, 26 26 26)); } .ds-side-item { display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 8px; font: 400 14px/20px Inter, system-ui, sans-serif; color: rgb(255 255 255 / 0.8); text-decoration: none; transition: color 150ms, background-color 150ms; } .ds-side-item:hover { color: #fff; background: rgb(var(--cor-primaria-hover-rgb, 42 42 42)); } .ds-side-item:focus-visible { outline: 2px solid #fff; outline-offset: -2px; } .ds-side-active, .ds-side-active:hover { color: #fff; font-weight: 500; background: rgb(255 255 255 / 0.1); } .ds-side-logo { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 0 4px 16px; border-radius: 8px; background: #fff; color: rgb(var(--cor-primaria-rgb, 26 26 26)); font: 700 14px/20px Inter, system-ui, sans-serif; }"
+    },
+    {
+      "name": "Badges",
+      "kind": "chip",
+      "refersTo": "badge-area",
+      "description": "Etiqueta de área do direito (areia, quase reta), pílulas de estado de prazo e status de processo próprio.",
+      "html": "<span class=\"ds-badge-area\">CÍVEL</span> <span class=\"ds-badge-urgente\">Vence amanhã</span> <span class=\"ds-badge-prazo\">Em 12 dias</span> <span class=\"ds-badge-status ds-badge-status-ativo\">Ativo</span> <span class=\"ds-badge-status ds-badge-status-suspenso\">Suspenso</span> <span class=\"ds-badge-status\">Arquivado</span>",
+      "css": ".ds-badge-area { display: inline-block; padding: 2px 8px; font: 600 12px/16px Inter, system-ui, sans-serif; letter-spacing: 0.025em; color: #374151; background: #ede8e0; border-radius: 4px; } .ds-badge-urgente, .ds-badge-prazo { display: inline-flex; align-items: center; padding: 2px 8px; font: 500 12px/16px Inter, system-ui, sans-serif; border-radius: 9999px; } .ds-badge-urgente { color: #c2410c; background: #ffedd5; } .ds-badge-prazo { color: #4b5563; background: #f3f4f6; } .ds-badge-status { display: inline-flex; align-items: center; padding: 2px 8px; font: 500 12px/16px Inter, system-ui, sans-serif; border-radius: 9999px; color: #374151; background: #f3f4f6; } .ds-badge-status-ativo { color: #166534; background: #dcfce7; } .ds-badge-status-suspenso { color: #c2410c; background: #ffedd5; }"
+    },
+    {
+      "name": "Abas",
+      "kind": "nav",
+      "refersTo": "tab-active",
+      "description": "Sublinhado de 2px na tinta do escritório na aba ativa.",
+      "html": "<div class=\"ds-tabs\"><a class=\"ds-tab ds-tab-active\" href=\"#\">Resumo</a><a class=\"ds-tab\" href=\"#\">Documentos</a><a class=\"ds-tab\" href=\"#\">Financeiro</a></div>",
+      "css": ".ds-tabs { display: flex; gap: 24px; border-bottom: 1px solid #f3f4f6; } .ds-tab { padding: 8px 0; font: 500 14px/20px Inter, system-ui, sans-serif; color: #6b7280; text-decoration: none; border-bottom: 2px solid transparent; transition: color 150ms; } .ds-tab:hover { color: #374151; } .ds-tab:focus-visible { outline: 2px solid rgb(var(--cor-primaria-rgb, 26 26 26)); outline-offset: 2px; } .ds-tab-active { color: #111827; border-bottom-color: rgb(var(--cor-primaria-rgb, 26 26 26)); }"
+    },
+    {
+      "name": "Barra de Filtros",
+      "kind": "custom",
+      "refersTo": "filter-bar",
+      "description": "Partial único das listas: campos lado a lado, aplica ao mudar, \"Limpar filtros\" com filtro ativo.",
+      "html": "<form class=\"ds-filtros\"><label class=\"ds-f-campo\">Visualizar<select class=\"ds-f-input\"><option>Somente os seus</option><option>Todos</option></select></label><label class=\"ds-f-campo ds-f-busca\">Buscar<input class=\"ds-f-input\" placeholder=\"Título ou número...\"></label><label class=\"ds-f-campo\">Status<select class=\"ds-f-input\"><option>Todos</option></select></label><a class=\"ds-f-limpar\" href=\"#\">Limpar filtros</a></form>",
+      "css": ".ds-filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 12px 16px; background: #fff; border: 1px solid #f3f4f6; border-radius: 12px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); font-family: Inter, system-ui, sans-serif; } .ds-f-campo { display: block; min-width: 10rem; font: 500 14px/20px Inter, system-ui, sans-serif; color: #374151; } .ds-f-busca { flex: 1; min-width: 14rem; } .ds-f-input { display: block; width: 100%; margin-top: 4px; padding: 8px 12px; font: 400 14px/20px Inter, system-ui, sans-serif; color: #111827; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; } .ds-f-input:focus { outline: none; border-color: transparent; box-shadow: 0 0 0 2px rgb(var(--cor-primaria-rgb, 26 26 26)); } .ds-f-limpar { display: inline-flex; align-items: center; min-height: 38px; font-size: 14px; color: #5f6773; text-decoration: underline; } .ds-f-limpar:hover { color: #374151; } .ds-f-limpar:focus-visible { outline: 2px solid rgb(var(--cor-primaria-rgb, 26 26 26)); outline-offset: 2px; }"
+    },
+    {
+      "name": "Alternância de Visão",
+      "kind": "nav",
+      "refersTo": "visao-alternar",
+      "description": "Ativos | Arquivados (Inativos, Cancelados) como controle segmentado logo abaixo do título.",
+      "html": "<nav class=\"ds-visao\"><a class=\"ds-visao-item\" aria-current=\"page\" href=\"#\">Ativos</a><a class=\"ds-visao-item\" href=\"#\">Arquivados</a></nav>",
+      "css": ".ds-visao { display: flex; gap: 4px; width: fit-content; padding: 4px; background: #f3f4f6; border-radius: 12px; } .ds-visao-item { padding: 6px 12px; border-radius: 8px; font: 500 14px/20px Inter, system-ui, sans-serif; color: #5f6773; text-decoration: none; transition: color 150ms; } .ds-visao-item:hover { color: #374151; } .ds-visao-item:focus-visible { outline: 2px solid rgb(var(--cor-primaria-rgb, 26 26 26)); outline-offset: 2px; } .ds-visao-item[aria-current=\"page\"] { color: #111827; background: #fff; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Braço Direito",
+    "overview": "O sistema é o braço direito do advogado: carrega o trabalho pesado de vários profissionais para que a pessoa foque a energia onde ela importa. A interface não disputa atenção com o trabalho. É uma ferramenta de uso diário, o dia inteiro, no computador, que precisa fazer o escritório fluir leve, organizado e preciso. A densidade é alta de propósito (a maior parte do texto está entre 12px e 14px), mas a ordem vem de hierarquia clara, espaço regular e cor contida, não de caixas e ornamentos.\n\nA identidade é emprestada: a cor principal e o acento vêm da marca de cada escritório (white label). O sistema só fornece a moldura (papel quente, folhas brancas, tinta escura) e garante que qualquer marca continue legível sobre ela. Por isso a cor principal é tratada como tinta, não como decoração: preenche a barra lateral e a ação principal, e mais nada.\n\nO visual rejeita explicitamente quatro caminhos: painel SaaS genérico (gradientes, roxo/azul de startup, grade de cards com ícone colorido), sistema público/legado (cinza, tabelas cruas, sem hierarquia), escritório de luxo caricato (dourado em excesso, serifas ornamentais, mármore, balança da justiça) e cara de \"feito tudo por IA\" (padrões genéricos sem decisão, simetria vazia, enfeite sem função).",
+    "keyCharacteristics": [
+      "Moldura neutra e quente; a marca do escritório é a única voz de cor.",
+      "Denso e preciso: 14px no corpo, 12px em metadados, títulos curtos.",
+      "Plano por padrão: folhas brancas com borda fina sobre papel quente.",
+      "Cantos gentis e consistentes (12px em controles e cards).",
+      "Cor de estado só com significado (crédito, alerta, prazo urgente)."
+    ],
+    "rules": [
+      {
+        "name": "A Regra da Tinta Emprestada",
+        "body": "A cor principal é do escritório, não do sistema. Ela aparece só na barra lateral, na ação primária, no foco e na aba ativa. Nunca em fundos grandes, gráficos decorativos ou texto corrido.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Estado com Sentido",
+        "body": "Verde, vermelho e laranja só aparecem quando significam crédito, alerta/despesa ou prazo urgente. Nunca como enfeite ou categoria.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Peso, não do Tamanho",
+        "body": "A densidade é alta, então a hierarquia sobe por peso (400 → 500 → 600 → 700) e por tom de cinza antes de subir de tamanho. Não há display gigante: o maior título da tela tem 24px. O menor texto é o Label (12px); nada de 10px/11px.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra da Folha sobre a Mesa",
+        "body": "Card é uma folha branca apoiada no papel: borda fina e sombra de repouso. Sombra forte só existe para o que flutua sobre a página (menus, dropdowns), nunca para destacar card.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do usar a cor do escritório só na barra lateral, ação primária, foco e aba ativa (A Regra da Tinta Emprestada).",
+      "Do montar hierarquia com peso e tom de cinza antes de aumentar tamanho; o maior título é 24px.",
+      "Do apoiar conteúdo em folhas brancas com borda de 1px e sombra de repouso sobre o papel quente.",
+      "Do manter 12px de raio em botões, campos e cards, e 8px em itens de navegação.",
+      "Do testar qualquer tela nova com uma cor de escritório clara e uma saturada; ela precisa continuar legível e coerente com as duas."
+    ],
+    "donts": [
+      "Don't parecer painel SaaS genérico: sem gradientes, sem roxo/azul de startup, sem grade de cards com ícone colorido.",
+      "Don't parecer sistema público/legado: sem tabelas cruas cinzentas sem hierarquia.",
+      "Don't parecer escritório de luxo caricato: sem dourado em excesso, serifas ornamentais, mármore ou balança da justiça.",
+      "Don't parecer \"feito por IA\": nada de enfeite sem função, simetria vazia ou padrão genérico que não resolve uma tarefa real.",
+      "Don't usar verde, vermelho ou laranja sem significado de estado.",
+      "Don't comunicar estado só por cor: faixa, ponto ou marcador colorido acompanha texto visível ou texto para leitor de tela.",
+      "Don't usar sombra forte em card; ela é só para o que flutua.",
+      "Don't fazer botão destrutivo cheio; destrutivo é contorno vermelho."
+    ]
+  }
+}
