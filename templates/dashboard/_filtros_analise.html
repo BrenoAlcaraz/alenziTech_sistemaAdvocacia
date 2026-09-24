@@ -1,0 +1,38 @@
+{% if mostrar_seletor_escopo %}
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-escopo">Visualizar</label>
+  <select name="escopo" id="filtro-escopo" class="select">
+    <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+    <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
+  </select>
+</div>
+{% endif %}
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-cliente">Cliente</label>
+  <select name="cliente" id="filtro-cliente" class="select">
+    <option value="">Todos</option>
+    {% for c in clientes_opcoes %}
+      <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-equipe">Equipe</label>
+  <select name="equipe" id="filtro-equipe" class="select">
+    <option value="">Todas</option>
+    {% for e in equipes_opcoes %}
+      <option value="{{ e.pk }}" {% if equipe_id == e.pk|stringformat:"s" %}selected{% endif %}>{{ e.nome }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% if mostrar_filtro_usuario %}
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-usuario">Usuário</label>
+  <select name="usuario" id="filtro-usuario" class="select">
+    <option value="">Todos</option>
+    {% for u in usuarios_opcoes %}
+      <option value="{{ u.pk }}" {% if usuario_id == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endif %}

@@ -1,7 +1,7 @@
 {% extends "base/base_auth.html" %}
 {% load financeiro_abas %}
 {% load moeda %}
-{% block title %}Financeiro — Jurídico SaaS{% endblock %}
+{% block title %}Financeiro{% endblock %}
 
 {% block content %}
 <div class="mb-6">
@@ -248,15 +248,15 @@
             <span>{{ l.get_categoria_display }}</span>
             {% if l.classificacao == "parcelado" %}
               {% with info=l.info_parcela %}
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold tracking-wide bg-gray-100 text-gray-600">
                   {% if info %}PARCELA(S): ({{ info.0 }}/{{ info.1 }}){% else %}PARCELADO{% endif %}
                 </span>
               {% endwith %}
             {% elif l.classificacao == "recorrente" %}
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-gray-100 text-gray-600">RECORRENTE · {{ l.get_periodicidade_display|upper }}</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold tracking-wide bg-gray-100 text-gray-600">RECORRENTE · {{ l.get_periodicidade_display|upper }}</span>
             {% endif %}
             {% if l.solicitacao_origem %}
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide bg-juridico-bege text-gray-700">SOLICITADO POR {{ l.solicitacao_origem.solicitante|default:"—"|upper }}</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold tracking-wide bg-juridico-bege text-gray-700">SOLICITADO POR {{ l.solicitacao_origem.solicitante|default:"—"|upper }}</span>
             {% endif %}
             <span>Venc. {{ l.data_vencimento|date:"d/m/Y" }}</span>
             {% if l.data_pagamento %}

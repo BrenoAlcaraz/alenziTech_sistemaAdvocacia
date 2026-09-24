@@ -1,0 +1,17 @@
+<div class="barra-filtros-campo">
+  <label for="filtro-processo" class="label">Processo</label>
+  <select id="filtro-processo" name="processo" class="select">
+    <option value="">Todos</option>
+    {% for p in processos_do_extrato %}
+      <option value="{{ p.pk }}" {% if filtro_processo == p.pk|stringformat:"s" %}selected{% endif %}>{{ p }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-pago-por" class="label">Pago por</label>
+  <select id="filtro-pago-por" name="pago_por" class="select">
+    <option value="">Todos</option>
+    <option value="escritorio" {% if filtro_pago_por == "escritorio" %}selected{% endif %}>Adiantado pelo escritório</option>
+    <option value="cliente" {% if filtro_pago_por == "cliente" %}selected{% endif %}>Pago diretamente pelo cliente</option>
+  </select>
+</div>

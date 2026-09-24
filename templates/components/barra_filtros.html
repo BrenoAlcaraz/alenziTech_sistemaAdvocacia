@@ -1,0 +1,16 @@
+{# ─── Barra de filtros única das listas ───────────────────────────────────── #}
+{# Aplica ao mudar qualquer campo (main.js, [data-filtros]); sem JS, o "Filtrar" do <noscript> envia. #}
+{# Uso: {% include "components/barra_filtros.html" with campos="processos/_filtros.html" %} #}
+{#   campos       template com os campos (.barra-filtros-campo > .label + .input/.select) e os hidden a preservar #}
+{#   limpar_url   só quando há filtro ativo — mostra "Limpar filtros" (+ limpar_query, sem "?") #}
+{#   form_id      opcional, para campos de fora do formulário (atributo form=) #}
+{#   embutida     dentro de um card que já é a folha #}
+<form method="get"{% if form_id %} id="{{ form_id }}"{% endif %} class="{% if embutida %}barra-filtros-embutida{% else %}barra-filtros{% endif %}" data-filtros>
+  {% include campos %}
+  <div class="barra-filtros-acoes">
+    <noscript><button type="submit" class="btn-secondary">Filtrar</button></noscript>
+    {% if limpar_url %}
+      <a href="{{ limpar_url }}{% if limpar_query %}?{{ limpar_query }}{% endif %}" class="barra-filtros-limpar">Limpar filtros</a>
+    {% endif %}
+  </div>
+</form>

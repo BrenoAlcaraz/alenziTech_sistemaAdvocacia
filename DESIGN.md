@@ -96,11 +96,10 @@ components:
     typography: "{typography.body}"
     rounded: "{rounded.xl}"
     padding: "8px 12px"
-  search-bar:
-    backgroundColor: "{colors.areia}"
-    textColor: "{colors.texto-apagado}"
+  filter-bar:
+    backgroundColor: "{colors.folha-branca}"
     rounded: "{rounded.xl}"
-    padding: "8px 12px"
+    padding: "12px 16px"
   sidebar:
     backgroundColor: "{colors.tinta-nanquim}"
     width: "212px"
@@ -228,7 +227,7 @@ Nunca como enfeite ou categoria.
 pequeno. A hierarquia vem de peso e cor, não de troca de fonte.
 
 ### Hierarchy
-- **Headline** (700, 24px, 32px): título de página principal.
+- **Headline** (700, 24px, 32px): título de página de lista/módulo.
 - **Title** (700, 20px, 28px): título de página de detalhe e de
   formulário.
 - **Section** (600, 14px, 20px): título de seção dentro de card, em
@@ -244,7 +243,7 @@ pequeno. A hierarquia vem de peso e cor, não de troca de fonte.
 **A Regra do Peso, não do Tamanho.** A densidade é alta, então a
 hierarquia sobe por peso (400 → 500 → 600 → 700) e por tom de cinza
 antes de subir de tamanho. Não há display gigante: o maior título da
-tela tem 24px.
+tela tem 24px. O menor texto é o Label (12px); nada de 10px/11px.
 
 ## Layout
 
@@ -296,7 +295,9 @@ Contidos e precisos: texto de 14px peso 500, ícone opcional à
 esquerda, nunca em caixa alta.
 - **Shape:** cantos gentis (12px).
 - **Primary:** tinta do escritório com texto branco, padding 8px 16px.
-  Uma ação primária por contexto.
+  Uma ação primária visível por tela; as demais são secundárias ou
+  entram num menu "Mais ações" (ex.: arquivar/excluir no detalhe do
+  processo). Estado vazio não repete a primária do cabeçalho.
 - **Hover:** a tinta de hover, com transição de cor.
 - **Secondary:** fundo branco, borda cinza de 1px, texto secundário;
   hover em cinza muito claro.
@@ -309,6 +310,9 @@ esquerda, nunca em caixa alta.
   semibold, cantos quase retos.
 - **Estado:** pílula com fundo claro e texto do estado (urgente,
   prazo normal em cinza, plano em bronze).
+- **Status de processo:** pílula própria (`.badge-status-<status>`),
+  nunca o badge de área: ativo em crédito, suspenso/sobrestado em
+  urgente, encerrado/arquivado em neutro.
 - **Prioridade do cliente:** pílula indicativa (idoso em âmbar, menor
   de idade em azul), só visual.
 - **Tipo de compromisso (Agenda):** etiqueta de 6px de raio nos tokens
@@ -334,8 +338,7 @@ esquerda e botão de fechar rotulado à direita.
 - **Shadow Strategy:** repouso (ver Elevation & Depth).
 - **Border:** 1px no cinza mais claro.
 - **Internal Padding:** 20px (24px em formulários maiores).
-- **Card de métrica:** ícone de 20px dentro de quadrado de 40px em
-  areia, valor em 24px bold e rótulo em 14px de apoio.
+- **Card de métrica:** valor em 24px bold e rótulo em 14px de apoio.
 
 ### Inputs / Fields
 - **Style:** fundo branco, borda cinza de 1px, 12px de raio, texto de
@@ -347,8 +350,23 @@ esquerda e botão de fechar rotulado à direita.
 - **Error:** borda vermelha e label vermelho, acionados pela presença
   da mensagem de erro do campo.
 
+### Barra de filtros
+Um único partial (`components/barra_filtros.html`) para toda lista com
+filtros: folha branca de 12px 16px, campos lado a lado com label de
+14px acima, busca ocupando o espaço livre. Aplica ao mudar qualquer
+campo (sem botão "Filtrar"; só o secundário de `<noscript>`). "Limpar
+filtros" aparece sempre que há filtro ativo. O escopo é o campo
+"Visualizar" (Somente os seus | Todos).
+
+### Alternância de visão
+Ativos | Arquivados (Inativos, Cancelados) é um controle segmentado
+visível logo abaixo do título (`components/alternar_visao.html`),
+nunca link no subtítulo. A visão atual tem `aria-current="page"`.
+
 ### Navigation
-- **Barra lateral:** fundo na tinta do escritório, logo no topo. Itens
+- **Barra lateral:** fundo na tinta do escritório, logo no topo. Sem
+  logo cadastrado, as iniciais do escritório na cor principal sobre
+  quadrado branco. Itens
   de 40px com ícone de 20px e rótulo de 14px em branco a 80%. Hover
   clareia o texto e aplica a tinta de hover. O item ativo ganha um
   véu branco de 10%, texto branco médio e `aria-current="page"`, sem

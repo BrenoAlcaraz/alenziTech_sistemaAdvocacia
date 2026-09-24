@@ -1,48 +1,18 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Habilitar em processos — {{ usuario_alvo.username }} — Jurídico SaaS{% endblock %}
+{% block title %}Habilitar em processos — {{ usuario_alvo.username }}{% endblock %}
 
 {% block content %}
 
 <div class="flex items-start justify-between mb-6">
   <div class="texto-quebra">
     <p class="text-xs text-gray-500 mb-0.5">Usuário</p>
-    <h1 class="text-2xl font-bold text-gray-900">{% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
+    <h1 class="text-xl font-bold text-gray-900">{% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Processos em que está habilitado como integrante</p>
   </div>
 </div>
 
-<form method="get" class="card p-5 mb-4 flex flex-wrap items-end gap-4">
-  <div>
-    <label class="label" for="filtro-cliente">Cliente</label>
-    <select name="cliente" id="filtro-cliente" class="select">
-      <option value="">Todos</option>
-      {% for c in clientes_opcoes %}
-        <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="label" for="filtro-materia">Matéria</label>
-    <select name="materia" id="filtro-materia" class="select">
-      <option value="">Todas</option>
-      {% for valor, rotulo in materias_opcoes %}
-        <option value="{{ valor }}" {% if materia == valor %}selected{% endif %}>{{ rotulo }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label class="label" for="filtro-data">Data de distribuição</label>
-    <input type="date" name="data" id="filtro-data" class="input" value="{{ data }}">
-  </div>
-  <div class="flex-1 min-w-40">
-    <label class="label" for="filtro-busca">Buscar</label>
-    <input type="text" name="busca" id="filtro-busca" class="input" placeholder="Nome ou número..." value="{{ busca }}">
-  </div>
-  <button type="submit" class="btn-primary">Filtrar</button>
-  {% if cliente_id or materia or data or busca %}
-    <a href="{% url 'configuracoes:usuario_processos_habilitados' usuario_alvo.pk %}" class="text-sm font-medium text-juridico-ouro">Limpar filtros</a>
-  {% endif %}
-</form>
+{% if cliente_id or materia or data or busca %}{% url 'configuracoes:usuario_processos_habilitados' usuario_alvo.pk as limpar_url %}{% endif %}
+{% include "components/barra_filtros.html" with campos="configuracoes/_filtros_processos_habilitados.html" %}
 
 <div class="card p-0 overflow-hidden">
   <div class="overflow-x-auto">

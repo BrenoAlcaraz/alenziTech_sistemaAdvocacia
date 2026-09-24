@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Equipes — Jurídico SaaS{% endblock %}
+{% block title %}Equipes{% endblock %}
 
 {% block content %}
 
@@ -82,7 +82,7 @@
     <p class="text-xs text-gray-500 mt-1 mb-4">
       Crie a primeira equipe para organizar os usuários do escritório.
     </p>
-    <a href="{% url 'configuracoes:nova_equipe' %}" class="btn-primary text-sm">
+    <a href="{% url 'configuracoes:nova_equipe' %}" class="btn-secondary">
       Nova equipe
     </a>
   </div>

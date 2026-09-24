@@ -1,0 +1,39 @@
+<input type="hidden" name="aba" value="modelos">
+<div class="barra-filtros-busca">
+  <label for="filtro-busca" class="label">Buscar</label>
+  <input type="text" id="filtro-busca" name="q" value="{{ busca }}" class="input"
+         placeholder="Título, tipo de peça, área ou conteúdo...">
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-categoria" class="label">Tipo de peça</label>
+  <select id="filtro-categoria" name="categoria" class="select">
+    <option value="">Todos os tipos de peça</option>
+    {% for categoria in categorias %}
+      <option value="{{ categoria.pk }}" {% if categoria_selecionada == categoria.pk|stringformat:"s" %}selected{% endif %}>{{ categoria.nome }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-area" class="label">Matéria</label>
+  <select id="filtro-area" name="area_direito" class="select">
+    <option value="">Todas</option>
+    {% for valor, rotulo in areas_direito %}
+      {% if valor %}
+        <option value="{{ valor }}" {% if area_direito_selecionada == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-responsavel" class="label">Responsável</label>
+  <select id="filtro-responsavel" name="responsavel" class="select">
+    <option value="">Todos</option>
+    {% for autor in autores %}
+      <option value="{{ autor.pk }}" {% if responsavel_selecionado == autor.pk|stringformat:"s" %}selected{% endif %}>{{ autor.get_full_name|default:autor.username }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-data" class="label">Data</label>
+  <input type="date" id="filtro-data" name="data" value="{{ data_selecionada }}" class="input">
+</div>

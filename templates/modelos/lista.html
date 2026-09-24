@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Modelos de Peças — Jurídico SaaS{% endblock %}
+{% block title %}Modelos de Peças{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
@@ -9,7 +9,7 @@
   </div>
   <div class="flex gap-2">
     {% if pode_criar_modelo %}
-      <a href="{% url 'modelos:novo' %}" class="btn-primary">+ Novo modelo</a>
+      <a href="{% url 'modelos:novo' %}" class="{% if aba_ativa == 'modelos' %}btn-primary{% else %}btn-secondary{% endif %}">+ Novo modelo</a>
       <a href="{% url 'modelos:importar' %}" class="btn-secondary">Importar arquivo</a>
     {% endif %}
     {% if pode_gerir_categorias %}
@@ -50,45 +50,8 @@
 {% if aba_ativa == "modelos" %}
 
   {# Pesquisa e filtros #}
-  <form method="get" action="{% url 'modelos:lista' %}" class="mb-5">
-    <input type="hidden" name="aba" value="modelos">
-    <div class="flex flex-wrap gap-3">
-      <input type="text"
-             name="q"
-             value="{{ busca }}"
-             class="input flex-1 min-w-[220px]"
-             placeholder="Pesquisar por título, tipo de peça, área ou conteúdo...">
-      <select name="categoria" class="select w-auto">
-        <option value="">Todos os tipos de peça</option>
-        {% for categoria in categorias %}
-          <option value="{{ categoria.pk }}" {% if categoria_selecionada == categoria.pk|stringformat:"s" %}selected{% endif %}>
-            {{ categoria.nome }}
-          </option>
-        {% endfor %}
-      </select>
-      <select name="area_direito" class="select w-auto">
-        <option value="">Todas as áreas</option>
-        {% for valor, rotulo in areas_direito %}
-          {% if valor %}
-            <option value="{{ valor }}" {% if area_direito_selecionada == valor %}selected{% endif %}>{{ rotulo }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <select name="responsavel" class="select w-auto">
-        <option value="">Todos os responsáveis</option>
-        {% for autor in autores %}
-          <option value="{{ autor.pk }}" {% if responsavel_selecionado == autor.pk|stringformat:"s" %}selected{% endif %}>
-            {{ autor.get_full_name|default:autor.username }}
-          </option>
-        {% endfor %}
-      </select>
-      <input type="date" name="data" value="{{ data_selecionada }}" class="input w-auto">
-      <button type="submit" class="btn-primary px-4">Pesquisar</button>
-      {% if busca or categoria_selecionada or area_direito_selecionada or responsavel_selecionado or data_selecionada %}
-        <a href="?aba=modelos" class="btn-secondary px-4">Limpar filtros</a>
-      {% endif %}
-    </div>
-  </form>
+  {% if busca or categoria_selecionada or area_direito_selecionada or responsavel_selecionado or data_selecionada %}{% url 'modelos:lista' as limpar_url %}{% endif %}
+  {% include "components/barra_filtros.html" with campos="modelos/_filtros.html" limpar_query="aba=modelos" %}
 
   <p class="text-xs text-gray-500 mb-3">
     {{ modelos|length }} {{ modelos|length|pluralize:"modelo encontrado,modelos encontrados" }}

@@ -1,0 +1,13 @@
+{# Campo "Visualizar" da barra de filtros (components/barra_filtros.html). #}
+{# Sem escolha (nível máximo "somente os seus"), o escopo atual segue oculto. #}
+{% if escopo_maximo == "todos" %}
+<div class="barra-filtros-campo">
+  <label for="filtro-escopo" class="label">Visualizar</label>
+  <select id="filtro-escopo" name="escopo" class="select">
+    <option value="somente_seus" {% if escopo_atual == "somente_seus" %}selected{% endif %}>Somente os seus</option>
+    <option value="todos" {% if escopo_atual == "todos" %}selected{% endif %}>Todos</option>
+  </select>
+</div>
+{% elif escopo_atual %}
+<input type="hidden" name="escopo" value="{{ escopo_atual }}">
+{% endif %}

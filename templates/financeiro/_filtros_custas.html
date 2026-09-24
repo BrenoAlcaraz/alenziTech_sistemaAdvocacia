@@ -1,0 +1,14 @@
+<div class="barra-filtros-busca">
+  <label for="filtro-busca" class="label">Buscar</label>
+  <input type="text" id="filtro-busca" name="busca" value="{{ filtro_busca }}"
+         placeholder="Cliente, documento, grupo ou membro..." class="input">
+</div>
+<div class="barra-filtros-campo">
+  <label for="filtro-saldo" class="label">Saldo</label>
+  <select id="filtro-saldo" name="saldo" class="select">
+    <option value="">Todos</option>
+    {% for chave, rotulo in filtros_saldo %}
+      <option value="{{ chave }}" {% if filtro_saldo == chave %}selected{% endif %}>{{ rotulo }}</option>
+    {% endfor %}
+  </select>
+</div>

@@ -1,0 +1,48 @@
+{% include "components/filtro_escopo.html" %}
+
+<div class="barra-filtros-busca">
+  <label for="busca" class="label">Buscar</label>
+  <input type="text" id="busca" name="busca" value="{{ filtro_busca }}"
+         placeholder="Título ou número..." class="input">
+</div>
+
+<div class="barra-filtros-campo">
+  <label for="materia" class="label">Matéria</label>
+  <select id="materia" name="materia" class="select">
+    <option value="">Todas</option>
+    {% for valor, rotulo in areas_choices %}
+      <option value="{{ valor }}" {% if filtro_materia == valor %}selected{% endif %}>{{ rotulo }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="barra-filtros-campo">
+  <label for="status" class="label">Status</label>
+  <select id="status" name="status" class="select">
+    <option value="">Todos</option>
+    {% for valor, rotulo in status_choices %}
+      <option value="{{ valor }}" {% if filtro_status == valor %}selected{% endif %}>{{ rotulo }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="barra-filtros-campo">
+  <label for="cliente" class="label">Cliente</label>
+  <select id="cliente" name="cliente" class="select">
+    <option value="">Todos</option>
+    {% for cliente in clientes_filtro %}
+      <option value="{{ cliente.pk }}" {% if filtro_cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>{{ cliente }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="barra-filtros-campo">
+  <label for="equipe" class="label">Equipe</label>
+  <select id="equipe" name="equipe" class="select">
+    <option value="">Todas</option>
+    <option value="nenhuma" {% if filtro_equipe == "nenhuma" %}selected{% endif %}>Nenhuma equipe</option>
+    {% for equipe in equipes_filtro %}
+      <option value="{{ equipe.pk }}" {% if filtro_equipe == equipe.pk|stringformat:"s" %}selected{% endif %}>{{ equipe.nome }}</option>
+    {% endfor %}
+  </select>
+</div>

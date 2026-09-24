@@ -9,30 +9,43 @@
   <div class="flex items-start justify-between mb-3">
     <div class="flex items-center gap-2">
       <span class="badge-area">{{ processo.area_direito }}</span>
-      <span class="badge-area">{{ processo.get_status_display }}</span>
+      <span class="badge-status badge-status-{{ processo.status }}">{{ processo.get_status_display }}</span>
       <span class="text-sm text-gray-500">{{ processo.instancia }}</span>
     </div>
     <div class="flex items-center gap-2">
     {% if pode_modificar %}
-    <a href="{% url 'processos:editar' processo.pk %}" class="btn-secondary text-sm">Editar processo</a>
-    {% if processo.status != "arquivado" %}
-    <form method="post" action="{% url 'processos:arquivar' processo.pk %}">
-      {% csrf_token %}
-      <button type="submit" class="btn-secondary text-sm"
-              data-confirmar="Arquivar este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Ele sairá da listagem principal." data-confirmar-tom="neutro">
-        Arquivar processo
-      </button>
-    </form>
+    <a href="{% url 'processos:editar' processo.pk %}" class="btn-secondary">Editar processo</a>
     {% endif %}
-    {% endif %}
-    {% if pode_excluir_processo %}
-    <form method="post" action="{% url 'processos:excluir' processo.pk %}">
-      {% csrf_token %}
-      <button type="submit" class="text-sm text-red-600 hover:text-red-700"
-              data-confirmar="Excluir definitivamente este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Documentos, partes, andamentos (com os prazos gerados na Agenda Jurídica), apensos e intimações também serão apagados. Esta ação não pode ser desfeita." data-confirmar-preserva="Lançamentos financeiros e demais itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência.">
-        Excluir processo
-      </button>
-    </form>
+    {% if pode_modificar and processo.status != "arquivado" or pode_excluir_processo %}
+    {# Ações raras ficam no menu, para a ação da aba ser a única primária da tela. #}
+    <details class="relative" data-dropdown>
+      <summary class="btn-secondary list-none">
+        Mais ações
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </summary>
+      <div class="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-2">
+        {% if pode_modificar and processo.status != "arquivado" %}
+        <form method="post" action="{% url 'processos:arquivar' processo.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  data-confirmar="Arquivar este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Ele sairá da listagem principal." data-confirmar-tom="neutro">
+            Arquivar processo
+          </button>
+        </form>
+        {% endif %}
+        {% if pode_excluir_processo %}
+        <form method="post" action="{% url 'processos:excluir' processo.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                  data-confirmar="Excluir definitivamente este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Documentos, partes, andamentos (com os prazos gerados na Agenda Jurídica), apensos e intimações também serão apagados. Esta ação não pode ser desfeita." data-confirmar-preserva="Lançamentos financeiros e demais itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência.">
+            Excluir processo
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </details>
     {% endif %}
     </div>
   </div>
@@ -125,7 +138,7 @@
       <label class="label" for="{{ form_integrante.usuario.id_for_label }}">Adicionar pessoa</label>
       <div class="flex items-center gap-2">
         <div class="flex-1">{{ form_integrante.usuario }}</div>
-        <button type="submit" class="btn-primary text-xs" {% if not tem_candidatos_integrante %}disabled{% endif %}>
+        <button type="submit" class="btn-secondary" {% if not tem_candidatos_integrante %}disabled{% endif %}>
           Adicionar
         </button>
       </div>
@@ -341,7 +354,7 @@
       <div>{{ form_parte_contraparte.advogado_nome }}</div>
       <div>{{ form_parte_contraparte.advogado_oab }}</div>
     </div>
-    <button type="submit" class="btn-primary text-sm">+ Adicionar contraparte</button>
+    <button type="submit" class="btn-secondary">+ Adicionar contraparte</button>
   </form>
 
   {{ papel_contraparte|json_script:"papel-contraparte-data" }}
@@ -531,7 +544,7 @@
         <a href="{% url 'processos:detalhe' item.processo.pk %}?aba=apensos" class="flex-1 min-w-0 group">
           <div class="flex items-center gap-2 mb-2">
             <span class="badge-area">{{ item.processo.get_area_direito_display }}</span>
-            <span class="badge-area">{{ item.processo.get_status_display }}</span>
+            <span class="badge-status badge-status-{{ item.processo.status }}">{{ item.processo.get_status_display }}</span>
           </div>
           <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
           {% if item.processo.numero %}<p class="text-xs text-gray-500 mt-0.5">{{ item.processo.numero }}</p>{% endif %}

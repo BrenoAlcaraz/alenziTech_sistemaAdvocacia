@@ -311,9 +311,9 @@ class TestClientesEscopoTodos(ClientesEscopoBase):
     def test_seletor_exibe_todos_e_somente_seus(self):
         r = self.client.get("/clientes/", HTTP_HOST=self.http_host)
         conteudo = r.content.decode()
-        self.assertIn("escopo=todos", conteudo)
-        self.assertIn("escopo=somente_seus", conteudo)
-        self.assertIn("Da equipe", conteudo)
+        self.assertIn('option value="todos"', conteudo)
+        self.assertIn('option value="somente_seus"', conteudo)
+        self.assertNotIn("Da equipe", conteudo)
 
     # ── "Todos" é escopo de visualização, não autorização de mutação ──
     # Um não-administrador com nível máximo `todos` pode listar/visualizar

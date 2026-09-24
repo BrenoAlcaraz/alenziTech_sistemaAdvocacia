@@ -1,48 +1,17 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Clientes — Jurídico SaaS{% endblock %}
+{% block title %}Clientes{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Clientes</h1>
-    <p class="text-sm text-gray-500 mt-0.5">
-      Todos os clientes do escritório
-      &nbsp;·&nbsp;
-      <a href="{% url 'clientes:inativos' %}" class="text-gray-500 hover:text-gray-600 underline">Ver inativos</a>
-    </p>
-  </div>
+  <h1 class="text-2xl font-bold text-gray-900">Clientes</h1>
   <a href="{% url 'clientes:novo' %}" class="btn-primary">+ Novo cliente</a>
 </div>
 
-{% if escopo_maximo == "todos" %}
-<div class="flex items-center gap-2 mb-4">
-  <a href="?escopo=todos{% if filtro_busca %}&busca={{ filtro_busca|urlencode }}{% endif %}"
-     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'todos' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-    Todos
-  </a>
-  <span class="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-50 text-gray-300 cursor-not-allowed" title="Em breve">
-    Da equipe
-  </span>
-  <a href="?escopo=somente_seus{% if filtro_busca %}&busca={{ filtro_busca|urlencode }}{% endif %}"
-     class="px-3 py-1.5 text-xs font-medium rounded-full {% if escopo_atual == 'somente_seus' %}bg-gray-900 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-    Somente os seus
-  </a>
-</div>
-{% endif %}
+{% url 'clientes:lista' as url_ativos %}{% url 'clientes:inativos' as url_inativos %}
+{% include "components/alternar_visao.html" with rotulo_a="Ativos" url_a=url_ativos rotulo_b="Inativos" url_b=url_inativos ativa="a" query="escopo="|add:escopo_atual %}
 
-<form method="get" class="search-bar mb-4">
-  <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-  </svg>
-  <input type="text" name="busca" value="{{ filtro_busca }}"
-         placeholder="Buscar por nome ou CPF/CNPJ..."
-         class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-700 placeholder-gray-400">
-  {% if escopo_atual %}<input type="hidden" name="escopo" value="{{ escopo_atual }}">{% endif %}
-  {% if filtro_busca %}
-    <a href="?{% if escopo_atual %}escopo={{ escopo_atual }}{% endif %}" class="text-xs text-gray-500 hover:text-gray-600 flex-shrink-0">Limpar</a>
-  {% endif %}
-</form>
+{% if filtro_busca %}{% url 'clientes:lista' as limpar_url %}{% endif %}
+{% include "components/barra_filtros.html" with campos="clientes/_filtros.html" limpar_query="escopo="|add:escopo_atual %}
 
 <div class="flex flex-col gap-2">
   {% for c in clientes %}

@@ -37,7 +37,7 @@
           <div class="w-3 bg-juridico-verde rounded-t" style="height: {{ b.receita_pct }}%;" title="Receita: {{ b.receita }}"></div>
           <div class="w-3 bg-juridico-vermelho rounded-t" style="height: {{ b.despesa_pct }}%;" title="Despesa: {{ b.despesa }}"></div>
         </div>
-        <span class="text-[10px] font-medium text-gray-500">{{ b.mes_label }}</span>
+        <span class="text-xs font-medium text-gray-500">{{ b.mes_label }}</span>
       </div>
     {% empty %}
       {% include "components/empty_state.html" with mensagem="Nenhum lançamento pago no período." %}

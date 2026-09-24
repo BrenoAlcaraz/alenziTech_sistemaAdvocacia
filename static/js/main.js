@@ -72,6 +72,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // ── Barra de filtros (components/barra_filtros.html) ────────────────────────
+  // Aplica ao mudar: um único comportamento de envio em todas as listas.
+  document.querySelectorAll("form[data-filtros]").forEach((form) => {
+    form.addEventListener("change", () => form.requestSubmit());
+  });
+
   // ── Alternância de visões (Agenda Jurídica) ─────────────────────────────────
   // Só troca o painel visível; a visão escolhida vai para o campo oculto
   // [data-view-input] e para a URL, para filtrar/recarregar sem perdê-la.

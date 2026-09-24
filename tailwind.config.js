@@ -21,11 +21,6 @@ module.exports = {
           DEFAULT: "rgb(var(--cor-primaria-rgb, 26 26 26) / <alpha-value>)",
           hover: "rgb(var(--cor-primaria-hover-rgb, 42 42 42) / <alpha-value>)",
         },
-        sidebar: {
-          DEFAULT: "#1a1a1a",
-          hover: "#2a2a2a",
-          active: "#f5f3ef",
-        },
         juridico: {
           // Off-white quente — fundo principal
           bg: "#f5f3ef",

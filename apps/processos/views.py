@@ -155,7 +155,6 @@ def lista(request):
         "item_ativo": "processos",
         "aba_ativa": "processos",
         "pode_usar_laboratorio": pode_usar_laboratorio,
-        "novo_url": reverse("processos:novo"),
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
         "filtro_busca": busca,

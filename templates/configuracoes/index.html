@@ -1,5 +1,5 @@
 {% extends "base/base_auth.html" %}
-{% block title %}Configurações — Jurídico SaaS{% endblock %}
+{% block title %}Configurações{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold text-gray-900 mb-1">Configurações</h1>
@@ -258,7 +258,7 @@
     <label for="excluir-usuario-senha" class="label mt-3">Sua senha</label>
     <input type="password" name="senha" id="excluir-usuario-senha" class="input" required autocomplete="current-password">
     <div class="flex items-center gap-3 mt-4">
-      <button type="submit" class="btn-primary">Excluir</button>
+      <button type="submit" class="btn-danger">Excluir</button>
       <button type="button" id="btn-cancelar-excluir-usuario" class="btn-secondary">Cancelar</button>
     </div>
   </form>

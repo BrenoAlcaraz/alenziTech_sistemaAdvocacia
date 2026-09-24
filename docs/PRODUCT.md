@@ -53,6 +53,9 @@ entrega.
 
 O produto não impõe marca própria na operação do escritório: logo e
 cores vêm da identidade visual de cada escritório (ver Configurações).
+A aba do navegador mostra "<Página> · <nome do escritório>" (nome de
+exibição, ou o nome do escritório). Sem logo cadastrado, o logo padrão
+são as iniciais do escritório na cor principal.
 Qualquer tela precisa continuar legível e coerente com qualquer cor
 escolhida pelo escritório.
 

@@ -1,0 +1,26 @@
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-cliente">Cliente</label>
+  <select name="cliente" id="filtro-cliente" class="select">
+    <option value="">Todos</option>
+    {% for c in clientes_opcoes %}
+      <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-materia">Matéria</label>
+  <select name="materia" id="filtro-materia" class="select">
+    <option value="">Todas</option>
+    {% for valor, rotulo in materias_opcoes %}
+      <option value="{{ valor }}" {% if materia == valor %}selected{% endif %}>{{ rotulo }}</option>
+    {% endfor %}
+  </select>
+</div>
+<div class="barra-filtros-campo">
+  <label class="label" for="filtro-data">Data de distribuição</label>
+  <input type="date" name="data" id="filtro-data" class="input" value="{{ data }}">
+</div>
+<div class="barra-filtros-busca">
+  <label class="label" for="filtro-busca">Buscar</label>
+  <input type="text" name="busca" id="filtro-busca" class="input" placeholder="Nome ou número..." value="{{ busca }}">
+</div>

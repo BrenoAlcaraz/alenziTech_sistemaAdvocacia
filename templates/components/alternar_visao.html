@@ -1,0 +1,7 @@
+{# ─── Alternância de visão da lista (ex.: Ativos | Arquivados) ─────────────── #}
+{# Uso: {% include "components/alternar_visao.html" with rotulo_a="Ativos" url_a=... rotulo_b="Arquivados" url_b=... ativa="a" %} #}
+{# query (sem "?") segue nos dois links, ex.: o escopo atual. #}
+<nav class="visao-alternar" aria-label="Visão da lista">
+  <a href="{{ url_a }}{% if query %}?{{ query }}{% endif %}" class="visao-alternar-item"{% if ativa == "a" %} aria-current="page"{% endif %}>{{ rotulo_a }}</a>
+  <a href="{{ url_b }}{% if query %}?{{ query }}{% endif %}" class="visao-alternar-item"{% if ativa == "b" %} aria-current="page"{% endif %}>{{ rotulo_b }}</a>
+</nav>

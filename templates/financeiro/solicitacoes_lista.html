@@ -37,68 +37,8 @@
     Rejeitadas <span class="text-xs text-gray-500">{{ contagens.rejeitadas }}</span></a>
 </div>
 
-<form method="get" class="card p-4 mb-4 flex flex-wrap items-end gap-3">
-  <input type="hidden" name="situacao" value="{{ situacao }}">
-  <div>
-    <label for="f-cliente" class="text-xs font-medium text-gray-500">Cliente</label>
-    <select id="f-cliente" name="cliente" class="select">
-      <option value="">Todos</option>
-      {% for c in clientes_filtro %}<option value="{{ c.pk }}" {% if filtros.cliente == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>{% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="f-processo" class="text-xs font-medium text-gray-500">Processo</label>
-    <select id="f-processo" name="processo" class="select">
-      <option value="">Todos</option>
-      {% for p in processos_filtro %}<option value="{{ p.pk }}" {% if filtros.processo == p.pk|stringformat:"s" %}selected{% endif %}>{{ p }}</option>{% endfor %}
-    </select>
-  </div>
-  {% if tem_acesso_dados %}
-  <div>
-    <label for="f-solicitante" class="text-xs font-medium text-gray-500">Solicitado por</label>
-    <select id="f-solicitante" name="solicitante" class="select">
-      <option value="">Todos</option>
-      {% for u in solicitantes_filtro %}<option value="{{ u.pk }}" {% if filtros.solicitante == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}
-    </select>
-  </div>
-  {% endif %}
-  <div>
-    <label class="text-xs font-medium text-gray-500">Solicitada entre</label>
-    <div class="flex items-center gap-1">
-      <input type="date" name="solicitado_de" value="{{ filtros.solicitado_de }}" class="input">
-      <input type="date" name="solicitado_ate" value="{{ filtros.solicitado_ate }}" class="input">
-    </div>
-  </div>
-  {% if situacao == "pendentes" %}
-  <div>
-    <label for="f-vencimento" class="text-xs font-medium text-gray-500">Vencimento</label>
-    <select id="f-vencimento" name="vencimento" class="select">
-      <option value="">Todos</option>
-      {% for chave, rotulo in filtros_vencimento %}<option value="{{ chave }}" {% if filtros.vencimento == chave %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
-    </select>
-  </div>
-  {% endif %}
-  {% if situacao == "pagas" %}
-  <div>
-    <label class="text-xs font-medium text-gray-500">Paga entre</label>
-    <div class="flex items-center gap-1">
-      <input type="date" name="pago_de" value="{{ filtros.pago_de }}" class="input">
-      <input type="date" name="pago_ate" value="{{ filtros.pago_ate }}" class="input">
-    </div>
-  </div>
-  {% if tem_acesso_dados %}
-  <div>
-    <label for="f-pagador" class="text-xs font-medium text-gray-500">Pagamento realizado por</label>
-    <select id="f-pagador" name="pago_por_usuario" class="select">
-      <option value="">Todos</option>
-      {% for u in pagadores_filtro %}<option value="{{ u.pk }}" {% if filtros.pago_por_usuario == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}
-    </select>
-  </div>
-  {% endif %}
-  {% endif %}
-  <button type="submit" class="btn-secondary text-sm">Filtrar</button>
-  <a href="?situacao={{ situacao }}" class="text-sm text-gray-500 underline">Limpar</a>
-</form>
+{% if filtros_query %}{% url 'financeiro:solicitacoes_lista' as limpar_url %}{% endif %}
+{% include "components/barra_filtros.html" with campos="financeiro/_filtros_solicitacoes.html" limpar_query="situacao="|add:situacao %}
 
 <div class="flex flex-col gap-2">
   {% for s in solicitacoes %}
