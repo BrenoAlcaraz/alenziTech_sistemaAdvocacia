@@ -216,6 +216,17 @@ class LancamentoFinanceiro(models.Model):
         numero = 1 + origem.ocorrencias.filter(data_vencimento__lte=self.data_vencimento).count()
         return numero, total
 
+    # Honorário (PDR-0035): parcelas/ocorrências geradas pelo honorário
+    # parcelado/recorrente herdam a classificação dele; o recebimento de
+    # honorário único é sempre um lançamento "único" já pago.
+    @property
+    def eh_parcela_de_honorario(self):
+        return self.honorario_id is not None and self.classificacao != "unica"
+
+    @property
+    def eh_recebimento_de_honorario_unico(self):
+        return self.honorario_id is not None and self.classificacao == "unica"
+
 
 class GrupoCustas(models.Model):
     """Grupo de clientes que compartilha um saldo de custas (ex.: holding
@@ -446,6 +457,14 @@ class Honorario(models.Model):
         ("precatorio", "Precatório"),
     ]
     regime_pagamento = models.CharField(max_length=10, choices=REGIME_PAGAMENTO_CHOICES, blank=True)
+
+    # Documento que origina o honorário: contrato (contratual) ou decisão
+    # (sucumbência). O comprovante de cada recebimento fica no lançamento.
+    documento = models.FileField(
+        upload_to=CaminhoArquivoTenant(PROTEGIDO, "financeiro/honorarios"),
+        storage=StorageProtegido(),
+        null=True, blank=True,
+    )
 
     class Meta:
         verbose_name = "Honorário"

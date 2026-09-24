@@ -228,6 +228,16 @@ saldo de custas = créditos depositados pelo cliente − custas pagas pelo escri
   `valor_recebido`, gera seu próprio lançamento de receita realizada, e
   o honorário só passa a `recebido` quando `valor_recebido` atingir
   `valor_efetivo`.
+- Ciclo de recebimento ([PDR-0035](../decisions/PDR-0035-honorarios-ciclo-de-recebimento.md)):
+  situação sempre calculada (a vencer, vencido, parcialmente recebido,
+  recebido, cancelado; no parcelado/recorrente, pelas parcelas).
+  "Já recebido" no cadastro (1ª parcela no parcelado/recorrente) só para
+  o Administrador, contratual com valor, data não futura. Baixar,
+  reabrir ou excluir parcela de honorário no Financeiro também é
+  exclusivo do Administrador e notifica o advogado; recebimento de
+  honorário único não se desfaz pelo lançamento. Documento de origem
+  (contrato/decisão) opcional no honorário; comprovante opcional em
+  cada recebimento, com aviso "sem comprovante".
 - Correção monetária/juros é opcional por honorário, com taxa mensal e
   data-termo informadas manualmente no cadastro (sem integração com
   índice externo nesta versão) — editar essa configuração é exclusivo
@@ -304,4 +314,5 @@ despesa. Integração futura mais ampla exigiria novo PDR.
 - [PDR-0021](../decisions/PDR-0021-periodicidades-financeiras.md) — periodicidades da recorrência
 - [PDR-0022](../decisions/PDR-0022-honorarios-recebimento-parcial-correcao.md) — honorários: parcial e correção
 - [PDR-0032](../decisions/PDR-0032-honorarios-contratual-sucumbencia-ipca.md) — honorários: contratual, sucumbência, êxito e IPCA
+- [PDR-0035](../decisions/PDR-0035-honorarios-ciclo-de-recebimento.md) — honorários: ciclo de recebimento
 - [STATUS.md](../STATUS.md#financeiro) para o estado real de implementação

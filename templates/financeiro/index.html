@@ -223,7 +223,8 @@
                 </svg>
               </a>
 
-              {# Excluir lançamento #}
+              {# Excluir: recebimento de honorário só pelo Administrador; o de valor único nunca (PDR-0035) #}
+              {% if not l.honorario_id or is_admin and not l.eh_recebimento_de_honorario_unico %}
               <form method="post" action="{% url 'financeiro:excluir_lancamento' l.pk %}" class="inline">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next_url }}">
@@ -237,6 +238,7 @@
                   </svg>
                 </button>
               </form>
+              {% endif %}
 
             </div>
           </div>
@@ -291,18 +293,22 @@
           {# Linha 3: ações rápidas #}
           <div class="flex flex-wrap items-center gap-3 mt-2">
             {% if l.status == "pendente" %}
+              {% if not l.honorario_id or is_admin %}
               <form method="post" action="{% url 'financeiro:marcar_pago' l.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next_url }}">
                 <button type="submit" class="text-xs text-green-700 hover:text-green-900 hover:underline">Marcar como pago</button>
               </form>
+              {% else %}
+              <span class="text-xs text-gray-400">Recebimento de honorário: pelo Administrador</span>
+              {% endif %}
               <span class="text-gray-200 text-xs">|</span>
               <form method="post" action="{% url 'financeiro:cancelar_lancamento' l.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next_url }}">
                 <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
               </form>
-            {% elif l.status == "pago" or l.status == "cancelado" %}
+            {% elif l.status == "cancelado" or l.status == "pago" and not l.honorario_id or l.status == "pago" and is_admin and not l.eh_recebimento_de_honorario_unico %}
               <form method="post" action="{% url 'financeiro:reabrir_lancamento' l.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next_url }}">

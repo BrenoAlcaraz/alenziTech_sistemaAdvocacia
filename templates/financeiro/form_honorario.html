@@ -13,7 +13,7 @@
 </div>
 
 <div class="card p-6 max-w-2xl">
-  <form method="post" id="form-honorario" data-hoje="{% now 'Y-m-d' %}">
+  <form method="post" enctype="multipart/form-data" id="form-honorario" data-hoje="{% now 'Y-m-d' %}">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -47,6 +47,17 @@
           </div>
           <p data-toggle-panel="pagamento" data-toggle-values="parcelado" class="text-xs text-gray-400">O valor é o total: será dividido em parcelas mensais, cada uma gerando uma receita pendente no Financeiro.</p>
           <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-400">O valor é o de cada ocorrência; cada uma gera uma receita pendente no Financeiro. Sem duração definida, gera uma janela de ocorrências futuras.</p>
+          {% if form.ja_recebido %}
+            {# Recebimento já ocorrido, registrado junto (só Administrador, só no cadastro) #}
+            <div class="rounded-xl bg-gray-50 p-4 flex flex-col gap-3">
+              <label class="flex items-center gap-2 text-sm text-gray-700">{{ form.ja_recebido }} {{ form.ja_recebido.label }}</label>
+              <div class="grid grid-cols-2 gap-4">
+                {% include "financeiro/_campo_honorario.html" with campo=form.data_recebimento dica="se já recebido" %}
+                {% include "financeiro/_campo_honorario.html" with campo=form.comprovante_recebimento dica="opcional" %}
+              </div>
+              <p class="text-xs text-gray-400">Registra o recebimento no caixa. Recebimento parcial: cadastre sem marcar e use "Confirmar recebimento" depois.</p>
+            </div>
+          {% endif %}
           <div data-toggle-panel="pagamento" data-toggle-values="parcelado">
             {% include "financeiro/_campo_honorario.html" with campo=form.numero_parcelas %}
           </div>
@@ -110,6 +121,13 @@
         {% for linha in avisos_exito %}
           <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Você tem {{ linha.percentual }}% de êxito a receber — R$ {{ linha.valor|moeda_br }}</p>
         {% endfor %}
+      </div>
+
+      <div>
+        {% include "financeiro/_campo_honorario.html" with campo=form.documento dica="opcional" %}
+        {% if honorario.documento %}
+          <p class="text-xs text-gray-500 mt-1">Atual: <a href="{% url 'financeiro:documento_honorario' honorario.pk %}" class="underline">{{ honorario.documento.name }}</a></p>
+        {% endif %}
       </div>
 
       <div>

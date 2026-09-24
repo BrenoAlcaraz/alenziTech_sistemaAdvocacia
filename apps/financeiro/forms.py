@@ -90,8 +90,9 @@ class LancamentoFinanceiroForm(forms.ModelForm):
             "comprovante_pagamento": "Comprovante de pagamento",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, pode_receber_honorario=True, **kwargs):
         super().__init__(*args, **kwargs)
+        self.pode_receber_honorario = pode_receber_honorario
 
         self.fields["cliente"].queryset = Cliente.objects.filter(ativo=True)
         self.fields["cliente"].required = False
@@ -163,6 +164,8 @@ class LancamentoFinanceiroForm(forms.ModelForm):
                     "comprovante_pagamento", "O comprovante de pagamento só pode ser anexado em lançamento pago."
                 )
 
+        self._validar_recebimento_de_honorario(cleaned_data)
+
         classificacao = cleaned_data.get("classificacao") or "unica"
         cleaned_data["classificacao"] = classificacao
         eh_ocorrencia_gerada = bool(self.instance.lancamento_origem_id)
@@ -194,6 +197,24 @@ class LancamentoFinanceiroForm(forms.ModelForm):
                 self.add_error("duracao_tipo", "Selecione a duração da recorrência.")
 
         return cleaned_data
+
+    def _validar_recebimento_de_honorario(self, cleaned_data):
+        """PDR-0035. `self.instance` ainda tem os valores gravados aqui:
+        o ModelForm só copia o cleaned_data para ela depois do clean()."""
+        instancia = self.instance
+        if not instancia.pk or not instancia.honorario_id:
+            return
+        if instancia.eh_recebimento_de_honorario_unico:
+            # Desfazer/corrigir esse recebimento deixaria o `valor_recebido`
+            # do honorário errado — só pela confirmação do honorário.
+            campos = ("status", "valor", "data_pagamento")
+            if any(cleaned_data.get(campo) != getattr(instancia, campo) for campo in campos):
+                raise ValidationError(
+                    "Este lançamento é um recebimento de honorário: valor, status e data de "
+                    "pagamento não se alteram por aqui."
+                )
+        elif not self.pode_receber_honorario and "pago" in (cleaned_data.get("status"), instancia.status)                 and cleaned_data.get("status") != instancia.status:
+            self.add_error("status", "Só o Administrador do escritório registra ou desfaz recebimento de honorário.")
 
 
 _TIPO_CHOICES_DEBITO = [
@@ -367,8 +388,10 @@ class HonorarioForm(forms.ModelForm):
             "forma_condenacao", "percentual", "valor_condenacao", "valor_fixo", "devedor_tipo",
             "indice_correcao", "taxa_indice_mensal",
             "data_correcao", "data_correcao_fim", "data_juros", "data_juros_fim",
+            "documento",
         ]
         widgets = {
+            "documento": forms.ClearableFileInput(attrs={"class": "input"}),
             "tipo": forms.Select(attrs={"class": "select", "data-toggle-select": "honorario_tipo"}),
             "modalidade": forms.Select(attrs={"class": "select", "data-toggle-select": "modalidade"}),
             "classificacao": forms.Select(attrs={"class": "select", "data-toggle-select": "pagamento"}),
@@ -397,9 +420,10 @@ class HonorarioForm(forms.ModelForm):
             "observacoes": forms.Textarea(attrs={"class": "input h-20 resize-none", "rows": 3}),
         }
         labels = {
+            "documento": "Documento de origem (contrato ou decisão)",
             "modalidade": "Cobrança contratual",
             "valor_estimado": "Valor (R$)",
-            "data_prevista": "Data (ou 1º vencimento)",
+            "data_prevista": "Vencimento (ou 1º vencimento)",
             "classificacao": "Pagamento do valor",
             "numero_parcelas": "Quantidade de parcelas",
             "duracao_tipo": "Duração da recorrência",
@@ -420,8 +444,28 @@ class HonorarioForm(forms.ModelForm):
             "data_juros_fim": "Juros (1% a.m.) — data final",
         }
 
-    def __init__(self, *args, **kwargs):
+    # Recebimento já ocorrido, registrado junto com o cadastro (PDR-0035):
+    # único = valor inteiro; parcelado/recorrente = só a 1ª parcela.
+    ja_recebido = forms.BooleanField(
+        label="Já recebido (no parcelado/recorrente: a 1ª parcela)", required=False,
+        widget=forms.CheckboxInput(attrs={"class": "rounded border-gray-300"}),
+    )
+    data_recebimento = forms.DateField(
+        label="Data do recebimento", required=False, input_formats=["%Y-%m-%d"],
+        widget=forms.DateInput(attrs={"type": "date", "class": "input"}, format="%Y-%m-%d"),
+    )
+    comprovante_recebimento = forms.FileField(
+        label="Comprovante do recebimento", required=False,
+        widget=forms.ClearableFileInput(attrs={"class": "input"}),
+    )
+    CAMPOS_RECEBIMENTO = ("ja_recebido", "data_recebimento", "comprovante_recebimento")
+
+    def __init__(self, *args, pode_registrar_recebimento=False, **kwargs):
         super().__init__(*args, **kwargs)
+        if not pode_registrar_recebimento or self.instance.pk:
+            for nome in self.CAMPOS_RECEBIMENTO:
+                del self.fields[nome]
+        self.fields["documento"].required = False
         campos_opcionais = (
             "valor_estimado", "modalidade", *self.CAMPOS_PAGAMENTO, *self.CAMPOS_EXITO, *self.CAMPOS_SUCUMBENCIA,
         )
@@ -488,7 +532,21 @@ class HonorarioForm(forms.ModelForm):
         elif tipo:
             self._clean_legado(cleaned)
         self._exigir_estrutura_gerada_intacta(cleaned)
+        self._clean_recebimento(cleaned)
         return cleaned
+
+    def _clean_recebimento(self, cleaned):
+        if not cleaned.get("ja_recebido"):
+            return
+        if cleaned.get("tipo") != "contratual" or cleaned.get("modalidade") == "exito":
+            # Sucumbência e êxito puro recebem pela confirmação do honorário.
+            cleaned["ja_recebido"] = False
+            return
+        data = cleaned.get("data_recebimento")
+        if not data:
+            self.add_error("data_recebimento", "Informe a data do recebimento.")
+        elif data > timezone.localdate():
+            self.add_error("data_recebimento", "A data do recebimento não pode ser futura.")
 
     def _clean_legado(self, cleaned):
         if cleaned.get("valor_estimado") is None:
@@ -593,7 +651,10 @@ class HonorarioForm(forms.ModelForm):
             )["total"]
 
     def _exigir_estrutura_gerada_intacta(self, cleaned):
-        if self.errors or not self.instance.pk or not self.instance.lancamentos.exists():
+        # Honorário único também tem lançamentos (os recebimentos), mas a
+        # estrutura dele segue editável no próprio honorário.
+        instancia = self.instance
+        if self.errors or not instancia.pk or not instancia.recebimento_por_lancamentos                 or not instancia.lancamentos.exists():
             return
         if any(cleaned.get(campo) != getattr(self.instance, campo) for campo in self.CAMPOS_ESTRUTURA_GERADA):
             raise forms.ValidationError(

@@ -8,6 +8,7 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
+from apps.notificacoes.models import Notificacao
 
 from .models import (
     CustaJudicial, Honorario, LancamentoFinanceiro, MembroGrupoCustas, SolicitacaoFinanceira,
@@ -475,7 +476,8 @@ def honorarios_da_janela(primeiro, ultimo):
     Receitas de honorário com vencimento na janela — o que já foi pago
     entra em recebido e em previsto — mais o saldo pendente do contratual
     de valor único ainda previsto na janela, que só vira lançamento ao ser
-    confirmado (sem dupla contagem: esse não tem lançamentos vinculados).
+    confirmado (sem dupla contagem: cada confirmação gera só a receita
+    paga do valor recebido naquele momento).
     Sucumbência e êxito sem lançamento ficam de fora."""
     receitas = LancamentoFinanceiro.objects.filter(
         tipo="receita", categoria__in=_CATEGORIAS_HONORARIO,
@@ -487,10 +489,7 @@ def honorarios_da_janela(primeiro, ultimo):
         tipo__in=("contratual", "outro"), status="previsto",
         data_prevista__gte=primeiro, data_prevista__lte=ultimo,
     ).exclude(modalidade="exito").exclude(classificacao__in=("parcelado", "recorrente"))
-    pendente += sum(
-        (_pendente_do_honorario_unico(h) for h in unicos if not h.lancamentos.exists()),
-        Decimal("0"),
-    )
+    pendente += sum((_pendente_do_honorario_unico(h) for h in unicos), Decimal("0"))
     return {"previsto": recebido + pendente, "recebido": recebido}
 
 
@@ -634,6 +633,84 @@ def gerar_lancamentos_do_honorario(honorario, *, responsavel=None):
             honorario=honorario,
         )
         gerar_ocorrencias(origem)
+
+
+def notificar_recebimento_de_honorario(honorario, usuario):
+    """Todo recebimento de honorário avisa o advogado responsável pelo
+    processo — nunca quem registrou (PDR-0007)."""
+    responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
+    if responsavel_id and responsavel_id != usuario.id:
+        Notificacao.objects.create(
+            destinatario=honorario.processo.responsavel,
+            mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
+        )
+
+
+def registrar_recebimento_honorario(honorario, *, valor_efetivo, valor, data, comprovante, usuario):
+    """Recebimento (total ou parcial, PDR-0022) de honorário de valor
+    único: soma em `valor_recebido` e gera a receita paga vinculada ao
+    honorário — é ela que altera o caixa realizado (PDR-0004). Quem chama
+    garante que `valor` não ultrapassa o pendente."""
+    with transaction.atomic():
+        honorario.valor_efetivo = valor_efetivo
+        honorario.valor_recebido += valor
+        honorario.data_recebida = data
+        honorario.status = "recebido" if honorario.valor_recebido >= valor_efetivo else "previsto"
+        honorario.save()
+        lancamento = LancamentoFinanceiro.objects.create(
+            tipo="receita",
+            descricao=f"Honorário — {honorario.get_tipo_display()}",
+            valor=valor,
+            data_vencimento=data,
+            data_pagamento=data,
+            status="pago",
+            categoria="exito" if honorario.tipo == "exito" else "honorario",
+            cliente=honorario.cliente,
+            processo=honorario.processo,
+            responsavel=usuario,
+            comprovante_pagamento=comprovante,
+            honorario=honorario,
+        )
+        notificar_recebimento_de_honorario(honorario, usuario)
+    return lancamento
+
+
+def receber_primeira_parcela(honorario, *, data, comprovante, usuario):
+    """1ª parcela/ocorrência já recebida no cadastro do honorário
+    parcelado/recorrente — a origem gerada é sempre a 1ª."""
+    primeira = honorario.lancamentos.filter(lancamento_origem__isnull=True).first()
+    if primeira is None:
+        return None
+    primeira.status = "pago"
+    primeira.data_pagamento = data
+    primeira.comprovante_pagamento = comprovante
+    primeira.save(update_fields=["status", "data_pagamento", "comprovante_pagamento"])
+    notificar_recebimento_de_honorario(honorario, usuario)
+    return primeira
+
+
+def situacao_do_honorario(honorario, hoje, pendente=None):
+    """Situação exibida, sempre calculada (PDR-0035): cancelado, recebido,
+    vencido, parcial, a_vencer — ou None no êxito puro, que não tem valor
+    a receber. Parcelado/recorrente: pelas parcelas; valor único: pelo
+    `pendente` já calculado por quem chama e pelo vencimento."""
+    if honorario.status == "cancelado":
+        return "cancelado"
+    if honorario.so_exito:
+        return None
+    if honorario.recebimento_por_lancamentos:
+        parcelas = [l for l in honorario.lancamentos.all() if l.status != "cancelado"]
+        pendentes = [l for l in parcelas if l.status == "pendente"]
+        if parcelas and not pendentes:
+            return "recebido"
+        if any(l.data_vencimento < hoje for l in pendentes):
+            return "vencido"
+        return "parcial" if len(pendentes) < len(parcelas) else "a_vencer"
+    if honorario.status == "recebido":
+        return "recebido"
+    if honorario.data_prevista and honorario.data_prevista < hoje and (pendente is None or pendente > 0):
+        return "vencido"
+    return "parcial" if honorario.valor_recebido > 0 else "a_vencer"
 
 
 def cancelar_lancamentos_futuros_do_honorario(honorario):

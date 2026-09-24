@@ -61,3 +61,4 @@ serem efetivamente decididas.
 | PDR-0031 | Custas judiciais por grupo de clientes | accepted | [PDR-0031-custas-por-grupo-de-clientes.md](PDR-0031-custas-por-grupo-de-clientes.md) |
 | PDR-0032 | Honorários: contratual, sucumbência, êxito e IPCA | accepted | [PDR-0032-honorarios-contratual-sucumbencia-ipca.md](PDR-0032-honorarios-contratual-sucumbencia-ipca.md) |
 | PDR-0034 | Agenda Jurídica — fusão de Tarefas e Agenda | accepted | [PDR-0034-agenda-juridica-unificada.md](PDR-0034-agenda-juridica-unificada.md) |
+| PDR-0035 | Honorários — ciclo de recebimento | accepted | [PDR-0035-honorarios-ciclo-de-recebimento.md](PDR-0035-honorarios-ciclo-de-recebimento.md) |

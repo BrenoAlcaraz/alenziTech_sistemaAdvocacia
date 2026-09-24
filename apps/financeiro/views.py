@@ -58,10 +58,14 @@ from .services import (
     gerar_ocorrencias,
     inicio_da_janela,
     lancamentos_operacionais,
+    notificar_recebimento_de_honorario,
+    receber_primeira_parcela,
     reembolsar_custa,
+    registrar_recebimento_honorario,
     registrar_credito_cliente,
     saldo_liquido_custas,
     saldo_previsto,
+    situacao_do_honorario,
     uso_do_credito_por_custa,
     PERIODOS,
     janela_do_periodo,
@@ -200,6 +204,16 @@ def _exige_nivel_dados(user):
         raise PermissionDenied
 
 
+def _exige_permissao_recebimento_honorario(user, lancamento):
+    """Baixar, desfazer ou excluir recebimento de honorário é exclusivo do
+    Administrador (PDR-0035). O recebimento de honorário único não se
+    desfaz pelo lançamento: o `valor_recebido` do honorário ficaria errado."""
+    if not lancamento.honorario_id:
+        return
+    if lancamento.eh_recebimento_de_honorario_unico or not usuario_admin_escritorio(user):
+        raise PermissionDenied
+
+
 def _lancamentos_no_escopo(user):
     qs = LancamentoFinanceiro.objects.select_related("cliente", "processo", "responsavel", "lancamento_origem")
     if _nivel_financeiro(user) == NIVEL_DADOS_PROPRIOS:
@@ -298,6 +312,7 @@ def index(request):
         "fim_janela": fim_janela,
         "query_janela": f"periodo={periodo}" if recorte_periodo else f"ano={ano}&mes={mes}",
         "next_url": request.get_full_path(),
+        "is_admin": usuario_admin_escritorio(request.user),
         "aba_ativa": "lancamentos",
         "item_ativo": "financeiro",
         "mes_ano": ano,
@@ -596,9 +611,14 @@ def editar_lancamento(request, pk):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    pode_receber_honorario = usuario_admin_escritorio(request.user)
+    if lancamento.honorario_id and lancamento.status == "pago" and not pode_receber_honorario:
+        raise PermissionDenied
 
     if request.method == "POST":
-        form = LancamentoFinanceiroForm(request.POST, request.FILES, instance=lancamento)
+        form = LancamentoFinanceiroForm(
+            request.POST, request.FILES, instance=lancamento, pode_receber_honorario=pode_receber_honorario,
+        )
         if form.is_valid():
             lancamento = form.save(commit=False)
             if not lancamento.responsavel:
@@ -613,7 +633,7 @@ def editar_lancamento(request, pk):
             )
             return redirect("financeiro:index")
     else:
-        form = LancamentoFinanceiroForm(instance=lancamento)
+        form = LancamentoFinanceiroForm(instance=lancamento, pode_receber_honorario=pode_receber_honorario)
 
     return render(request, "financeiro/form_lancamento.html", {
         "form": form,
@@ -630,6 +650,7 @@ def marcar_pago(request, pk):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    _exige_permissao_recebimento_honorario(request.user, lancamento)
     if request.method == "POST":
         lancamento.status = "pago"
         lancamento.data_pagamento = timezone.localdate()
@@ -638,6 +659,8 @@ def marcar_pago(request, pk):
             request.user, "lancamento_pago", f"Marcou como pago o lançamento {lancamento.descricao}",
             processo=lancamento.processo,
         )
+        if lancamento.honorario_id:
+            notificar_recebimento_de_honorario(lancamento.honorario, request.user)
     return _redirect_seguro(request)
 
 
@@ -647,6 +670,8 @@ def cancelar_lancamento(request, pk):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if lancamento.status == "pago":
+        _exige_permissao_recebimento_honorario(request.user, lancamento)
     if request.method == "POST":
         lancamento.status = "cancelado"
         lancamento.save(update_fields=["status"])
@@ -686,6 +711,8 @@ def reabrir_lancamento(request, pk):
     # lançamento de responsável diferente do usuário atual (404 aqui, antes
     # de chegar na checagem de habilitação) — ver ARCHITECTURE.md.
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
+    if lancamento.status == "pago":
+        _exige_permissao_recebimento_honorario(request.user, lancamento)
     origem = getattr(lancamento, "solicitacao_origem", None)
     if origem is not None and not tem_habilitacao(
         request.user, MODULO_FINANCEIRO, HAB_FINANCEIRO_REABRIR_LANCAMENTO_PAGO
@@ -715,6 +742,7 @@ def excluir_lancamento(request, pk):
     lancamento = get_object_or_404(_lancamentos_no_escopo(request.user), pk=pk)
     if hasattr(lancamento, "solicitacao_origem"):
         raise PermissionDenied
+    _exige_permissao_recebimento_honorario(request.user, lancamento)
     if request.method == "POST":
         descricao = lancamento.descricao
         processo = lancamento.processo
@@ -917,11 +945,41 @@ def _calculo_sucumbencial(honorario, ate):
 
 def _salvar_honorario(form, usuario):
     """Grava o honorário e, se contratual parcelado/recorrente, gera os
-    lançamentos pendentes vinculados a ele — numa transação só."""
+    lançamentos pendentes vinculados a ele; com "Já recebido" marcado
+    (só no cadastro, só Administrador), registra também o recebimento —
+    tudo numa transação só."""
     with transaction.atomic():
         honorario = form.save()
         gerar_lancamentos_do_honorario(honorario, responsavel=usuario)
+        if form.cleaned_data.get("ja_recebido"):
+            _registrar_recebimento_do_cadastro(honorario, form.cleaned_data, usuario)
     return honorario
+
+
+def _registrar_recebimento_do_cadastro(honorario, dados, usuario):
+    data, comprovante = dados["data_recebimento"], dados.get("comprovante_recebimento")
+    if honorario.recebimento_por_lancamentos:
+        receber_primeira_parcela(honorario, data=data, comprovante=comprovante, usuario=usuario)
+    else:
+        registrar_recebimento_honorario(
+            honorario, valor_efetivo=honorario.valor_estimado, valor=honorario.valor_estimado,
+            data=data, comprovante=comprovante, usuario=usuario,
+        )
+    registrar_atividade(
+        usuario, "honorario_recebido",
+        f"Registrou recebimento no cadastro do honorário ({honorario.get_tipo_display()})",
+        processo=honorario.processo,
+    )
+
+
+def _preparar_ciclo(honorario):
+    """Parcelas e recebimentos vinculados, para o card: quantas parcelas
+    já entraram e quantos recebimentos ainda estão sem comprovante."""
+    lancamentos = [l for l in honorario.lancamentos.all() if l.status != "cancelado"]
+    pagos = [l for l in lancamentos if l.status == "pago"]
+    honorario.parcelas_total = len(lancamentos)
+    honorario.parcelas_recebidas = len(pagos)
+    honorario.sem_comprovante = sum(1 for l in pagos if not l.comprovante_pagamento)
 
 
 @login_required
@@ -930,8 +988,11 @@ def honorarios_lista(request):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
     hoje = timezone.localdate()
-    honorarios = list(_honorarios_no_escopo().prefetch_related("processo__partes").order_by("-criado_em"))
+    honorarios = list(
+        _honorarios_no_escopo().prefetch_related("processo__partes", "lancamentos").order_by("-criado_em")
+    )
     for h in honorarios:
+        _preparar_ciclo(h)
         if h.calculado:
             # Total sempre recalculado dos parâmetros — nunca o valor gravado.
             h.calculo = _calculo_sucumbencial(h, hoje)
@@ -952,6 +1013,8 @@ def honorarios_lista(request):
         )
         h.valor_total_exibido = valor_efetivo
         h.valor_pendente_hoje = pendente_base + correcao
+    for h in honorarios:
+        h.situacao = situacao_do_honorario(h, hoje, getattr(h, "valor_pendente_hoje", None))
 
     return render(request, "financeiro/honorarios_lista.html", {
         "honorarios": honorarios,
@@ -973,8 +1036,9 @@ def form_honorario(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
         raise PermissionDenied
     _exige_nivel_dados(request.user)
+    pode_registrar_recebimento = usuario_admin_escritorio(request.user)
     if request.method == "POST":
-        form = HonorarioForm(request.POST)
+        form = HonorarioForm(request.POST, request.FILES, pode_registrar_recebimento=pode_registrar_recebimento)
         if form.is_valid():
             honorario = _salvar_honorario(form, request.user)
             registrar_atividade(
@@ -983,7 +1047,7 @@ def form_honorario(request):
             )
             return redirect("financeiro:honorarios_lista")
     else:
-        form = HonorarioForm()
+        form = HonorarioForm(pode_registrar_recebimento=pode_registrar_recebimento)
 
     return render(request, "financeiro/form_honorario.html", {
         "form": form,
@@ -1001,7 +1065,7 @@ def editar_honorario(request, pk):
     honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
 
     if request.method == "POST":
-        form = HonorarioForm(request.POST, instance=honorario)
+        form = HonorarioForm(request.POST, request.FILES, instance=honorario)
         if form.is_valid():
             honorario = _salvar_honorario(form, request.user)
             registrar_atividade(
@@ -1079,33 +1143,16 @@ def confirmar_recebimento_honorario(request, pk):
                     "O valor recebido não pode ultrapassar o valor efetivo pendente.",
                 )
             else:
-                with transaction.atomic():
-                    honorario_atualizado.valor_recebido = novo_valor_recebido
-                    honorario_atualizado.status = (
-                        "recebido" if novo_valor_recebido >= honorario_atualizado.valor_efetivo else "previsto"
-                    )
-                    honorario_atualizado.save()
-
-                    LancamentoFinanceiro.objects.create(
-                        tipo="receita",
-                        descricao=f"Honorário — {honorario.get_tipo_display()}",
-                        valor=valor_recebido_agora,
-                        data_vencimento=data_recebida_nova,
-                        data_pagamento=data_recebida_nova,
-                        status="pago",
-                        categoria="exito" if honorario.tipo == "exito" else "honorario",
-                        cliente=honorario.cliente,
-                        processo=honorario.processo,
-                        responsavel=request.user,
-                        comprovante_pagamento=form.cleaned_data.get("anexo"),
-                    )
-
-                    responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
-                    if responsavel_id and responsavel_id != request.user.id:
-                        Notificacao.objects.create(
-                            destinatario=honorario.processo.responsavel,
-                            mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
-                        )
+                # O service soma em `valor_recebido`: parte do valor anterior.
+                honorario_atualizado.valor_recebido = valor_recebido_antes
+                registrar_recebimento_honorario(
+                    honorario_atualizado,
+                    valor_efetivo=honorario_atualizado.valor_efetivo,
+                    valor=valor_recebido_agora,
+                    data=data_recebida_nova,
+                    comprovante=form.cleaned_data.get("anexo"),
+                    usuario=request.user,
+                )
                 registrar_atividade(
                     request.user, "honorario_recebido",
                     f"Confirmou recebimento do honorário ({honorario.get_tipo_display()})",
@@ -1137,6 +1184,17 @@ def confirmar_recebimento_honorario(request, pk):
         "aba_ativa": "honorarios",
         "item_ativo": "financeiro",
     })
+
+
+@login_required
+def documento_honorario(request, pk):
+    if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
+        raise PermissionDenied
+    _exige_nivel_dados(request.user)
+    honorario = get_object_or_404(_honorarios_no_escopo(), pk=pk)
+    if not honorario.documento:
+        raise Http404
+    return resposta_de_arquivo(request, honorario.documento)
 
 
 @login_required

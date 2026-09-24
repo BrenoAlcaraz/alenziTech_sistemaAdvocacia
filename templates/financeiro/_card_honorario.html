@@ -9,13 +9,16 @@
       </p>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      {% if h.status == "previsto" and h.valor_recebido > 0 %}
+      {# Situação sempre calculada (PDR-0035), nunca digitada #}
+      {% if h.situacao == "vencido" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-600">Vencido</span>
+      {% elif h.situacao == "parcial" %}
         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Parcialmente recebido</span>
-      {% elif h.status == "previsto" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">Aguardando recebimento</span>
-      {% elif h.status == "recebido" %}
+      {% elif h.situacao == "a_vencer" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">A vencer</span>
+      {% elif h.situacao == "recebido" %}
         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-700">Recebido</span>
-      {% else %}
+      {% elif h.situacao == "cancelado" %}
         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-500">Cancelado</span>
       {% endif %}
       <a href="{% url 'financeiro:editar_honorario' h.pk %}"
@@ -51,6 +54,7 @@
   {% if h.recebimento_por_lancamentos %}
     <p class="text-xs text-gray-500 mt-1">
       {% if h.classificacao == "parcelado" %}Parcelado em {{ h.numero_parcelas }}x{% else %}Recorrente {{ h.get_periodicidade_display|lower }}{% endif %}
+      &bull; {{ h.parcelas_recebidas }} de {{ h.parcelas_total }} recebida{{ h.parcelas_recebidas|pluralize }}
       &bull; recebimento pelos lançamentos gerados no Financeiro
     </p>
   {% endif %}
@@ -68,8 +72,10 @@
     {% endfor %}
   {% endif %}
   <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 mt-2">
-    {% if h.data_prevista %}<span>Previsto para {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
+    {% if h.data_prevista %}<span>{% if h.recebimento_por_lancamentos %}1º vencimento{% else %}Vencimento{% endif %} {{ h.data_prevista|date:"d/m/Y" }}</span>{% endif %}
     {% if h.data_recebida %}<span>Última confirmação em {{ h.data_recebida|date:"d/m/Y" }}</span>{% endif %}
+    {% if h.documento %}<a href="{% url 'financeiro:documento_honorario' h.pk %}" class="underline hover:text-gray-700">Ver documento de origem</a>{% endif %}
+    {% if h.sem_comprovante %}<span class="text-amber-700">{{ h.sem_comprovante }} recebimento{{ h.sem_comprovante|pluralize }} sem comprovante</span>{% endif %}
   </div>
 
   {% if h.status == "previsto" %}
