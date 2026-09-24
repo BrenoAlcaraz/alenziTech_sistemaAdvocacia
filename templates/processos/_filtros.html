@@ -1,9 +1,10 @@
 {% include "components/filtro_escopo.html" %}
+{% if ordem_atual %}<input type="hidden" name="ordem" value="{{ ordem_atual }}">{% endif %}
 
 <div class="barra-filtros-busca">
   <label for="busca" class="label">Buscar</label>
   <input type="text" id="busca" name="busca" value="{{ filtro_busca }}"
-         placeholder="Título ou número..." class="input">
+         placeholder="Número CNJ, cliente, parte ou título..." class="input">
 </div>
 
 <div class="barra-filtros-campo">

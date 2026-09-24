@@ -250,7 +250,7 @@ tela tem 24px. O menor texto é o Label (12px); nada de 10px/11px.
 Shell fixo em três partes: barra lateral à esquerda (212px expandida,
 60px recolhida, só ícones com nome no tooltip), cabeçalho branco de
 56px com borda inferior e área de conteúdo rolável sobre papel quente.
-O conteúdo ocupa até 1600px, com margem lateral de 16px (32px a partir
+O conteúdo ocupa até 1600px, centralizado, com margem lateral de 16px (32px a partir
 de 640px) e 24px no topo. Abaixo de 1024px a barra lateral começa
 recolhida, e a escolha do usuário fica lembrada no navegador.
 
@@ -358,6 +358,17 @@ campo (sem botão "Filtrar"; só o secundário de `<noscript>`). "Limpar
 filtros" aparece sempre que há filtro ativo. O escopo é o campo
 "Visualizar" (Somente os seus | Todos).
 
+### Listas em tabela
+As listas principais (Processos, Clientes, Financeiro) são uma tabela
+densa sobre uma única folha, não um card por linha: cabeçalho de 12px
+em caixa alta sobre cinza claro, linhas de 14px separadas por borda
+fina, colunas ordenáveis (seta ao lado do rótulo, `aria-sort`). A linha
+inteira leva ao detalhe; o hover só troca o fundo, sem sombra. Valor
+monetário alinhado à direita em algarismos tabulares. Busca em
+destaque na barra de filtros; paginação abaixo ("1–50 de 300",
+Anterior/Próxima). Em tela estreita ficam só as colunas essenciais.
+Cards continuam nos detalhes.
+
 ### Alternância de visão
 Ativos | Arquivados (Inativos, Cancelados) é um controle segmentado
 visível logo abaixo do título (`components/alternar_visao.html`),
@@ -379,7 +390,9 @@ nunca link no subtítulo. A visão atual tem `aria-current="page"`.
   tinta do escritório com recuo de 2px (`:focus-visible`); na barra
   lateral o anel é branco. "Pular para o conteúdo" é o primeiro
   elemento focável de toda tela autenticada.
-- **Cabeçalho:** Voltar só em telas secundárias. Badge de plano,
+- **Cabeçalho:** Voltar e trilha de contexto (Processos ›
+  0001234-56.2024…) só em telas secundárias; o último item é a tela
+  atual, em texto médio, cortado com reticências. Badge de plano,
   notificações e menu do usuário à direita.
 
 ### Estado vazio

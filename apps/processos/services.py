@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.accounts.codigo_interno import numero_do_codigo
 from apps.accounts.permissoes import tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_PROCESSOS
+from config.listagem import digitos_da_busca, somente_digitos
 
 from .models import (
     Processo,
@@ -148,11 +149,24 @@ def rotulo_processo(processo):
 
 def filtrar_processos_por_busca(processos, busca):
     """Termo no formato de código (P12) casa só o código exato; qualquer
-    outro termo busca por título ou número."""
+    outro termo busca por título, número CNJ (parcial, com ou sem
+    pontuação), cliente ou parte."""
     numero = numero_do_codigo(busca, "P")
     if numero is not None:
         return processos.filter(numero_interno=numero)
-    return processos.filter(Q(titulo__icontains=busca) | Q(numero__icontains=busca))
+    # Cliente/parte por subconsulta: o join M2M direto duplicaria linhas
+    # (e a contagem da paginação).
+    por_pessoa = Processo.objects.filter(
+        Q(clientes__nome_razao_social__icontains=busca)
+        | Q(clientes__nome_fantasia__icontains=busca)
+        | Q(partes__nome__icontains=busca)
+    ).values("pk")
+    condicao = Q(titulo__icontains=busca) | Q(numero__icontains=busca) | Q(pk__in=por_pessoa)
+    digitos = digitos_da_busca(busca)
+    if digitos:
+        processos = processos.alias(numero_digitos=somente_digitos("numero"))
+        condicao |= Q(numero_digitos__contains=digitos)
+    return processos.filter(condicao)
 
 
 def processos_do_cliente(cliente_id):

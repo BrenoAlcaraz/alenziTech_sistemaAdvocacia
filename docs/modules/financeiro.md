@@ -66,6 +66,11 @@ especificação não determina quantas tabelas existirão; modelagem física
   também independentes do mês: a pagar/a receber que vencem no período
   (de hoje ao fim do dia/semana/mês, `periodo=`) e a pagar/a receber
   atrasados.
+- Lista de lançamentos: linha de totais com receitas, despesas e saldo
+  de tudo o que o filtro atual mostra (todas as páginas), sem os
+  cancelados — cancelado não movimenta caixa. As ações de cada
+  lançamento (pagar, cancelar, reabrir, encerrar, anexos, excluir)
+  ficam no menu da linha; a linha leva à edição.
 - Recorte por período vindo do Painel (`periodo=dia|semana`): lista e
   cards de resumo calculados na janela (hoje, ou segunda a domingo
   corrente), com etiqueta do período no lugar do navegador de mês;

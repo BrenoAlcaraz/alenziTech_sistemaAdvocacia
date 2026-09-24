@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Max
 from django.http import Http404
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -32,6 +33,7 @@ from apps.atividade.services import registrar_atividade
 from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
 from apps.saas_tenants.storage import resposta_de_arquivo
+from config.listagem import ordenar, paginar
 from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -59,6 +61,17 @@ from .services import (
 User = get_user_model()
 
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
+
+# Colunas ordenáveis da lista (`?ordem=`); "criado" é a ordem padrão.
+_COLUNAS_LISTA = {
+    "criado": ("criado_em",),
+    "numero": ("numero",),
+    "area": ("area_direito",),
+    "responsavel": ("responsavel__first_name", "responsavel__last_name", "responsavel__username"),
+    "movimentacao": ("ultima_movimentacao",),
+    "prazo": ("prazo_proximo",),
+    "status": ("status",),
+}
 
 
 def _pode_atribuir_responsavel(user):
@@ -106,6 +119,10 @@ def _processos_no_escopo(request, escopo):
     return qs
 
 
+def _rotulo_trilha(processo):
+    return processo.numero or processo.codigo
+
+
 def _processos_mutaveis(request):
     qs = Processo.objects.all()
     if not usuario_admin_escritorio(request.user):
@@ -150,8 +167,14 @@ def lista(request):
     elif equipe_id:
         processos = processos.filter(equipe_id=equipe_id)
 
+    processos, ordem = ordenar(
+        processos.annotate(ultima_movimentacao=Max("movimentacoes__data")),
+        request, _COLUNAS_LISTA, padrao="-criado",
+    )
+
     return render(request, "processos/lista.html", {
-        "processos": processos,
+        "processos": paginar(request, processos),
+        "ordem_atual": ordem,
         "item_ativo": "processos",
         "aba_ativa": "processos",
         "pode_usar_laboratorio": pode_usar_laboratorio,
@@ -270,6 +293,7 @@ def detalhe(request, pk):
         .order_by("-criado_em")
     )
     return render(request, "processos/detalhe.html", {
+        "trilha": [("Processos", reverse("processos:lista")), (_rotulo_trilha(processo), None)],
         "processo": processo,
         "movimentacoes": movimentacoes,
         "prazos": prazos,
@@ -470,6 +494,7 @@ def novo(request):
             initial["clientes"] = [cliente_id]
         form = FormClass(initial=initial, **form_kwargs)
     return render(request, "processos/form.html", {
+        "trilha": [("Processos", reverse("processos:lista")), ("Novo processo", None)],
         "modo": "novo",
         "form": form,
         "item_ativo": "processos",
@@ -505,6 +530,11 @@ def editar(request, pk):
     else:
         form = FormClass(instance=processo, **form_kwargs)
     return render(request, "processos/form.html", {
+        "trilha": [
+            ("Processos", reverse("processos:lista")),
+            (_rotulo_trilha(processo), reverse("processos:detalhe", args=[processo.pk])),
+            ("Editar", None),
+        ],
         "modo": "editar",
         "form": form,
         "item_ativo": "processos",
@@ -520,6 +550,7 @@ def arquivados(request):
     escopo, escopo_maximo = _resolver_escopo(request)
     processos = _processos_no_escopo(request, escopo).filter(status="arquivado")
     return render(request, "processos/arquivados.html", {
+        "trilha": [("Processos", reverse("processos:lista")), ("Arquivados", None)],
         "processos": processos,
         "item_ativo": "processos",
         "escopo_atual": escopo,

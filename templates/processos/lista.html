@@ -43,31 +43,58 @@
 {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}{% url 'processos:lista' as limpar_url %}{% endif %}
 {% include "components/barra_filtros.html" with campos="processos/_filtros.html" limpar_query="escopo="|add:escopo_atual %}
 
-{# Lista de processos #}
-<div class="flex flex-col gap-3">
-  {% for p in processos %}
-    <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="card px-5 py-4 flex items-center gap-4 hover:shadow-md transition-shadow group">
-      <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
-      <div class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ p }}">{{ p }}</p>
-        <p class="text-xs text-gray-500 mt-0.5 truncate" title="{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}</p>
-      </div>
-      <div class="flex items-center gap-3 flex-shrink-0">
-        {% if p.prazo_urgente %}
-          {% include "components/badge.html" with tipo="urgente" texto=p.prazo_label %}
-        {% elif p.prazo_label != "sem prazo" %}
-          {% include "components/badge.html" with tipo="prazo" texto=p.prazo_label %}
-        {% else %}
-          <span class="text-xs text-gray-500">sem prazo</span>
-        {% endif %}
-        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-      </div>
-    </a>
-  {% empty %}
-    {% include "components/empty_state.html" with mensagem="Nenhum processo cadastrado." %}
-  {% endfor %}
+{# Lista de processos — tabela densa; a linha inteira leva ao detalhe #}
+{% if processos %}
+<div class="tabela-folha">
+  <table class="tabela">
+    <thead>
+      <tr>
+        {% include "components/th_ordenavel.html" with chave="numero" rotulo="Número" classe="w-2/5 md:w-auto" %}
+        <th scope="col" class="hidden md:table-cell">Cliente</th>
+        {% include "components/th_ordenavel.html" with chave="area" rotulo="Área" classe="hidden lg:table-cell w-32" %}
+        {% include "components/th_ordenavel.html" with chave="responsavel" rotulo="Responsável" classe="hidden xl:table-cell" %}
+        {% include "components/th_ordenavel.html" with chave="movimentacao" rotulo="Última movimentação" classe="hidden lg:table-cell w-44" %}
+        {% include "components/th_ordenavel.html" with chave="prazo" rotulo="Próximo prazo" classe="w-36" %}
+        {% include "components/th_ordenavel.html" with chave="status" rotulo="Status" classe="hidden sm:table-cell w-28" %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in processos %}
+        <tr class="tabela-linha">
+          <td>
+            <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="tabela-link block truncate" title="{{ p.numero|default:p.codigo }}">{{ p.numero|default:p.codigo }}</a>
+            <p class="text-xs text-gray-500 truncate" title="{{ p }}">{{ p }}</p>
+          </td>
+          <td class="hidden md:table-cell">
+            <p class="truncate" title="{{ p.clientes.all|join:", "|default:"—" }}">{{ p.clientes.all|join:", "|default:"—" }}</p>
+          </td>
+          <td class="hidden lg:table-cell"><span class="badge-area max-w-full truncate">{{ p.get_area_direito_display }}</span></td>
+          <td class="hidden xl:table-cell">
+            <p class="truncate" title="{{ p.responsavel.get_full_name|default:p.responsavel.username }}">{{ p.responsavel.get_full_name|default:p.responsavel.username }}</p>
+          </td>
+          <td class="hidden lg:table-cell text-gray-500">{{ p.ultima_movimentacao|date:"d/m/Y"|default:"—" }}</td>
+          <td>
+            {% if p.prazo_urgente %}
+              {% include "components/badge.html" with tipo="urgente" texto=p.prazo_label %}
+            {% elif p.prazo_label != "sem prazo" %}
+              {% include "components/badge.html" with tipo="prazo" texto=p.prazo_label %}
+            {% else %}
+              <span class="text-xs text-gray-500">sem prazo</span>
+            {% endif %}
+          </td>
+          <td class="hidden sm:table-cell"><span class="badge-status badge-status-{{ p.status }}">{{ p.get_status_display }}</span></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
+{% include "components/paginacao.html" with pagina=processos rotulo="processos" %}
+{% else %}
+  {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}
+    {% include "components/empty_state.html" with mensagem="Nenhum processo encontrado com esses filtros." %}
+  {% else %}
+    {% include "components/empty_state.html" with mensagem="Nenhum processo cadastrado." %}
+  {% endif %}
+{% endif %}
 {% endif %}
 {% endblock %}

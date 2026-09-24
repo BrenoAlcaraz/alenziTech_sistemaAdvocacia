@@ -417,6 +417,15 @@ def _soma(lancamentos):
     return lancamentos.aggregate(total=Sum("valor"))["total"] or Decimal("0")
 
 
+def totais_da_lista(lancamentos):
+    """Linha de totais da lista filtrada (todas as páginas): receitas,
+    despesas e saldo, sem os cancelados — cancelado não movimenta caixa."""
+    validos = lancamentos.exclude(status="cancelado")
+    receitas = _soma(validos.filter(tipo="receita"))
+    despesas = _soma(validos.filter(tipo="despesa"))
+    return {"receitas": receitas, "despesas": despesas, "saldo": receitas - despesas}
+
+
 PERIODOS = ("dia", "semana", "mes")
 
 

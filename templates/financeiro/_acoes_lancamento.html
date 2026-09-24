@@ -1,0 +1,84 @@
+{# ─── Menu de ações de um lançamento (linha da tabela em financeiro/index.html) ── #}
+{# Contexto: l (lançamento), is_admin, next_url. #}
+{% load moeda %}
+<details class="relative inline-block text-left" data-dropdown>
+  <summary class="list-none p-1.5 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 cursor-pointer"
+           aria-label="Ações do lançamento {{ l.descricao }}" title="Ações">
+    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/>
+    </svg>
+  </summary>
+  <div class="absolute right-0 mt-1 w-64 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 text-sm">
+    <a href="{% url 'financeiro:editar_lancamento' l.pk %}" class="menu-acao">Editar lançamento</a>
+
+    {% if l.status == "pendente" %}
+      {% if not l.honorario_id or is_admin %}
+      <form method="post" action="{% url 'financeiro:marcar_pago' l.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="menu-acao text-green-700">Marcar como pago</button>
+      </form>
+      {% else %}
+      <p class="px-4 py-2 text-xs text-gray-500">Recebimento de honorário: pelo Administrador</p>
+      {% endif %}
+      <button type="button" data-confirmar-url="{% url 'financeiro:cancelar_lancamento' l.pk %}?next={{ next_url|urlencode }}"
+              class="menu-acao">Cancelar</button>
+    {% elif l.status == "cancelado" or l.status == "pago" and not l.honorario_id or l.status == "pago" and is_admin and not l.eh_recebimento_de_honorario_unico %}
+      <form method="post" action="{% url 'financeiro:reabrir_lancamento' l.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="menu-acao text-amber-700">Reabrir</button>
+      </form>
+    {% endif %}
+    {% if l.classificacao != "unica" %}
+      <button type="button" data-confirmar-url="{% url 'financeiro:cancelar_recorrencia' l.pk %}?next={{ next_url|urlencode }}"
+              class="menu-acao">{% if l.classificacao == "parcelado" %}Encerrar parcelamento{% else %}Encerrar recorrência{% endif %}</button>
+    {% endif %}
+
+    <div class="border-t border-gray-100 my-1"></div>
+    {% if l.anexo %}
+      <div class="px-4 py-2 flex items-center gap-2 min-w-0">
+        <span class="truncate text-xs text-gray-600" title="{{ l.anexo.name }}">{{ l.anexo.name }}</span>
+        {% url 'financeiro:anexo_lancamento' l.pk as anexo_url %}
+        {% include "components/anexo_acoes.html" with arquivo_url=anexo_url %}
+      </div>
+    {% endif %}
+    <form method="post" action="{% url 'financeiro:anexar_lancamento' l.pk %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label class="menu-acao cursor-pointer">
+        {% if l.anexo %}Substituir boleto/documento{% else %}Anexar boleto/documento{% endif %}
+        <input type="file" name="anexo" class="hidden" onchange="this.form.submit()">
+      </label>
+    </form>
+    {% if l.status == "pago" %}
+      {% if l.comprovante_pagamento %}
+        <div class="px-4 py-2 flex items-center gap-2 min-w-0">
+          <span class="truncate text-xs text-gray-600" title="{{ l.comprovante_pagamento.name }}">Comprovante: {{ l.comprovante_pagamento.name }}</span>
+          {% url 'financeiro:comprovante_pagamento_lancamento' l.pk as comprovante_url %}
+          {% include "components/anexo_acoes.html" with arquivo_url=comprovante_url %}
+        </div>
+      {% endif %}
+      <form method="post" action="{% url 'financeiro:anexar_comprovante_lancamento' l.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <label class="menu-acao cursor-pointer">
+          {% if l.comprovante_pagamento %}Substituir comprovante{% else %}Anexar comprovante{% endif %}
+          <input type="file" name="comprovante_pagamento" class="hidden" onchange="this.form.submit()">
+        </label>
+      </form>
+    {% endif %}
+
+    {# Excluir: recebimento de honorário só pelo Administrador; o de valor único nunca (PDR-0035) #}
+    {% if not l.honorario_id or is_admin and not l.eh_recebimento_de_honorario_unico %}
+    <div class="border-t border-gray-100 my-1"></div>
+    <form method="post" action="{% url 'financeiro:excluir_lancamento' l.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <button type="submit"
+              data-confirmar="Excluir lançamento?" data-confirmar-registro="{{ l.descricao }} — vencimento {{ l.data_vencimento|date:'d/m/Y' }}, R$ {{ l.valor|moeda_br }}" data-confirmar-texto="Este lançamento financeiro será excluído permanentemente." data-confirmar-acao="Excluir lançamento"
+              class="menu-acao text-red-600">Excluir lançamento</button>
+    </form>
+    {% endif %}
+  </div>
+</details>

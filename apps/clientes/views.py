@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import Http404
 from apps.saas_tenants.storage import resposta_de_arquivo
 from django.shortcuts import render, get_object_or_404, redirect
@@ -8,7 +8,6 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from apps.accounts.codigo_interno import numero_do_codigo
 from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import tem_permissao_modulo, tem_habilitacao, nivel_acesso_modulo
 from apps.accounts.permissoes_constants import (
@@ -34,11 +33,20 @@ from apps.modelos.services import gerar_peca_procuracao
 from .models import Cliente, Documento
 from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
 from apps.processos.models import Processo
-from .services import clientes_relacionados, processos_em_comum
+from .services import clientes_relacionados, filtrar_clientes_por_busca, processos_em_comum
+from config.listagem import ordenar, paginar
 
 User = get_user_model()
 
 _ESCOPOS_VALIDOS = {NIVEL_SOMENTE_SEUS, NIVEL_TODOS}
+
+# Colunas ordenáveis da lista (`?ordem=`).
+_COLUNAS_LISTA = {
+    "nome": ("nome_razao_social",),
+    "documento": ("cpf_cnpj",),
+    "codigo": ("numero_interno",),
+    "processos": ("processos_ativos",),
+}
 
 
 def _nivel_maximo_leitura(user):
@@ -144,15 +152,16 @@ def lista(request):
     clientes = _clientes_no_escopo(request, escopo, ativo=True)
     busca = (request.GET.get("busca") or "").strip()
     if busca:
-        numero = numero_do_codigo(busca, "C")
-        if numero is not None:
-            clientes = clientes.filter(numero_interno=numero)
-        else:
-            clientes = clientes.filter(
-                Q(nome_razao_social__icontains=busca) | Q(cpf_cnpj__icontains=busca)
-            )
+        clientes = filtrar_clientes_por_busca(clientes, busca)
+    clientes, ordem = ordenar(
+        clientes.annotate(processos_ativos=Count(
+            "processos", filter=~Q(processos__status="arquivado"), distinct=True,
+        )),
+        request, _COLUNAS_LISTA, padrao="nome",
+    )
     return render(request, "clientes/lista.html", {
-        "clientes": clientes,
+        "clientes": paginar(request, clientes),
+        "ordem_atual": ordem,
         "item_ativo": "clientes",
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
@@ -189,6 +198,7 @@ def detalhe(request, pk):
         if pode_ver_processos else {}
     )
     return render(request, "clientes/detalhe.html", {
+        "trilha": [("Clientes", reverse("clientes:lista")), (cliente.nome_razao_social, None)],
         "cliente": cliente,
         "processos": processos,
         "clientes_relacionados": [
@@ -256,6 +266,7 @@ def novo(request):
         form = FormClass(initial=initial, **form_kwargs)
 
     return render(request, "clientes/form.html", {
+        "trilha": [("Clientes", reverse("clientes:lista")), ("Novo cliente", None)],
         "modo": "novo",
         "form": form,
         "item_ativo": "clientes",
@@ -296,6 +307,11 @@ def editar(request, pk):
         form = FormClass(instance=cliente, **form_kwargs)
 
     return render(request, "clientes/form.html", {
+        "trilha": [
+            ("Clientes", reverse("clientes:lista")),
+            (cliente.nome_razao_social, reverse("clientes:detalhe", args=[cliente.pk])),
+            ("Editar", None),
+        ],
         "modo": "editar",
         "form": form,
         "item_ativo": "clientes",
@@ -354,6 +370,7 @@ def inativos(request):
     escopo, escopo_maximo = _resolver_escopo(request)
     clientes = _clientes_no_escopo(request, escopo, ativo=False)
     return render(request, "clientes/inativos.html", {
+        "trilha": [("Clientes", reverse("clientes:lista")), ("Inativos", None)],
         "clientes": clientes,
         "item_ativo": "clientes",
         "escopo_atual": escopo,

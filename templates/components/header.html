@@ -1,4 +1,4 @@
-{# ─── Header superior — Voltar, plano, notificações e menu do usuário ─────── #}
+{# ─── Header superior — Voltar e trilha, plano, notificações e menu do usuário ─────── #}
 <header class="flex items-center justify-between gap-4 h-14 px-4 sm:px-8 border-b border-gray-100 bg-white flex-shrink-0">
 
   <div class="flex items-center min-w-0 text-sm text-gray-500">
@@ -13,6 +13,23 @@
       </svg>
       Voltar
     </button>
+    {% endif %}
+    {# Trilha de contexto: montada pela view (`trilha` = [(rótulo, url), …]; o último item é a tela atual, sem url). #}
+    {% if trilha %}
+    <nav aria-label="Trilha" class="min-w-0 ml-2">
+      <ol class="trilha">
+        {% for rotulo, url in trilha %}
+          <li class="{% if forloop.last %}min-w-0 flex{% else %}flex items-center gap-1.5 flex-shrink-0{% endif %}">
+            {% if url and not forloop.last %}
+              <a href="{{ url }}">{{ rotulo }}</a>
+              <span aria-hidden="true" class="text-gray-300">›</span>
+            {% else %}
+              <span aria-current="page" title="{{ rotulo }}">{{ rotulo }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
     {% endif %}
   </div>
 

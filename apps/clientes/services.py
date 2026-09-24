@@ -1,11 +1,29 @@
 from collections import defaultdict
 
+from django.db.models import Q
+
+from apps.accounts.codigo_interno import numero_do_codigo
 from apps.processos.models import ParteProcesso, Processo
 from apps.processos.services import normalizar_documento
+from config.listagem import digitos_da_busca, somente_digitos
 
 from .models import Cliente
 
 LIMITE_PROCESSOS_EM_COMUM = 3
+
+
+def filtrar_clientes_por_busca(clientes, busca):
+    """Termo no formato de código (C12) casa só o código exato; qualquer
+    outro termo busca por nome ou CPF/CNPJ (com ou sem pontuação)."""
+    numero = numero_do_codigo(busca, "C")
+    if numero is not None:
+        return clientes.filter(numero_interno=numero)
+    condicao = Q(nome_razao_social__icontains=busca) | Q(cpf_cnpj__icontains=busca)
+    digitos = digitos_da_busca(busca)
+    if digitos:
+        clientes = clientes.alias(cpf_cnpj_digitos=somente_digitos("cpf_cnpj"))
+        condicao |= Q(cpf_cnpj_digitos__contains=digitos)
+    return clientes.filter(condicao)
 
 
 def _processos_por_documento_no_mesmo_polo(cliente):

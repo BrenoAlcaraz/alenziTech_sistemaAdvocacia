@@ -229,6 +229,96 @@
   .visao-alternar-item[aria-current="page"] {
     @apply bg-white text-gray-900 shadow-sm;
   }
+
+  /* ── Listas em tabela (Processos, Clientes, Financeiro) ────────
+     A folha é o card; a linha só muda o fundo no hover (sem sombra —
+     Regra da Folha sobre a Mesa). Linha inteira é o link `.tabela-link`
+     esticado sobre ela; o que é clicável por si (`.tabela-acoes`) fica
+     acima do link. Coluna não essencial some por breakpoint
+     (`hidden md:table-cell`) — a página não rola na horizontal. */
+  /* Sem overflow-hidden: o menu de ações da linha precisa sair da folha. */
+  .tabela-folha {
+    @apply card;
+  }
+
+  .tabela thead th:first-child {
+    @apply rounded-tl-xl;
+  }
+
+  .tabela thead th:last-child {
+    @apply rounded-tr-xl;
+  }
+
+  .tabela {
+    @apply w-full table-fixed text-sm;
+  }
+
+  .tabela th {
+    @apply px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-100;
+  }
+
+  .tabela td {
+    @apply px-4 py-2.5 text-gray-700 border-b border-gray-100 align-middle;
+  }
+
+  .tabela tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .tabela tfoot td {
+    @apply font-semibold text-gray-900 bg-gray-50 border-t border-gray-200 border-b-0;
+  }
+
+  .tabela-linha {
+    @apply relative hover:bg-gray-50 transition-colors;
+  }
+
+  /* Foco do link vira anel na linha inteira (o link cobre a linha). */
+  .tabela-linha:has(.tabela-link:focus-visible) {
+    @apply bg-gray-50 outline outline-2 -outline-offset-2 outline-primaria;
+  }
+
+  .tabela-link {
+    @apply font-medium text-gray-900 after:absolute after:inset-0 after:content-[''] focus-visible:ring-0 focus-visible:ring-offset-0;
+  }
+
+  .tabela-acoes {
+    @apply relative z-10;
+  }
+
+  /* Menu aberto acima das ações das linhas seguintes. */
+  .tabela-acoes:has(details[open]) {
+    @apply z-30;
+  }
+
+  .menu-acao {
+    @apply block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50;
+  }
+
+  .tabela-ordenar {
+    @apply inline-flex items-center gap-1 hover:text-gray-900;
+  }
+
+  .tabela-ordenar-seta {
+    @apply text-gray-400;
+  }
+
+  .paginacao {
+    @apply flex flex-wrap items-center justify-between gap-3 mt-4;
+  }
+
+  /* ── Trilha de contexto no cabeçalho ─────────────────────────── */
+  .trilha {
+    @apply flex items-center gap-1.5 min-w-0 text-sm text-gray-500;
+  }
+
+  .trilha a {
+    @apply flex-shrink-0 hover:text-gray-900 hover:underline;
+  }
+
+  .trilha [aria-current="page"] {
+    @apply truncate font-medium text-gray-900;
+  }
 }
 
 /* ── Cor por tipo de compromisso (Agenda) ─────────────────────

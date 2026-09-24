@@ -1,0 +1,25 @@
+{# ─── Paginação das listas em tabela ──────────────────────────────────────── #}
+{# Uso: {% include "components/paginacao.html" with pagina=pagina rotulo="processos" %} #}
+{# Troca só `pagina` no URL — filtros e ordenação seguem junto. #}
+{% if pagina.paginator.count %}
+<nav class="paginacao" aria-label="Paginação">
+  <p class="text-sm text-gray-500">
+    {{ pagina.start_index }}–{{ pagina.end_index }} de {{ pagina.paginator.count }} {{ rotulo }}
+  </p>
+  {% if pagina.has_other_pages %}
+  <div class="flex items-center gap-2">
+    {% if pagina.has_previous %}
+      <a href="{% querystring pagina=pagina.previous_page_number %}" class="btn-secondary" rel="prev">Anterior</a>
+    {% else %}
+      <span class="btn-secondary opacity-50 pointer-events-none" aria-disabled="true">Anterior</span>
+    {% endif %}
+    <span class="text-sm text-gray-600">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}
+      <a href="{% querystring pagina=pagina.next_page_number %}" class="btn-secondary" rel="next">Próxima</a>
+    {% else %}
+      <span class="btn-secondary opacity-50 pointer-events-none" aria-disabled="true">Próxima</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</nav>
+{% endif %}

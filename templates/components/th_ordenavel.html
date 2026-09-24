@@ -1,0 +1,11 @@
+{# ─── Cabeçalho de coluna ordenável (listas em tabela) ────────────────────── #}
+{# Uso: {% include "components/th_ordenavel.html" with chave="numero" rotulo="Número" classe="hidden md:table-cell" %} #}
+{# Lê `ordem_atual` do contexto; o link troca só `ordem` e volta à primeira página, mantendo os filtros. #}
+{% with desc="-"|add:chave %}
+<th scope="col" class="{{ classe }}"{% if ordem_atual == chave %} aria-sort="ascending"{% elif ordem_atual == desc %} aria-sort="descending"{% endif %}>
+  <a href="{% if ordem_atual == chave %}{% querystring ordem=desc pagina=None %}{% else %}{% querystring ordem=chave pagina=None %}{% endif %}" class="tabela-ordenar{% if alinhar_direita %} justify-end{% endif %}">
+    {{ rotulo }}
+    <span aria-hidden="true" class="tabela-ordenar-seta">{% if ordem_atual == chave %}↑{% elif ordem_atual == desc %}↓{% else %}↕{% endif %}</span>
+  </a>
+</th>
+{% endwith %}

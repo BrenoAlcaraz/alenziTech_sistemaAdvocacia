@@ -126,7 +126,17 @@ Laboratório Jurídico não tem item próprio: é uma aba da tela de
 Processos, visível só a quem tem `processos_usar_laboratorio`. Abre expandida (ícone + nome) e pode ser recolhida
 (só ícones, nome no tooltip); em tela estreita começa recolhida, e a
 escolha do usuário é lembrada no navegador. Configurações e Sair ficam
-no menu do usuário, no cabeçalho.
+no menu do usuário, no cabeçalho. Telas secundárias mostram no
+cabeçalho a trilha de onde o usuário está (ex.: Processos › nº do
+processo), com link para a lista.
+
+Listas principais (Processos, Clientes, lançamentos do Financeiro):
+tabela com colunas ordenáveis e 50 registros por página; filtros,
+ordem e página ficam no endereço (dá para voltar ou compartilhar a
+mesma visão). Busca: Processos por nº CNJ (parcial, com ou sem
+pontuação), título, cliente, parte ou código; Clientes por nome,
+CPF/CNPJ (com ou sem pontuação) ou código. Na lista de Clientes,
+"processos ativos" conta os processos não arquivados do cliente.
 
 ### Códigos internos (Processo, Cliente, Usuário)
 

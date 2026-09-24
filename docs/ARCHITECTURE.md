@@ -513,9 +513,36 @@ inalterado e um caminho `websocket` próprio (rotas em
 - "Voltar" decidido no servidor: `config/context_processors.py`
   expõe `pagina_raiz` a partir do nome da rota (`PAGINAS_RAIZ`). Novo
   módulo na sidebar entra também nesse conjunto.
+- Trilha de contexto no cabeçalho: a view da tela secundária passa
+  `trilha = [(rótulo, url), …]` (último item = tela atual, url `None`);
+  sem `trilha`, o cabeçalho não mostra nada.
 - Dropdown de cabeçalho é `<details data-dropdown>` (fecha ao clicar
   fora/Esc em `main.js`). O atributo `hidden` sempre vence classes de
   display (regra base em `input.css`).
+
+## Listas em tabela — padrão a reutilizar
+
+Processos, Clientes e lançamentos do Financeiro:
+
+- View: filtra o `QuerySet` já escopado, depois
+  `config/listagem.py::ordenar(qs, request, colunas, padrao)` (chaves
+  públicas de `?ordem=`, `-chave` decrescente, chave desconhecida cai no
+  padrão) e `paginar(request, qs)` (`?pagina=`, 50 por página). O
+  contexto recebe a `Page` com o mesmo nome da lista de antes e
+  `ordem_atual`. Como o QuerySet chega escopado, contagem e páginas
+  nunca revelam registro fora do escopo.
+- Busca por documento/nº CNJ sem pontuação: `somente_digitos(campo)`
+  (`regexp_replace` no banco). Busca que atravessa M2M usa subconsulta
+  `pk__in`, nunca join direto — duplicaria linhas e a contagem.
+- Template: `.tabela-folha` > `table.tabela`;
+  `components/th_ordenavel.html` e `components/paginacao.html` trocam
+  só `ordem`/`pagina` com o `{% querystring %}` do Django, mantendo os
+  filtros. O `_filtros.html` da lista repassa `ordem` em hidden.
+- Linha inteira é link: `tr.tabela-linha` + `a.tabela-link` (link
+  esticado por `::after`); o que for clicável por si fica em
+  `td.tabela-acoes` (acima do link; menu `<details data-dropdown>`).
+- Tela estreita: coluna não essencial some por breakpoint
+  (`hidden md:table-cell`); a página não rola na horizontal.
 
 ## Confirmação, envio e mensagens — padrão a reutilizar
 

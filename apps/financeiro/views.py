@@ -31,6 +31,7 @@ from apps.notificacoes.models import Notificacao
 from apps.processos.models import Processo
 from apps.processos.services import processos_do_cliente, rotulo_processo
 from apps.saas_tenants.storage import resposta_de_arquivo
+from config.listagem import ordenar, paginar
 
 from .forms import (
     ConfirmarRecebimentoHonorarioForm,
@@ -68,6 +69,7 @@ from .services import (
     saldo_liquido_custas,
     saldo_previsto,
     situacao_do_honorario,
+    totais_da_lista,
     uso_do_credito_por_custa,
     PERIODOS,
     janela_do_periodo,
@@ -223,6 +225,15 @@ def _lancamentos_no_escopo(user):
     return qs
 
 
+# Colunas ordenáveis da lista de lançamentos (`?ordem=`).
+_COLUNAS_LANCAMENTOS = {
+    "vencimento": ("data_vencimento",),
+    "descricao": ("descricao",),
+    "valor": ("valor",),
+    "situacao": ("status",),
+}
+
+
 @login_required
 def index(request):
     if not tem_permissao_modulo(request.user, MODULO_FINANCEIRO):
@@ -302,9 +313,15 @@ def index(request):
     ano_anterior, mes_anterior = _mes_adjacente(ano, mes, -1)
     ano_seguinte, mes_seguinte = _mes_adjacente(ano, mes, 1)
 
+    lancamentos, ordem = ordenar(lancamentos, request, _COLUNAS_LANCAMENTOS, padrao="vencimento")
+    totais_lista = totais_da_lista(lancamentos)
+
     return render(request, "financeiro/index.html", {
         "resumo": resumo,
-        "lancamentos": lancamentos,
+        "lancamentos": paginar(request, lancamentos),
+        "totais_lista": totais_lista,
+        "saldo_lista": _formatar_saldo(totais_lista["saldo"]),
+        "ordem_atual": ordem,
         "filtro": filtro,
         "filtro_painel": FILTROS_PAINEL.get(filtro, "").format(**ROTULOS_PERIODO[periodo or "dia"]),
         "periodo": periodo,
@@ -660,6 +677,7 @@ def form_lancamento(request):
         form = LancamentoFinanceiroForm(initial={"responsavel": request.user})
 
     return render(request, "financeiro/form_lancamento.html", {
+        "trilha": [("Financeiro", reverse("financeiro:index")), ("Novo lançamento", None)],
         "form": form,
         "modo": "novo",
         "aba_ativa": "lancamentos",
@@ -698,6 +716,7 @@ def editar_lancamento(request, pk):
         form = LancamentoFinanceiroForm(instance=lancamento, pode_receber_honorario=pode_receber_honorario)
 
     return render(request, "financeiro/form_lancamento.html", {
+        "trilha": [("Financeiro", reverse("financeiro:index")), (lancamento.descricao, None)],
         "form": form,
         "modo": "editar",
         "lancamento": lancamento,
