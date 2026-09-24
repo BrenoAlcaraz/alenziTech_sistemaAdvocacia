@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'configuracoes:index' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'configuracoes:index' %}" class="text-gray-500 hover:text-gray-700" aria-label="Voltar para Configurações">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -32,7 +32,7 @@
       {% endif %}
       {{ form.logo }}
       {% if form.logo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.logo.errors.0 }}</p>{% endif %}
-      <p class="text-xs text-gray-400 mt-1">PNG, JPG ou SVG rasterizado, até 2 MB. As cores predominantes do logo passam a ser as cores do sistema.</p>
+      <p class="text-xs text-gray-500 mt-1">PNG, JPG ou SVG rasterizado, até 2 MB. As cores predominantes do logo passam a ser as cores do sistema.</p>
       <label class="flex items-center gap-2 text-sm text-gray-600 mt-2">
         {{ form.manter_cores }} Manter as cores atuais ao trocar o logo
       </label>
@@ -43,16 +43,35 @@
       <div class="flex items-center gap-6">
         <div class="flex items-center gap-2">
           {{ form.cor_primaria }}
-          <span class="text-sm text-gray-600">Principal (barra lateral e botões)</span>
+          <label for="{{ form.cor_primaria.id_for_label }}" class="text-sm text-gray-600">Principal (barra lateral e botões)</label>
         </div>
         <div class="flex items-center gap-2">
           {{ form.cor_secundaria }}
-          <span class="text-sm text-gray-600">Destaque</span>
+          <label for="{{ form.cor_secundaria.id_for_label }}" class="text-sm text-gray-600">Destaque</label>
         </div>
       </div>
+      {% with principal=config_visual.cor_primaria|lower destaque=config_visual.cor_secundaria|lower %}
+      {% if principal and principal != tema.primaria_hex or destaque and destaque != tema.secundaria_hex %}
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 text-sm text-gray-600" data-cores-aplicadas>
+          <span>Aplicadas para manter a leitura:</span>
+          {% if principal and principal != tema.primaria_hex %}
+            <span class="inline-flex items-center gap-2">
+              <span class="w-5 h-5 rounded border border-gray-200" style="background: {{ tema.primaria_hex }}"></span>
+              Principal {{ tema.primaria_hex }}
+            </span>
+          {% endif %}
+          {% if destaque and destaque != tema.secundaria_hex %}
+            <span class="inline-flex items-center gap-2">
+              <span class="w-5 h-5 rounded border border-gray-200" style="background: {{ tema.secundaria_hex }}"></span>
+              Destaque {{ tema.secundaria_hex }}
+            </span>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% endwith %}
       {% if form.cor_primaria.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.cor_primaria.errors.0 }}</p>{% endif %}
       {% if form.cor_secundaria.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ form.cor_secundaria.errors.0 }}</p>{% endif %}
-      <p class="text-xs text-gray-400 mt-1">Ao enviar um logo novo, as cores dele substituem estas. A cor principal é escurecida se for clara demais para leitura.</p>
+      <p class="text-xs text-gray-500 mt-1">Ao enviar um logo novo, as cores dele substituem estas. Cores claras demais são escurecidas para que o texto continue legível.</p>
     </div>
 
     <div class="flex items-center gap-3">

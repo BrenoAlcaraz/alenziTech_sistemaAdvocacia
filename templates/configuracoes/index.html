@@ -17,7 +17,7 @@
           {% if perfil_usuario and perfil_usuario.nome_completo %}{{ perfil_usuario.nome_completo }}
           {% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}
         </p>
-        <p class="text-sm text-gray-400">{% if request.user.perfil.codigo %}{{ request.user.perfil.codigo }} · {% endif %}{{ request.user.username }}</p>
+        <p class="text-sm text-gray-500">{% if request.user.perfil.codigo %}{{ request.user.perfil.codigo }} · {% endif %}{{ request.user.username }}</p>
       </div>
     </div>
     <a href="{% url 'configuracoes:editar_perfil' %}" class="btn-secondary text-sm flex-shrink-0">
@@ -35,7 +35,7 @@
       </div>
       <div>
         <p class="text-sm font-medium text-gray-900">Senha de acesso</p>
-        <p class="text-xs text-gray-400">Exige confirmar a senha atual</p>
+        <p class="text-xs text-gray-500">Exige confirmar a senha atual</p>
       </div>
     </div>
     <a href="{% url 'configuracoes:alterar_senha' %}" class="btn-secondary text-sm">Alterar senha</a>
@@ -51,7 +51,7 @@
       </div>
       <div>
         <p class="text-sm font-medium text-gray-900">Minha atividade</p>
-        <p class="text-xs text-gray-400">Histórico das suas ações de hoje</p>
+        <p class="text-xs text-gray-500">Histórico das suas ações de hoje</p>
       </div>
     </div>
     <a href="{% url 'dashboard:minha_atividade' %}" class="btn-secondary text-sm">Ver histórico</a>
@@ -67,7 +67,7 @@
       </div>
       <div>
         <p class="text-sm font-medium text-gray-900">Sair do sistema</p>
-        <p class="text-xs text-gray-400">Encerra sua sessão neste dispositivo</p>
+        <p class="text-xs text-gray-500">Encerra sua sessão neste dispositivo</p>
       </div>
     </div>
     <a href="{% url 'accounts:logout' %}" class="btn-danger text-sm">Sair</a>
@@ -79,7 +79,7 @@
 <div class="card p-5">
   <div class="flex items-center justify-between mb-4">
     <div>
-      <p class="text-xs text-gray-400 mb-0.5">{{ plano_nome }}</p>
+      <p class="text-xs text-gray-500 mb-0.5">{{ plano_nome }}</p>
       <p class="font-bold text-gray-900">{{ usuarios_ativos }} de {{ limite_usuarios }} usuários ativos</p>
     </div>
     {% if pode_criar_usuario %}
@@ -108,17 +108,17 @@
           <p class="text-sm font-medium text-gray-900">
             {% if u.perfil and u.perfil.nome_completo %}{{ u.perfil.nome_completo }}
             {% else %}{{ u.get_full_name|default:u.username }}{% endif %}
-            {% if u == request.user %}<span class="text-gray-400 font-normal">(você)</span>{% endif %}
+            {% if u == request.user %}<span class="text-gray-500 font-normal">(você)</span>{% endif %}
           </p>
-          <p class="text-xs text-gray-400">{% if u.perfil.codigo %}{{ u.perfil.codigo }} · {% endif %}@{{ u.username }}</p>
+          <p class="text-xs text-gray-500">{% if u.perfil.codigo %}{{ u.perfil.codigo }} · {% endif %}@{{ u.username }}</p>
           <p class="text-xs text-gray-500 mt-0.5">
             Papel: <span class="font-medium">{{ item.papel_nome }}</span>
           </p>
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-gray-500">
             Cargo:
             {% if u.perfil and u.perfil.cargo %}{{ u.perfil.cargo }}{% else %}Não informado{% endif %}
           </p>
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-gray-500">
             Equipes:
             {% if item.membros_equipe %}
               {% for membro in item.membros_equipe %}
@@ -156,13 +156,13 @@
 {% if pode_gerenciar_equipes or pode_gerenciar_permissoes %}
 {# Card de ações administrativas — cada item visível conforme a habilitação do usuário #}
 <div class="card p-5 mt-4">
-  <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Administração</h2>
+  <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Administração</h2>
 
   {% if pode_gerenciar_equipes %}
   <div class="flex items-center justify-between py-2">
     <div>
       <p class="text-sm font-medium text-gray-700">Equipes</p>
-      <p class="text-xs text-gray-400 mt-0.5">Organize a estrutura interna do escritório</p>
+      <p class="text-xs text-gray-500 mt-0.5">Organize a estrutura interna do escritório</p>
     </div>
     <a href="{% url 'configuracoes:equipes' %}" class="btn-secondary text-sm flex-shrink-0">
       Gerenciar
@@ -174,7 +174,7 @@
   <div class="flex items-center justify-between py-2{% if pode_gerenciar_equipes %} border-t border-gray-100{% endif %}">
     <div>
       <p class="text-sm font-medium text-gray-700">Papéis de acesso</p>
-      <p class="text-xs text-gray-400 mt-0.5">Criar papéis dinâmicos e atribuí-los a usuários</p>
+      <p class="text-xs text-gray-500 mt-0.5">Criar papéis dinâmicos e atribuí-los a usuários</p>
     </div>
     <a href="{% url 'configuracoes:papeis' %}" class="btn-secondary text-sm flex-shrink-0">
       Gerenciar
@@ -184,7 +184,7 @@
   <div class="flex items-center justify-between py-2 border-t border-gray-100">
     <div>
       <p class="text-sm font-medium text-gray-700">Permissões</p>
-      <p class="text-xs text-gray-400 mt-0.5">Definir o que cada papel de acesso pode visualizar e acessar</p>
+      <p class="text-xs text-gray-500 mt-0.5">Definir o que cada papel de acesso pode visualizar e acessar</p>
     </div>
     <a href="{% url 'configuracoes:permissoes' %}" class="btn-secondary text-sm flex-shrink-0">
       Gerenciar
@@ -211,37 +211,37 @@
     <dl class="flex flex-col gap-2">
       {% if configuracao_escritorio.nome_escritorio %}
         <div class="flex gap-2">
-          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Nome</dt>
+          <dt class="text-xs text-gray-500 w-28 flex-shrink-0">Nome</dt>
           <dd class="text-sm text-gray-700">{{ configuracao_escritorio.nome_escritorio }}</dd>
         </div>
       {% endif %}
       {% if configuracao_escritorio.nome_fantasia %}
         <div class="flex gap-2">
-          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Nome fantasia</dt>
+          <dt class="text-xs text-gray-500 w-28 flex-shrink-0">Nome fantasia</dt>
           <dd class="text-sm text-gray-700">{{ configuracao_escritorio.nome_fantasia }}</dd>
         </div>
       {% endif %}
       {% if configuracao_escritorio.email %}
         <div class="flex gap-2">
-          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">E-mail</dt>
+          <dt class="text-xs text-gray-500 w-28 flex-shrink-0">E-mail</dt>
           <dd class="text-sm text-gray-700">{{ configuracao_escritorio.email }}</dd>
         </div>
       {% endif %}
       {% if configuracao_escritorio.telefone %}
         <div class="flex gap-2">
-          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Telefone</dt>
+          <dt class="text-xs text-gray-500 w-28 flex-shrink-0">Telefone</dt>
           <dd class="text-sm text-gray-700">{{ configuracao_escritorio.telefone }}</dd>
         </div>
       {% endif %}
       {% if configuracao_escritorio.site %}
         <div class="flex gap-2">
-          <dt class="text-xs text-gray-400 w-28 flex-shrink-0">Site</dt>
+          <dt class="text-xs text-gray-500 w-28 flex-shrink-0">Site</dt>
           <dd class="text-sm text-gray-700">{{ configuracao_escritorio.site }}</dd>
         </div>
       {% endif %}
     </dl>
   {% else %}
-    <p class="text-sm text-gray-400">Dados do escritório ainda não preenchidos.</p>
+    <p class="text-sm text-gray-500">Dados do escritório ainda não preenchidos.</p>
   {% endif %}
 </div>
 {% endif %}

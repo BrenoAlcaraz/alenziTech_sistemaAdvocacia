@@ -1,10 +1,11 @@
 {# ─── Cores do estado de uma SolicitacaoFinanceira (fonte única) ───────────── #}
 {# Etiqueta: {% include "components/estado_solicitacao.html" with solicitacao=s %} #}
 {# Faixa lateral (dentro de um card "relative overflow-hidden"): {% include "components/estado_solicitacao.html" with solicitacao=s parte="faixa" %} #}
+{# A faixa só reforça a cor: o card que a usa também mostra a etiqueta com o texto do estado. #}
 {# Regra de "Vencida" vive em SolicitacaoFinanceira.vencida (docs/modules/financeiro.md). #}
 
 {% if parte == "faixa" %}
-  <span class="absolute inset-y-0 left-0 w-1
+  <span aria-hidden="true" class="absolute inset-y-0 left-0 w-1
     {% if solicitacao.status == 'solicitada' or solicitacao.status == 'em_analise' %}bg-amber-400
     {% elif solicitacao.status == 'aprovada' %}bg-blue-400
     {% elif solicitacao.status == 'rejeitada' %}bg-red-400

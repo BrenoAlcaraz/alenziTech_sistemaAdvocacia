@@ -11,7 +11,7 @@
       {% include "components/badge.html" with tipo="area" texto=modelo.categoria.nome %}
       {% include "components/badge.html" with tipo="area" texto=modelo.area_direito_label|default:modelo.area_direito %}
     </div>
-    <p class="text-xs text-gray-400 mt-1">
+    <p class="text-xs text-gray-500 mt-1">
       {% if modelo.criado_por %}
         {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name }}{% else %}{{ modelo.criado_por.username }}{% endif %}
       {% else %}
@@ -19,7 +19,7 @@
       {% endif %}
       &bull; {{ modelo.criado_em|date:"d/m/Y" }}
     </p>
-    <p class="text-xs text-gray-400 mt-1">{{ modelo.conteudo|truncatechars:160 }}</p>
+    <p class="text-xs text-gray-500 mt-1">{{ modelo.conteudo|truncatechars:160 }}</p>
   </a>
   <div class="flex items-center gap-2 flex-shrink-0">
     <a href="{% url 'modelos:detalhe' modelo.pk %}" title="Visualizar"

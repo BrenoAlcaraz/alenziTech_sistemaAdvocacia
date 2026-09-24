@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'modelos:lista' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'modelos:lista' %}" class="text-gray-500 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -34,7 +34,7 @@
         <label class="label" for="{{ form.arquivo.id_for_label }}">{{ form.arquivo.label }}</label>
         {{ form.arquivo }}
         {% if form.arquivo.help_text %}
-          <p class="text-xs text-gray-400 mt-1">{{ form.arquivo.help_text }}</p>
+          <p class="text-xs text-gray-500 mt-1">{{ form.arquivo.help_text }}</p>
         {% endif %}
         {% if form.arquivo.errors %}
           <p class="erro-campo text-xs text-red-600 mt-1">{{ form.arquivo.errors|join:", " }}</p>
@@ -44,7 +44,7 @@
       <div>
         <label class="label" for="{{ form.titulo.id_for_label }}">{{ form.titulo.label }}</label>
         {{ form.titulo }}
-        <p class="text-xs text-gray-400 mt-1">Deixe em branco para usar o nome do arquivo.</p>
+        <p class="text-xs text-gray-500 mt-1">Deixe em branco para usar o nome do arquivo.</p>
         {% if form.titulo.errors %}
           <p class="erro-campo text-xs text-red-600 mt-1">{{ form.titulo.errors|join:", " }}</p>
         {% endif %}

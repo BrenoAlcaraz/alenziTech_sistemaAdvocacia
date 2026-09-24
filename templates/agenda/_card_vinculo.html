@@ -1,13 +1,13 @@
 {# Card "Agenda do processo/cliente" — `agenda` vem de apps.agenda.services.agenda_do_vinculo; `vinculo` é "processo" ou "cliente", `vinculo_pk` o pk. #}
 <div class="card p-5 {{ classe_extra|default:'' }}">
   <div class="flex items-center justify-between mb-3">
-    <h2 class="text-sm font-semibold text-gray-700">{{ titulo }} <span class="text-gray-400">({{ agenda.total }})</span></h2>
+    <h2 class="text-sm font-semibold text-gray-700">{{ titulo }} <span class="text-gray-500">({{ agenda.total }})</span></h2>
     <div class="flex items-center gap-3">
       <details class="relative">
         <summary class="text-xs text-juridico-verde hover:underline cursor-pointer list-none">+ Novo</summary>
         <div class="absolute right-0 z-20 mt-2 w-48 card p-2 shadow-lg">
           {% for natureza, tipos in agenda.tipos_por_natureza %}
-            <p class="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">{{ natureza }}</p>
+            <p class="px-3 pt-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-gray-500">{{ natureza }}</p>
             {% for valor, rotulo in tipos %}
               <a href="{% url 'agenda:novo' %}?tipo={{ valor }}&{{ vinculo }}={{ vinculo_pk }}"
                  class="block px-3 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50">{{ rotulo }}</a>
@@ -25,7 +25,7 @@
          class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
         <div class="min-w-0">
           <p class="text-sm text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
-          <p class="text-xs text-gray-400">
+          <p class="text-xs text-gray-500">
             {{ item.get_tipo_display }}
             {% if item.eh_evento %}· {{ item.data_hora_inicio|date:"d/m/Y H:i" }}
             {% elif item.data_fatal %}· fatal {{ item.data_fatal|date:"d/m/Y" }}
@@ -35,7 +35,7 @@
         <span class="badge-area flex-shrink-0">{{ item.get_status_display }}</span>
       </a>
     {% empty %}
-      <p class="text-xs text-gray-400">{{ vazio }}</p>
+      <p class="text-xs text-gray-500">{{ vazio }}</p>
     {% endfor %}
   </div>
 </div>

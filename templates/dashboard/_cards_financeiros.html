@@ -43,19 +43,19 @@
       {% if admin.saldo_previsto_negativo %}&minus; {% endif %}{{ admin.saldo_previsto }}
     </p>
     <p class="text-sm text-gray-500">Saldo previsto {{ cards.rotulo.do }}</p>
-    <p class="text-xs text-gray-400">Realizado até agora: {% if admin.realizado_negativo %}&minus; {% endif %}{{ admin.realizado }}</p>
+    <p class="text-xs text-gray-500">Realizado até agora: {% if admin.realizado_negativo %}&minus; {% endif %}{{ admin.realizado }}</p>
   </a>
 
   <a href="{% url 'financeiro:honorarios_lista' %}" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
     <p class="text-2xl font-bold text-gray-900">{{ admin.honorarios_previsto }}</p>
     <p class="text-sm text-gray-500">Honorários previstos {{ cards.rotulo.no }}</p>
-    <p class="text-xs text-gray-400">Recebido: {{ admin.honorarios_recebido }}</p>
+    <p class="text-xs text-gray-500">Recebido: {{ admin.honorarios_recebido }}</p>
   </a>
 
   <a href="{% url 'financeiro:custas' %}?saldo=em_debito" class="card p-5 flex flex-col gap-1 hover:shadow-md transition-shadow duration-150">
     <p class="text-2xl font-bold text-gray-900">{{ admin.custas_a_cobrar.total }}</p>
     <p class="text-sm text-gray-500">Custas a cobrar</p>
-    <p class="text-xs text-gray-400">{{ admin.custas_a_cobrar.quantidade }} cliente{{ admin.custas_a_cobrar.quantidade|pluralize }}/grupo{{ admin.custas_a_cobrar.quantidade|pluralize }} em débito</p>
+    <p class="text-xs text-gray-500">{{ admin.custas_a_cobrar.quantidade }} cliente{{ admin.custas_a_cobrar.quantidade|pluralize }}/grupo{{ admin.custas_a_cobrar.quantidade|pluralize }} em débito</p>
   </a>
   {% endwith %}
   {% endif %}
@@ -92,7 +92,7 @@
       <p class="text-2xl font-bold text-gray-900">{{ fila.quantidade }}</p>
       <p class="text-sm text-gray-500">Solicitações em aberto</p>
     </a>
-    <p class="text-xs text-gray-400">{{ fila.aguardando_analise }} aguardando análise · {{ fila.aguardando_pagamento }} aprovada{{ fila.aguardando_pagamento|pluralize }} aguardando pagamento</p>
+    <p class="text-xs text-gray-500">{{ fila.aguardando_analise }} aguardando análise · {{ fila.aguardando_pagamento }} aprovada{{ fila.aguardando_pagamento|pluralize }} aguardando pagamento</p>
     {% if fila.vencidas %}
     <a href="{% url 'financeiro:solicitacoes_lista' %}?situacao=pendentes&vencimento=vencidas" class="text-xs font-medium text-juridico-vermelho hover:underline">
       {{ fila.vencidas }} vencida{{ fila.vencidas|pluralize }}

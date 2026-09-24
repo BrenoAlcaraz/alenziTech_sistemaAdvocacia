@@ -17,7 +17,10 @@ from PIL import Image
 from apps.accounts.forms import CriarUsuarioEscritorioForm
 from apps.accounts.models import Equipe, MembroEquipe, PapelAcesso, PerfilUsuario, UsuarioPapel
 from apps.processos.models import Processo
-from apps.saas_tenants.cores import cores_predominantes, hex_para_rgb, luminancia, tema
+from apps.notificacoes.models import Notificacao
+from apps.saas_tenants.cores import (
+    OPACIDADE_TEXTO_INATIVO, contraste, cores_predominantes, hex_para_rgb, misturar, tema,
+)
 from apps.saas_tenants.models import ConfiguracaoVisual
 
 _MEDIA_TMP = tempfile.mkdtemp(prefix="lawsystem_test_config_ajustes_")
@@ -67,10 +70,27 @@ class TestCores(TenantTestCase):
         cores = cores_predominantes(io.BytesIO(buffer.getvalue()))
         self.assertEqual(len(cores), 2)
 
-    def test_cor_primaria_clara_e_escurecida_para_manter_contraste(self):
-        claro = tema("#ffe066", "#8B7355")
-        principal = tuple(int(c) for c in claro["primaria_rgb"].split())
-        self.assertLessEqual(luminancia(principal), 0.26)
+    def test_cor_principal_clara_mantem_texto_da_barra_lateral_legivel(self):
+        branco = (255, 255, 255)
+        for cor in ("#ffe066", "#ffff00", "#00ffff", "#ffffff", "#7fff00", "#ff66cc"):
+            with self.subTest(cor=cor):
+                t = tema(cor, "#8B7355")
+                principal = hex_para_rgb(t["primaria_hex"])
+                hover = tuple(int(c) for c in t["primaria_hover_rgb"].split())
+                inativo = misturar(branco, principal, OPACIDADE_TEXTO_INATIVO)
+                self.assertGreaterEqual(contraste(inativo, principal), 4.5)
+                self.assertGreaterEqual(contraste(branco, hover), 4.5)
+
+    def test_cor_de_destaque_clara_fica_legivel_como_texto(self):
+        for cor in ("#c9a227", "#ffe066", "#8B7355"):
+            with self.subTest(cor=cor):
+                destaque = hex_para_rgb(tema("#1a1a1a", cor)["secundaria_hex"])
+                for fundo in ("#ffffff", "#f5f3ef", "#ede8e0"):
+                    self.assertGreaterEqual(contraste(destaque, hex_para_rgb(fundo)), 4.5)
+
+    def test_cor_ja_escura_nao_e_alterada(self):
+        self.assertEqual(tema("#0a2540", "#5a4632")["primaria_hex"], "#0a2540")
+        self.assertEqual(tema("#0a2540", "#5a4632")["secundaria_hex"], "#5a4632")
 
     def test_cor_invalida_cai_no_padrao(self):
         self.assertEqual(tema("azul", "")["primaria_rgb"], "26 26 26")
@@ -140,6 +160,49 @@ class TestIdentidadeVisual(ConfigBase):
         r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
         self.assertContains(r, "--cor-primaria-rgb:")
         self.assertContains(r, "Logo do escritório")
+
+    def test_identidade_visual_mostra_a_cor_ajustada(self):
+        ConfiguracaoVisual.objects.create(escritorio=self.tenant, cor_primaria="#ffe066")
+        r = self.client.get("/configuracoes/identidade-visual/", HTTP_HOST=self.http_host)
+        self.assertContains(r, "data-cores-aplicadas")
+        self.assertContains(r, tema("#ffe066", "")["primaria_hex"])
+
+    def test_identidade_visual_sem_ajuste_nao_mostra_cor_aplicada(self):
+        ConfiguracaoVisual.objects.create(
+            escritorio=self.tenant, cor_primaria="#0a2540", cor_secundaria="#5a4632",
+        )
+        r = self.client.get("/configuracoes/identidade-visual/", HTTP_HOST=self.http_host)
+        self.assertNotContains(r, "data-cores-aplicadas")
+
+
+class TestAcessibilidadeDoShell(ConfigBase):
+    """Estrutura acessível comum a todas as telas (base_auth, barra lateral, cabeçalho)."""
+
+    @classmethod
+    def get_test_schema_name(cls):
+        return "config_ajustes_a11y"
+
+    def test_pular_para_o_conteudo_e_o_primeiro_link(self):
+        r = self.client.get("/processos/", HTTP_HOST=self.http_host)
+        html = r.content.decode()
+        corpo = html[html.index("<body"):]
+        self.assertEqual(corpo.index("<a "), corpo.index('<a href="#conteudo"'))
+        self.assertContains(r, 'id="conteudo"')
+
+    def test_item_ativo_da_barra_lateral_tem_aria_current(self):
+        r = self.client.get("/processos/", HTTP_HOST=self.http_host)
+        html = r.content.decode()
+        self.assertEqual(html.count('sidebar-item-active" aria-current="page"'), 1)
+
+    def test_sino_anuncia_a_contagem_de_nao_lidas(self):
+        Notificacao.objects.create(destinatario=self.admin, mensagem="a")
+        Notificacao.objects.create(destinatario=self.admin, mensagem="b")
+        r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
+        self.assertContains(r, 'aria-label="Notificações, 2 não lidas"')
+
+    def test_sino_sem_notificacoes(self):
+        r = self.client.get("/configuracoes/", HTTP_HOST=self.http_host)
+        self.assertContains(r, 'aria-label="Notificações, nenhuma não lida"')
 
 
 class TestExcluirUsuario(ConfigBase):

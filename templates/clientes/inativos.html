@@ -6,7 +6,7 @@
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Clientes inativos</h1>
     <p class="text-sm text-gray-500 mt-0.5">
-      <a href="{% url 'clientes:lista' %}" class="text-gray-400 hover:text-gray-600 underline">← Voltar aos clientes ativos</a>
+      <a href="{% url 'clientes:lista' %}" class="text-gray-500 hover:text-gray-600 underline">← Voltar aos clientes ativos</a>
     </p>
   </div>
 </div>
@@ -48,9 +48,9 @@
 
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-gray-500 truncate" title="{{ c }}">{{ c }}</p>
-        <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
+        <p class="text-xs text-gray-500">{{ c.cpf_cnpj }}</p>
         {% if c.email or c.telefone %}
-          <p class="text-xs text-gray-400 mt-0.5 truncate" title="{{ c.email }}{% if c.email and c.telefone %} · {% endif %}{{ c.telefone }}">
+          <p class="text-xs text-gray-500 mt-0.5 truncate" title="{{ c.email }}{% if c.email and c.telefone %} · {% endif %}{{ c.telefone }}">
             {% if c.email %}{{ c.email }}{% endif %}
             {% if c.email and c.telefone %} · {% endif %}
             {% if c.telefone %}{{ c.telefone }}{% endif %}

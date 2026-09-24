@@ -41,8 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharDropdowns(null); });
 
   // ── Tabs internas ───────────────────────────────────────────────────────────
-  // Abas com data-tab e data-tab-panel para alternância visual sem JS avançado
+  // Abas com data-tab e data-tab-panel para alternância visual sem JS avançado.
+  // aria-pressed anuncia a aba atual ao leitor de tela.
   document.querySelectorAll("[data-tab]").forEach((tab) => {
+    tab.setAttribute("aria-pressed", String(tab.classList.contains("tab-active")));
     tab.addEventListener("click", () => {
       const group = tab.dataset.tabGroup;
       const target = tab.dataset.tab;
@@ -51,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(`[data-tab-group="${group}"]`).forEach((t) => {
         t.classList.remove("tab-active");
         t.classList.add("tab-inactive");
+        t.setAttribute("aria-pressed", "false");
       });
 
       // Oculta todos os painéis do mesmo grupo
@@ -61,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Ativa a aba clicada
       tab.classList.add("tab-active");
       tab.classList.remove("tab-inactive");
+      tab.setAttribute("aria-pressed", "true");
 
       // Exibe o painel correspondente
       const panel = document.querySelector(`[data-tab-panel="${target}"][data-tab-panel-group="${group}"]`);
@@ -346,7 +350,7 @@ document.addEventListener("DOMContentLoaded", () => {
       lista.innerHTML = "";
       if (!filtradas.length) {
         const vazio = document.createElement("li");
-        vazio.className = "px-3 py-2 text-sm text-gray-400";
+        vazio.className = "px-3 py-2 text-sm text-gray-500";
         vazio.textContent = "Nenhum processo encontrado.";
         lista.appendChild(vazio);
       } else {
@@ -608,7 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!equipe) return;
       if (!equipe.membros.length) {
         const aviso = document.createElement("p");
-        aviso.className = "text-xs text-gray-400";
+        aviso.className = "text-xs text-gray-500";
         aviso.textContent = "Esta equipe não tem membros ativos disponíveis.";
         lista.appendChild(aviso);
       }

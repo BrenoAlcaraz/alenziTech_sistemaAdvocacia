@@ -26,7 +26,7 @@
 {% endif %}
 
 {# Tabs #}
-<div class="flex border-b border-gray-200 mb-5 flex-wrap">
+<div class="flex border-b border-gray-200 mb-5 flex-wrap" role="group" aria-label="Abas">
   <button type="button" onclick="switchTab('administrador')" id="tab-btn-administrador"
     class="tab-btn px-5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
     Administrador
@@ -80,11 +80,13 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(function(el) {
     el.classList.remove('border-gray-900', 'text-gray-900');
     el.classList.add('border-transparent', 'text-gray-500');
+    el.setAttribute('aria-pressed', 'false');
   });
   document.getElementById('tab-' + name).classList.remove('hidden');
   var btn = document.getElementById('tab-btn-' + name);
   btn.classList.remove('border-transparent', 'text-gray-500');
   btn.classList.add('border-gray-900', 'text-gray-900');
+  btn.setAttribute('aria-pressed', 'true');
 }
 switchTab('{{ tab_ativa }}');
 </script>

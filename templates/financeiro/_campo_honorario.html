@@ -1,6 +1,6 @@
 {# Rótulo + campo + erros do formulário de honorário. Espera `campo` e, opcional, `dica`. #}
 <div>
-  <label class="label" for="{{ campo.id_for_label }}">{{ campo.label }}{% if dica %} <span class="text-gray-400 font-normal">({{ dica }})</span>{% endif %}</label>
+  <label class="label" for="{{ campo.id_for_label }}">{{ campo.label }}{% if dica %} <span class="text-gray-500 font-normal">({{ dica }})</span>{% endif %}</label>
   {{ campo }}
   {% if campo.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ campo.errors|join:", " }}</p>{% endif %}
 </div>

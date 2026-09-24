@@ -8,7 +8,7 @@
     <p class="text-sm text-gray-500 mt-0.5">
       Todos os clientes do escritório
       &nbsp;·&nbsp;
-      <a href="{% url 'clientes:inativos' %}" class="text-gray-400 hover:text-gray-600 underline">Ver inativos</a>
+      <a href="{% url 'clientes:inativos' %}" class="text-gray-500 hover:text-gray-600 underline">Ver inativos</a>
     </p>
   </div>
   <a href="{% url 'clientes:novo' %}" class="btn-primary">+ Novo cliente</a>
@@ -40,7 +40,7 @@
          class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-700 placeholder-gray-400">
   {% if escopo_atual %}<input type="hidden" name="escopo" value="{{ escopo_atual }}">{% endif %}
   {% if filtro_busca %}
-    <a href="?{% if escopo_atual %}escopo={{ escopo_atual }}{% endif %}" class="text-xs text-gray-400 hover:text-gray-600 flex-shrink-0">Limpar</a>
+    <a href="?{% if escopo_atual %}escopo={{ escopo_atual }}{% endif %}" class="text-xs text-gray-500 hover:text-gray-600 flex-shrink-0">Limpar</a>
   {% endif %}
 </form>
 
@@ -68,7 +68,7 @@
           <span class="truncate" title="{{ c }}">{{ c }}</span>
           {% include "components/selo_prioridade.html" with cliente=c %}
         </p>
-        <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
+        <p class="text-xs text-gray-500">{{ c.cpf_cnpj }}</p>
       </div>
 
       <div class="flex items-center gap-3 flex-shrink-0">

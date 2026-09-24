@@ -13,7 +13,7 @@
   <div class="mb-3">
     <label class="label" for="{{ caso_form.documentos.id_for_label }}">{{ caso_form.documentos.label }}</label>
     {{ caso_form.documentos }}
-    <p class="text-xs text-gray-400 mt-1">PDF, DOCX, PNG ou JPG — até 10 arquivos de 10 MB.</p>
+    <p class="text-xs text-gray-500 mt-1">PDF, DOCX, PNG ou JPG — até 10 arquivos de 10 MB.</p>
     {% if caso_form.documentos.errors %}<p class="erro-campo text-xs text-red-600 mt-1">{{ caso_form.documentos.errors|join:", " }}</p>{% endif %}
   </div>
 

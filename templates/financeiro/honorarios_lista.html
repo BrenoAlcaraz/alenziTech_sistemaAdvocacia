@@ -17,16 +17,16 @@
 </div>
 
 <div class="border-b border-gray-200 mb-6">
-  <nav class="-mb-px flex gap-6">
-    <div data-tab="contratuais" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba != "sucumbencia" and sub_aba != "precatorio" %}tab-active{% else %}tab-inactive{% endif %}">
+  <nav class="-mb-px flex gap-6" aria-label="Abas">
+    <button type="button" data-tab="contratuais" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba != "sucumbencia" and sub_aba != "precatorio" %}tab-active{% else %}tab-inactive{% endif %}">
       Contratuais
-    </div>
-    <div data-tab="sucumbencia" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba == "sucumbencia" %}tab-active{% else %}tab-inactive{% endif %}">
+    </button>
+    <button type="button" data-tab="sucumbencia" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba == "sucumbencia" %}tab-active{% else %}tab-inactive{% endif %}">
       Sucumbência
-    </div>
-    <div data-tab="precatorio" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba == "precatorio" %}tab-active{% else %}tab-inactive{% endif %}">
+    </button>
+    <button type="button" data-tab="precatorio" data-tab-group="honorarios" class="flex items-center gap-1.5 pb-3 text-sm cursor-pointer {% if sub_aba == "precatorio" %}tab-active{% else %}tab-inactive{% endif %}">
       Precatório
-    </div>
+    </button>
   </nav>
 </div>
 

@@ -11,11 +11,11 @@
       {% endfor %}
     </select>
     <div class="hidden mt-2 border border-gray-200 rounded-lg p-3" data-equipe-painel>
-      <p class="text-xs text-gray-400 mb-2">Desmarque quem não deve ser adicionado.</p>
+      <p class="text-xs text-gray-500 mb-2">Desmarque quem não deve ser adicionado.</p>
       <div class="flex flex-col gap-1.5 max-h-48 overflow-y-auto mb-3" data-equipe-lista></div>
       <button type="submit" class="btn-secondary text-xs" data-equipe-confirmar disabled>Adicionar selecionados</button>
     </div>
   {% else %}
-    <p class="text-xs text-gray-400">Nenhuma equipe cadastrada ainda</p>
+    <p class="text-xs text-gray-500">Nenhuma equipe cadastrada ainda</p>
   {% endif %}
 </form>

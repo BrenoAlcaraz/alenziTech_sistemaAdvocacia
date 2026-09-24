@@ -1,5 +1,5 @@
 """Cores do tema white label: extração a partir do logo e derivação das
-variações usadas na interface (contraste garantido para fundo escuro)."""
+variações usadas na interface (contraste mínimo de 4,5:1 garantido)."""
 
 import re
 
@@ -10,8 +10,14 @@ COR_SECUNDARIA_PADRAO = "#8B7355"
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 # Fundo da barra lateral/botões é a cor primária com texto claro: acima
-# desta luminância relativa a cor é escurecida para manter a leitura.
-LUMINANCIA_MAXIMA_PRIMARIA = 0.25
+# desta luminância relativa a cor é escurecida. 0,105 garante 4,5:1 até
+# para o texto dos itens inativos da barra lateral (branco a 80%,
+# OPACIDADE_TEXTO_INATIVO), no pior matiz.
+LUMINANCIA_MAXIMA_PRIMARIA = 0.105
+OPACIDADE_TEXTO_INATIVO = 0.8
+# A secundária vira texto/link sobre branco, papel quente e areia; 0,14
+# garante 4,5:1 sobre a areia (#ede8e0), a mais escura das três.
+LUMINANCIA_MAXIMA_SECUNDARIA = 0.14
 
 
 def hex_valido(valor):
@@ -36,11 +42,22 @@ def luminancia(rgb):
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
+def contraste(a, b):
+    """Razão de contraste WCAG entre duas cores RGB."""
+    clara, escura = sorted((luminancia(a), luminancia(b)), reverse=True)
+    return (clara + 0.05) / (escura + 0.05)
+
+
+def misturar(frente, fundo, opacidade):
+    """Cor resultante de `frente` com `opacidade` sobre `fundo`."""
+    return tuple(f * opacidade + b * (1 - opacidade) for f, b in zip(frente, fundo))
+
+
 def escurecer_ate_contraste(rgb, maximo=LUMINANCIA_MAXIMA_PRIMARIA):
-    """Escurece a cor (mantendo o matiz) até ficar legível com texto claro."""
+    """Escurece a cor (mantendo o matiz) até a luminância `maximo`."""
     fator = 1.0
-    while luminancia(tuple(c * fator for c in rgb)) > maximo and fator > 0.05:
-        fator -= 0.05
+    while luminancia(tuple(c * fator for c in rgb)) > maximo and fator > 0.01:
+        fator -= 0.01
     return tuple(c * fator for c in rgb)
 
 
@@ -83,12 +100,16 @@ def _rgb_css(rgb):
 
 
 def tema(cor_primaria, cor_secundaria):
-    """Variáveis de tema (RGB "r g b") já com contraste garantido."""
+    """Variáveis de tema (RGB "r g b") já com contraste garantido, e as
+    cores efetivamente aplicadas em hex (exibidas na identidade visual)."""
     primaria = hex_para_rgb(cor_primaria if hex_valido(cor_primaria) else COR_PRIMARIA_PADRAO)
     secundaria = hex_para_rgb(cor_secundaria if hex_valido(cor_secundaria) else COR_SECUNDARIA_PADRAO)
     primaria = escurecer_ate_contraste(primaria)
+    secundaria = escurecer_ate_contraste(secundaria, LUMINANCIA_MAXIMA_SECUNDARIA)
     return {
         "primaria_rgb": _rgb_css(primaria),
         "primaria_hover_rgb": _rgb_css(clarear(primaria)),
         "secundaria_rgb": _rgb_css(secundaria),
+        "primaria_hex": rgb_para_hex(primaria),
+        "secundaria_hex": rgb_para_hex(secundaria),
     }

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'agenda:index' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'agenda:index' %}" class="text-gray-500 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -35,14 +35,14 @@
       {# Tipo primeiro: define a natureza e, com ela, os campos exibidos. #}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="label">Tipo</label>
+          <label class="label" for="{{ form.tipo.id_for_label }}">Tipo</label>
           {{ form.tipo }}
           {% if form.tipo.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.tipo.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
-          <label class="label">Responsável</label>
+          <label class="label" for="{{ form.responsavel.id_for_label }}">Responsável</label>
           {{ form.responsavel }}
           {% if form.responsavel.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.responsavel.errors|join:", " }}</p>
@@ -52,7 +52,7 @@
 
       {# Título #}
       <div>
-        <label class="label">Título</label>
+        <label class="label" for="{{ form.titulo.id_for_label }}">Título</label>
         {{ form.titulo }}
         {% if form.titulo.errors %}
           <p class="erro-campo text-xs text-red-500 mt-1">{{ form.titulo.errors|join:", " }}</p>
@@ -62,21 +62,21 @@
       {# Afazer (Tarefa, Prazo, Protocolo, Retorno) #}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-toggle-panel="natureza" data-toggle-values="{{ form.tipos_afazer_csv }}" data-campos-natureza="afazer">
         <div>
-          <label class="label">Data para fazer <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label" for="{{ form.data_para_fazer.id_for_label }}">Data para fazer <span class="text-gray-500 font-normal">(opcional)</span></label>
           {{ form.data_para_fazer }}
           {% if form.data_para_fazer.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_para_fazer.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
-          <label class="label">Hora <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label" for="{{ form.hora_para_fazer.id_for_label }}">Hora <span class="text-gray-500 font-normal">(opcional)</span></label>
           {{ form.hora_para_fazer }}
           {% if form.hora_para_fazer.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.hora_para_fazer.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
-          <label class="label">Data fatal <span class="text-gray-400 font-normal">(obrigatória em Prazo)</span></label>
+          <label class="label" for="{{ form.data_fatal.id_for_label }}">Data fatal <span class="text-gray-500 font-normal">(obrigatória em Prazo)</span></label>
           {% if compromisso.gerado_pelo_processo %}
             {# Prazo gerado: a fatal só muda no andamento de origem. #}
             <p class="input bg-gray-50 text-gray-700" data-fatal-travada>{{ compromisso.data_fatal|date:"d/m/Y" }}</p>
@@ -90,7 +90,7 @@
           {% endif %}
         </div>
         <div>
-          <label class="label">Prioridade</label>
+          <label class="label" for="{{ form.prioridade.id_for_label }}">Prioridade</label>
           {{ form.prioridade }}
           {% if form.prioridade.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.prioridade.errors|join:", " }}</p>
@@ -102,14 +102,14 @@
       <div class="flex flex-col gap-4" data-toggle-panel="natureza" data-toggle-values="{{ form.tipos_evento_csv }}" data-campos-natureza="evento">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="label">Data e hora de início</label>
+            <label class="label" for="{{ form.data_hora_inicio.id_for_label }}">Data e hora de início</label>
             {{ form.data_hora_inicio }}
             {% if form.data_hora_inicio.errors %}
               <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_inicio.errors|join:", " }}</p>
             {% endif %}
           </div>
           <div>
-            <label class="label">Data e hora de fim <span class="text-gray-400 font-normal">(opcional)</span></label>
+            <label class="label" for="{{ form.data_hora_fim.id_for_label }}">Data e hora de fim <span class="text-gray-500 font-normal">(opcional)</span></label>
             {{ form.data_hora_fim }}
             {% if form.data_hora_fim.errors %}
               <p class="erro-campo text-xs text-red-500 mt-1">{{ form.data_hora_fim.errors|join:", " }}</p>
@@ -126,7 +126,7 @@
           {% endif %}
         </div>
         <div>
-          <label class="label">Local <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label" for="{{ form.local.id_for_label }}">Local <span class="text-gray-500 font-normal">(opcional)</span></label>
           {{ form.local }}
           {% if form.local.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.local.errors|join:", " }}</p>
@@ -137,14 +137,14 @@
       {# Cliente | Processo — cliente filtra as opções de processo, por isso vem primeiro #}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="label">Cliente <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label" for="{{ form.cliente.id_for_label }}">Cliente <span class="text-gray-500 font-normal">(opcional)</span></label>
           {{ form.cliente }}
           {% if form.cliente.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.cliente.errors|join:", " }}</p>
           {% endif %}
         </div>
         <div>
-          <label class="label">Processo vinculado <span class="text-gray-400 font-normal">(opcional)</span></label>
+          <label class="label" for="{{ form.processo.id_for_label }}">Processo vinculado <span class="text-gray-500 font-normal">(opcional)</span></label>
           {{ form.processo }}
           {% if form.processo.errors %}
             <p class="erro-campo text-xs text-red-500 mt-1">{{ form.processo.errors|join:", " }}</p>
@@ -155,7 +155,7 @@
       {% if modo != "editar" %}
       {# Atribuir a — só na criação: além do responsável, os demais atribuídos entram como participantes (em Evento, confirmam presença). Na edição, a gestão fica na seção dedicada abaixo. #}
       <div>
-        <label class="label">Atribuir também a <span class="text-gray-400 font-normal">(participantes, opcional)</span></label>
+        <p class="label">Atribuir também a <span class="text-gray-500 font-normal">(participantes, opcional)</span></p>
         {% include "components/equipe_botoes.html" with alvo="#participantes-lista" %}
         <div class="mb-2">
           <button type="button" class="btn-secondary text-xs" data-marcar-todos="#participantes-lista">Adicionar todos os usuários</button>
@@ -173,7 +173,7 @@
               {% endif %}
             </div>
           {% empty %}
-            <p class="text-xs text-gray-400">Nenhum usuário disponível.</p>
+            <p class="text-xs text-gray-500">Nenhum usuário disponível.</p>
           {% endfor %}
         </div>
         {% if form.participantes.errors %}
@@ -184,7 +184,7 @@
 
       {# Descrição #}
       <div>
-        <label class="label">Descrição <span class="text-gray-400 font-normal">(opcional)</span></label>
+        <label class="label" for="{{ form.descricao.id_for_label }}">Descrição <span class="text-gray-500 font-normal">(opcional)</span></label>
         {{ form.descricao }}
         {% if form.descricao.errors %}
           <p class="erro-campo text-xs text-red-500 mt-1">{{ form.descricao.errors|join:", " }}</p>
@@ -242,7 +242,7 @@
           {% endif %}
           <form method="post" action="{% url 'agenda:remover_participante' compromisso.pk participacao.usuario.pk %}">
             {% csrf_token %}
-            <button type="submit" class="text-gray-400 hover:text-red-400 transition-colors text-xs" title="Remover participante" aria-label="Remover participante">Remover</button>
+            <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors text-xs" title="Remover participante" aria-label="Remover participante">Remover</button>
           </form>
         </div>
       </div>

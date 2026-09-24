@@ -10,7 +10,7 @@
     <div class="flex items-center gap-2">
       <span class="badge-area">{{ processo.area_direito }}</span>
       <span class="badge-area">{{ processo.get_status_display }}</span>
-      <span class="text-sm text-gray-400">{{ processo.instancia }}</span>
+      <span class="text-sm text-gray-500">{{ processo.instancia }}</span>
     </div>
     <div class="flex items-center gap-2">
     {% if pode_modificar %}
@@ -37,40 +37,40 @@
     </div>
   </div>
   <h1 class="text-xl font-bold text-gray-900 mb-1 texto-quebra">{{ processo }}</h1>
-  <p class="text-sm text-gray-400 mb-5">{{ processo.numero }}</p>
+  <p class="text-sm text-gray-500 mb-5">{{ processo.numero }}</p>
 
   <div class="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Vara</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Vara</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.vara|default:"—" }}</p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Comarca</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Comarca</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.comarca|default:"—" }}</p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Localidade</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Localidade</p>
       <p class="text-sm font-medium text-gray-900">
         {% if processo.cidade or processo.estado %}{{ processo.cidade }}{% if processo.cidade and processo.estado %}/{% endif %}{{ processo.estado }}{% else %}—{% endif %}
       </p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Valor da Causa</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Valor da Causa</p>
       <p class="text-sm font-medium text-gray-900">{% if processo.valor_causa %}R$ {{ processo.valor_causa|moeda_br }}{% else %}—{% endif %}</p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cliente{{ processo.clientes.all|length|pluralize }}</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Cliente{{ processo.clientes.all|length|pluralize }}</p>
       <p class="text-sm font-medium text-gray-900 flex flex-wrap items-center gap-x-1 gap-y-1">
         {% for c in processo.clientes.all %}<span class="inline-flex items-center gap-1 texto-quebra"><a href="{% url 'clientes:detalhe' c.pk %}" class="texto-quebra hover:underline hover:text-juridico-verde">{{ c }}</a>{% include "components/selo_prioridade.html" with cliente=c %}</span>{% if not forloop.last %}<span>,</span>{% endif %}{% empty %}—{% endfor %}
       </p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Responsável</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Responsável</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.responsavel }}</p>
     </div>
     {% if parte_contraria %}
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Parte contrária</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Parte contrária</p>
       <p class="text-sm font-medium text-gray-900">
         {{ parte_contraria.nome }}{% if parte_contraria.outros_total > 0 %} (+{{ parte_contraria.outros_total }} {{ parte_contraria.papel|lower }}{{ parte_contraria.outros_total|pluralize }}){% endif %}
       </p>
@@ -78,7 +78,7 @@
     {% endif %}
     {% if processo.resultado_sentenca %}
     <div class="texto-quebra">
-      <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Resultado da sentença</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Resultado da sentença</p>
       <p class="text-sm font-medium text-gray-900">{{ processo.get_resultado_sentenca_display }}</p>
     </div>
     {% endif %}
@@ -88,13 +88,13 @@
 {% if faixa_status.fase_atual or faixa_status.parado_ha_dias != None or faixa_status.tempo_medio_dias %}
 <div class="card px-5 py-3 mb-4 flex flex-wrap items-center gap-x-8 gap-y-2 bg-gray-50">
   {% if faixa_status.fase_atual %}
-  <div class="text-xs"><span class="text-gray-400">Fase atual</span> <span class="font-medium text-gray-800">{{ faixa_status.fase_atual }}</span></div>
+  <div class="text-xs"><span class="text-gray-500">Fase atual</span> <span class="font-medium text-gray-800">{{ faixa_status.fase_atual }}</span></div>
   {% endif %}
   {% if faixa_status.parado_ha_dias != None %}
-  <div class="text-xs"><span class="text-gray-400">Parado há</span> <span class="font-medium {% if faixa_status.parado_ha_dias > 30 %}text-red-600{% else %}text-gray-800{% endif %}">{{ faixa_status.parado_ha_dias }} dia{{ faixa_status.parado_ha_dias|pluralize }}</span></div>
+  <div class="text-xs"><span class="text-gray-500">Parado há</span> <span class="font-medium {% if faixa_status.parado_ha_dias > 30 %}text-red-600{% else %}text-gray-800{% endif %}">{{ faixa_status.parado_ha_dias }} dia{{ faixa_status.parado_ha_dias|pluralize }}</span></div>
   {% endif %}
   {% if faixa_status.tempo_medio_dias %}
-  <div class="text-xs"><span class="text-gray-400">Tempo médio entre andamentos</span> <span class="font-medium text-gray-800">{{ faixa_status.tempo_medio_dias }} dia{{ faixa_status.tempo_medio_dias|pluralize }}</span></div>
+  <div class="text-xs"><span class="text-gray-500">Tempo médio entre andamentos</span> <span class="font-medium text-gray-800">{{ faixa_status.tempo_medio_dias }} dia{{ faixa_status.tempo_medio_dias|pluralize }}</span></div>
   {% endif %}
 </div>
 {% endif %}
@@ -116,7 +116,7 @@
 
   <div class="card p-5">
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-semibold text-gray-700">Integrantes <span class="text-gray-400">({{ integrantes_total }})</span></h2>
+      <h2 class="text-sm font-semibold text-gray-700">Integrantes <span class="text-gray-500">({{ integrantes_total }})</span></h2>
     </div>
 
     {% if pode_gerenciar_integrantes %}
@@ -146,7 +146,7 @@
           {% endif %}
         </div>
       {% empty %}
-        <p class="text-xs text-gray-400">Nenhum integrante habilitado além do responsável.</p>
+        <p class="text-xs text-gray-500">Nenhum integrante habilitado além do responsável.</p>
       {% endfor %}
     </div>
   </div>
@@ -159,49 +159,49 @@
 
 {# ── Abas internas ──────────────────────────────────────────────────────────── #}
 <div class="border-b border-gray-200 mb-6">
-  <nav class="-mb-px flex gap-6">
+  <nav class="-mb-px flex gap-6" aria-label="Abas">
     <a href="?aba=andamentos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'andamentos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'andamentos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'andamentos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h7"/>
       </svg>
-      Andamentos <span class="text-gray-400">({{ movimentacoes|length }})</span>
+      Andamentos <span class="text-gray-500">({{ movimentacoes|length }})</span>
     </a>
     <a href="?aba=prazos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'prazos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'prazos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'prazos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
       </svg>
-      Prazos <span class="text-gray-400">({{ prazos|length }})</span>
+      Prazos <span class="text-gray-500">({{ prazos|length }})</span>
     </a>
     <a href="?aba=documentos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'documentos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
       </svg>
-      Documentos <span class="text-gray-400">({{ documentos_total }})</span>
+      Documentos <span class="text-gray-500">({{ documentos_total }})</span>
     </a>
     <a href="?aba=partes"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'partes' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'partes' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'partes' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
       </svg>
-      Partes <span class="text-gray-400">({{ participantes_total }})</span>
+      Partes <span class="text-gray-500">({{ participantes_total }})</span>
     </a>
     <a href="?aba=apensos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'apensos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'apensos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'apensos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71m2.25 5.82a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
       </svg>
-      Apensos <span class="text-gray-400">({{ apensos_total }})</span>
+      Apensos <span class="text-gray-500">({{ apensos_total }})</span>
     </a>
     <a href="?aba=custas"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'custas' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'custas' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'custas' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="9" stroke-width="1.5"/>
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 7v5l3 3"/>
       </svg>
-      Custas Judiciais <span class="text-gray-400">({{ custas_total }})</span>
+      Custas Judiciais <span class="text-gray-500">({{ custas_total }})</span>
     </a>
   </nav>
 </div>
@@ -217,11 +217,11 @@
       <div>{{ form_movimentacao.data }}</div>
       <div class="col-span-2">{{ form_movimentacao.descricao }}</div>
       <div>
-        <label class="label">{{ form_movimentacao.data_prazo.label }}</label>
+        <label class="label" for="{{ form_movimentacao.data_prazo.id_for_label }}">{{ form_movimentacao.data_prazo.label }}</label>
         {{ form_movimentacao.data_prazo }}
       </div>
       <div>
-        <label class="label">{{ form_movimentacao.origem_prazo.label }}</label>
+        <label class="label" for="{{ form_movimentacao.origem_prazo.id_for_label }}">{{ form_movimentacao.origem_prazo.label }}</label>
         {{ form_movimentacao.origem_prazo }}
       </div>
     </div>
@@ -229,7 +229,7 @@
       <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar resultado da sentença do processo (opcional)</summary>
       <div class="grid grid-cols-2 gap-3 mt-3">
         <div>
-          <label class="label">{{ form_movimentacao.atualizar_resultado_sentenca.label }}</label>
+          <label class="label" for="{{ form_movimentacao.atualizar_resultado_sentenca.id_for_label }}">{{ form_movimentacao.atualizar_resultado_sentenca.label }}</label>
           {{ form_movimentacao.atualizar_resultado_sentenca }}
         </div>
       </div>
@@ -238,7 +238,7 @@
       <summary class="text-xs text-juridico-verde cursor-pointer">Atualizar fase do andamento atual (opcional)</summary>
       <div class="grid grid-cols-2 gap-3 mt-3">
         <div>
-          <label class="label">{{ form_movimentacao.atualizar_fase_andamento.label }}</label>
+          <label class="label" for="{{ form_movimentacao.atualizar_fase_andamento.id_for_label }}">{{ form_movimentacao.atualizar_fase_andamento.label }}</label>
           {{ form_movimentacao.atualizar_fase_andamento }}
         </div>
       </div>
@@ -248,7 +248,7 @@
       <summary class="text-xs text-juridico-verde cursor-pointer">Suspender, sobrestar ou retomar o processo por decisão judicial (opcional)</summary>
       <div class="grid grid-cols-2 gap-3 mt-3">
         <div>
-          <label class="label">{{ form_movimentacao.atualizar_situacao.label }}</label>
+          <label class="label" for="{{ form_movimentacao.atualizar_situacao.id_for_label }}">{{ form_movimentacao.atualizar_situacao.label }}</label>
           {{ form_movimentacao.atualizar_situacao }}
         </div>
       </div>
@@ -268,7 +268,7 @@
         </div>
         <div class="pb-4 texto-quebra">
           <span class="badge-area mb-1 inline-block">{{ mov.get_tipo_display }}</span>
-          <p class="text-xs text-gray-400 mb-0.5">{{ mov.data|date:"d/m/Y" }}</p>
+          <p class="text-xs text-gray-500 mb-0.5">{{ mov.data|date:"d/m/Y" }}</p>
           <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
           {% if mov.data_prazo %}
             <p class="text-xs {% if mov.prazo_vencido %}text-red-600{% else %}text-gray-500{% endif %} mt-0.5">
@@ -357,7 +357,7 @@
         {% for parte in partes_polo_ativo %}
           {% include "processos/_parte_card.html" with parte=parte %}
         {% empty %}
-          <div class="card px-4 py-3 text-sm text-gray-400">Nenhum participante.</div>
+          <div class="card px-4 py-3 text-sm text-gray-500">Nenhum participante.</div>
         {% endfor %}
       </div>
     </section>
@@ -368,7 +368,7 @@
         {% for parte in partes_polo_passivo %}
           {% include "processos/_parte_card.html" with parte=parte %}
         {% empty %}
-          <div class="card px-4 py-3 text-sm text-gray-400">Nenhum participante.</div>
+          <div class="card px-4 py-3 text-sm text-gray-500">Nenhum participante.</div>
         {% endfor %}
       </div>
     </section>
@@ -379,7 +379,7 @@
         {% for parte in partes_outros %}
           {% include "processos/_parte_card.html" with parte=parte %}
         {% empty %}
-          <div class="card px-4 py-3 text-sm text-gray-400">Nenhum participante.</div>
+          <div class="card px-4 py-3 text-sm text-gray-500">Nenhum participante.</div>
         {% endfor %}
       </div>
     </section>
@@ -412,7 +412,7 @@
           <span class="badge-area mb-1 inline-block">{{ documento.get_tipo_display }}</span>
           <p class="text-sm font-medium text-gray-900 truncate" title="{{ documento.nome_do_documento }}">{{ documento.nome_do_documento }}</p>
           {% if documento.descricao %}<p class="text-xs text-gray-500 truncate" title="{{ documento.descricao }}">{{ documento.descricao }}</p>{% endif %}
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-500 mt-0.5">
             {{ documento.autor|default:"—" }} · {{ documento.enviado_em|date:"d/m/Y H:i" }}
           </p>
         </div>
@@ -453,7 +453,7 @@
           <span class="badge-area mb-1 inline-block">{{ mov.get_tipo_display }}</span>
           <p class="text-sm text-gray-900">{{ mov.descricao }}</p>
           {% if mov.origem_prazo %}
-            <p class="text-xs text-gray-400 mt-0.5">
+            <p class="text-xs text-gray-500 mt-0.5">
               Origem: {{ mov.origem_prazo.get_tipo_display }} ({{ mov.origem_prazo.data|date:"d/m/Y" }})
             </p>
           {% endif %}
@@ -491,7 +491,7 @@
       </div>
     </div>
     {% if not tem_candidatos_apenso %}
-      <p class="text-xs text-gray-400 mt-2">Nenhum outro Processo elegível para vinculação.</p>
+      <p class="text-xs text-gray-500 mt-2">Nenhum outro Processo elegível para vinculação.</p>
     {% endif %}
   </form>
   {% if tem_candidatos_apenso %}
@@ -534,12 +534,12 @@
             <span class="badge-area">{{ item.processo.get_status_display }}</span>
           </div>
           <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
-          {% if item.processo.numero %}<p class="text-xs text-gray-400 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
+          {% if item.processo.numero %}<p class="text-xs text-gray-500 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs">
-            <div class="min-w-0"><dt class="text-gray-400">Cliente</dt><dd class="text-gray-700 truncate" title="{{ item.processo.clientes.all|join:", "|default:"—" }}">{{ item.processo.clientes.all|join:", "|default:"—" }}</dd></div>
-            <div class="min-w-0"><dt class="text-gray-400">Responsável</dt><dd class="text-gray-700 truncate" title="{{ item.processo.responsavel }}">{{ item.processo.responsavel }}</dd></div>
-            <div><dt class="text-gray-400">Fase</dt><dd class="text-gray-700">{{ item.processo.get_fase_display }}</dd></div>
-            <div class="min-w-0"><dt class="text-gray-400">Vara/Comarca</dt><dd class="text-gray-700 truncate" title="{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}">{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}</dd></div>
+            <div class="min-w-0"><dt class="text-gray-500">Cliente</dt><dd class="text-gray-700 truncate" title="{{ item.processo.clientes.all|join:", "|default:"—" }}">{{ item.processo.clientes.all|join:", "|default:"—" }}</dd></div>
+            <div class="min-w-0"><dt class="text-gray-500">Responsável</dt><dd class="text-gray-700 truncate" title="{{ item.processo.responsavel }}">{{ item.processo.responsavel }}</dd></div>
+            <div><dt class="text-gray-500">Fase</dt><dd class="text-gray-700">{{ item.processo.get_fase_display }}</dd></div>
+            <div class="min-w-0"><dt class="text-gray-500">Vara/Comarca</dt><dd class="text-gray-700 truncate" title="{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}">{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}</dd></div>
           </dl>
         </a>
         {% if item.pode_remover %}
@@ -558,7 +558,7 @@
 
 {% elif aba_ativa == "custas" %}
 
-  <p class="text-xs text-gray-400 mb-4">
+  <p class="text-xs text-gray-500 mb-4">
     Solicitações de pagamento vinculadas a este processo — visíveis a qualquer pessoa que abra o processo, não só a quem solicitou. Evita pedido duplicado da mesma custa por dois advogados diferentes.
   </p>
 
@@ -576,12 +576,12 @@
         {% include "components/estado_solicitacao.html" with parte="faixa" %}
         <div class="min-w-0 texto-quebra">
           <p class="text-sm font-medium text-gray-900 truncate" title="{{ solicitacao.descricao }}">{{ solicitacao.descricao }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-500 mt-0.5">
             Solicitado por {{ solicitacao.solicitante|default:"—" }} em {{ solicitacao.criado_em|date:"d/m/Y" }}
             {% if solicitacao.status == "paga" %} · Paga{% endif %}
           </p>
           {% if solicitacao.status == "paga" %}
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-500 mt-0.5">
             Pago pelo {{ solicitacao.get_pago_por_display|default:"—" }}
             {% if solicitacao.comprovante_pagamento %}
               · Comprovante {% url 'processos:baixar_comprovante_custa' solicitacao.pk as comprovante_url %}{% include "components/anexo_acoes.html" with arquivo_url=comprovante_url %}

@@ -5,7 +5,7 @@
 
 <div class="flex items-start justify-between mb-6">
   <div class="texto-quebra">
-    <p class="text-xs text-gray-400 mb-0.5">Equipe</p>
+    <p class="text-xs text-gray-500 mb-0.5">Equipe</p>
     <h1 class="text-2xl font-bold text-gray-900">{{ equipe.nome }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Membros da equipe</p>
   </div>
@@ -51,7 +51,7 @@
     </form>
 
   {% else %}
-    <p class="text-sm text-gray-400 italic">
+    <p class="text-sm text-gray-500 italic">
       Todos os usuários ativos já estão vinculados a esta equipe ou não há usuários disponíveis.
     </p>
   {% endif %}
@@ -82,9 +82,9 @@
                 {{ membro.usuario.get_full_name|default:membro.usuario.username }}
               {% endif %}
             </p>
-            <p class="text-xs text-gray-400 truncate max-w-xs" title="@{{ membro.usuario.username }}">{% if membro.usuario.perfil.codigo %}{{ membro.usuario.perfil.codigo }} · {% endif %}@{{ membro.usuario.username }}</p>
+            <p class="text-xs text-gray-500 truncate max-w-xs" title="@{{ membro.usuario.username }}">{% if membro.usuario.perfil.codigo %}{{ membro.usuario.perfil.codigo }} · {% endif %}@{{ membro.usuario.username }}</p>
             {% if membro.usuario.email %}
-              <p class="text-xs text-gray-400 truncate max-w-xs" title="{{ membro.usuario.email }}">{{ membro.usuario.email }}</p>
+              <p class="text-xs text-gray-500 truncate max-w-xs" title="{{ membro.usuario.email }}">{{ membro.usuario.email }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center">

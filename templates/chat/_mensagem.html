@@ -42,7 +42,7 @@
     </div>
 
     {# Horário #}
-    <p class="text-xs text-gray-400 mt-1 {% if mensagem.autor_id == usuario_atual.id %}text-right{% endif %}">
+    <p class="text-xs text-gray-500 mt-1 {% if mensagem.autor_id == usuario_atual.id %}text-right{% endif %}">
       {{ mensagem.enviada_em|date:"d/m/Y H:i" }}
     </p>
 

@@ -8,7 +8,7 @@
     {% if aba_ativa == "processos" %}
       <p class="text-sm text-gray-500 mt-0.5">
         Processos ativos do escritório &bull;
-        <a href="{% url 'processos:arquivados' %}?escopo={{ escopo_atual }}" class="text-gray-400 hover:text-gray-600 underline">Ver processos arquivados</a>
+        <a href="{% url 'processos:arquivados' %}?escopo={{ escopo_atual }}" class="text-gray-500 hover:text-gray-600 underline">Ver processos arquivados</a>
       </p>
     {% endif %}
   </div>
@@ -20,16 +20,16 @@
 {% if pode_usar_laboratorio %}
   {# Abas internas #}
   <div class="border-b border-gray-200 mb-6">
-    <nav class="-mb-px flex gap-6">
+    <nav class="-mb-px flex gap-6" aria-label="Abas">
       <a href="?aba=processos"
-         class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'processos' %}tab-active{% else %}tab-inactive{% endif %}">
+         class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'processos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'processos' %} aria-current="page"{% endif %}>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
         </svg>
         Processos
       </a>
       <a href="?aba=laboratorio"
-         class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'laboratorio' %}tab-active{% else %}tab-inactive{% endif %}">
+         class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'laboratorio' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'laboratorio' %} aria-current="page"{% endif %}>
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 3v11.5a3.5 3.5 0 007 0V3M6 21h12M8 3h8"/>
         </svg>
@@ -104,7 +104,7 @@
   <div class="flex items-center gap-2">
     <button type="submit" class="btn-primary text-sm">Filtrar</button>
     {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}
-      <a href="{% url 'processos:lista' %}?escopo={{ escopo_atual }}" class="text-xs text-gray-400 hover:text-gray-600 underline">Limpar filtros</a>
+      <a href="{% url 'processos:lista' %}?escopo={{ escopo_atual }}" class="text-xs text-gray-500 hover:text-gray-600 underline">Limpar filtros</a>
     {% endif %}
   </div>
 </form>
@@ -116,7 +116,7 @@
       <span class="badge-area flex-shrink-0">{{ p.area_direito }}</span>
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-gray-900 group-hover:text-gray-700 truncate" title="{{ p }}">{{ p }}</p>
-        <p class="text-xs text-gray-400 mt-0.5 truncate" title="{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}</p>
+        <p class="text-xs text-gray-500 mt-0.5 truncate" title="{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}">{{ p.numero }} &bull; {{ p.clientes.all|join:", "|default:"—" }}</p>
       </div>
       <div class="flex items-center gap-3 flex-shrink-0">
         {% if p.prazo_urgente %}
@@ -124,7 +124,7 @@
         {% elif p.prazo_label != "sem prazo" %}
           {% include "components/badge.html" with tipo="prazo" texto=p.prazo_label %}
         {% else %}
-          <span class="text-xs text-gray-400">sem prazo</span>
+          <span class="text-xs text-gray-500">sem prazo</span>
         {% endif %}
         <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

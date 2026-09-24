@@ -46,7 +46,7 @@
     </div>
 
     <div class="mb-4">
-      <label for="{{ form.cargo.id_for_label }}" class="label">Cargo <span class="text-gray-400 font-normal">(descritivo)</span></label>
+      <label for="{{ form.cargo.id_for_label }}" class="label">Cargo <span class="text-gray-500 font-normal">(descritivo)</span></label>
       {{ form.cargo }}
       {% if form.cargo.errors %}
         <p class="erro-campo mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
@@ -59,7 +59,7 @@
       {% if form.papel.errors %}
         <p class="erro-campo mt-1 text-xs text-red-600">{{ form.papel.errors.0 }}</p>
       {% endif %}
-      <p class="mt-1 text-xs text-gray-400">
+      <p class="mt-1 text-xs text-gray-500">
         As permissões vêm do papel (o padrão "Limitado" não libera nada); ajustes individuais ficam em Permissões.
         O cargo profissional é informado separadamente.
         Administradores do Escritório devem ser definidos por fluxo administrativo separado.
@@ -86,7 +86,7 @@
       <button type="button" id="btn-toggle-senha" class="text-xs text-gray-500 hover:text-gray-700 self-start underline underline-offset-2">
         Mostrar senha
       </button>
-      <p class="text-xs text-gray-400">
+      <p class="text-xs text-gray-500">
         Use uma senha segura. Evite usar nome, username ou informações óbvias.
         Prefira uma combinação de letras maiúsculas, minúsculas, números e caracteres especiais.
       </p>

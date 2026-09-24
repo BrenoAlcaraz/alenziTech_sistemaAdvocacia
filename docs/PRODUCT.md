@@ -25,6 +25,37 @@ sobre a qual IA jurídica pode ser construída depois.
 - evolução incremental, sem reescrita total;
 - IA aplicada somente sobre dados e permissões já consolidados.
 
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
+Desktop-first: uso principal em computador; celular atende consultas
+rápidas. Sem padrão formal de acessibilidade além de boas práticas.
+
+## Usuários
+
+Advogados, estagiários e equipe administrativa/financeira do
+escritório, no computador, ao longo do dia de trabalho, alternando
+entre processos, prazos, agenda e financeiro. O cliente final do
+escritório não acessa o sistema.
+
+## Posicionamento
+
+Entregar tudo o que os sistemas jurídicos do mercado (Astrea,
+ProJuris, EasyJur etc.) já entregam, só que melhor e com mais
+automação: aproveitar o que eles fazem bem e deixar de fora o que
+fazem mal. O white label (marca do próprio escritório) é parte da
+entrega.
+
+## Marca (white label)
+
+O produto não impõe marca própria na operação do escritório: logo e
+cores vêm da identidade visual de cada escritório (ver Configurações).
+Qualquer tela precisa continuar legível e coerente com qualquer cor
+escolhida pelo escritório.
+
 ## Dois produtos de IA (não confundir)
 
 - **Assistente do sistema** — apoio ao uso do produto (navegação,
@@ -560,8 +591,12 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   limite de plano, upgrade/downgrade completo.
 
 - Identidade visual (admin): logo do escritório na barra lateral; as
-  cores predominantes do logo viram as cores do sistema (ajustáveis; a
-  cor principal é escurecida se for clara demais para leitura).
+  cores predominantes do logo viram as cores do sistema (ajustáveis).
+  As cores escolhidas são escurecidas, mantendo o matiz, até o texto
+  ficar legível (contraste ≥ 4,5:1): a principal com texto branco por
+  cima (inclusive os itens inativos da barra lateral), a de destaque
+  como texto/link sobre branco, papel quente e areia. A cor escolhida
+  continua salva; quando há ajuste, a tela mostra a cor aplicada.
 - Excluir usuário (admin) = inativar a conta, remover das equipes e
   passar os processos dele ao Administrador (PDR-0010); não vale para
   si nem para o Administrador. Exige a senha de quem está logado

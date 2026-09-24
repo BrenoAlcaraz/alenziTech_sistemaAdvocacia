@@ -1,7 +1,7 @@
 {# Equipe como atalho de seleção (PDR-0028): cada botão marca os membros ativos da equipe em `alvo` (seletor CSS do <select multiple> ou do contêiner de caixinhas); só pessoas vão ao servidor. Espera `equipe_atalho` e `alvo`. JS em static/js/main.js. #}
 {{ equipe_atalho|json_script:"equipe-atalho-dados" }}
 <div class="mb-2">
-  <p class="text-xs text-gray-400 mb-1">Atalho por equipe — marca os membros, depois desmarque quem não deve entrar:</p>
+  <p class="text-xs text-gray-500 mb-1">Atalho por equipe — marca os membros, depois desmarque quem não deve entrar:</p>
   {% if equipe_atalho.equipes %}
     <div class="flex flex-wrap gap-2">
       {% for equipe_id, equipe in equipe_atalho.equipes.items %}
@@ -9,6 +9,6 @@
       {% endfor %}
     </div>
   {% else %}
-    <p class="text-xs text-gray-400">Nenhuma equipe cadastrada ainda</p>
+    <p class="text-xs text-gray-500">Nenhuma equipe cadastrada ainda</p>
   {% endif %}
 </div>

@@ -9,6 +9,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Texto de apoio: o gray-500 padrão (#6b7280) não chega a 4,5:1
+        // sobre o papel quente e a areia; este tom chega nos dois.
+        gray: {
+          500: "#5f6773",
+        },
         // Paleta principal — identidade jurídica premium
         // Cores do escritório (white label): variáveis definidas em
         // templates/base/base.html a partir de ConfiguracaoVisual.

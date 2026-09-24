@@ -20,8 +20,8 @@
     <div class="flex flex-col gap-5">
 
       <div>
-        <label class="label">Tipo de peça</label>
-        <select class="select">
+        <label class="label" for="lab-tipo-peca">Tipo de peça</label>
+        <select id="lab-tipo-peca" class="select">
           <option>Petição inicial</option>
           <option>Contestação</option>
           <option>Recurso</option>
@@ -31,8 +31,8 @@
       </div>
 
       <div>
-        <label class="label">Área do direito</label>
-        <select class="select">
+        <label class="label" for="lab-area">Área do direito</label>
+        <select id="lab-area" class="select">
           <option>Cível</option>
           <option>Consumidor</option>
           <option>Trabalhista</option>
@@ -43,7 +43,7 @@
       </div>
 
       <div>
-        <label class="label">Cliente</label>
+        <p class="label">Cliente</p>
         <div class="flex gap-3 mb-3">
           <button type="button" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-900 rounded-xl text-sm font-medium text-gray-900 bg-white">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,20 +60,20 @@
         </div>
         <input type="text" class="input mb-2" placeholder="Nome do cliente">
         <input type="text" class="input" placeholder="CPF">
-        <p class="text-xs text-gray-400 mt-1.5">
+        <p class="text-xs text-gray-500 mt-1.5">
           Se o documento já existir, os arquivos vão pra pasta desse cliente; senão, cria uma nova.
         </p>
       </div>
 
       <div>
-        <label class="label">Documentos do caso</label>
+        <p class="label">Documentos do caso</p>
         {# Área de upload — visual apenas, sem processamento real nesta fase #}
         <div class="border-2 border-dashed border-gray-200 rounded-xl px-6 py-8 text-center bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
           <svg class="w-6 h-6 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
           </svg>
           <p class="text-sm text-gray-500">Anexar documento</p>
-          <p class="text-xs text-gray-400 mt-1">PDF, DOCX, JPG até 10 MB</p>
+          <p class="text-xs text-gray-500 mt-1">PDF, DOCX, JPG até 10 MB</p>
         </div>
       </div>
 
@@ -88,7 +88,7 @@
         Gerar peça com IA
         <span class="text-xs opacity-70">(em breve)</span>
       </button>
-      <p class="text-center text-xs text-gray-400 mt-2">A integração com IA será habilitada em fase futura.</p>
+      <p class="text-center text-xs text-gray-500 mt-2">A integração com IA será habilitada em fase futura.</p>
     </div>
   </form>
 </div>

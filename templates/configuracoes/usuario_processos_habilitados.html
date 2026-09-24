@@ -5,7 +5,7 @@
 
 <div class="flex items-start justify-between mb-6">
   <div class="texto-quebra">
-    <p class="text-xs text-gray-400 mb-0.5">Usuário</p>
+    <p class="text-xs text-gray-500 mb-0.5">Usuário</p>
     <h1 class="text-2xl font-bold text-gray-900">{% if usuario_alvo.perfil.codigo %}{{ usuario_alvo.perfil.codigo }} · {% endif %}{{ usuario_alvo.get_full_name|default:usuario_alvo.username }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Processos em que está habilitado como integrante</p>
   </div>
@@ -13,8 +13,8 @@
 
 <form method="get" class="card p-5 mb-4 flex flex-wrap items-end gap-4">
   <div>
-    <label class="label">Cliente</label>
-    <select name="cliente" class="select">
+    <label class="label" for="filtro-cliente">Cliente</label>
+    <select name="cliente" id="filtro-cliente" class="select">
       <option value="">Todos</option>
       {% for c in clientes_opcoes %}
         <option value="{{ c.pk }}" {% if cliente_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>
@@ -22,8 +22,8 @@
     </select>
   </div>
   <div>
-    <label class="label">Matéria</label>
-    <select name="materia" class="select">
+    <label class="label" for="filtro-materia">Matéria</label>
+    <select name="materia" id="filtro-materia" class="select">
       <option value="">Todas</option>
       {% for valor, rotulo in materias_opcoes %}
         <option value="{{ valor }}" {% if materia == valor %}selected{% endif %}>{{ rotulo }}</option>
@@ -31,12 +31,12 @@
     </select>
   </div>
   <div>
-    <label class="label">Data de distribuição</label>
-    <input type="date" name="data" class="input" value="{{ data }}">
+    <label class="label" for="filtro-data">Data de distribuição</label>
+    <input type="date" name="data" id="filtro-data" class="input" value="{{ data }}">
   </div>
   <div class="flex-1 min-w-40">
-    <label class="label">Buscar</label>
-    <input type="text" name="busca" class="input" placeholder="Nome ou número..." value="{{ busca }}">
+    <label class="label" for="filtro-busca">Buscar</label>
+    <input type="text" name="busca" id="filtro-busca" class="input" placeholder="Nome ou número..." value="{{ busca }}">
   </div>
   <button type="submit" class="btn-primary">Filtrar</button>
   {% if cliente_id or materia or data or busca %}
@@ -59,7 +59,7 @@
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-5 py-4">
             <p class="font-medium text-gray-900 truncate max-w-xs" title="{{ processo }}">{{ processo }}</p>
-            {% if processo.numero %}<p class="text-xs text-gray-400">{{ processo.numero }}</p>{% endif %}
+            {% if processo.numero %}<p class="text-xs text-gray-500">{{ processo.numero }}</p>{% endif %}
           </td>
           <td class="px-5 py-4 text-gray-600"><p class="truncate max-w-xs" title="{{ processo.clientes.all|join:", "|default:"—" }}">{{ processo.clientes.all|join:", "|default:"—" }}</p></td>
           <td class="px-5 py-4">
@@ -80,7 +80,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="3" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum processo encontrado no filtro atual.</td></tr>
+        <tr><td colspan="3" class="px-5 py-10 text-center text-sm text-gray-500">Nenhum processo encontrado no filtro atual.</td></tr>
         {% endfor %}
       </tbody>
     </table>

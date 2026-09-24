@@ -12,6 +12,19 @@
   [hidden] {
     display: none !important;
   }
+
+  /* Foco por teclado sempre visível: 2px na cor do escritório. Campos
+     (.input/.select) têm o próprio anel; a barra lateral troca para branco. */
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible,
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible,
+  input[type="color"]:focus-visible,
+  input[type="file"]:focus-visible {
+    @apply outline-none ring-2 ring-primaria ring-offset-2;
+  }
 }
 
 @layer components {
@@ -65,7 +78,7 @@
 
   /* ── Input padrão ─────────────────────────────────────────── */
   .input {
-    @apply w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primaria focus:border-transparent transition;
+    @apply w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primaria focus:border-transparent transition;
   }
 
   /* ── Select padrão ────────────────────────────────────────── */
@@ -120,11 +133,13 @@
   }
 
   .sidebar-logo {
-    @apply flex w-11 h-11 items-center justify-center mb-4 flex-shrink-0;
+    @apply flex w-11 h-11 items-center justify-center mb-4 flex-shrink-0 rounded-lg focus-visible:ring-white focus-visible:ring-offset-0;
   }
 
+  /* Inativo em branco a 80%: com a cor principal limitada em cores.py
+     (OPACIDADE_TEXTO_INATIVO), o contraste fica ≥ 4,5:1 em qualquer matiz. */
   .sidebar-item {
-    @apply flex items-center gap-3 w-full h-10 px-3 flex-shrink-0 rounded-lg text-sm text-gray-400 whitespace-nowrap hover:text-white hover:bg-primaria-hover transition-colors cursor-pointer;
+    @apply flex items-center gap-3 w-full h-10 px-3 flex-shrink-0 rounded-lg text-sm text-white/80 whitespace-nowrap hover:text-white hover:bg-primaria-hover transition-colors cursor-pointer focus-visible:ring-white focus-visible:ring-offset-0;
   }
 
   /* Ativo: realce discreto dentro da sidebar, sem bloco claro nem dourado */
@@ -160,8 +175,13 @@
     }
   }
 
+  /* ── Pular para o conteúdo: invisível até receber foco ─────── */
+  .pular-conteudo {
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:rounded-xl focus:bg-white focus:text-gray-900 focus:text-sm focus:font-medium focus:shadow-lg;
+  }
+
   /* ── Barra de busca visual ────────────────────────────────── */
   .search-bar {
-    @apply flex items-center gap-2 w-full px-3 py-2 bg-juridico-bege border border-transparent rounded-xl text-sm text-gray-400 cursor-text;
+    @apply flex items-center gap-2 w-full px-3 py-2 bg-juridico-bege border border-transparent rounded-xl text-sm text-gray-500 cursor-text;
   }
 }

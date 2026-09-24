@@ -15,6 +15,7 @@
 {% endblock %}
 
 {% block body %}
+<a href="#conteudo" class="pular-conteudo">Pular para o conteúdo</a>
 <div class="flex h-screen overflow-hidden bg-juridico-bg">
 
   {# ── Sidebar fixa à esquerda ───────────────────────────────────────────── #}
@@ -27,7 +28,7 @@
     {% include "components/header.html" %}
 
     {# ── Conteúdo da página ────────────────────────────────────────────── #}
-    <main class="flex-1 overflow-y-auto">
+    <main id="conteudo" tabindex="-1" class="flex-1 overflow-y-auto focus:outline-none">
       <div class="w-full max-w-[1600px] px-4 sm:px-8 py-6">
         {# Mensagens Django (alerts) #}
         {% if messages %}
@@ -37,7 +38,7 @@
               {% elif message.tags == 'success' %}bg-juridico-verde-bg text-juridico-verde
               {% else %}bg-amber-50 text-amber-800{% endif %}">
               <span>{{ message }}</span>
-              <button data-dismiss-alert class="text-current opacity-60 hover:opacity-100">&times;</button>
+              <button type="button" data-dismiss-alert class="text-current opacity-60 hover:opacity-100" aria-label="Fechar aviso">&times;</button>
             </div>
           {% endfor %}
         {% endif %}

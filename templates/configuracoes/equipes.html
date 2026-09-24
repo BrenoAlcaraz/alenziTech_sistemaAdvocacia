@@ -38,7 +38,7 @@
           <td class="px-5 py-4">
             <p class="font-medium text-gray-900">{{ item.equipe.nome }}</p>
             {% if item.equipe.descricao %}
-              <p class="text-xs text-gray-400 mt-0.5">{{ item.equipe.descricao }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ item.equipe.descricao }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center text-gray-700">
@@ -79,7 +79,7 @@
   {% else %}
   <div class="p-10 text-center">
     <p class="text-sm font-medium text-gray-500">Nenhuma equipe cadastrada ainda.</p>
-    <p class="text-xs text-gray-400 mt-1 mb-4">
+    <p class="text-xs text-gray-500 mt-1 mb-4">
       Crie a primeira equipe para organizar os usuários do escritório.
     </p>
     <a href="{% url 'configuracoes:nova_equipe' %}" class="btn-primary text-sm">

@@ -35,15 +35,15 @@
     {# Três colunas — mesmo layout do protótipo: Valor total / Já recebido / Ainda pendente #}
     <div class="flex flex-wrap gap-7 mt-3">
       <div>
-        <p class="text-xs text-gray-400">Valor total</p>
+        <p class="text-xs text-gray-500">Valor total</p>
         <p class="font-semibold text-gray-900">R$ {{ h.valor_total_exibido|moeda_br }}</p>
       </div>
       <div>
-        <p class="text-xs text-gray-400">Já recebido</p>
+        <p class="text-xs text-gray-500">Já recebido</p>
         <p class="font-semibold text-juridico-verde">R$ {{ h.valor_recebido|moeda_br }}</p>
       </div>
       <div>
-        <p class="text-xs text-gray-400">Ainda pendente</p>
+        <p class="text-xs text-gray-500">Ainda pendente</p>
         <p class="font-semibold text-amber-600">R$ {{ h.valor_pendente_hoje|moeda_br }}</p>
       </div>
     </div>
@@ -86,7 +86,7 @@
       {% endif %}
       <form method="post" action="{% url 'financeiro:cancelar_honorario' h.pk %}">
         {% csrf_token %}
-        <button type="submit" class="text-xs text-gray-400 hover:text-red-500 hover:underline">Cancelar</button>
+        <button type="submit" class="text-xs text-gray-500 hover:text-red-500 hover:underline">Cancelar</button>
       </form>
     </div>
   {% endif %}

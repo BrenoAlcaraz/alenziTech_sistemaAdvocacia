@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'financeiro:honorarios_lista' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'financeiro:honorarios_lista' %}" class="text-gray-500 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -53,8 +53,8 @@
             </div>
             {% include "financeiro/_campo_honorario.html" with campo=form.data_prevista dica="opcional no pagamento único" %}
           </div>
-          <p data-toggle-panel="pagamento" data-toggle-values="parcelado" class="text-xs text-gray-400">O valor é o total: será dividido em parcelas mensais, cada uma gerando uma receita pendente no Financeiro.</p>
-          <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-400">O valor é o de cada cobrança; cada uma gera uma receita pendente no Financeiro. Sem data de término, gera uma janela de cobranças futuras.</p>
+          <p data-toggle-panel="pagamento" data-toggle-values="parcelado" class="text-xs text-gray-500">O valor é o total: será dividido em parcelas mensais, cada uma gerando uma receita pendente no Financeiro.</p>
+          <p data-toggle-panel="pagamento" data-toggle-values="recorrente" class="text-xs text-gray-500">O valor é o de cada cobrança; cada uma gera uma receita pendente no Financeiro. Sem data de término, gera uma janela de cobranças futuras.</p>
           {% if form.ja_recebido %}
             {# Recebimento já ocorrido, registrado junto (só Administrador, só no cadastro) #}
             <div class="rounded-xl bg-gray-50 p-4 flex flex-col gap-3">
@@ -63,7 +63,7 @@
                 {% include "financeiro/_campo_honorario.html" with campo=form.data_recebimento dica="se já recebido" %}
                 {% include "financeiro/_campo_honorario.html" with campo=form.comprovante_recebimento dica="opcional" %}
               </div>
-              <p class="text-xs text-gray-400">Registra o recebimento no caixa. Recebimento parcial: cadastre sem marcar e use "Confirmar recebimento" depois.</p>
+              <p class="text-xs text-gray-500">Registra o recebimento no caixa. Recebimento parcial: cadastre sem marcar e use "Confirmar recebimento" depois.</p>
             </div>
           {% endif %}
           <div data-toggle-panel="pagamento" data-toggle-values="parcelado">
@@ -90,7 +90,7 @@
           <div data-toggle-panel="modalidade" data-toggle-values="exito,valor_exito" class="grid grid-cols-2 gap-4">
             {% include "financeiro/_campo_honorario.html" with campo=form.exito_percentual %}
             {% include "financeiro/_campo_honorario.html" with campo=form.exito_base %}
-            <p class="col-span-2 text-xs text-gray-400">O êxito é só anotação: não gera lançamento nem valor a receber. Com base "pelo ganho", a sucumbência do mesmo processo mostra o percentual a receber sobre a condenação corrigida.</p>
+            <p class="col-span-2 text-xs text-gray-500">O êxito é só anotação: não gera lançamento nem valor a receber. Com base "pelo ganho", a sucumbência do mesmo processo mostra o percentual a receber sobre a condenação corrigida.</p>
           </div>
         </div>
       </div>
@@ -121,11 +121,11 @@
             {% include "financeiro/_campo_honorario.html" with campo=form.data_juros_fim dica="vazia = até hoje" %}
           </div>
         </div>
-        <p class="text-xs text-gray-400">Sem integração com índices externos: informe a taxa mensal do índice (ou da Selic, no ente estatal). Devedor comum: correção pelo índice + juros de 1% a.m.; ente estatal: só a Selic, sem juros à parte. Cada incidência tem as suas datas porque o juiz costuma fixar termos distintos.</p>
+        <p class="text-xs text-gray-500">Sem integração com índices externos: informe a taxa mensal do índice (ou da Selic, no ente estatal). Devedor comum: correção pelo índice + juros de 1% a.m.; ente estatal: só a Selic, sem juros à parte. Cada incidência tem as suas datas porque o juiz costuma fixar termos distintos.</p>
 
         <div class="rounded-xl bg-gray-50 p-4 text-sm">
           <div class="flex justify-between"><span class="font-semibold text-gray-900">Sucumbência corrigida (prévia)</span><span id="calc-sucumbencia" class="font-semibold text-gray-900">R$ 0,00</span></div>
-          <p class="text-xs text-gray-400 mt-2">O êxito dos contratos "pelo ganho" do processo é somado na listagem.</p>
+          <p class="text-xs text-gray-500 mt-2">O êxito dos contratos "pelo ganho" do processo é somado na listagem.</p>
         </div>
 
         {% if honorario.exito_percentual is not None and honorario.tipo == "sucumbencial" %}
@@ -144,7 +144,7 @@
       </div>
 
       <div>
-        <label class="label" for="{{ form.observacoes.id_for_label }}">{{ form.observacoes.label }} <span class="text-gray-400 font-normal">(opcional)</span></label>
+        <label class="label" for="{{ form.observacoes.id_for_label }}">{{ form.observacoes.label }} <span class="text-gray-500 font-normal">(opcional)</span></label>
         {{ form.observacoes }}
         {% if form.observacoes.errors %}
           <p class="erro-campo text-xs text-red-600 mt-1">{{ form.observacoes.errors|join:", " }}</p>

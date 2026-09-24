@@ -38,7 +38,7 @@
           <td class="px-5 py-4">
             <p class="font-medium text-gray-900">{{ item.papel.nome }}</p>
             {% if item.papel.descricao %}
-              <p class="text-xs text-gray-400 mt-0.5">{{ item.papel.descricao }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">{{ item.papel.descricao }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center text-gray-700">
@@ -50,7 +50,7 @@
                 Preset de fábrica
               </span>
             {% else %}
-              <span class="text-gray-400 text-xs">Personalizado</span>
+              <span class="text-gray-500 text-xs">Personalizado</span>
             {% endif %}
           </td>
           <td class="px-5 py-4 text-center">
@@ -85,7 +85,7 @@
   {% else %}
   <div class="p-10 text-center">
     <p class="text-sm font-medium text-gray-500">Nenhum papel cadastrado ainda.</p>
-    <p class="text-xs text-gray-400 mt-1 mb-4">
+    <p class="text-xs text-gray-500 mt-1 mb-4">
       Crie o primeiro papel para definir permissões dinâmicas do escritório.
     </p>
     <a href="{% url 'configuracoes:novo_papel' %}" class="btn-primary text-sm">

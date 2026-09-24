@@ -5,7 +5,7 @@
 
 <div class="flex items-start justify-between mb-6">
   <div class="texto-quebra">
-    <p class="text-xs text-gray-400 mb-0.5">Papel</p>
+    <p class="text-xs text-gray-500 mb-0.5">Papel</p>
     <h1 class="text-2xl font-bold text-gray-900">{{ papel.nome }}</h1>
     <p class="text-sm text-gray-500 mt-0.5">Usuários vinculados a este papel</p>
   </div>
@@ -45,7 +45,7 @@
     </form>
 
   {% else %}
-    <p class="text-sm text-gray-400 italic">
+    <p class="text-sm text-gray-500 italic">
       Todos os usuários ativos já têm este papel atribuído ou não há usuários disponíveis.
     </p>
   {% endif %}
@@ -75,9 +75,9 @@
                 {{ vinculo.usuario.get_full_name|default:vinculo.usuario.username }}
               {% endif %}
             </p>
-            <p class="text-xs text-gray-400 truncate max-w-xs" title="@{{ vinculo.usuario.username }}">{% if vinculo.usuario.perfil.codigo %}{{ vinculo.usuario.perfil.codigo }} · {% endif %}@{{ vinculo.usuario.username }}</p>
+            <p class="text-xs text-gray-500 truncate max-w-xs" title="@{{ vinculo.usuario.username }}">{% if vinculo.usuario.perfil.codigo %}{{ vinculo.usuario.perfil.codigo }} · {% endif %}@{{ vinculo.usuario.username }}</p>
             {% if vinculo.usuario.email %}
-              <p class="text-xs text-gray-400 truncate max-w-xs" title="{{ vinculo.usuario.email }}">{{ vinculo.usuario.email }}</p>
+              <p class="text-xs text-gray-500 truncate max-w-xs" title="{{ vinculo.usuario.email }}">{{ vinculo.usuario.email }}</p>
             {% endif %}
           </td>
           <td class="px-5 py-4">

@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="flex items-center gap-3 mb-6">
-  <a href="{% url 'dashboard:painel' %}" class="text-gray-400 hover:text-gray-700">
+  <a href="{% url 'dashboard:painel' %}" class="text-gray-500 hover:text-gray-700">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
@@ -17,7 +17,7 @@
 
     <div class="flex flex-col gap-4 mb-4">
       <div>
-        <label class="label">Processo</label>
+        <label class="label" for="{{ form.processo.id_for_label }}">Processo</label>
         {{ form.processo }}
         {% if form.processo.errors %}
           <p class="erro-campo mt-1 text-xs text-red-600">{{ form.processo.errors.0 }}</p>
@@ -25,7 +25,7 @@
       </div>
 
       <div>
-        <label class="label">Motivo</label>
+        <label class="label" for="{{ form.motivo.id_for_label }}">Motivo</label>
         {{ form.motivo }}
         {% if form.motivo.errors %}
           <p class="erro-campo mt-1 text-xs text-red-600">{{ form.motivo.errors.0 }}</p>
@@ -33,7 +33,7 @@
       </div>
 
       <div>
-        <label class="label">Prazo para manifestação</label>
+        <label class="label" for="{{ form.prazo_manifestacao.id_for_label }}">Prazo para manifestação</label>
         {{ form.prazo_manifestacao }}
         {% if form.prazo_manifestacao.errors %}
           <p class="erro-campo mt-1 text-xs text-red-600">{{ form.prazo_manifestacao.errors.0 }}</p>
@@ -42,7 +42,7 @@
     </div>
 
     {% if not form.fields.processo.queryset.exists %}
-    <p class="text-sm text-gray-400 italic mb-4">
+    <p class="text-sm text-gray-500 italic mb-4">
       Nenhum processo disponível para vincular uma intimação.
     </p>
     {% endif %}

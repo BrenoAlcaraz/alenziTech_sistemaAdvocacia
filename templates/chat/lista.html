@@ -27,7 +27,7 @@
         Sala Geral
         <span data-nao-lida-slot>{% if sala_global.tem_nao_lida %}{% include "chat/_indicador_nao_lida.html" %}{% endif %}</span>
       </p>
-      <p class="text-xs text-gray-400">Todos do escritório</p>
+      <p class="text-xs text-gray-500">Todos do escritório</p>
     </div>
     <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -56,7 +56,7 @@
           {{ conversa.nome_exibicao }}
           <span data-nao-lida-slot>{% if conversa.tem_nao_lida %}{% include "chat/_indicador_nao_lida.html" %}{% endif %}</span>
         </p>
-        <p class="text-xs text-gray-400">{% if conversa.tipo == "grupo" %}Grupo{% else %}Conversa individual{% endif %}</p>
+        <p class="text-xs text-gray-500">{% if conversa.tipo == "grupo" %}Grupo{% else %}Conversa individual{% endif %}</p>
       </div>
       <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

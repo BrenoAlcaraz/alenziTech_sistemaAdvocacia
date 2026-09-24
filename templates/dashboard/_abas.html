@@ -6,9 +6,9 @@ toda derivada de Processos); só mostra Painel do gestor quando
 acesso_gestor é verdadeiro (Administrador ou módulo `gerir`).
 {% endcomment %}
 <div class="border-b border-gray-200 mb-6">
-  <nav class="-mb-px flex gap-6">
+  <nav class="-mb-px flex gap-6" aria-label="Abas">
     <a href="{% url 'dashboard:painel' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'geral' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'geral' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'geral' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5h6v6H4V5zm10 0h6v6h-6V5zM4 15h6v6H4v-6zm10 0h6v6h-6v-6z"/>
       </svg>
@@ -16,7 +16,7 @@ acesso_gestor é verdadeiro (Administrador ou módulo `gerir`).
     </a>
     {% if acesso_processos %}
     <a href="{% url 'dashboard:analise' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'analise' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'analise' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'analise' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3v18h18M7 15l4-5 3 3 5-7"/>
       </svg>
@@ -25,7 +25,7 @@ acesso_gestor é verdadeiro (Administrador ou módulo `gerir`).
     {% endif %}
     {% if acesso_gestor %}
     <a href="{% url 'dashboard:gestor' %}"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'gestor' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'gestor' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'gestor' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
       </svg>

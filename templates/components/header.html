@@ -26,13 +26,14 @@
     </span>
     {# Sino de notificações #}
     <details class="relative" data-dropdown>
-      <summary class="list-none relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <summary class="list-none relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+               aria-label="Notificações{% if notificacoes_total_nao_lidas %}, {{ notificacoes_total_nao_lidas }} não lida{{ notificacoes_total_nao_lidas|pluralize }}{% else %}, nenhuma não lida{% endif %}">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
         </svg>
         {% if notificacoes_total_nao_lidas %}
-          <span class="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4 h-4 text-[10px] font-semibold text-white bg-juridico-vermelho rounded-full">
+          <span aria-hidden="true" class="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4 h-4 text-[10px] font-semibold text-white bg-juridico-vermelho rounded-full">
             {{ notificacoes_total_nao_lidas }}
           </span>
         {% endif %}
@@ -41,7 +42,7 @@
         {% for notificacao in notificacoes_nao_lidas %}
           <div class="px-4 py-2 text-sm text-gray-700 border-b border-gray-50 last:border-0">{{ notificacao.mensagem }}</div>
         {% empty %}
-          <div class="px-4 py-2 text-sm text-gray-400">Nenhuma notificação</div>
+          <div class="px-4 py-2 text-sm text-gray-500">Nenhuma notificação</div>
         {% endfor %}
       </div>
     </details>
@@ -57,7 +58,7 @@
         <span class="text-gray-900 font-medium max-w-[12rem] truncate">
           {% if perfil.nome_completo %}{{ perfil.nome_completo }}{% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}
         </span>
-        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </summary>

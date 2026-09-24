@@ -2,7 +2,7 @@
   <div class="flex items-start justify-between gap-3">
     <div class="min-w-0">
       <p class="font-medium text-gray-900 truncate" title="{{ parte.nome }}">{{ parte.nome }}</p>
-      {% if parte.cpf_cnpj %}<p class="text-xs text-gray-400">{{ parte.cpf_cnpj }}</p>{% endif %}
+      {% if parte.cpf_cnpj %}<p class="text-xs text-gray-500">{{ parte.cpf_cnpj }}</p>{% endif %}
       {% if parte.ente_publico %}<p class="text-xs text-amber-700">Ente público — {{ parte.get_ente_publico_display }}</p>{% endif %}
     </div>
     <span class="badge-area">{{ parte.get_papel_display }}</span>
@@ -14,7 +14,7 @@
       <p class="text-sm text-gray-800 truncate" title="{{ parte.advogado_nome }}">{{ parte.advogado_nome }}</p>
       {% if parte.advogado_oab %}<p class="text-xs text-gray-500">OAB {{ parte.advogado_oab }}</p>{% endif %}
     {% else %}
-      <p class="text-xs text-gray-400">Nenhum advogado vinculado.</p>
+      <p class="text-xs text-gray-500">Nenhum advogado vinculado.</p>
     {% endif %}
   </div>
 

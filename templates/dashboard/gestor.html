@@ -26,11 +26,12 @@
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for item in usuarios_contexto %}
-        <tr class="hover:bg-gray-50 transition-colors cursor-pointer"
-            onclick="window.location='{% url 'dashboard:gestor_usuario' item.usuario.pk %}'">
+        {# Link real no nome; o ::after estica a área de clique para a linha toda. #}
+        <tr class="relative hover:bg-gray-50 transition-colors">
           <td class="px-5 py-4">
-            <p class="font-medium text-gray-900">{{ item.usuario.get_full_name|default:item.usuario.username }}</p>
-            <p class="text-xs text-gray-400">{% if item.usuario.perfil.codigo %}{{ item.usuario.perfil.codigo }} · {% endif %}@{{ item.usuario.username }}</p>
+            <a href="{% url 'dashboard:gestor_usuario' item.usuario.pk %}"
+               class="font-medium text-gray-900 after:absolute after:inset-0 after:content-['']">{{ item.usuario.get_full_name|default:item.usuario.username }}</a>
+            <p class="text-xs text-gray-500">{% if item.usuario.perfil.codigo %}{{ item.usuario.perfil.codigo }} · {% endif %}@{{ item.usuario.username }}</p>
           </td>
           <td class="px-5 py-4 text-gray-600">{{ item.papel_nome }}</td>
           <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_hoje }}</td>
@@ -38,7 +39,7 @@
           <td class="px-5 py-4 text-right font-semibold text-gray-900">{{ item.acoes_mes }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="px-5 py-10 text-center text-sm text-gray-400">Nenhum usuário ativo.</td></tr>
+        <tr><td colspan="5" class="px-5 py-10 text-center text-sm text-gray-500">Nenhum usuário ativo.</td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -754,5 +754,5 @@ class TestModelosListaFiltrosCombinados(ModelosAutorizacaoBase):
         r = self.client.get("/modelos/", HTTP_HOST=self.http_host)
         modelos = list(r.context["modelos"])
         rotulos = {m.pk: m.area_direito_label for m in modelos}
-        self.assertEqual(rotulos[self.modelo_civil.pk], "Cível")
+        self.assertEqual(rotulos[self.modelo_civil.pk], "Civil")
         self.assertEqual(rotulos[self.modelo_trabalhista.pk], "Trabalhista")

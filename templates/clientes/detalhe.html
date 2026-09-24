@@ -88,38 +88,38 @@
   {% if cliente.tipo == "PF" %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Estado civil</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Estado civil</p>
         <p class="text-sm text-gray-700">{{ cliente.get_estado_civil_display|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Nacionalidade</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Nacionalidade</p>
         <p class="text-sm text-gray-700">{{ cliente.nacionalidade|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Profissão</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Profissão</p>
         <p class="text-sm text-gray-700">{{ cliente.profissao|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Idade</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Idade</p>
         <p class="text-sm text-gray-700">{% if cliente.idade is not None %}{{ cliente.idade }} anos{% else %}—{% endif %}</p>
       </div>
     </div>
   {% else %}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Representante</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_nome|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">CPF do representante</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">CPF do representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_cpf|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Cargo/qualificação</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Cargo/qualificação</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_cargo|default:"—" }}</p>
       </div>
       <div class="texto-quebra">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Contato do representante</p>
+        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Contato do representante</p>
         <p class="text-sm text-gray-700">{{ cliente.representante_telefone|default:cliente.representante_email|default:"—" }}</p>
       </div>
     </div>
@@ -133,27 +133,27 @@
 
 {# Abas internas #}
 <div class="border-b border-gray-200 mb-6">
-  <nav class="-mb-px flex gap-6">
+  <nav class="-mb-px flex gap-6" aria-label="Abas">
     <a href="?aba=processos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'processos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'processos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'processos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l9-3 9 3v12l-9 3-9-3V6z"/>
       </svg>
-      Processos <span class="text-gray-400">({{ processos|length }})</span>
+      Processos <span class="text-gray-500">({{ processos|length }})</span>
     </a>
     <a href="?aba=documentos"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'documentos' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'documentos' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/>
       </svg>
-      Documentos <span class="text-gray-400">({{ documentos_total }})</span>
+      Documentos <span class="text-gray-500">({{ documentos_total }})</span>
     </a>
     <a href="?aba=relacionados"
-       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'relacionados' %}tab-active{% else %}tab-inactive{% endif %}">
+       class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'relacionados' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'relacionados' %} aria-current="page"{% endif %}>
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
       </svg>
-      Clientes relacionados <span class="text-gray-400">({{ clientes_relacionados|length }})</span>
+      Clientes relacionados <span class="text-gray-500">({{ clientes_relacionados|length }})</span>
     </a>
   </nav>
 </div>
@@ -170,7 +170,7 @@
         <span class="badge-area">{{ p.area_direito }}</span>
         <div class="flex-1 min-w-0">
           <p class="font-medium text-gray-900 truncate" title="{{ p }}">{{ p }}</p>
-          <p class="text-xs text-gray-400">{{ p.numero }}</p>
+          <p class="text-xs text-gray-500">{{ p.numero }}</p>
         </div>
         <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -181,7 +181,7 @@
     {% endfor %}
   </div>
 {% elif aba_ativa == "relacionados" %}
-  <p class="text-xs text-gray-400 mb-4">
+  <p class="text-xs text-gray-500 mb-4">
     Clientes que estão no mesmo polo (ativo ou passivo) que este cliente em algum processo em comum — depende de os dois terem sido cadastrados como Parte do processo.
   </p>
   <div class="flex flex-col gap-3">
@@ -190,7 +190,7 @@
       <div class="card px-5 py-4 flex items-center gap-3 hover:shadow-md transition-shadow">
         <a href="{% url 'clientes:detalhe' c.id %}" class="flex-1 min-w-0">
           <p class="font-medium text-gray-900 truncate" title="{{ c }}">{{ c }}</p>
-          <p class="text-xs text-gray-400">{{ c.cpf_cnpj }}</p>
+          <p class="text-xs text-gray-500">{{ c.cpf_cnpj }}</p>
         </a>
         {% if pode_ver_processos and item.processos_em_comum %}
         <div class="flex flex-col items-end gap-0.5 text-xs">
@@ -200,7 +200,7 @@
             </a>
           {% endfor %}
           {% if item.processos_em_comum.restantes %}
-            <span class="text-gray-400">+{{ item.processos_em_comum.restantes }}</span>
+            <span class="text-gray-500">+{{ item.processos_em_comum.restantes }}</span>
           {% endif %}
         </div>
         {% endif %}
@@ -240,7 +240,7 @@
           <span class="badge-area mb-1 inline-block">{{ documento.get_tipo_display }}</span>
           <p class="text-sm font-medium text-gray-900 truncate" title="{{ documento.nome_do_documento }}">{{ documento.nome_do_documento }}</p>
           {% if documento.descricao %}<p class="text-xs text-gray-500 truncate" title="{{ documento.descricao }}">{{ documento.descricao }}</p>{% endif %}
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-500 mt-0.5">
             {{ documento.autor|default:"—" }} · {{ documento.enviado_em|date:"d/m/Y H:i" }}
           </p>
         </div>
@@ -265,14 +265,14 @@
   {% endif %}
 
   {% if pode_ver_procuracoes %}
-  <h2 class="text-sm font-semibold text-gray-700 mt-6 mb-3">Procurações geradas <span class="text-gray-400">({{ procuracoes_geradas|length }})</span></h2>
+  <h2 class="text-sm font-semibold text-gray-700 mt-6 mb-3">Procurações geradas <span class="text-gray-500">({{ procuracoes_geradas|length }})</span></h2>
   {% if procuracoes_geradas %}
   <div class="flex flex-col gap-3">
     {% for peca in procuracoes_geradas %}
       <div class="card px-5 py-4 flex items-center justify-between gap-4">
         <div class="min-w-0">
           <p class="text-sm font-medium text-gray-900 truncate" title="{{ peca.titulo }}">{{ peca.titulo }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">
+          <p class="text-xs text-gray-500 mt-0.5">
             {{ peca.criado_por|default:"—" }} · {{ peca.criado_em|date:"d/m/Y H:i" }}
           </p>
         </div>

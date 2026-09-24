@@ -15,7 +15,7 @@
 {% else %}
 <div class="border-b border-gray-200 mb-6 pb-3">
   <h2 class="text-sm font-semibold text-gray-700">Minhas solicitações</h2>
-  <p class="text-xs text-gray-400 mt-0.5">Você não tem acesso ao caixa geral do escritório — apenas às suas próprias solicitações de pagamento e reembolso.</p>
+  <p class="text-xs text-gray-500 mt-0.5">Você não tem acesso ao caixa geral do escritório — apenas às suas próprias solicitações de pagamento e reembolso.</p>
 </div>
 {% endif %}
 
@@ -28,13 +28,13 @@
 <div class="flex flex-wrap gap-1 p-1 bg-gray-100 rounded-xl w-fit mb-4">
   <a href="?situacao=pendentes&{{ filtros_query }}"
      class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'pendentes' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Pendentes <span class="text-xs text-gray-400">{{ contagens.pendentes }}</span></a>
+    Pendentes <span class="text-xs text-gray-500">{{ contagens.pendentes }}</span></a>
   <a href="?situacao=pagas&{{ filtros_query }}"
      class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'pagas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Pagas <span class="text-xs text-gray-400">{{ contagens.pagas }}</span></a>
+    Pagas <span class="text-xs text-gray-500">{{ contagens.pagas }}</span></a>
   <a href="?situacao=rejeitadas&{{ filtros_query }}"
      class="px-3 py-1.5 rounded-lg text-sm font-medium {% if situacao == 'rejeitadas' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-500 hover:text-gray-700{% endif %}">
-    Rejeitadas <span class="text-xs text-gray-400">{{ contagens.rejeitadas }}</span></a>
+    Rejeitadas <span class="text-xs text-gray-500">{{ contagens.rejeitadas }}</span></a>
 </div>
 
 <form method="get" class="card p-4 mb-4 flex flex-wrap items-end gap-3">
