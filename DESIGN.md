@@ -311,6 +311,22 @@ esquerda, nunca em caixa alta.
   prazo normal em cinza, plano em bronze).
 - **Prioridade do cliente:** pílula indicativa (idoso em âmbar, menor
   de idade em azul), só visual.
+- **Tipo de compromisso (Agenda):** etiqueta de 6px de raio nos tokens
+  `tipo-*` (`.badge-tipo-<tipo>`). É categoria, não estado: nenhum tom
+  repete verde, vermelho ou laranja (audiência em índigo, reunião em
+  bronze).
+
+### Diálogo de confirmação
+Folha branca de até 384px sobre véu escuro: pergunta em 16px semibold,
+registro afetado em 14px médio, o que acontece em texto secundário e o
+que não é perdido em 12px de apoio. Confirmar à esquerda (contorno
+vermelho; primário quando a ação não é destrutiva), Cancelar à direita
+e com o foco ao abrir. Esc fecha e o foco volta ao botão de origem.
+
+### Mensagens de resultado
+Faixa de 12px de raio no par de estado (sucesso em crédito, erro em
+alerta, aviso em urgente, informação em areia), ícone de 20px à
+esquerda e botão de fechar rotulado à direita.
 
 ### Cards / Containers
 - **Corner Style:** 12px.

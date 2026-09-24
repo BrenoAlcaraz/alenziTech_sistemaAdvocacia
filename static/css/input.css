@@ -76,6 +76,11 @@
     @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600;
   }
 
+  /* ── Badge de tipo de compromisso (Agenda) ────────────────── */
+  .badge-tipo {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-tipo-protocolo-bg text-tipo-protocolo;
+  }
+
   /* ── Input padrão ─────────────────────────────────────────── */
   .input {
     @apply w-full px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primaria focus:border-transparent transition;
@@ -185,3 +190,16 @@
     @apply flex items-center gap-2 w-full px-3 py-2 bg-juridico-bege border border-transparent rounded-xl text-sm text-gray-500 cursor-text;
   }
 }
+
+/* ── Cor por tipo de compromisso (Agenda) ─────────────────────
+   Fora de @layer para não ser purgado: a classe é montada no template
+   a partir de `c.tipo` (badge-tipo-{{ c.tipo }}). Tipo sem cor própria
+   fica no tom neutro de .badge-tipo. */
+.badge-tipo-tarefa     { @apply bg-tipo-tarefa-bg text-tipo-tarefa; }
+.badge-tipo-audiencia  { @apply bg-tipo-audiencia-bg text-tipo-audiencia; }
+.badge-tipo-prazo      { @apply bg-tipo-prazo-bg text-tipo-prazo; }
+.badge-tipo-reuniao    { @apply bg-tipo-reuniao-bg text-tipo-reuniao; }
+.badge-tipo-protocolo  { @apply bg-tipo-protocolo-bg text-tipo-protocolo; }
+.badge-tipo-pericia    { @apply bg-tipo-pericia-bg text-tipo-pericia; }
+.badge-tipo-julgamento { @apply bg-tipo-julgamento-bg text-tipo-julgamento; }
+.badge-tipo-retorno    { @apply bg-tipo-retorno-bg text-tipo-retorno; }

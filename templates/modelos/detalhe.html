@@ -59,7 +59,7 @@
         {% csrf_token %}
         <button type="submit"
                 class="btn-secondary text-red-600 hover:text-red-700"
-                onclick="return confirm('{% if modelo.criado_por_id != request.user.id %}Este modelo foi criado por {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name|escapejs }}{% else %}{{ modelo.criado_por.username|escapejs }}{% endif %}. Excluir permanentemente?{% else %}Este modelo de peça será excluído permanentemente. Deseja continuar?{% endif %}')">
+                data-confirmar="Excluir este modelo de peça?" data-confirmar-registro="{{ modelo.titulo }}" data-confirmar-texto="{% if modelo.criado_por_id != request.user.id %}Este modelo foi criado por {% if modelo.criado_por.get_full_name %}{{ modelo.criado_por.get_full_name }}{% else %}{{ modelo.criado_por.username }}{% endif %}. {% endif %}Ele será excluído permanentemente." data-confirmar-acao="Excluir modelo">
           Excluir
         </button>
       </form>
@@ -86,7 +86,7 @@
               {% csrf_token %}
               <button type="submit"
                       class="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-2"
-                      onclick="return confirm('Reverter o modelo para esta versão anterior?')">
+                      data-confirmar="Reverter o modelo para esta versão anterior?" data-confirmar-registro="{{ versao.titulo }} — {{ versao.criado_em|date:'d/m/Y H:i' }}" data-confirmar-acao="Reverter" data-confirmar-tom="neutro">
                 Reverter para esta versão
               </button>
             </form>

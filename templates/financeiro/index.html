@@ -231,7 +231,7 @@
                 <button type="submit"
                         title="Excluir lançamento"
                         aria-label="Excluir lançamento"
-                        onclick="return confirm('Este lançamento financeiro será excluído permanentemente. Deseja continuar?')"
+                        data-confirmar="Excluir lançamento?" data-confirmar-registro="{{ l.descricao }} — vencimento {{ l.data_vencimento|date:'d/m/Y' }}, R$ {{ l.valor|moeda_br }}" data-confirmar-texto="Este lançamento financeiro será excluído permanentemente." data-confirmar-acao="Excluir lançamento"
                         class="text-gray-300 hover:text-red-500">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>

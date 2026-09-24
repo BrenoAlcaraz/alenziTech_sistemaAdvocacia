@@ -48,7 +48,7 @@
               {% csrf_token %}
               <button type="submit"
                       class="text-sm text-red-600 hover:text-red-700 underline underline-offset-2"
-                      onclick="return confirm('Excluir o tipo de peça \'{{ categoria.nome|escapejs }}\'? Só é possível se nenhum modelo a estiver usando.')">
+                      data-confirmar="Excluir este tipo de peça?" data-confirmar-registro="{{ categoria.nome }}" data-confirmar-texto="Só é possível se nenhum modelo a estiver usando." data-confirmar-acao="Excluir tipo de peça">
                 Excluir
               </button>
             </form>

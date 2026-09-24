@@ -129,7 +129,7 @@
     <form method="post" action="{% url 'financeiro:apagar_grupo' grupo.pk %}" class="mt-6">
       {% csrf_token %}
       <button type="submit" class="text-sm text-juridico-vermelho hover:underline"
-              onclick="return confirm('Apagar este grupo? Os membros voltam a ter saldo individual.')">Apagar grupo</button>
+              data-confirmar="Apagar este grupo?" data-confirmar-registro="Grupo {{ grupo.nome }}" data-confirmar-preserva="Os membros voltam a ter saldo individual.">Apagar grupo</button>
     </form>
   {% endif %}
 </div>

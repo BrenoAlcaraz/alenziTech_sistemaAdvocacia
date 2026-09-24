@@ -64,7 +64,7 @@
         {% csrf_token %}
         <button type="submit"
                 class="px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
-                onclick="return confirm('Desativar este cliente? Ele deixará de aparecer na lista.')">
+                data-confirmar="Desativar este cliente?" data-confirmar-registro="{{ cliente }}" data-confirmar-texto="Ele deixará de aparecer na lista.">
           Desativar
         </button>
       </form>
@@ -73,7 +73,7 @@
         {% csrf_token %}
         <button type="submit"
                 class="px-3 py-2 text-sm font-medium text-red-700 hover:underline"
-                onclick="return confirm('Excluir definitivamente este cliente? Lançamentos financeiros e itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência. Esta ação não pode ser desfeita.')">
+                data-confirmar="Excluir definitivamente este cliente?" data-confirmar-registro="{{ cliente }}" data-confirmar-texto="Esta ação não pode ser desfeita." data-confirmar-preserva="Lançamentos financeiros e itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência." data-confirmar-acao="Excluir cliente">
           Excluir
         </button>
       </form>
@@ -251,7 +251,7 @@
           <form method="post" action="{% url 'clientes:excluir_documento' cliente.pk documento.pk %}">
             {% csrf_token %}
             <button type="submit" class="text-xs text-red-600 hover:text-red-700"
-                    onclick="return confirm('Excluir este documento? Esta ação não pode ser desfeita.')">
+                    data-confirmar="Excluir este documento?" data-confirmar-registro="{{ documento.nome_do_documento }}" data-confirmar-texto="Esta ação não pode ser desfeita." data-confirmar-acao="Excluir documento">
               Excluir
             </button>
           </form>

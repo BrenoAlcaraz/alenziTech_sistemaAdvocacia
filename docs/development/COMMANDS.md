@@ -52,6 +52,11 @@ python manage.py test                                                       # tu
 Runner é o padrão do Django; testes usam `TenantTestCase`
 (django-tenants), exigem PostgreSQL real.
 
+JS compartilhado (`static/js/formularios.js`: confirmação e envio em
+andamento) tem testes em `tests/js/`, com `node:test` e DOM simulado,
+sem dependências: `npm run test:js`. Rodar quando o delta tocar esse
+arquivo.
+
 O custo é por **classe**, não por teste: cada classe cria um schema de
 tenant e roda todas as migrations (~2,5s de criação de schema; ~8s
 numa classe pequena isolada com `--keepdb`). `--keepdb` reaproveita o

@@ -30,18 +30,7 @@
     {# ── Conteúdo da página ────────────────────────────────────────────── #}
     <main id="conteudo" tabindex="-1" class="flex-1 overflow-y-auto focus:outline-none">
       <div class="w-full max-w-[1600px] px-4 sm:px-8 py-6">
-        {# Mensagens Django (alerts) #}
-        {% if messages %}
-          {% for message in messages %}
-            <div data-alert class="flex items-center justify-between gap-3 mb-4 px-4 py-3 rounded-xl text-sm
-              {% if message.tags == 'error' %}bg-juridico-vermelho-bg text-juridico-vermelho
-              {% elif message.tags == 'success' %}bg-juridico-verde-bg text-juridico-verde
-              {% else %}bg-amber-50 text-amber-800{% endif %}">
-              <span>{{ message }}</span>
-              <button type="button" data-dismiss-alert class="text-current opacity-60 hover:opacity-100" aria-label="Fechar aviso">&times;</button>
-            </div>
-          {% endfor %}
-        {% endif %}
+        {% include "components/mensagens.html" %}
 
         {% block content %}{% endblock %}
       </div>
@@ -49,4 +38,5 @@
 
   </div>
 </div>
+{% include "components/dialogo_confirmacao.html" %}
 {% endblock %}

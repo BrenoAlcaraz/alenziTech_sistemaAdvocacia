@@ -44,6 +44,26 @@ module.exports = {
           urgente: "#c2410c",
           "urgente-bg": "#ffedd5",
         },
+        // Tipos de compromisso da Agenda: categoria, não estado — por isso
+        // nenhum tom repete o verde/vermelho/laranja dos estados.
+        tipo: {
+          tarefa: "#1e3a8a",
+          "tarefa-bg": "#dbeafe",
+          audiencia: "#3730a3",
+          "audiencia-bg": "#e0e7ff",
+          prazo: "#78350f",
+          "prazo-bg": "#fef3c7",
+          reuniao: "#6b5436",
+          "reuniao-bg": "#f3ece2",
+          protocolo: "#374151",
+          "protocolo-bg": "#f3f4f6",
+          pericia: "#701a75",
+          "pericia-bg": "#fdf4ff",
+          julgamento: "#1c1917",
+          "julgamento-bg": "#f5f5f4",
+          retorno: "#134e4a",
+          "retorno-bg": "#f0fdfa",
+        },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

@@ -19,7 +19,7 @@
     <form method="post" action="{% url 'processos:arquivar' processo.pk %}">
       {% csrf_token %}
       <button type="submit" class="btn-secondary text-sm"
-              onclick="return confirm('Arquivar este processo? Ele sairá da listagem principal.')">
+              data-confirmar="Arquivar este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Ele sairá da listagem principal." data-confirmar-tom="neutro">
         Arquivar processo
       </button>
     </form>
@@ -29,7 +29,7 @@
     <form method="post" action="{% url 'processos:excluir' processo.pk %}">
       {% csrf_token %}
       <button type="submit" class="text-sm text-red-600 hover:text-red-700"
-              onclick="return confirm('Excluir definitivamente este processo? Documentos, partes, andamentos (com os prazos gerados na Agenda Jurídica), apensos e intimações também serão apagados. Lançamentos financeiros e demais itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência. Esta ação não pode ser desfeita.')">
+              data-confirmar="Excluir definitivamente este processo?" data-confirmar-registro="{{ processo.numero|default:processo }}" data-confirmar-texto="Documentos, partes, andamentos (com os prazos gerados na Agenda Jurídica), apensos e intimações também serão apagados. Esta ação não pode ser desfeita." data-confirmar-preserva="Lançamentos financeiros e demais itens da Agenda Jurídica vinculados são mantidos, apenas perdem a referência.">
         Excluir processo
       </button>
     </form>
@@ -423,7 +423,7 @@
           <form method="post" action="{% url 'processos:excluir_documento' processo.pk documento.pk %}">
             {% csrf_token %}
             <button type="submit" class="text-xs text-red-600 hover:text-red-700"
-                    onclick="return confirm('Excluir este documento? Esta ação não pode ser desfeita.')">
+                    data-confirmar="Excluir este documento?" data-confirmar-registro="{{ documento.nome_do_documento }}" data-confirmar-texto="Esta ação não pode ser desfeita." data-confirmar-acao="Excluir documento">
               Excluir
             </button>
           </form>

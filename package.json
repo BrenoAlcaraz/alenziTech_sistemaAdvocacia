@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css",
-    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch"
+    "watch": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
+    "test:js": "node --test \"tests/js/*.test.js\""
   },
   "devDependencies": {
     "tailwindcss": "^3.4.19"

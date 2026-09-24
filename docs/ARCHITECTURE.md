@@ -517,6 +517,26 @@ inalterado e um caminho `websocket` próprio (rotas em
   fora/Esc em `main.js`). O atributo `hidden` sempre vence classes de
   display (regra base em `input.css`).
 
+## Confirmação, envio e mensagens — padrão a reutilizar
+
+- **Confirmação**: nunca `confirm()` nativo. O botão de envio recebe
+  `data-confirmar="<pergunta>"` e, quando couber,
+  `data-confirmar-registro` (registro afetado), `-texto` (o que
+  acontece), `-preserva` (o que não é perdido), `-acao` (rótulo do
+  botão) e `-tom="neutro"` (ação não destrutiva). O diálogo único
+  (`components/dialogo_confirmacao.html`, incluído em `base_auth.html`)
+  é preenchido por `static/js/formularios.js`. Confirmação que precisa
+  de dados calculados no servidor continua como fragmento buscado por
+  `fetch` (ex.: `financeiro/_confirmar_cancelamento.html`).
+- **Envio em andamento**: todo `<form method="post">` fica bloqueado
+  contra segundo envio e o botão troca o rótulo pelo gerúndio do verbo
+  ("Salvar" → "Salvando…"; `data-enviando-rotulo` sobrescreve) — sem
+  marcação extra. GET (filtros) não é afetado; `form.submit()` via JS
+  não passa pelo guarda.
+- **Mensagens**: `components/mensagens.html` (ícone por nível, erro
+  `role="alert"`, demais `role="status"`).
+- Testes do JS: `tests/js/` (`npm run test:js`, ver COMMANDS.md).
+
 ## Texto livre longo em cards e listas — padrão a reutilizar
 
 Campos de texto livre (nome, título, descrição, responsável, cliente…)

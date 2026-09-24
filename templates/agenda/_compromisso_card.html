@@ -6,26 +6,7 @@
     <p class="font-semibold text-gray-900 truncate min-w-0" title="{{ c.titulo }}">{{ c.titulo }}</p>
     <div class="flex items-center gap-2 flex-shrink-0 flex-wrap">
 
-      {# Badge de tipo — cores inline para evitar purge Tailwind #}
-      {% if c.tipo == "tarefa" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#dbeafe;color:#1e3a8a;">Tarefa</span>
-      {% elif c.tipo == "audiencia" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fee2e2;color:#7f1d1d;">Audiência</span>
-      {% elif c.tipo == "prazo" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fef3c7;color:#78350f;">Prazo</span>
-      {% elif c.tipo == "reuniao" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#dcfce7;color:#14532d;">Reunião</span>
-      {% elif c.tipo == "protocolo" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">Protocolo</span>
-      {% elif c.tipo == "pericia" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#fdf4ff;color:#701a75;">Perícia</span>
-      {% elif c.tipo == "julgamento" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f5f5f4;color:#1c1917;">Julgamento</span>
-      {% elif c.tipo == "retorno" %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f0fdfa;color:#134e4a;">Retorno</span>
-      {% else %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#f3f4f6;color:#374151;">{{ c.get_tipo_display }}</span>
-      {% endif %}
+      <span class="badge-tipo badge-tipo-{{ c.tipo }}">{{ c.get_tipo_display }}</span>
 
       {# Badge de status — classes Tailwind completas são seguras contra purge #}
       {% if c.status == "a_fazer" %}
@@ -48,7 +29,7 @@
       <form method="post" action="{% url 'agenda:excluir' c.pk %}">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next_url }}">
-        <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors" title="Excluir" aria-label="Excluir" onclick="return confirm('Este item será excluído permanentemente. Deseja continuar?')">
+        <button type="submit" class="text-gray-500 hover:text-red-400 transition-colors" title="Excluir" aria-label="Excluir" data-confirmar="Excluir este item da agenda?" data-confirmar-registro="{{ c.titulo }}" data-confirmar-texto="Este item será excluído permanentemente." data-confirmar-acao="Excluir">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
           </svg>

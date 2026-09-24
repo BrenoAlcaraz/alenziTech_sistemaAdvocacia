@@ -24,14 +24,15 @@ DIAS_SEMANA = [
     "sexta-feira", "sábado", "domingo",
 ]
 
-# Cor sólida de cada tipo (ponto do calendário e marca do card).
+# Cor sólida de cada tipo (ponto do calendário e marca do card); mesmos
+# matizes dos tokens `tipo` do tailwind.config.js, fora das cores de estado.
 CORES_TIPO = {
     "tarefa": "#2563eb",
     "prazo": "#b45309",
     "protocolo": "#6b7280",
     "retorno": "#0d9488",
-    "audiencia": "#dc2626",
-    "reuniao": "#15803d",
+    "audiencia": "#4f46e5",
+    "reuniao": "#8b7355",
     "pericia": "#a21caf",
     "julgamento": "#292524",
 }

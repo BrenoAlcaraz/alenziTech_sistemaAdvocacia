@@ -33,14 +33,7 @@
 
   {# Card de login #}
   <div class="card p-6">
-    {% if messages %}
-      {% for message in messages %}
-        <div class="mb-4 px-3 py-2 rounded-lg text-sm
-          {% if message.tags == 'error' %}bg-juridico-vermelho-bg text-juridico-vermelho{% else %}bg-juridico-verde-bg text-juridico-verde{% endif %}">
-          {{ message }}
-        </div>
-      {% endfor %}
-    {% endif %}
+    {% include "components/mensagens.html" %}
 
     <form method="post" action="{% url 'accounts:login' %}">
       {% csrf_token %}

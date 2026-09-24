@@ -1,0 +1,14 @@
+{# Diálogo único de confirmação (substitui a caixa nativa do navegador). Incluído uma vez em base_auth.html; preenchido por static/js/formularios.js a partir do botão de envio: data-confirmar (título), data-confirmar-registro (registro afetado), data-confirmar-texto (o que acontece), data-confirmar-preserva (o que não é perdido), data-confirmar-acao (rótulo do botão; padrão: texto do botão de origem), data-confirmar-tom="neutro" (ação não destrutiva). Só interface: autorização segue no backend. #}
+<dialog id="dlg-confirmar" data-dialogo-confirmacao class="rounded-xl p-0 backdrop:bg-black/40"
+        aria-labelledby="dlg-confirmar-titulo" aria-describedby="dlg-confirmar-texto">
+  <div class="p-5 w-96 max-w-full">
+    <h2 id="dlg-confirmar-titulo" class="text-base font-semibold text-gray-900" data-confirmar-titulo></h2>
+    <p class="text-sm font-medium text-gray-900 mt-2 texto-quebra" data-confirmar-registro hidden></p>
+    <p id="dlg-confirmar-texto" class="text-sm text-gray-600 mt-2" data-confirmar-texto></p>
+    <p class="text-xs text-gray-500 mt-2" data-confirmar-preserva hidden></p>
+    <div class="flex items-center gap-3 mt-4">
+      <button type="button" class="btn-danger" data-confirmar-ok></button>
+      <button type="button" class="btn-secondary" data-fechar-dialogo>Cancelar</button>
+    </div>
+  </div>
+</dialog>
