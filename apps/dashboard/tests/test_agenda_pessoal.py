@@ -172,6 +172,15 @@ class TestBlocoPendentesDeConfirmacao(DashboardAgendaPessoalBase):
         self.assertIn("Convite Pendente", titulos)
         self.assertNotIn("Já Confirmado", titulos)
 
+    def test_convite_pendente_aparece_na_faixa_hoje_com_link(self):
+        resposta = self._get_painel()
+
+        self.assertContains(resposta, "Convite: Convite Pendente")
+        self.assertEqual(
+            resposta.context["compromissos_pendentes_dashboard"][0].item.url.split("?")[0],
+            "/agenda/",
+        )
+
     def test_confirmar_via_dashboard_redireciona_para_o_painel(self):
         r = self.client.post(
             f"/agenda/{self.pendente.pk}/confirmar-presenca/",

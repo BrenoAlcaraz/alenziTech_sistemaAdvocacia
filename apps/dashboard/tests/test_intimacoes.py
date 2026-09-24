@@ -53,7 +53,8 @@ class TestPainelIntimacoesSemAcessoProcessos(PainelIntimacoesBase):
 
         resposta = self.client.get("/", HTTP_HOST=self.http_host)
         self.assertIsNone(resposta.context["intimacoes"])
-        self.assertNotContains(resposta, "Nenhuma intimação pendente.")
+        self.assertNotContains(resposta, "Intimação:")
+        self.assertNotContains(resposta, "dlg-manifestar")
 
 
 class TestPainelIntimacoesComAcesso(PainelIntimacoesBase):
@@ -73,6 +74,15 @@ class TestPainelIntimacoesComAcesso(PainelIntimacoesBase):
         resposta = self.client.get("/", HTTP_HOST=self.http_host)
         intimacoes = list(resposta.context["intimacoes"])
         self.assertEqual(intimacoes, [self.pendente])
+
+    def test_faixa_hoje_so_grava_manifestacao_pelo_dialogo_de_confirmacao(self):
+        resposta = self.client.get("/", HTTP_HOST=self.http_host)
+        url = f"/processos/intimacoes/{self.pendente.pk}/manifestar/"
+
+        self.assertContains(resposta, "Intimação: ")
+        self.assertContains(resposta, f'data-manifestar-url="{url}"')
+        self.assertNotContains(resposta, f'action="{url}"')
+        self.assertContains(resposta, 'id="dlg-manifestar"')
 
     def test_manifestar_remove_do_painel(self):
         self.client.post(

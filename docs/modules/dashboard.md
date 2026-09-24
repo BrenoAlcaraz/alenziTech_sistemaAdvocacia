@@ -26,8 +26,24 @@ com `status="arquivado"`.
 - **Prazos a vencer**: itens tipo Prazo da Agenda Jurídica em aberto,
   pela data fatal (não vencida), no escopo de leitura da agenda do
   usuário (PDR-0034) — exige o módulo Agenda Jurídica, não Processos.
-  Grupos cumulativos: hoje, amanhã, até 3 dias, até 5 dias; cada prazo
-  leva ao item.
+  Grupos excludentes: hoje, amanhã, em 2–3 dias, em 4–5 dias; cada prazo
+  aparece uma única vez na tela e leva ao item. Hoje e amanhã ficam na
+  faixa "Hoje"; os demais, no bloco "Prazos a vencer" logo abaixo dela.
+
+## Faixa "Hoje"
+
+Primeiro bloco da Visão geral, antes de qualquer card de indicador. Só
+reúne o que o Painel já calcula, com a autorização de cada origem:
+prazos com data fatal hoje e amanhã e convites de Evento aguardando
+resposta (módulo Agenda Jurídica), intimações pendentes (módulo
+Processos). Cada item leva ao registro; sem nada pendente, mostra um
+estado vazio positivo.
+
+- O card "Afazeres pendentes" não conta os prazos da janela de 5 dias
+  (já contados na faixa/"Prazos a vencer") — nenhum prazo é contado duas
+  vezes na tela.
+- "Marcar como manifestada" (efeito jurídico) só grava depois de
+  confirmação em diálogo; voltar não altera nada.
 
 ## Cards financeiros e "Usuários ativos"
 

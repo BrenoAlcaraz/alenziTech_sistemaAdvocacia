@@ -1,23 +1,137 @@
 {% extends "base/base_auth.html" %}
+{% load moeda %}
 {% block title %}Painel — Jurídico SaaS{% endblock %}
 
 {% block content %}
 
 {# ── Cabeçalho da página ───────────────────────────────────────────────────── #}
-<div class="flex items-start justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Painel</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Visão geral do escritório</p>
-  </div>
-  <span class="badge-plano">
-    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-    </svg>
-    {{ plano_nome|default:"Demo" }}
-  </span>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Painel</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Visão geral do escritório</p>
 </div>
 
 {% include "dashboard/_abas.html" %}
+
+{% if acesso_agenda or acesso_processos %}
+{# ── Hoje: o que vence ou exige ação agora — primeiro bloco do Painel ──────── #}
+<section class="card p-5 mb-4" aria-labelledby="titulo-hoje">
+  <div class="flex items-center justify-between gap-3 mb-3">
+    <h2 id="titulo-hoje" class="text-base font-semibold text-gray-900">Hoje <span class="text-sm font-normal text-gray-500">· {% now "d/m/Y" %}</span></h2>
+    {% if acesso_processos %}
+      <a href="{% url 'processos:nova_intimacao' %}" class="text-sm font-medium text-juridico-ouro hover:underline">+ Nova intimação</a>
+    {% endif %}
+  </div>
+
+  {% if prazos.hoje.total or prazos.amanha.total or intimacoes or compromissos_pendentes_dashboard %}
+  <div class="flex flex-col divide-y divide-gray-100">
+
+    {% for item in prazos.hoje.itens %}
+      <a href="{{ item.url }}" class="py-2.5 flex items-center justify-between gap-3 hover:bg-gray-50 -mx-2 px-2 rounded-lg">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ item.titulo }}">Prazo: {{ item.titulo }}</p>
+          {% if item.processo %}<p class="text-xs text-gray-500 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
+        </div>
+        <span class="flex-shrink-0 text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">Vence hoje</span>
+      </a>
+    {% endfor %}
+
+    {% for item in prazos.amanha.itens %}
+      <a href="{{ item.url }}" class="py-2.5 flex items-center justify-between gap-3 hover:bg-gray-50 -mx-2 px-2 rounded-lg">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ item.titulo }}">Prazo: {{ item.titulo }}</p>
+          {% if item.processo %}<p class="text-xs text-gray-500 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
+        </div>
+        <span class="flex-shrink-0 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Vence amanhã</span>
+      </a>
+    {% endfor %}
+
+    {% for intimacao in intimacoes %}
+      <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+        <a href="{% url 'processos:detalhe' intimacao.processo.pk %}" class="min-w-0 hover:underline">
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ intimacao.processo }} — {{ intimacao.motivo }}">Intimação: {{ intimacao.processo }} — {{ intimacao.motivo }}</p>
+          <p class="text-xs text-gray-500">Prazo para manifestação: {{ intimacao.prazo_manifestacao|date:"d/m/Y" }}</p>
+        </a>
+        <button type="button"
+                data-manifestar-url="{% url 'processos:manifestar_intimacao' intimacao.pk %}"
+                data-manifestar-descricao="{{ intimacao.processo }} — {{ intimacao.motivo }}"
+                class="flex-shrink-0 self-start sm:self-auto text-xs text-gray-600 hover:text-gray-900 underline underline-offset-2">Marcar como manifestada</button>
+      </div>
+    {% endfor %}
+
+    {% for participacao in compromissos_pendentes_dashboard %}
+      <div class="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+        <a href="{{ participacao.item.url }}" class="min-w-0 hover:underline">
+          <p class="text-sm font-medium text-gray-900 truncate" title="{{ participacao.item.titulo }}">Convite: {{ participacao.item.titulo }}</p>
+          <p class="text-xs text-gray-500">{{ participacao.item.data_hora_inicio|date:"d/m/Y H:i" }} · aguardando sua resposta</p>
+        </a>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <form method="post" action="{% url 'agenda:confirmar_presenca' participacao.item.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
+            <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors">Confirmar</button>
+          </form>
+          <form method="post" action="{% url 'agenda:recusar_presenca' participacao.item.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
+            <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors">Recusar</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+
+  </div>
+  {% else %}
+    <p class="text-sm text-gray-600 py-1">Tudo em dia: nada vence hoje ou amanhã e não há pendências aguardando você.</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if acesso_agenda %}
+{# ── Prazos a vencer ──────────────────────────────────────────────────────── #}
+<div class="card p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">Prazos a vencer <span class="font-normal text-gray-500">· depois de amanhã</span></h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-gray-700">{{ prazos.3dias.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem em 2 a 3 dias</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in prazos.3dias.itens %}
+          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
+              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
+            </div>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo em 2 a 3 dias.</p>
+        {% endfor %}
+      </div>
+    </details>
+    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
+      <summary class="cursor-pointer list-none text-center">
+        <p class="text-xl font-bold text-gray-700">{{ prazos.5dias.total }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">Vencem em 4 a 5 dias</p>
+      </summary>
+      <div class="mt-3 flex flex-col divide-y divide-gray-100">
+        {% for item in prazos.5dias.itens %}
+          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
+              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
+            </div>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
+          </a>
+        {% empty %}
+          <p class="text-xs text-gray-400 py-2">Nenhum prazo em 4 a 5 dias.</p>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
+</div>
+{% endif %}
 
 {# ── Cards de resumo — dados reais ────────────────────────────────────────── #}
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8">
@@ -55,14 +169,15 @@
   {% if acesso_agenda %}
   {# Afazeres pendentes #}
   <a href="{% url 'agenda:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
-    <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
+      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
       </svg>
     </div>
     <div>
       <p class="text-2xl font-bold text-gray-900">{{ resumo.tarefas_pendentes }}</p>
       <p class="text-sm text-gray-500">Afazeres pendentes</p>
+      <p class="text-xs text-gray-500">sem os prazos dos próximos 5 dias</p>
     </div>
   </a>
   {% endif %}
@@ -89,8 +204,8 @@
   {% if acesso_usuarios_ativos %}
   {# Usuários ativos #}
   <a href="{% url 'configuracoes:index' %}" class="card p-5 flex items-center gap-4 hover:shadow-md transition-shadow duration-150">
-    <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-      <svg class="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="w-10 h-10 rounded-xl bg-juridico-bege flex items-center justify-center flex-shrink-0">
+      <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
       </svg>
     </div>
@@ -140,47 +255,16 @@
   {% endif %}
 
   {% if acesso_agenda %}
-  {# Bloco 2 — Agenda próxima: confirmados dos próximos 7 dias + pendentes de confirmação #}
+  {# Bloco 2 — Agenda próxima: confirmados dos próximos 7 dias (convites pendentes ficam na faixa "Hoje") #}
   <div class="card p-4 flex flex-col gap-3 min-w-0">
     <div class="flex items-center justify-between">
       <h2 class="text-sm font-semibold text-gray-700">Agenda próxima</h2>
       <a href="{% url 'agenda:index' %}" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">Ver agenda →</a>
     </div>
 
-    {% if compromissos_pendentes_dashboard %}
-    <details class="rounded-lg bg-amber-50 border border-amber-100">
-      <summary class="cursor-pointer text-xs font-medium text-amber-700 px-3 py-2 list-none flex items-center justify-between">
-        <span>{{ compromissos_pendentes_dashboard|length }} convite{{ compromissos_pendentes_dashboard|length|pluralize }} aguardando sua confirmação</span>
-        <span class="text-amber-500">▾</span>
-      </summary>
-      <div class="px-3 pb-3 flex flex-col gap-2">
-        {% for participacao in compromissos_pendentes_dashboard %}
-          <div class="flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ participacao.item.titulo }}">{{ participacao.item.titulo }}</p>
-              <p class="text-xs text-gray-400">{{ participacao.item.data_hora_inicio|date:"d/m/Y H:i" }}</p>
-            </div>
-            <div class="flex items-center gap-1 flex-shrink-0">
-              <form method="post" action="{% url 'agenda:confirmar_presenca' participacao.item.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
-                <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-colors">Confirmar</button>
-              </form>
-              <form method="post" action="{% url 'agenda:recusar_presenca' participacao.item.pk %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{% url 'dashboard:painel' %}">
-                <button type="submit" class="px-2 py-1 rounded-md text-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 transition-colors">Recusar</button>
-              </form>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
-    </details>
-    {% endif %}
-
     <div class="flex flex-col">
       {% for c in compromissos_dashboard %}
-        <div class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0">
+        <a href="{{ c.url }}" class="flex flex-col gap-0.5 py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 -mx-1 px-1 rounded">
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm font-medium text-gray-900 truncate" title="{{ c.titulo }}">{{ c.titulo }}</p>
             <span class="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{{ c.get_tipo_display }}</span>
@@ -199,7 +283,7 @@
               <p class="text-xs text-gray-400 truncate" title="{{ c.processo }}">{{ c.processo }}</p>
             {% endif %}
           </div>
-        </div>
+        </a>
       {% empty %}
         <p class="text-sm text-gray-400 py-2">Nenhum compromisso agendado.</p>
       {% endfor %}
@@ -228,7 +312,7 @@
             {% endif %}
           </div>
           <div class="flex items-center gap-1.5 flex-wrap">
-            <p class="text-xs font-medium text-gray-600">R$ {{ l.valor|floatformat:2 }}</p>
+            <p class="text-xs font-medium text-gray-600">R$ {{ l.valor|moeda_br }}</p>
             <span class="text-xs text-gray-300">·</span>
             <p class="text-xs text-gray-400">{{ l.data_vencimento|date:"d/m/Y" }}</p>
             {% if l.cliente %}
@@ -253,10 +337,10 @@
 {# ── Movimentação processual ──────────────────────────────────────────────── #}
 <div class="card p-5 mt-6">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Movimentação processual</h2>
-  <div class="grid grid-cols-2 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
     <details class="min-w-0 rounded-xl bg-gray-50 p-4" {% if movimentacao.24h.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.24h.total }}</p>
+        <p class="text-xl font-bold text-gray-900">{{ movimentacao.24h.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Movimentados nas últimas 24h</p>
       </summary>
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
@@ -266,7 +350,7 @@
               <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
-            <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
           <p class="text-xs text-gray-400 py-2">Nenhum processo movimentado.</p>
@@ -275,7 +359,7 @@
     </details>
     <details class="min-w-0 rounded-xl bg-gray-50 p-4" {% if not movimentacao.24h.total and movimentacao.7dias.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-juridico-verde">{{ movimentacao.7dias.total }}</p>
+        <p class="text-xl font-bold text-gray-900">{{ movimentacao.7dias.total }}</p>
         <p class="text-xs text-gray-500 mt-0.5">Movimentados nos últimos 7 dias</p>
       </summary>
       <div class="mt-3 flex flex-col divide-y divide-gray-100">
@@ -285,7 +369,7 @@
               <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.processo }}">{{ item.processo }}</p>
               <p class="text-xs text-gray-400">{{ item.movimentacao.data|date:"d/m/Y H:i" }} — {{ item.movimentacao.get_tipo_display }}</p>
             </div>
-            <span class="text-xs text-juridico-verde flex-shrink-0">Ver →</span>
+            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
           </a>
         {% empty %}
           <p class="text-xs text-gray-400 py-2">Nenhum processo movimentado.</p>
@@ -298,7 +382,7 @@
 {# ── Processos paralisados ────────────────────────────────────────────────── #}
 <div class="card p-5 mt-4">
   <h2 class="text-sm font-semibold text-gray-700 mb-4">Processos paralisados</h2>
-  <div class="grid grid-cols-3 gap-3">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
     <details class="min-w-0 rounded-xl bg-amber-50 p-4" {% if paralisados.1mes.total %}open{% endif %}>
       <summary class="cursor-pointer list-none text-center">
         <p class="text-xl font-bold text-amber-600">{{ paralisados.1mes.total }}</p>
@@ -358,118 +442,45 @@
     </details>
   </div>
 </div>
-
-{# ── Intimações ────────────────────────────────────────────────────────────── #}
-<div class="card p-5 mt-4">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-sm font-semibold text-gray-700">Intimações</h2>
-    <a href="{% url 'processos:nova_intimacao' %}" class="text-sm font-medium text-juridico-ouro hover:underline">+ Nova intimação</a>
-  </div>
-  <div class="flex flex-col divide-y divide-gray-100">
-    {% for intimacao in intimacoes %}
-      <div class="py-3 flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-900 truncate" title="{{ intimacao.processo }} — {{ intimacao.motivo }}">{{ intimacao.processo }} — {{ intimacao.motivo }}</p>
-          <p class="text-xs text-gray-400">Prazo para manifestação: {{ intimacao.prazo_manifestacao|date:"d/m/Y" }}</p>
-        </div>
-        <div class="flex items-center gap-3 flex-shrink-0">
-          <a href="{% url 'processos:detalhe' intimacao.processo.pk %}" class="text-xs text-juridico-ouro hover:underline">Ver processo →</a>
-          <form method="post" action="{% url 'processos:manifestar_intimacao' intimacao.pk %}">
-            {% csrf_token %}
-            <button type="submit" class="text-xs text-gray-500 hover:text-gray-900 underline underline-offset-2">Marcar como manifestada</button>
-          </form>
-        </div>
-      </div>
-    {% empty %}
-      <p class="text-sm text-gray-400 py-3">Nenhuma intimação pendente.</p>
-    {% endfor %}
-  </div>
-</div>
 {% endif %}
 
-{% if acesso_agenda %}
-{# ── Prazos a vencer ──────────────────────────────────────────────────────── #}
-<div class="card p-5 mt-4">
-  <h2 class="text-sm font-semibold text-gray-700 mb-4">Prazos a vencer</h2>
-  <div class="grid grid-cols-4 gap-3">
-    <details class="min-w-0 rounded-xl bg-red-50 p-4" {% if prazos.hoje.total %}open{% endif %}>
-      <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-juridico-vermelho">{{ prazos.hoje.total }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">Vencem hoje</p>
-      </summary>
-      <div class="mt-3 flex flex-col divide-y divide-gray-100">
-        {% for item in prazos.hoje.itens %}
-          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
-              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
-            </div>
-            <span class="text-xs text-juridico-vermelho flex-shrink-0">Ver →</span>
-          </a>
-        {% empty %}
-          <p class="text-xs text-gray-400 py-2">Nenhum prazo hoje.</p>
-        {% endfor %}
-      </div>
-    </details>
-    <details class="min-w-0 rounded-xl bg-amber-50 p-4">
-      <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-amber-600">{{ prazos.amanha.total }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">Vencem amanhã</p>
-      </summary>
-      <div class="mt-3 flex flex-col divide-y divide-gray-100">
-        {% for item in prazos.amanha.itens %}
-          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
-              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
-            </div>
-            <span class="text-xs text-amber-600 flex-shrink-0">Ver →</span>
-          </a>
-        {% empty %}
-          <p class="text-xs text-gray-400 py-2">Nenhum prazo amanhã.</p>
-        {% endfor %}
-      </div>
-    </details>
-    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
-      <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-gray-700">{{ prazos.3dias.total }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">Vencem em até 3 dias</p>
-      </summary>
-      <div class="mt-3 flex flex-col divide-y divide-gray-100">
-        {% for item in prazos.3dias.itens %}
-          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
-              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
-            </div>
-            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
-          </a>
-        {% empty %}
-          <p class="text-xs text-gray-400 py-2">Nenhum prazo em até 3 dias.</p>
-        {% endfor %}
-      </div>
-    </details>
-    <details class="min-w-0 rounded-xl bg-gray-50 p-4">
-      <summary class="cursor-pointer list-none text-center">
-        <p class="text-xl font-bold text-gray-700">{{ prazos.5dias.total }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">Vencem em até 5 dias</p>
-      </summary>
-      <div class="mt-3 flex flex-col divide-y divide-gray-100">
-        {% for item in prazos.5dias.itens %}
-          <a href="{{ item.url }}" class="py-2 flex items-center justify-between gap-2 hover:bg-white rounded-lg -mx-1 px-1">
-            <div class="min-w-0">
-              <p class="text-xs font-medium text-gray-900 truncate" title="{{ item.titulo }}">{{ item.titulo }}</p>
-              {% if item.processo %}<p class="text-xs text-gray-400 truncate" title="{{ item.processo }}">{{ item.processo }}</p>{% endif %}
-            </div>
-            <span class="text-xs text-gray-500 flex-shrink-0">Ver →</span>
-          </a>
-        {% empty %}
-          <p class="text-xs text-gray-400 py-2">Nenhum prazo em até 5 dias.</p>
-        {% endfor %}
-      </div>
-    </details>
-  </div>
-</div>
+{% if acesso_processos %}
+{# Confirmação antes de gravar: marcar como manifestada tem efeito jurídico. #}
+<dialog id="dlg-manifestar" class="rounded-xl p-0 backdrop:bg-black/40" aria-labelledby="titulo-manifestar">
+  <form method="post" id="form-manifestar" class="p-5 w-96 max-w-full">
+    {% csrf_token %}
+    <h2 id="titulo-manifestar" class="text-base font-semibold text-gray-900">Marcar intimação como manifestada?</h2>
+    <p class="text-sm text-gray-900 font-medium mt-2" data-manifestar-texto></p>
+    <p class="text-sm text-gray-600 mt-2">A intimação sai do Painel e deixa de aparecer como pendente.</p>
+    <div class="flex items-center gap-3 mt-4">
+      <button type="submit" class="btn-primary">Marcar como manifestada</button>
+      <button type="button" data-fechar-dialogo class="btn-secondary">Voltar</button>
+    </div>
+  </form>
+</dialog>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_scripts %}
+{% if acesso_processos %}
+<script>
+  (function () {
+    var dialogo = document.getElementById('dlg-manifestar');
+    if (!dialogo) return;
+    var formulario = document.getElementById('form-manifestar');
+    var texto = dialogo.querySelector('[data-manifestar-texto]');
+    document.querySelectorAll('[data-manifestar-url]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        formulario.action = btn.dataset.manifestarUrl;
+        texto.textContent = btn.dataset.manifestarDescricao;
+        dialogo.showModal();
+      });
+    });
+    dialogo.addEventListener('click', function (evento) {
+      if (evento.target.closest('[data-fechar-dialogo]')) dialogo.close();
+    });
+  })();
+</script>
+{% endif %}
 {% endblock %}

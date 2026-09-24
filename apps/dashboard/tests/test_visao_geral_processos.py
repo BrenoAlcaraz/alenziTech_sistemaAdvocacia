@@ -153,9 +153,10 @@ class TestPrazosAVencer(DashboardProcessosBase):
             tipo="prazo", titulo=titulo, data_fatal=timezone.localdate() + timedelta(days=dias), **dados,
         )
 
-    def test_grupos_cumulativos_por_data_fatal(self):
+    def test_grupos_excludentes_por_data_fatal(self):
         p_hoje = self._prazo("Prazo hoje", 0)
         p_amanha = self._prazo("Prazo amanhã", 1)
+        p_2d = self._prazo("Prazo em 2 dias", 2)
         p_3d = self._prazo("Prazo em 3 dias", 3)
         p_5d = self._prazo("Prazo em 5 dias", 5)
         self._prazo("Prazo em 10 dias", 10)
@@ -164,15 +165,36 @@ class TestPrazosAVencer(DashboardProcessosBase):
         resposta = self._get()
         prazos = resposta.context["prazos"]
 
-        self.assertEqual(prazos["hoje"]["total"], 1)
-        self.assertEqual(prazos["amanha"]["total"], 1)
-        self.assertEqual(prazos["3dias"]["total"], 3)
-        self.assertEqual(prazos["5dias"]["total"], 4)
-        self.assertIn(p_hoje, prazos["hoje"]["itens"])
-        self.assertIn(p_amanha, prazos["3dias"]["itens"])
-        self.assertIn(p_3d, prazos["5dias"]["itens"])
-        self.assertIn(p_5d, prazos["5dias"]["itens"])
+        self.assertEqual(prazos["hoje"]["itens"], [p_hoje])
+        self.assertEqual(prazos["amanha"]["itens"], [p_amanha])
+        self.assertEqual(prazos["3dias"]["itens"], [p_2d, p_3d])
+        self.assertEqual(prazos["5dias"]["itens"], [p_5d])
         self.assertContains(resposta, f"/agenda/{p_hoje.pk}/editar/")
+
+    def test_faixa_hoje_e_o_primeiro_bloco_com_prazo_de_hoje(self):
+        self._prazo("Prazo fatal de hoje", 0)
+
+        html = self._get().content.decode()
+
+        inicio_faixa = html.index('id="titulo-hoje"')
+        self.assertLess(inicio_faixa, html.index("Prazo: Prazo fatal de hoje"))
+        self.assertLess(html.index("Prazo: Prazo fatal de hoje"), html.index("Prazos a vencer"))
+        self.assertLess(html.index("Prazos a vencer"), html.index("Processos ativos"))
+
+    def test_faixa_hoje_vazia_mostra_estado_positivo(self):
+        self._prazo("Prazo em 10 dias", 10)
+
+        self.assertContains(self._get(), "Tudo em dia")
+
+    def test_afazeres_pendentes_nao_recontam_prazos_da_janela(self):
+        self._prazo("Prazo hoje", 0)
+        self._prazo("Prazo em 5 dias", 5)
+        self._prazo("Prazo em 10 dias", 10)
+        ItemAgenda.objects.create(tipo="tarefa", titulo="Tarefa", responsavel=self.usuario)
+
+        resposta = self._get()
+
+        self.assertEqual(resposta.context["resumo"]["tarefas_pendentes"], 2)
 
     def test_so_prazos_abertos_do_escopo_e_nunca_outro_tipo(self):
         outro = User.objects.create_user("outro_prazos", password="testpass")
@@ -194,6 +216,7 @@ class TestPrazosAVencer(DashboardProcessosBase):
 
         self.assertIsNone(resposta.context["prazos"])
         self.assertNotContains(resposta, "Prazos a vencer")
+        self.assertNotContains(resposta, "Prazo: Prazo hoje")
 
 
 class TestCardUsuariosAtivos(DashboardProcessosBase):
