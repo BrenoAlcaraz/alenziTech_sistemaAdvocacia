@@ -388,41 +388,6 @@ class TestPermissaoInativaPreservaContexto(InteracoesBase):
         )
         self.assertEqual(r["origem"], "papel", f"origem deve ser 'papel'; atual={r['origem']!r}")
 
-    def test_permissao_inativa_nao_eleva_nivel_de_concessao_ativa(self):
-        """
-        PP_A(ativo=True, nivel="somente_seus") + PP_B(ativo=False, nivel="todos").
-        PP_B inativa com nivel maior não pode elevar o nível de PP_A ativa.
-
-        Esperado: tem_acesso=True, nivel="somente_seus".
-        """
-        u = self._user("u_pp_mix")
-        papel_a = self._new_papel("Papel Ativo Somente Seus")
-        papel_b = self._new_papel("Papel Inativo Todos")
-
-        PermissaoPapel.objects.create(
-            papel=papel_a,
-            modulo=MODULO_PROCESSOS,
-            ativo=True,
-            nivel=NIVEL_SOMENTE_SEUS,
-        )
-        PermissaoPapel.objects.create(
-            papel=papel_b,
-            modulo=MODULO_PROCESSOS,
-            ativo=False,
-            nivel=NIVEL_TODOS,
-        )
-        self._assign_papel(u, papel_a)
-        self._assign_papel(u, papel_b)
-
-        r = permissao_efetiva(u, MODULO_PROCESSOS)
-        self.assertTrue(r["tem_acesso"], f"PP ativa deve conceder acesso: {r}")
-        self.assertEqual(
-            r["nivel"],
-            NIVEL_SOMENTE_SEUS,
-            f"PP inativa com nivel maior não pode elevar; atual={r['nivel']!r}",
-        )
-        self.assertEqual(r["origem"], "papel")
-
 
 # ===========================================================================
 # 5. QUERIES CLASSIFICADAS
@@ -491,22 +456,6 @@ class TestKernelQueriesClassificadas(InteracoesBase):
         r = self._cls(ctx.captured_queries)
         self._report("papel_unico_perm", ctx, r)
         self.assertLessEqual(r["SELECT"], 4, f"papel único/permissão: esperado SELECT<=4; got {r['SELECT']}")
-
-    def test_qcls_dois_papeis_permissao(self):
-        """Dois papéis ativos: permissao_efetiva — SELECT <= 4."""
-        u = self._user("u_qcls_p2")
-        pa = self._new_papel("QCls P2A")
-        pb = self._new_papel("QCls P2B")
-        self._pp(pa, MODULO_PROCESSOS, nivel=NIVEL_SOMENTE_SEUS)
-        self._pp(pb, MODULO_PROCESSOS, nivel=NIVEL_TODOS)
-        self._assign_papel(u, pa)
-        self._assign_papel(u, pb)
-        u_f = User.objects.get(pk=u.pk)
-        with CaptureQueriesContext(connection) as ctx:
-            permissao_efetiva(u_f, MODULO_PROCESSOS)
-        r = self._cls(ctx.captured_queries)
-        self._report("dois_papeis_perm", ctx, r)
-        self.assertLessEqual(r["SELECT"], 4, f"dois papéis/permissão: esperado SELECT<=4; got {r['SELECT']}")
 
     def test_qcls_sem_papel_permissao(self):
         """Sem papel nem override: permissao_efetiva — SELECT <= 3."""

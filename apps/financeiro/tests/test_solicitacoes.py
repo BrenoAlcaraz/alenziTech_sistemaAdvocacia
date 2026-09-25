@@ -925,10 +925,10 @@ class TestNovaSolicitacaoRetornoAoProcesso(SolicitacaoFinanceiraBase):
         super().setUp()
         self.user = self._user("advogado")
         self._conceder_modulo(self.user, nivel=NIVEL_SOLICITACOES)
-        papel_processos = self._new_papel("Papel Processos")
-        UsuarioPapel.objects.create(usuario=self.user, papel=papel_processos, ativo=True)
+        # Um papel por usuário: Processos entra no papel que já dá Financeiro.
+        papel = UsuarioPapel.objects.get(usuario=self.user, ativo=True).papel
         PermissaoPapel.objects.create(
-            papel=papel_processos, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
+            papel=papel, modulo=MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS
         )
         self.client.force_login(self.user)
 

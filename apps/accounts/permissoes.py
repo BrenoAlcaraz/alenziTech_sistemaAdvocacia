@@ -160,7 +160,8 @@ def _permissao_efetiva_com_contexto(user, modulo, ctx):
       3. Usuário inativo → negar (origem="inativo")
       4. Administrador → acesso total (origem="admin")
       5. Override individual (PermissaoUsuario) → origem="individual"
-      6. Usuário tem UsuarioPapel → agregação dos papéis ativos (origem="papel")
+      6. Usuário tem UsuarioPapel → o papel ativo dele (origem="papel"; no
+         máximo um, garantido por constraint)
       7. Negação padrão
     """
     _sem_acesso = {

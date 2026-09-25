@@ -22,9 +22,12 @@ from apps.accounts.models import (
     UsuarioPapel,
 )
 from apps.accounts.permissoes_constants import (
+    CODIGO_PRESET_LIMITADO,
     HAB_GERIR_HABILITAR_TERCEIROS,
     MODULO_GERIR,
+    MODULO_PROCESSOS,
 )
+from apps.processos.models import Processo
 
 
 class PapeisGerirBase(TenantTestCase):
@@ -189,6 +192,55 @@ class TestPapeisAutorizado(PapeisGerirBase):
         vinculo.refresh_from_db()
         self.assertFalse(vinculo.ativo)
         self.assertTrue(UsuarioPapel.objects.filter(pk=vinculo.pk).exists())
+        ativo = UsuarioPapel.objects.get(usuario=alvo, ativo=True)
+        self.assertEqual(ativo.papel.codigo_preset, CODIGO_PRESET_LIMITADO)
+
+    def test_remover_do_limitado_nao_tem_efeito(self):
+        alvo = self._user("alvo_no_limitado")
+        limitado = PapelAcesso.objects.get(codigo_preset=CODIGO_PRESET_LIMITADO)
+        vinculo = UsuarioPapel.objects.create(usuario=alvo, papel=limitado, ativo=True)
+        r = self.client.post(
+            f"/configuracoes/papeis/{limitado.pk}/usuarios/{vinculo.pk}/remover/",
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        vinculo.refresh_from_db()
+        self.assertTrue(vinculo.ativo)
+
+    def test_atribuir_papel_substitui_o_anterior(self):
+        alvo = self._user("alvo_troca_papel")
+        anterior = self._papel_alvo(nome="Papel Anterior")
+        UsuarioPapel.objects.create(usuario=alvo, papel=anterior, ativo=True)
+        r = self.client.post(
+            f"/configuracoes/papeis/{self.papel.pk}/usuarios/",
+            {"usuario": alvo.pk},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        ativos = UsuarioPapel.objects.filter(usuario=alvo, ativo=True)
+        self.assertEqual([v.papel_id for v in ativos], [self.papel.pk])
+        self.assertTrue(
+            UsuarioPapel.objects.filter(usuario=alvo, papel=anterior, ativo=False).exists()
+        )
+
+    def test_trocar_para_papel_sem_processos_transfere_processos(self):
+        administrador = self._admin("admin_recebe_processos")
+        alvo = self._user("alvo_perde_processos")
+        anterior = self._papel_alvo(nome="Papel Com Processos")
+        PermissaoPapel.objects.create(
+            papel=anterior, modulo=MODULO_PROCESSOS, ativo=True, nivel="todos"
+        )
+        UsuarioPapel.objects.create(usuario=alvo, papel=anterior, ativo=True)
+        processo = Processo.objects.create(responsavel=alvo, titulo="Processo do alvo")
+
+        r = self.client.post(
+            f"/configuracoes/papeis/{self.papel.pk}/usuarios/",
+            {"usuario": alvo.pk},
+            HTTP_HOST=self.http_host,
+        )
+        self.assertEqual(r.status_code, 302)
+        processo.refresh_from_db()
+        self.assertEqual(processo.responsavel_id, administrador.pk)
 
     def test_reatribuir_usuario_removido_reativa_mesmo_vinculo(self):
         alvo = self._user("alvo_reatribuir")

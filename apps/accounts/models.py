@@ -327,10 +327,10 @@ class UsuarioPapel(models.Model):
     """
     Vínculo entre usuário e papel de acesso.
 
-    Um usuário pode ter vários papéis simultâneos.
-    As permissões são agregadas pelo maior nível entre todos os papéis ativos.
-    Overrides individuais em PermissaoUsuario/HabilitacaoUsuario continuam valendo
-    independentemente dos papéis.
+    No máximo um vínculo ativo por usuário (constraint parcial); vínculos
+    inativos ficam como histórico e são reativados ao reatribuir o mesmo
+    papel. Overrides individuais em PermissaoUsuario/HabilitacaoUsuario
+    continuam valendo acima do papel.
     """
 
     usuario = models.ForeignKey(
@@ -367,7 +367,12 @@ class UsuarioPapel(models.Model):
             models.UniqueConstraint(
                 fields=["usuario", "papel"],
                 name="uniq_usuariopapel_usuario_papel",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["usuario"],
+                condition=models.Q(ativo=True),
+                name="uniq_usuariopapel_um_ativo_por_usuario",
+            ),
         ]
         indexes = [
             models.Index(fields=["usuario", "ativo"], name="idx_usuariopapel_usuario_ativo"),

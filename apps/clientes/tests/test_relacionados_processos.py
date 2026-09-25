@@ -33,8 +33,13 @@ class RelacionadosProcessosBase(TenantTestCase):
         self.client.force_login(self.user)
 
     def _dar_modulo(self, modulo, *, nivel=NIVEL_TODOS):
-        papel = PapelAcesso.objects.create(nome=f"Papel {modulo}", ativo=True)
-        UsuarioPapel.objects.create(usuario=self.user, papel=papel, ativo=True)
+        # Um papel por usuário: módulos extras entram no mesmo papel.
+        vinculo = UsuarioPapel.objects.filter(usuario=self.user, ativo=True).first()
+        if vinculo:
+            papel = vinculo.papel
+        else:
+            papel = PapelAcesso.objects.create(nome="Papel do usuário", ativo=True)
+            UsuarioPapel.objects.create(usuario=self.user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
             papel=papel, modulo=modulo, ativo=True, nivel=nivel
         )

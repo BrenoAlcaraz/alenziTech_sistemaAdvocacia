@@ -48,8 +48,8 @@ class EquipeAtalhoIntegrantesBase(TenantTestCase):
 
     def _gestor(self, username="gestor_equipe_atalho"):
         user = self._user(username, nivel=NIVEL_TODOS)
-        papel = PapelAcesso.objects.create(nome=f"Papel Gerir {username}")
-        UsuarioPapel.objects.create(usuario=user, papel=papel)
+        # Um papel por usuário: Gerir entra no papel de Processos do gestor.
+        papel = UsuarioPapel.objects.get(usuario=user, ativo=True).papel
         PermissaoPapel.objects.create(
             papel=papel, modulo=MODULO_GERIR, ativo=True, nivel="",
         )

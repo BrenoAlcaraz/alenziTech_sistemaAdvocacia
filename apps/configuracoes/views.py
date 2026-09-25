@@ -34,6 +34,7 @@ from apps.accounts.models import (
 )
 from apps.accounts.permissoes import nomes_papeis_usuario, tem_habilitacao
 from apps.accounts.permissoes_constants import (
+    CODIGO_PRESET_LIMITADO,
     HAB_GERIR_CRIAR_EQUIPE,
     HAB_GERIR_CRIAR_USUARIO,
     HAB_GERIR_HABILITAR_TERCEIROS,
@@ -481,6 +482,21 @@ def editar_papel(request, pk):
     )
 
 
+def _atribuir_papel(usuario, papel, atribuido_por):
+    """Troca o papel do usuário (um só papel ativo por usuário) e transfere
+    os processos dele se o novo papel tirar o acesso a Processos."""
+    with transaction.atomic():
+        UsuarioPapel.objects.filter(usuario=usuario, ativo=True).exclude(papel=papel).update(
+            ativo=False
+        )
+        UsuarioPapel.objects.update_or_create(
+            usuario=usuario,
+            papel=papel,
+            defaults={"ativo": True, "atribuido_por": atribuido_por},
+        )
+        transferir_processos_de_usuarios_sem_acesso([usuario.pk])
+
+
 @login_required
 def papel_usuarios(request, pk):
     if not _pode_gerenciar_permissoes(request.user):
@@ -492,11 +508,7 @@ def papel_usuarios(request, pk):
         form = AtribuirPapelForm(request.POST, papel=papel)
         if form.is_valid():
             usuario = form.cleaned_data["usuario"]
-            UsuarioPapel.objects.update_or_create(
-                usuario=usuario,
-                papel=papel,
-                defaults={"ativo": True, "atribuido_por": request.user},
-            )
+            _atribuir_papel(usuario, papel, request.user)
             registrar_atividade(
                 request.user, "papel_usuario_atribuido",
                 f"Atribuiu {usuario.get_full_name() or usuario.username} ao papel {papel.nome}",
@@ -536,9 +548,12 @@ def remover_usuario_papel(request, pk, usuario_papel_pk):
         papel=papel,
     )
 
-    if request.method == "POST":
-        vinculo.ativo = False
-        vinculo.save(update_fields=["ativo"])
+    if request.method == "POST" and vinculo.ativo and not papel.eh_limitado:
+        _atribuir_papel(
+            vinculo.usuario,
+            PapelAcesso.objects.get(codigo_preset=CODIGO_PRESET_LIMITADO),
+            request.user,
+        )
         registrar_atividade(
             request.user, "papel_usuario_removido",
             f"Removeu {vinculo.usuario.get_full_name() or vinculo.usuario.username} "

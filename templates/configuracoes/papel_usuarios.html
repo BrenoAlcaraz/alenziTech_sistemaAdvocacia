@@ -7,7 +7,7 @@
   <div class="texto-quebra">
     <p class="text-xs text-gray-500 mb-0.5">Papel</p>
     <h1 class="text-xl font-bold text-gray-900">{{ papel.nome }}</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Usuários vinculados a este papel</p>
+    <p class="text-sm text-gray-500 mt-0.5">Usuários vinculados a este papel. Cada usuário tem um único papel.</p>
   </div>
   <a href="{% url 'configuracoes:papeis' %}" class="btn-secondary text-sm flex-shrink-0">
     Voltar
@@ -16,7 +16,8 @@
 
 {# Formulário para atribuir papel a um usuário #}
 <div class="card p-5 mb-4">
-  <h2 class="text-sm font-semibold text-gray-700 mb-4">Atribuir papel a um usuário</h2>
+  <h2 class="text-sm font-semibold text-gray-700 mb-1">Atribuir papel a um usuário</h2>
+  <p class="text-xs text-gray-500 mb-4">O usuário deixa o papel atual e passa a ter este.</p>
 
   {% if form.fields.usuario.queryset.exists %}
 
@@ -81,12 +82,16 @@
             {% endif %}
           </td>
           <td class="px-5 py-4">
+            {% if papel.eh_limitado %}
+              <span class="text-xs text-gray-500">Para trocar, atribua outro papel</span>
+            {% else %}
             <form method="post" action="{% url 'configuracoes:remover_usuario_papel' papel.pk vinculo.pk %}">
               {% csrf_token %}
               <button type="submit" class="text-sm text-red-400 hover:text-red-600 underline underline-offset-2">
-                Remover
+                Mover para Limitado
               </button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

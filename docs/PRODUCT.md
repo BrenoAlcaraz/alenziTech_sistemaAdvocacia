@@ -82,7 +82,7 @@ escolhida pelo escritório.
 | Papel de acesso | Único mecanismo de autorização além do Administrador (PDR-0030); configurável pelo Administrador. Distinto de cargo profissional (só descritivo, sem efeito em permissão). |
 | Habilitação | Capacidade específica dentro de um módulo já autorizado. Não é papel nem escopo. |
 | Equipe | Agrupamento organizacional; usada como referência de escopo, não é mecanismo de autorização em si. "Departamento" é termo depreciado. |
-| Gerente de equipe | Relação organizacional; não concede acesso global — depende de papel/habilitação/escopo aplicados no backend. |
+| Gerente de equipe | Relação organizacional, não papel de acesso (PDR-0036): efeitos restritos à relação com os membros da própria equipe; não concede acesso global — depende de papel/habilitação/escopo aplicados no backend. |
 | Escopo de dados | Quais registros, dentro de um módulo já autorizado, o usuário alcança. Distinto de autorização de módulo (se o módulo abre ou não). |
 | Cliente | Pessoa física/jurídica atendida pelo escritório. Distinto de participante processual (qualquer papel formal num processo). |
 | Processo apenso | Processo com identidade própria, relacionado simetricamente a outro; nenhum lado é principal/pai/filho; nada é herdado ou fundido. |
@@ -578,7 +578,7 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   protegido por tenant — sem URL pública direta.
 - Tela de habilitações/permissões individuais de um usuário mostra
   sempre o estado efetivo (ligado/desligado) de cada módulo/
-  habilitação — já refletindo o que veio herdado do(s) papel(éis);
+  habilitação — já refletindo o que veio herdado do papel;
   não expõe herdado/override como conceito separado na
   interface. Qualquer alteração grava um override individual
   explícito, sem exigir uma ação separada de "desligar herança"; o
@@ -623,6 +623,9 @@ equipes, identidade do escritório, consulta ao plano SaaS.
   Desativar papel com usuários ativos é recusado ("reatribua os N
   usuários antes"). Usuário sem papel e sem override não acessa nada
   (PDR-0030).
+- Cada usuário tem um único papel de acesso; exceções da pessoa são
+  ajustes individuais. Atribuir um papel substitui o anterior; tirar
+  alguém de um papel o devolve ao "Limitado" (PDR-0036).
 - Foto de perfil visível aos colegas (lista de usuários, chat).
 - Documentos e anexos em qualquer módulo têm botões de visualizar
   (olho) e baixar; só PDF, imagem e texto abrem no navegador.

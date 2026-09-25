@@ -37,8 +37,13 @@ class GerarProcuracaoBase(TenantTestCase):
         return User.objects.create_user(username=username, password="testpass")
 
     def _dar_modulo(self, user, modulo, *, habilitacao=None, nivel=NIVEL_TODOS):
-        papel = PapelAcesso.objects.create(nome=f"Papel {modulo} {user.username}", ativo=True)
-        UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
+        # Um papel por usuário: módulos extras entram no mesmo papel.
+        vinculo = UsuarioPapel.objects.filter(usuario=user, ativo=True).first()
+        if vinculo:
+            papel = vinculo.papel
+        else:
+            papel = PapelAcesso.objects.create(nome=f"Papel {user.username}", ativo=True)
+            UsuarioPapel.objects.create(usuario=user, papel=papel, ativo=True)
         PermissaoPapel.objects.create(
             papel=papel, modulo=modulo, ativo=True, nivel=nivel
         )

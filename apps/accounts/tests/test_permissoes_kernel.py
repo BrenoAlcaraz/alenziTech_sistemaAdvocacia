@@ -11,13 +11,13 @@ Estrutura:
   TestKernelSemPapel       — usuário sem papel e o papel Limitado de fábrica
   TestKernelOverrides      — override individual sobre o papel
   TestKernelPapelUnico     — resolução via UsuarioPapel → PapelAcesso
-  TestKernelMultiPapel     — agregação multi-papel
+  TestKernelUmPapelPorUsuario — um papel ativo por usuário, sem agregação
   TestKernelNiveis         — nível por módulo
   TestKernelQueries        — contagem de queries (limite superior)
 """
 
 from django.contrib.auth.models import AnonymousUser, User
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 from django.test.utils import CaptureQueriesContext
 from django_tenants.test.cases import TenantTestCase
 
@@ -403,11 +403,11 @@ class TestKernelPapelUnico(KernelBase):
 
 
 # ===========================================================================
-# 5. MULTI-PAPEL — agregação de permissões
+# 5. UM PAPEL POR USUÁRIO — sem agregação
 # ===========================================================================
 
-class TestKernelMultiPapel(KernelBase):
-    """Agrega pelo maior nível entre todos os papéis ativos."""
+class TestKernelUmPapelPorUsuario(KernelBase):
+    """No máximo um papel ativo por usuário; vínculo inativo não conta."""
 
     @classmethod
     def get_test_schema_name(cls):
@@ -415,35 +415,16 @@ class TestKernelMultiPapel(KernelBase):
 
     @classmethod
     def setup_tenant(cls, tenant):
-        tenant.nome = "Kernel Multi Papel"
+        tenant.nome = "Kernel Um Papel"
         tenant.slug = "tk-multi"
 
-    def test_dois_papeis_ativos_agregam_permissoes(self):
+    def test_banco_recusa_segundo_papel_ativo(self):
         u = self._user("u_dois_papeis")
-        papel_a = self._new_papel("Multi A")
-        papel_b = self._new_papel("Multi B")
-        self._pp(papel_a, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS)
-        self._pp(papel_b, MODULO_CLIENTES, ativo=True, nivel=NIVEL_TODOS)
-        self._assign_papel(u, papel_a)
-        self._assign_papel(u, papel_b)
+        self._assign_papel(u, self._new_papel("Unico A"))
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            self._assign_papel(u, self._new_papel("Unico B"))
 
-        self.assertTrue(permissao_efetiva(u, MODULO_PROCESSOS)["tem_acesso"])
-        self.assertTrue(permissao_efetiva(u, MODULO_CLIENTES)["tem_acesso"])
-
-    def test_dois_papeis_nivel_maximo_agregado(self):
-        u = self._user("u_nivel_agr")
-        papel_a = self._new_papel("Nivel Agr A")
-        papel_b = self._new_papel("Nivel Agr B")
-        self._pp(papel_a, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_SOMENTE_SEUS)
-        self._pp(papel_b, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS)
-        self._assign_papel(u, papel_a)
-        self._assign_papel(u, papel_b)
-
-        r = permissao_efetiva(u, MODULO_PROCESSOS)
-        self.assertTrue(r["tem_acesso"])
-        self.assertEqual(r["nivel"], NIVEL_TODOS)
-
-    def test_papel_inativo_nao_contribui_para_agregacao(self):
+    def test_vinculo_inativo_nao_conta_nem_bloqueia(self):
         u = self._user("u_agr_inativo")
         papel_a = self._new_papel("Agr Ativo")
         papel_b = self._new_papel("Agr Inativo")
@@ -454,32 +435,6 @@ class TestKernelMultiPapel(KernelBase):
 
         self.assertTrue(permissao_efetiva(u, MODULO_PROCESSOS)["tem_acesso"])
         self.assertFalse(permissao_efetiva(u, MODULO_CLIENTES)["tem_acesso"])
-
-    def test_dois_papeis_sem_pp_nega(self):
-        u = self._user("u_dois_sem_pp")
-        papel_a = self._new_papel("Sem PP A")
-        papel_b = self._new_papel("Sem PP B")
-        self._pp(papel_a, MODULO_CLIENTES, ativo=True, nivel=NIVEL_TODOS)
-        self._pp(papel_b, MODULO_MODELOS, ativo=True, nivel=NIVEL_TODOS)
-        self._assign_papel(u, papel_a)
-        self._assign_papel(u, papel_b)
-
-        r = permissao_efetiva(u, MODULO_PROCESSOS)
-        self.assertFalse(r["tem_acesso"], "Nenhum papel tem PP para processos → deve negar")
-
-    def test_dois_papeis_agregam_habilitacoes(self):
-        u = self._user("u_agr_hab")
-        papel_a = self._new_papel("Agr Hab A")
-        papel_b = self._new_papel("Agr Hab B")
-        self._pp(papel_a, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS)
-        self._pp(papel_b, MODULO_PROCESSOS, ativo=True, nivel=NIVEL_TODOS)
-        self._hp(papel_a, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR, ativo=True)
-        self._hp(papel_b, MODULO_PROCESSOS, HAB_PROCESSOS_EDITAR, ativo=True)
-        self._assign_papel(u, papel_a)
-        self._assign_papel(u, papel_b)
-
-        self.assertTrue(habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR)["habilitado"])
-        self.assertTrue(habilitacao_efetiva(u, MODULO_PROCESSOS, HAB_PROCESSOS_EDITAR)["habilitado"])
 
 
 # ===========================================================================

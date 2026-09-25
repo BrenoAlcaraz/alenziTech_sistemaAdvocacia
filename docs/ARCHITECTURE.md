@@ -122,8 +122,8 @@ Kernel dinâmico em `apps/accounts`: `PapelAcesso`, `UsuarioPapel`,
   quando uma view efetivamente filtra o `QuerySet` por ele — o valor
   sozinho não prova nada.
 - Precedência: admin do escritório (acesso total) → `PermissaoUsuario`
-  individual → união dos `PapelAcesso` ativos do usuário (maior nível
-  entre eles) → nega. Não há fallback por `auth.Group` nem "tipo de
+  individual → o `PapelAcesso` do usuário (no máximo um `UsuarioPapel`
+  ativo por usuário, garantido por constraint — PDR-0036) → nega. Não há fallback por `auth.Group` nem "tipo de
   conta" (PDR-0030); o papel "Limitado" (`codigo_preset="limitado"`) é o
   único de fábrica e nasce sem nenhuma permissão. Os dicts de
   `permissao_efetiva`/`habilitacao_efetiva` não têm chave `tipo_conta`.
@@ -146,7 +146,9 @@ banco rejeita a gravação da habilitação nova com violação de
 Referência: `apps/configuracoes/views.py::_build_modulos_permissao`/`_salvar_permissoes`.
 Proteções do papel "Limitado" (não excluir/desativar) e do papel com
 usuários (não desativar) vivem em `PapelAcesso.delete` e em
-`PapelAcessoForm.clean_ativo`.
+`PapelAcessoForm.clean_ativo`. Trocar o papel de um usuário passa por
+`apps/configuracoes/views.py::_atribuir_papel` (desativa o anterior e
+transfere processos na mesma transação).
 
 **Efeito colateral em Processos ao mudar permissão de um usuário**:
 qualquer código que grave `PermissaoPapel`/`HabilitacaoPapel` ou `PermissaoUsuario`/`HabilitacaoUsuario`

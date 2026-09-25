@@ -5,7 +5,7 @@ from datetime import datetime, time, timedelta
 
 from django.utils import timezone
 
-from apps.accounts.models import PapelAcesso, PermissaoPapel, UsuarioPapel
+from apps.accounts.models import PermissaoPapel, UsuarioPapel
 from apps.accounts.permissoes_constants import MODULO_PAINEL, NIVEL_SOMENTE_SEUS, NIVEL_TODOS
 from apps.processos.models import MovimentacaoProcessual, Processo
 
@@ -116,8 +116,8 @@ class TestFilasProcessos(ProcessosEscopoBase):
         self.assertEqual(titulos, ["Qualquer"])
 
     def test_parados_tem_o_mesmo_numero_do_painel(self):
-        papel = PapelAcesso.objects.create(nome="Painel filas")
-        UsuarioPapel.objects.create(usuario=self.user, papel=papel)
+        # Um papel por usuário: Painel entra no papel que o usuário já tem.
+        papel = UsuarioPapel.objects.get(usuario=self.user, ativo=True).papel
         PermissaoPapel.objects.create(papel=papel, modulo=MODULO_PAINEL, ativo=True, nivel=NIVEL_TODOS)
         for dias in (31, 45, 120, 400):
             self._andamento_ha(self._processo(f"Andamento há {dias}"), dias)
