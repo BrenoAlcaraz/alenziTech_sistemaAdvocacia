@@ -306,6 +306,25 @@ acompanhado.
 - Ações do job não entram no log de atividade (sem autor humano);
   confirmar/rejeitar/editar entram.
 
+## Acompanhamento automático — avisos complementares
+
+Rodam no mesmo job diário; nova execução no dia não repete aviso.
+
+- "Prazo a definir" não resolvido (sem data informada e não rejeitado —
+  confirmar sem data não resolve) gera novo aviso ao responsável 1× por
+  dia; o dia da importação já conta como avisado. Processo arquivado
+  deixa de ser cobrado.
+- Publicação do DJEN cancelada depois de importada não apaga nada: avisa
+  o responsável uma vez (por publicação agrupada) e marca o andamento
+  como "publicação cancelada". Para enxergar o cancelamento, a consulta
+  ao DJEN volta 30 dias; só publicação a partir do último dia consultado
+  vira andamento. Cancelada nunca importada é ignorada.
+- Número CNJ válido citado no texto de publicação que gerou andamento,
+  diferente do próprio e não cadastrado no escritório, aparece na aba
+  Apensos como "Número X citado, não cadastrado — cadastrar e vincular"
+  (atalho para novo processo com o número preenchido, só para quem pode
+  criar processo). Não cria vínculo; some quando o número é cadastrado.
+
 ## Filas automáticas (lista de Processos)
 
 Abas acima da tabela de processos ativos — "Todos" e as filas, cada uma

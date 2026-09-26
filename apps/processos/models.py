@@ -458,6 +458,9 @@ class MovimentacaoProcessual(models.Model):
         verbose_name="Prazo de",
     )
     prazo_a_definir = models.BooleanField(default=False)
+    # Último dia em que o responsável foi avisado do "prazo a definir":
+    # a cobrança é diária e rodar o job de novo no dia não repete o aviso.
+    prazo_a_definir_avisado_em = models.DateField(null=True, blank=True)
     prazo_calculado = models.BooleanField(default=False)
     # Dias escritos na intimação, antes da dobra.
     prazo_dias = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -727,6 +730,8 @@ class ComunicacaoDjen(models.Model):
     )
     # Publicada antes de o processo passar a ser acompanhado: só aviso.
     anterior_ao_acompanhamento = models.BooleanField(default=False)
+    # Dia em que o cancelamento no DJEN foi visto e avisado; nada é apagado.
+    cancelada_em = models.DateField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -736,6 +741,33 @@ class ComunicacaoDjen(models.Model):
 
     def __str__(self):
         return f"{self.processo} — {self.data_disponibilizacao:%d/%m/%Y} ({self.comunicacao_id})"
+
+
+class NumeroCnjCitado(models.Model):
+    """Número CNJ citado numa publicação do processo, diferente do próprio
+    e não cadastrado quando visto — sugestão na aba Apensos, sem criar
+    vínculo."""
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="numeros_cnj_citados")
+    # Só dígitos.
+    numero = models.CharField(max_length=20)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Número CNJ citado"
+        verbose_name_plural = "Números CNJ citados"
+        ordering = ["criado_em"]
+        constraints = [
+            models.UniqueConstraint(fields=["processo", "numero"], name="numero_cnj_citado_unico_por_processo"),
+        ]
+
+    def __str__(self):
+        return f"{self.processo} cita {self.numero}"
+
+    @property
+    def numero_formatado(self):
+        n = self.numero
+        return f"{n[:7]}-{n[7:9]}.{n[9:13]}.{n[13]}.{n[14:16]}.{n[16:]}"
 
 
 class MovimentoDatajud(models.Model):

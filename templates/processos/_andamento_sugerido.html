@@ -2,6 +2,9 @@
 {% if mov.sugerido and mov.fonte == "datajud" %}
 <p class="mt-1 text-xs text-amber-700">Movimento do tribunal sem texto — traga o documento.</p>
 {% endif %}
+{% if mov.publicacao_cancelada %}
+<p class="mt-1 text-xs text-red-700" data-publicacao-cancelada>Publicação cancelada no DJEN depois de importada — nada foi apagado; confira este andamento.</p>
+{% endif %}
 {% if mov.link or mov.destinatarios %}
 <details class="mt-1 text-xs text-gray-600">
   <summary class="cursor-pointer text-juridico-verde">Destinatários e link</summary>

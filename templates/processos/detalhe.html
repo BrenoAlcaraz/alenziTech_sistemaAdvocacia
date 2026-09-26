@@ -242,7 +242,7 @@
     <p class="text-sm font-medium text-amber-900">Houve publicação no DJEN antes do acompanhamento deste processo — confira.</p>
     <ul class="mt-2 flex flex-col gap-1 text-xs">
       {% for publicacao in publicacoes_anteriores %}
-        <li>{{ publicacao.data_disponibilizacao|date:"d/m/Y" }}{% if publicacao.link %} · <a href="{{ publicacao.link }}" target="_blank" rel="noopener noreferrer" class="text-juridico-verde hover:underline">Abrir publicação ↗</a>{% endif %}</li>
+        <li>{{ publicacao.data_disponibilizacao|date:"d/m/Y" }}{% if publicacao.cancelada_em %} · <span class="text-red-700">cancelada no DJEN</span>{% endif %}{% if publicacao.link %} · <a href="{{ publicacao.link }}" target="_blank" rel="noopener noreferrer" class="text-juridico-verde hover:underline">Abrir publicação ↗</a>{% endif %}</li>
       {% endfor %}
     </ul>
   </div>
@@ -579,6 +579,18 @@
     })();
   </script>
   {% endif %}
+  {% endif %}
+
+  {% if numeros_citados %}
+  <div class="card px-5 py-4 mb-4 border-amber-200 bg-amber-50" data-numeros-citados>
+    <p class="text-sm font-medium text-amber-900">Números citados em publicações deste processo</p>
+    <ul class="mt-2 flex flex-col gap-1 text-xs text-amber-900">
+      {% for citado in numeros_citados %}
+        <li>Número {{ citado.numero_formatado }} citado, não cadastrado{% if pode_criar_processo %} — <a href="{% url 'processos:novo' %}?numero={{ citado.numero_formatado|urlencode }}" class="text-juridico-verde hover:underline">cadastrar e vincular</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% if pode_criar_processo %}<p class="mt-2 text-xs text-gray-600">Depois de cadastrar, volte aqui e adicione o novo processo como apenso.</p>{% endif %}
+  </div>
   {% endif %}
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

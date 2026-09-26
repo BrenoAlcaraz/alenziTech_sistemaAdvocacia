@@ -34,7 +34,7 @@ from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
 from apps.saas_tenants.storage import resposta_de_arquivo
 from config.listagem import ordenar, paginar
-from .acompanhamento import situacao_do_acompanhamento
+from .acompanhamento import numeros_citados_nao_cadastrados, situacao_do_acompanhamento
 from .models import AcompanhamentoProcesso, Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
@@ -319,6 +319,12 @@ def detalhe(request, pk):
         key=lambda mov: mov.data_prazo,
     )
     prazos_a_definir = [mov for mov in movimentacoes if mov.prazo_a_definir]
+    publicacoes_djen = list(processo.comunicacoes_djen.all())
+    andamentos_com_publicacao_cancelada = {
+        c.movimentacao_id for c in publicacoes_djen if c.cancelada_em and c.movimentacao_id
+    }
+    for mov in movimentacoes:
+        mov.publicacao_cancelada = mov.pk in andamentos_com_publicacao_cancelada
     agenda_do_processo = agenda_do_vinculo(request.user, processo=processo)
     _anexar_item_do_prazo(request.user, prazos)
     custas_financeiras = list(
@@ -366,7 +372,9 @@ def detalhe(request, pk):
         "papeis_cadastrados": [parte.papel for parte in partes],
         "form_movimentacao": MovimentacaoProcessualForm(processo=processo),
         "acompanhamento": situacao_do_acompanhamento(),
-        "publicacoes_anteriores": processo.comunicacoes_djen.filter(anterior_ao_acompanhamento=True),
+        "publicacoes_anteriores": [c for c in publicacoes_djen if c.anterior_ao_acompanhamento],
+        "numeros_citados": numeros_citados_nao_cadastrados(processo),
+        "pode_criar_processo": tem_habilitacao(request.user, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR),
         "datajud_nao_encontrado": AcompanhamentoProcesso.objects.filter(
             processo=processo, datajud_consultado_em__isnull=False, datajud_encontrado=False,
         ).exists(),
@@ -533,6 +541,10 @@ def novo(request):
             # (specs/cliente-processo-criacao-cruzada.md) — mesmo padrão de
             # pré-preenchimento por querystring já usado em Custas Judiciais.
             initial["clientes"] = [cliente_id]
+        numero = request.GET.get("numero")
+        if numero:
+            # Atalho "cadastrar e vincular" do número citado na aba Apensos.
+            initial["numero"] = numero[:50]
         form = FormClass(initial=initial, **form_kwargs)
     return render(request, "processos/form.html", {
         "trilha": [("Processos", reverse("processos:lista")), ("Novo processo", None)],

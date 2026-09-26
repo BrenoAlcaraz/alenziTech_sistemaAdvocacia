@@ -221,8 +221,9 @@ class TestIdempotenciaEIsolamento(AcompanhamentoBase):
 
     def test_rodar_duas_vezes_nao_duplica_nada(self):
         self._ja_acompanhado()
-        self._rodar([comunicacao(1)])
-        self._rodar([comunicacao(1), comunicacao(2, destinatarios=["BELTRANO"])])
+        # Mesmo dia da consulta: a janela de publicações novas o reabre.
+        self._rodar([comunicacao(1, data=HOJE)])
+        self._rodar([comunicacao(1, data=HOJE), comunicacao(2, data=HOJE, destinatarios=["BELTRANO"])])
 
         self.assertEqual(self._andamentos().count(), 1)
         self.assertEqual(ItemAgenda.objects.count(), 1)

@@ -3,8 +3,10 @@ Acompanhamento automático de processos (PDR-0037): cada publicação do
 DJEN de um processo acompanhado vira andamento "Intimação" sugerido, com
 o prazo calculado a partir do texto quando possível; cada movimento
 relevante do DataJud vira andamento sugerido sem prazo, e mudança de
-vara/grau no tribunal atualiza o processo. Roda dentro do schema do
-escritório corrente (ver o comando `acompanhar_processos`).
+vara/grau no tribunal atualiza o processo. Também cobra diariamente o
+"prazo a definir", avisa publicação cancelada e guarda número CNJ citado
+não cadastrado. Roda dentro do schema do escritório corrente (ver o
+comando `acompanhar_processos`).
 """
 
 import hashlib
@@ -13,6 +15,7 @@ import re
 from datetime import datetime, time, timedelta, timezone as dt_timezone
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import PerfilUsuario
@@ -28,6 +31,7 @@ from .models import (
     ExecucaoAcompanhamento,
     MovimentacaoProcessual,
     MovimentoDatajud,
+    NumeroCnjCitado,
     Processo,
 )
 from .movimentos_tpu import classificar, normalizado
@@ -37,6 +41,9 @@ logger = logging.getLogger(__name__)
 
 # Primeira consulta: publicações recentes viram só aviso, sem andamento.
 DIAS_ANTERIORES_PRIMEIRA_CONSULTA = 15
+# O cancelamento de uma publicação só é visto se ela ainda estiver na
+# janela consultada; a consulta volta estes dias para enxergá-lo.
+DIAS_VERIFICACAO_CANCELAMENTO = 30
 # Hora limite da execução diária; depois dela, sem execução no dia = falha.
 HORA_LIMITE_EXECUCAO = 7
 AREA_PENAL = "CRIMINAL"
@@ -55,6 +62,40 @@ def numero_cnj_valido(numero):
         return False
     sequencial, verificador, resto = numero[:7], numero[7:9], numero[9:]
     return 98 - int(sequencial + resto + "00") % 97 == int(verificador)
+
+
+_NUMERO_CNJ_NO_TEXTO = re.compile(r"(?<![\d.-])(\d{7}-?\d{2}\.?\d{4}\.?\d\.?\d{2}\.?\d{4})(?![\d-])")
+
+
+def numeros_cnj_no_texto(texto):
+    """Números CNJ válidos escritos no texto (com ou sem máscara), só
+    dígitos, na ordem em que aparecem."""
+    encontrados = (digitos(n) for n in _NUMERO_CNJ_NO_TEXTO.findall(texto_da_intimacao(texto)))
+    return _unicos(n for n in encontrados if numero_cnj_valido(n))
+
+
+def _numeros_cadastrados():
+    return {digitos(n) for n in Processo.objects.exclude(numero="").values_list("numero", flat=True)}
+
+
+def numeros_citados_nao_cadastrados(processo):
+    """Sugestões da aba Apensos: citados que continuam sem cadastro."""
+    citados = list(processo.numeros_cnj_citados.all())
+    if not citados:
+        return []
+    cadastrados = _numeros_cadastrados()
+    return [citado for citado in citados if citado.numero not in cadastrados]
+
+
+def _registrar_numeros_citados(processo, texto):
+    citados = [n for n in numeros_cnj_no_texto(texto) if n != digitos(processo.numero)]
+    if not citados:
+        return
+    cadastrados = _numeros_cadastrados()
+    NumeroCnjCitado.objects.bulk_create(
+        [NumeroCnjCitado(processo=processo, numero=n) for n in citados if n not in cadastrados],
+        ignore_conflicts=True,
+    )
 
 
 def processos_acompanhados():
@@ -120,7 +161,7 @@ def _descricao(comunicacao, texto):
     return f"{cabecalho}\n\n{texto}"
 
 
-def _criar_andamento_sugerido(processo, grupo, oabs):
+def _criar_andamento_sugerido(processo, grupo, oabs, hoje):
     principal = grupo[0]
     destinatarios = _unicos(nome for c in grupo for nome in c.destinatarios)
     advogados = _unicos(a for c in grupo for a in c.advogados)
@@ -146,6 +187,8 @@ def _criar_andamento_sugerido(processo, grupo, oabs):
         fonte=MovimentacaoProcessual.FONTE_DJEN,
         prazo_de=prazo_de,
         prazo_a_definir=prazo is None,
+        # O aviso de andamento sugerido do dia já cobra o prazo a definir.
+        prazo_a_definir_avisado_em=hoje if prazo is None else None,
         prazo_calculado=prazo is not None,
         prazo_dias=prazo.dias if prazo else None,
         prazo_dobrado=dobrado,
@@ -184,6 +227,25 @@ def _agrupar_novas(comunicacoes):
     return grupos
 
 
+def _avisar_cancelamentos(processo, comunicacoes, hoje):
+    """Publicação já importada e depois cancelada no DJEN: nada é apagado,
+    o responsável é avisado uma vez por publicação."""
+    canceladas = [c.hash for c in comunicacoes if not c.ativo]
+    if not canceladas:
+        return
+    novas = ComunicacaoDjen.objects.filter(processo=processo, hash__in=canceladas, cancelada_em__isnull=True)
+    avisadas = {}
+    for registro in novas:
+        avisadas.setdefault(registro.chave_grupo, registro)
+    novas.update(cancelada_em=hoje)
+    for registro in avisadas.values():
+        _notificar(
+            processo.responsavel,
+            f"Publicação de {registro.data_disponibilizacao:%d/%m/%Y} foi cancelada no DJEN no processo {processo} "
+            "— nada foi apagado; confira o andamento",
+        )
+
+
 def _avisar_andamento_sugerido(processo, andamento):
     if andamento.prazo_a_definir:
         situacao = "prazo a definir"
@@ -215,18 +277,24 @@ def sincronizar_djen(processo, hoje, *, oabs, buscar=buscar_comunicacoes):
     if acompanhamento is None or acompanhamento.djen_consultado_ate is None:
         _primeira_consulta(processo, hoje, buscar)
         return 0
-    # A janela reabre o último dia consultado: publicação disponibilizada
-    # depois da consulta daquele dia ainda chega; repetida é ignorada.
-    grupos = _agrupar_novas(buscar(digitos(processo.numero), acompanhamento.djen_consultado_ate, hoje))
+    # A janela de publicações novas reabre o último dia consultado:
+    # publicação disponibilizada depois da consulta daquele dia ainda
+    # chega; repetida é ignorada. Antes dela, só se procura cancelamento.
+    consultado_ate = acompanhamento.djen_consultado_ate
+    inicio = min(consultado_ate, hoje - timedelta(days=DIAS_VERIFICACAO_CANCELAMENTO))
+    comunicacoes = buscar(digitos(processo.numero), inicio, hoje)
+    grupos = _agrupar_novas([c for c in comunicacoes if c.data_disponibilizacao >= consultado_ate])
     criados = 0
     with transaction.atomic():
+        _avisar_cancelamentos(processo, comunicacoes, hoje)
         for chave, grupo in grupos.items():
             existente = ComunicacaoDjen.objects.filter(processo=processo, chave_grupo=chave).first()
             if existente is not None:
                 _registrar(processo, grupo, chave, movimentacao=existente.movimentacao)
                 continue
-            andamento = _criar_andamento_sugerido(processo, grupo, oabs)
+            andamento = _criar_andamento_sugerido(processo, grupo, oabs, hoje)
             _registrar(processo, grupo, chave, movimentacao=andamento)
+            _registrar_numeros_citados(processo, grupo[0].texto)
             _avisar_andamento_sugerido(processo, andamento)
             criados += 1
         if criados:
@@ -337,6 +405,26 @@ def _registrar_falha(execucao, processo, fonte, erro):
     execucao.erro = f"{execucao.erro}\nProcesso {processo.pk} ({fonte}): {erro}".strip()
 
 
+def cobrar_prazos_a_definir(hoje):
+    """Aviso diário ao responsável de cada "prazo a definir" ainda não
+    resolvido (sem data informada e não rejeitado)."""
+    pendentes = (
+        MovimentacaoProcessual.objects.filter(prazo_a_definir=True, processo__responsavel__isnull=False)
+        .exclude(processo__status="arquivado")
+        .filter(Q(prazo_a_definir_avisado_em__isnull=True) | Q(prazo_a_definir_avisado_em__lt=hoje))
+        .select_related("processo__responsavel")
+    )
+    for andamento in pendentes:
+        with transaction.atomic():
+            _notificar(
+                andamento.processo.responsavel,
+                f"Prazo a definir no processo {andamento.processo} (intimação de {timezone.localtime(andamento.data):%d/%m/%Y}) "
+                "— informe a data do prazo",
+            )
+            andamento.prazo_a_definir_avisado_em = hoje
+            andamento.save(update_fields=["prazo_a_definir_avisado_em"])
+
+
 def executar_acompanhamento(hoje, *, buscar=buscar_comunicacoes, buscar_datajud=buscar_processo):
     """Execução do dia no escritório corrente. Falha num processo ou numa
     fonte não interrompe as demais; fica contada na execução."""
@@ -351,6 +439,12 @@ def executar_acompanhamento(hoje, *, buscar=buscar_comunicacoes, buscar_datajud=
             sincronizar_datajud(processo, buscar=buscar_datajud)
         except Exception as erro:  # noqa: BLE001 — isolamento por processo e fonte
             _registrar_falha(execucao, processo, "DataJud", erro)
+    try:
+        cobrar_prazos_a_definir(hoje)
+    except Exception as erro:  # noqa: BLE001 — a cobrança não invalida a sincronização
+        logger.exception("Cobrança de prazo a definir falhou")
+        execucao.falhas += 1
+        execucao.erro = f"{execucao.erro}\nCobrança de prazo a definir: {erro}".strip()
     execucao.concluida_em = timezone.now()
     execucao.save(update_fields=["falhas", "erro", "concluida_em"])
     return execucao
