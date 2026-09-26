@@ -34,7 +34,7 @@ class TestBotaoCriarAutomaticamente(CriacaoCruzadaBase):
         editor = self._user("editor_botao_criar_automaticamente")
         self._dar_modulo(editor, MODULO_PROCESSOS, habilitacao=HAB_PROCESSOS_EDITAR)
         self.client.force_login(editor)
-        processo = Processo.objects.create(titulo="Processo editar", responsavel=editor)
+        processo = Processo.objects.create(titulo="Processo editar", criado_por=editor)
         r = self.client.get(f"/processos/{processo.pk}/editar/", HTTP_HOST=self.http_host)
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, MARCADOR_BOTAO)

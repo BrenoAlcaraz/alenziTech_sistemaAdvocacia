@@ -75,7 +75,7 @@ class CustasComprovanteBase(TenantTestCase):
         )
 
     def _processo(self, *, responsavel, cliente):
-        processo = Processo.objects.create(responsavel=responsavel, titulo="Processo Teste Custas")
+        processo = Processo.objects.create(criado_por=responsavel, titulo="Processo Teste Custas")
         processo.clientes.add(cliente)
         return processo
 

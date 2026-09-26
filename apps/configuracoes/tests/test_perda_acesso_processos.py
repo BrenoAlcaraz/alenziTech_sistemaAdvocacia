@@ -38,8 +38,9 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         )
         self.processo = Processo.objects.create(
             titulo="Processo Config",
-            responsavel=self.limitado,
+            criado_por=self.limitado,
         )
+        self.processo.responsaveis.add(self.limitado)
         self.processo.clientes.add(cliente)
         self.client.force_login(self.admin)
 
@@ -54,7 +55,7 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         resposta = self._post_revogacao()
         self.assertEqual(resposta.status_code, 200)
         self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.admin.pk)
+        self.assertEqual(list(self.processo.responsaveis.values_list("pk", flat=True)), [self.admin.pk])
 
         resposta = self.client.post(
             "/configuracoes/permissoes/",
@@ -67,7 +68,7 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         )
         self.assertEqual(resposta.status_code, 200)
         self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.admin.pk)
+        self.assertEqual(list(self.processo.responsaveis.values_list("pk", flat=True)), [self.admin.pk])
 
     def test_falha_na_transferencia_reverte_a_alteracao_de_permissao(self):
         with patch(
@@ -82,4 +83,4 @@ class TestPerdaAcessoProcessosNaConfiguracao(TenantTestCase):
         )
         self.assertTrue(permissao.ativo)
         self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.limitado.pk)
+        self.assertEqual(list(self.processo.responsaveis.values_list("pk", flat=True)), [self.limitado.pk])

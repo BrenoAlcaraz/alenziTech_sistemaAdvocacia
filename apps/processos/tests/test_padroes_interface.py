@@ -24,7 +24,7 @@ class TestPadroesDeInterfaceProcessos(TenantTestCase):
         PerfilUsuario.objects.filter(user=self.user).update(is_admin_escritorio=True)
         self.client.force_login(self.user)
         self.processo = Processo.objects.create(
-            titulo="Ação de cobrança", responsavel=self.user, status="suspenso",
+            titulo="Ação de cobrança", criado_por=self.user, status="suspenso",
         )
 
     def _html(self, url):

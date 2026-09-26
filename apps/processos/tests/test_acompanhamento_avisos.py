@@ -128,7 +128,7 @@ class TestNumeroCnjCitado(AvisosBase):
     def test_sugere_citado_nao_cadastrado_sem_criar_vinculo(self):
         # Arquivado: continua cadastrado, mas fora do job (o mock serviria a ele a mesma publicação).
         cadastrado = Processo.objects.create(
-            responsavel=self.dono, titulo="Outro", numero="1000002-36.2026.8.26.0100", status="arquivado",
+            criado_por=self.dono, titulo="Outro", numero="1000002-36.2026.8.26.0100", status="arquivado",
         )
         texto = f"<p>Recurso {CITADO} e incidente {cadastrado.numero} do processo {NUMERO}.</p>"
         self._ja_acompanhado()
@@ -148,7 +148,7 @@ class TestNumeroCnjCitado(AvisosBase):
         self.assertContains(r, f'value="{CITADO}"')
 
         # Depois de cadastrado, a sugestão some.
-        Processo.objects.create(responsavel=self.dono, titulo="Recurso", numero="10000015120268260100")
+        Processo.objects.create(criado_por=self.dono, titulo="Recurso", numero="10000015120268260100")
         self.assertNotContains(self._detalhe("apensos"), "citado, não cadastrado")
 
     def test_sem_permissao_de_criar_nao_mostra_atalho(self):

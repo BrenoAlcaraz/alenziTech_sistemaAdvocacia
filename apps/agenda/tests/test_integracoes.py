@@ -42,7 +42,7 @@ class TestIntegracoesAgenda(TenantTestCase):
             PermissaoPapel.objects.create(papel=self.papel, modulo=modulo, ativo=True, nivel=NIVEL_TODOS)
         PermissaoPapel.objects.create(papel=self.papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_SOMENTE_SEUS)
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Integração", tipo="PF", responsavel=self.usuario)
-        self.processo = Processo.objects.create(responsavel=self.usuario, titulo="Processo Integração")
+        self.processo = Processo.objects.create(criado_por=self.usuario, titulo="Processo Integração")
         self.processo.clientes.add(self.cliente)
         self.client.force_login(self.usuario)
 

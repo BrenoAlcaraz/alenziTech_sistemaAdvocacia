@@ -4,7 +4,7 @@
     <div>
       <p class="font-medium text-gray-900">{{ h.get_tipo_display }}{% if h.tipo == "contratual" and h.modalidade %} — {{ h.get_modalidade_display }}{% endif %}{% if h.processo %} — {{ h.processo }}{% endif %}</p>
       <p class="text-xs text-gray-500 mt-0.5">
-        {% if h.processo.responsavel %}Responsável: {{ h.processo.responsavel.get_full_name|default:h.processo.responsavel.username }}{% endif %}
+        {% with responsaveis=h.processo.responsaveis.all %}{% if responsaveis %}Responsáve{{ responsaveis|length|pluralize:"l,is" }}: {{ responsaveis|join:", " }}{% endif %}{% endwith %}
         {% if not h.processo and h.cliente %}{{ h.cliente }}{% endif %}
       </p>
     </div>

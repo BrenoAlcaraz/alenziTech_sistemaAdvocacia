@@ -9,7 +9,16 @@ from apps.accounts.decorators import usuario_admin_escritorio
 from apps.accounts.permissoes import nivel_acesso_modulo, tem_permissao_modulo
 from apps.accounts.permissoes_constants import MODULO_AGENDA, NIVEL_TODOS
 
-from .avisos import CONVITES_QUE_OCULTAM, avisar_atribuicao, avisar_fatal_alterada, avisar_prazo_gerado
+from apps.processos.models import Processo
+from apps.processos.services import destinatarios_do_processo
+
+from .avisos import (
+    CONVITES_QUE_OCULTAM,
+    avisar_atribuicao,
+    avisar_fatal_alterada,
+    avisar_prazo_gerado,
+    notificar,
+)
 from .models import (
     STATUS_CANCELADO,
     STATUS_ENCERRADOS,
@@ -17,6 +26,7 @@ from .models import (
     TIPOS_AFAZER,
     TIPOS_EVENTO,
     ItemAgenda,
+    ParticipanteItemAgenda,
     ReatribuicaoItemAgenda,
 )
 
@@ -37,17 +47,21 @@ def sincronizar_prazo_do_andamento(andamento):
 
     if item is None:
         processo = andamento.processo
+        responsavel, *demais = destinatarios_do_processo(processo)
         item = ItemAgenda.objects.create(
             tipo=TIPO_PRAZO,
             titulo=titulo_prazo_do_andamento(andamento),
             descricao=andamento.descricao,
             data_fatal=andamento.data_prazo,
             data_para_fazer=ItemAgenda.data_para_fazer_padrao(andamento.data_prazo),
-            responsavel=processo.responsavel,
+            responsavel=responsavel,
             atribuido_em=timezone.now(),
             processo=processo,
             cliente=processo.clientes.first(),
             movimentacao_origem=andamento,
+        )
+        ParticipanteItemAgenda.objects.bulk_create(
+            [ParticipanteItemAgenda(item=item, usuario=usuario) for usuario in demais]
         )
         avisar_prazo_gerado(item)
         return item
@@ -65,23 +79,42 @@ def sincronizar_prazo_do_andamento(andamento):
     return item
 
 
-def transferir_prazos_gerados(processo, novo_responsavel):
-    """Prazos gerados por andamento ainda abertos acompanham o novo
-    responsável do processo; concluído/cancelado guarda o histórico."""
+def sincronizar_responsaveis_dos_prazos(processo):
+    """Prazos gerados por andamento ainda abertos acompanham os
+    responsáveis do processo (PDR-0039): o 1º é o responsável do item, os
+    demais participantes; concluído/cancelado guarda o histórico."""
+    novo_responsavel, *demais = destinatarios_do_processo(processo)
+    ids_demais = {usuario.pk for usuario in demais}
     itens = (
         ItemAgenda.objects.filter(movimentacao_origem__processo=processo)
         .exclude(status__in=STATUS_ENCERRADOS)
-        .exclude(responsavel=novo_responsavel)
+        .select_related("responsavel")
     )
     agora = timezone.now()
     for item in itens:
-        ReatribuicaoItemAgenda.objects.create(
-            item=item, responsavel_anterior=item.responsavel, responsavel_novo=novo_responsavel,
+        if item.responsavel_id != novo_responsavel.pk:
+            ReatribuicaoItemAgenda.objects.create(
+                item=item, responsavel_anterior=item.responsavel, responsavel_novo=novo_responsavel,
+            )
+            item.responsavel = novo_responsavel
+            item.atribuido_em = agora
+            item.save(update_fields=["responsavel", "atribuido_em"])
+            avisar_atribuicao(item)
+        atuais = set(item.participacoes.values_list("usuario_id", flat=True))
+        item.participacoes.exclude(usuario_id__in=ids_demais).delete()
+        novos = [u for u in demais if u.pk not in atuais]
+        ParticipanteItemAgenda.objects.bulk_create(
+            [ParticipanteItemAgenda(item=item, usuario=usuario) for usuario in novos]
         )
-        item.responsavel = novo_responsavel
-        item.atribuido_em = agora
-        item.save(update_fields=["responsavel", "atribuido_em"])
-        avisar_atribuicao(item)
+        for usuario in novos:
+            notificar(usuario, f"Prazo do processo {processo} compartilhado com você: {item.titulo}")
+
+
+def filtrar_itens_do_cliente(qs, cliente_id):
+    """Itens do cliente: vinculados a ele ou a um processo dele — item de
+    processo com vários clientes aparece para todos."""
+    processos_do_cliente = Processo.clientes.through.objects.filter(cliente_id=cliente_id).values("processo_id")
+    return qs.filter(Q(cliente_id=cliente_id) | Q(processo_id__in=processos_do_cliente))
 
 
 def excluir_ocultos_por_convite(qs):
@@ -160,7 +193,7 @@ def agenda_do_vinculo(user, *, processo=None, cliente=None, limite=5):
     if processo is not None:
         abertos = abertos.filter(processo=processo)
     if cliente is not None:
-        abertos = abertos.filter(cliente=cliente)
+        abertos = filtrar_itens_do_cliente(abertos, cliente.pk)
     itens = list(ordenar_por_data(abertos.select_related("responsavel"))[:limite])
     return {
         "itens": anexar_urls(itens, user),

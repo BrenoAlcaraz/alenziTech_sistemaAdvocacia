@@ -61,7 +61,7 @@ class GruposBase(TenantTestCase):
         )
 
     def _processo(self, cliente, titulo="Processo"):
-        processo = Processo.objects.create(titulo=titulo, responsavel=self.user, status="ativo")
+        processo = Processo.objects.create(titulo=titulo, criado_por=self.user, status="ativo")
         processo.clientes.add(cliente)
         return processo
 

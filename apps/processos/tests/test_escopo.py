@@ -86,7 +86,7 @@ class ProcessosEscopoBase(TenantTestCase):
     def _processo(self, responsavel, cliente, titulo, *, status="ativo"):
         processo = Processo.objects.create(
             titulo=titulo,
-            responsavel=responsavel,
+            criado_por=responsavel,
             status=status,
         )
         if cliente is not None:
@@ -159,8 +159,9 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(resposta.status_code, 302)
-        criado = Processo.objects.get(titulo="Criado com posse segura")
-        self.assertEqual(criado.responsavel_id, self.user.pk)
+        criado = Processo.objects.get(titulo="CRIADO COM POSSE SEGURA")
+        self.assertEqual(criado.criado_por_id, self.user.pk)
+        self.assertFalse(criado.responsaveis.exists())
 
     def test_editar_processo_alheio_retorna_404_e_preserva_todos_os_campos(self):
         estado_anterior = Processo.objects.values().get(pk=self.alheio.pk)
@@ -171,7 +172,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
             vara="Vara adulterada",
             valor_causa="12345.67",
             data_distribuicao="2026-08-20",
-            responsavel=self.user.pk,
+            atribuir_responsaveis=[self.user.pk],
         )
         formulario = ProcessoForm(
             payload,
@@ -191,7 +192,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
             estado_anterior,
         )
         self.alheio.refresh_from_db()
-        self.assertEqual(self.alheio.responsavel_id, self.outro.pk)
+        self.assertEqual(self.alheio.criado_por_id, self.outro.pk)
 
     def test_arquivar_processo_alheio_retorna_404_e_preserva_estado(self):
         resposta = self.client.post(
@@ -202,7 +203,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
         self.assertEqual(resposta.status_code, 404)
         self.alheio.refresh_from_db()
         self.assertEqual(self.alheio.status, "ativo")
-        self.assertEqual(self.alheio.responsavel_id, self.outro.pk)
+        self.assertEqual(self.alheio.criado_por_id, self.outro.pk)
 
     def test_reabrir_processo_alheio_retorna_404_e_preserva_arquivamento(self):
         resposta = self.client.post(
@@ -213,7 +214,7 @@ class TestProcessosSomenteSeus(ProcessosEscopoBase):
         self.assertEqual(resposta.status_code, 404)
         self.arquivado_alheio.refresh_from_db()
         self.assertEqual(self.arquivado_alheio.status, "arquivado")
-        self.assertEqual(self.arquivado_alheio.responsavel_id, self.outro.pk)
+        self.assertEqual(self.arquivado_alheio.criado_por_id, self.outro.pk)
 
     def test_adicionar_movimentacao_alheia_retorna_404_e_nao_cria(self):
         quantidade_anterior = self.alheio.movimentacoes.count()
@@ -361,13 +362,12 @@ class TestProcessosAdministradorEIntegridade(ProcessosEscopoBase):
             self._payload(
                 self.cliente,
                 titulo="Reatribuído",
-                responsavel=self.admin.pk,
+                atribuir_responsaveis=[self.admin.pk],
             ),
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(resposta.status_code, 302)
-        self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.admin.pk)
+        self.assertEqual(list(self.processo.responsaveis.all()), [self.admin])
 
     def test_admin_usa_todos_por_padrao_pode_reduzir_e_so_ve_elegiveis_no_form(self):
         todos = self.client.get("/processos/", HTTP_HOST=self.http_host)
@@ -380,7 +380,7 @@ class TestProcessosAdministradorEIntegridade(ProcessosEscopoBase):
         self.assertNotIn(self.processo, list(proprios.context["processos"]))
 
         novo = self.client.get("/processos/novo/", HTTP_HOST=self.http_host)
-        responsaveis = novo.context["form"].fields["responsavel"].queryset
+        responsaveis = novo.context["form"].fields["atribuir_responsaveis"].queryset
         self.assertIn(self.admin, responsaveis)
         self.assertIn(self.elegivel, responsaveis)
         self.assertNotIn(self.inelegivel, responsaveis)
@@ -391,13 +391,12 @@ class TestProcessosAdministradorEIntegridade(ProcessosEscopoBase):
             with self.subTest(usuario=usuario.username):
                 resposta = self.client.post(
                     f"/processos/{self.processo.pk}/editar/",
-                    self._payload(self.cliente, responsavel=usuario.pk),
+                    self._payload(self.cliente, atribuir_responsaveis=[usuario.pk]),
                     HTTP_HOST=self.http_host,
                 )
                 self.assertEqual(resposta.status_code, 200)
                 self.assertFalse(resposta.context["form"].is_valid())
-                self.processo.refresh_from_db()
-                self.assertEqual(self.processo.responsavel_id, self.elegivel.pk)
+                self.assertFalse(self.processo.responsaveis.exists())
 
     def test_responsavel_obrigatorio_e_protegido_contra_exclusao(self):
         with self.assertRaises(IntegrityError):

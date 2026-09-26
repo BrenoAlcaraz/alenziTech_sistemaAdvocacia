@@ -5,6 +5,7 @@
       {% if parte.cpf_cnpj %}<p class="text-xs text-gray-500">{{ parte.cpf_cnpj }}</p>{% endif %}
       {% if parte.ente_publico %}<p class="text-xs text-amber-700">Ente público — {{ parte.get_ente_publico_display }}</p>{% endif %}
       {% if parte.prazo_em_dobro %}<p class="text-xs text-gray-500" title="O prazo sugerido pelo DJEN para esta parte é dobrado.">Prazo em dobro</p>{% endif %}
+      {% if parte.gratuidade_justica %}<p class="text-xs text-juridico-verde" data-parte-gratuidade>Gratuidade de justiça</p>{% endif %}
     </div>
     <span class="badge-area">{{ parte.get_papel_display }}</span>
   </div>
@@ -19,6 +20,43 @@
     {% endif %}
   </div>
 
+  {% with representantes=parte.representantes.all %}
+  {% if representantes or pode_modificar %}
+  <div class="mt-3 pt-3 border-t border-gray-100" data-representantes>
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Representante{{ representantes|length|pluralize }}</p>
+    {% for representante in representantes %}
+      <div class="flex items-start justify-between gap-2{% if not forloop.last %} mb-2{% endif %}">
+        <div class="min-w-0">
+          <p class="text-sm text-gray-800 truncate" title="{{ representante.nome }}">{{ representante.nome }}</p>
+          <p class="text-xs text-gray-500">{{ representante.get_qualificacao_display }}{% if representante.cpf %} · CPF {{ representante.cpf }}{% endif %}</p>
+        </div>
+        {% if pode_modificar %}
+        <form method="post" action="{% url 'processos:remover_representante' processo.pk representante.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="text-xs text-red-600 hover:text-red-700"
+                  data-confirmar="Remover este representante?" data-confirmar-registro="{{ representante.nome }}">Remover</button>
+        </form>
+        {% endif %}
+      </div>
+    {% empty %}
+      <p class="text-xs text-gray-500">Nenhum representante.</p>
+    {% endfor %}
+    {% if pode_modificar %}
+    <details class="mt-2">
+      <summary class="text-sm text-juridico-verde cursor-pointer">Adicionar representante</summary>
+      <form method="post" action="{% url 'processos:adicionar_representante' processo.pk parte.pk %}" class="mt-3 flex flex-col gap-2">
+        {% csrf_token %}
+        {{ form_representante.qualificacao }}
+        {{ form_representante.nome }}
+        {{ form_representante.cpf }}
+        <button type="submit" class="btn-secondary text-sm self-start">Adicionar</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
   {% if pode_modificar %}
   <details class="mt-3">
     <summary class="text-sm text-juridico-verde cursor-pointer">Editar parte</summary>
@@ -29,6 +67,7 @@
       {{ parte.form_editar.cpf_cnpj }}
       {{ parte.form_editar.ente_publico }}
       <label class="flex items-center gap-2 text-sm text-gray-700">{{ parte.form_editar.prazo_em_dobro }} Prazo em dobro</label>
+      <div data-gratuidade><label class="flex items-center gap-2 text-sm text-gray-700">{{ parte.form_editar.gratuidade_justica }} Gratuidade de justiça</label></div>
       {{ parte.form_editar.advogado_nome }}
       {{ parte.form_editar.advogado_oab }}
       <button type="submit" class="btn-secondary text-sm self-start">Salvar</button>

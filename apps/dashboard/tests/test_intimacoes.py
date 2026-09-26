@@ -61,7 +61,7 @@ class TestPainelIntimacoesComAcesso(PainelIntimacoesBase):
     def setUp(self):
         super().setUp()
         self._autorizar()
-        self.processo = Processo.objects.create(titulo="Processo com intimação", responsavel=self.usuario)
+        self.processo = Processo.objects.create(titulo="Processo com intimação", criado_por=self.usuario)
         self.pendente = Intimacao.objects.create(
             processo=self.processo, motivo="Réplica", prazo_manifestacao="2026-12-01",
         )
@@ -96,7 +96,7 @@ class TestPainelIntimacoesEscopo(PainelIntimacoesBase):
     def test_somente_seus_nao_mostra_intimacao_de_processo_alheio(self):
         self._autorizar(nivel_processos=NIVEL_SOMENTE_SEUS)
         outro = User.objects.create_user("outro_dono_processo", password="testpass")
-        processo_alheio = Processo.objects.create(titulo="Processo Alheio", responsavel=outro)
+        processo_alheio = Processo.objects.create(titulo="Processo Alheio", criado_por=outro)
         Intimacao.objects.create(
             processo=processo_alheio, motivo="Não deveria aparecer", prazo_manifestacao="2026-12-01",
         )

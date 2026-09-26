@@ -39,17 +39,13 @@ class AtividadeLogProcessosBase(TenantTestCase):
             nome_razao_social="Cliente Log", tipo="PF", responsavel=self.admin, ativo=True
         )
         self.processo = Processo.objects.create(
-            titulo="Processo Log", responsavel=self.admin,
+            titulo="Processo Log", criado_por=self.admin,
         )
         self.processo.clientes.add(self.cliente)
 
     def _payload(self, titulo="Processo Log", **extra):
-        # self.admin sempre usa ProcessoResponsavelForm (bypass de Admin em
-        # _pode_atribuir_responsavel) — "responsavel" é obrigatório nesse
-        # formulário, igual o campo pré-selecionado (initial) que o GET real
-        # já mostra na tela.
         payload = {
-            "titulo": titulo, "clientes": [self.cliente.pk], "responsavel": self.admin.pk,
+            "titulo": titulo, "clientes": [self.cliente.pk],
             **FORM_BASE,
         }
         payload.update(extra)
@@ -68,7 +64,7 @@ class TestLogCriarEditarArquivarReabrir(AtividadeLogProcessosBase):
         self.assertEqual(resposta.status_code, 302)
         log = self._ultimo_log()
         self.assertEqual(log.tipo, "processo_criado")
-        self.assertIn("Novo via form", log.descricao)
+        self.assertIn("NOVO VIA FORM", log.descricao)
 
     def test_editar_processo_gera_log(self):
         resposta = self.client.post(
@@ -165,7 +161,7 @@ class TestLogIntegranteEApenso(AtividadeLogProcessosBase):
 
     def test_adicionar_e_remover_apenso_geram_log(self):
         outro_processo = Processo.objects.create(
-            titulo="Processo Apenso", responsavel=self.admin,
+            titulo="Processo Apenso", criado_por=self.admin,
         )
         outro_processo.clientes.add(self.cliente)
         resposta = self.client.post(

@@ -322,7 +322,9 @@ Rotas antigas `/tarefas/...` redirecionam para a Agenda Jurídica.
 - Detalhe de Processo e de Cliente: card "Agenda do processo/cliente"
   com os itens em aberto de qualquer tipo no escopo de leitura da
   agenda do usuário, "+ Novo" pré-preenchido e "Ver todos" filtrado.
-  Sem o módulo Agenda Jurídica, o card não aparece.
+  Sem o módulo Agenda Jurídica, o card não aparece. Pelo processo, o
+  "+ Novo" trava processo e clientes (todos os do processo); item
+  vinculado a um processo aparece para cada cliente dele.
 - Aba Prazos do processo: cada prazo leva ao item gerado, quando ele
   está no escopo do usuário.
 - Dashboard: "Afazeres pendentes", "Agenda próxima" (confirmados e
@@ -363,7 +365,7 @@ mostra "Nenhuma equipe cadastrada ainda".
   da equipe não perde acesso automaticamente — a remoção é manual.
 - O servidor valida cada usuário (elegível no módulo e membro ativo da
   equipe informada); não confia no JS.
-- Em Processos não afeta o responsável principal; em Evento da Agenda
+- Em Processos não afeta os responsáveis; em Evento da Agenda
   Jurídica cada participante passa pela confirmação de presença normal
   (PDR-0020).
   Nenhuma habilitação nova — cada módulo exige a mesma que já exige

@@ -26,7 +26,7 @@ class UsuarioProcessosHabilitadosBase(TenantTestCase):
         self.responsavel = User.objects.create_user("resp_proc_hab", password="testpass")
         self.usuario_alvo = User.objects.create_user("alvo_proc_hab", password="testpass")
         self.processo = Processo.objects.create(
-            titulo="Processo Habilitável", responsavel=self.responsavel, area_direito="CÍVEL",
+            titulo="Processo Habilitável", criado_por=self.responsavel, area_direito="CÍVEL",
         )
         self.gestor = User.objects.create_user("gestor_proc_hab", password="testpass")
         papel = PapelAcesso.objects.create(nome="Papel Gestor Proc Hab")
@@ -76,7 +76,7 @@ class TestUsuarioProcessosHabilitadosToggle(UsuarioProcessosHabilitadosBase):
 
     def test_filtro_por_materia(self):
         outro_processo = Processo.objects.create(
-            titulo="Processo Trabalhista", responsavel=self.responsavel, area_direito="TRABALHISTA",
+            titulo="Processo Trabalhista", criado_por=self.responsavel, area_direito="TRABALHISTA",
         )
         resposta = self.client.get(self._url(), {"materia": "CÍVEL"}, HTTP_HOST=self.http_host)
         titulos = [p.titulo for p in resposta.context["processos"]]

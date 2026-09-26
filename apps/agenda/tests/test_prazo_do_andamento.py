@@ -31,7 +31,7 @@ class PrazoDoAndamentoBase(TenantTestCase):
         self.dono = User.objects.create_user("dono_processo", password="testpass")
         self.outro = User.objects.create_user("outro_advogado", password="testpass")
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Prazo", tipo="PF", responsavel=self.dono)
-        self.processo = Processo.objects.create(responsavel=self.dono, titulo="Processo Prazo")
+        self.processo = Processo.objects.create(criado_por=self.dono, titulo="Processo Prazo")
         self.processo.clientes.add(self.cliente)
 
     def _andamento(self, data_prazo=FATAL, **kwargs):
@@ -140,8 +140,7 @@ class TestTrocaDeResponsavelDoProcesso(PrazoDoAndamentoBase):
     def test_troca_leva_prazos_gerados_abertos_e_registra_historico(self):
         aberto = ItemAgenda.objects.get(movimentacao_origem=self._andamento())
 
-        self.processo.responsavel = self.outro
-        self.processo.save()
+        self.processo.responsaveis.add(self.outro)
 
         aberto.refresh_from_db()
         self.assertEqual(aberto.responsavel, self.outro)
@@ -162,8 +161,7 @@ class TestTrocaDeResponsavelDoProcesso(PrazoDoAndamentoBase):
             responsavel=self.dono, processo=self.processo,
         )
 
-        self.processo.responsavel = self.outro
-        self.processo.save()
+        self.processo.responsaveis.add(self.outro)
 
         for item in (concluido, cancelado, manual):
             item.refresh_from_db()
@@ -182,11 +180,11 @@ class TestTrocaDeResponsavelDoProcesso(PrazoDoAndamentoBase):
         UsuarioPapel.objects.create(usuario=self.dono, papel=papel)
         PermissaoPapel.objects.create(papel=papel, modulo=MODULO_AGENDA, ativo=True, nivel=NIVEL_TODOS)
         PermissaoPapel.objects.create(papel=papel, modulo=MODULO_PROCESSOS, ativo=False, nivel=NIVEL_TODOS)
+        self.processo.responsaveis.add(self.dono)
         aberto = ItemAgenda.objects.get(movimentacao_origem=self._andamento())
 
         transferir_processos_de_usuarios_sem_acesso([self.dono.pk])
 
-        self.processo.refresh_from_db()
         aberto.refresh_from_db()
-        self.assertEqual(self.processo.responsavel, admin)
+        self.assertEqual(list(self.processo.responsaveis.all()), [admin])
         self.assertEqual(aberto.responsavel, admin)

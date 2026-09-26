@@ -24,7 +24,7 @@ class IntimacoesBase(TenantTestCase):
         self.usuario = User.objects.create_user("resp_intimacao", password="testpass")
         self._autorizar_processos(self.usuario)
         self.processo = Processo.objects.create(
-            titulo="Processo Intimável", responsavel=self.usuario
+            titulo="Processo Intimável", criado_por=self.usuario
         )
         self.client.force_login(self.usuario)
 
@@ -57,7 +57,7 @@ class TestCriarIntimacaoManual(IntimacoesBase):
     def test_nao_pode_vincular_processo_fora_do_escopo_de_mutacao(self):
         outro_responsavel = User.objects.create_user("outro_resp", password="testpass")
         processo_alheio = Processo.objects.create(
-            titulo="Processo Alheio", responsavel=outro_responsavel
+            titulo="Processo Alheio", criado_por=outro_responsavel
         )
         resposta = self.client.post(
             "/processos/intimacoes/nova/",
@@ -110,7 +110,7 @@ class TestManifestarIntimacao(IntimacoesBase):
     def test_nao_pode_manifestar_intimacao_de_processo_alheio(self):
         outro_responsavel = User.objects.create_user("outro_resp2", password="testpass")
         processo_alheio = Processo.objects.create(
-            titulo="Processo Alheio 2", responsavel=outro_responsavel
+            titulo="Processo Alheio 2", criado_por=outro_responsavel
         )
         intimacao_alheia = Intimacao.objects.create(
             processo=processo_alheio, motivo="Alheia", prazo_manifestacao="2026-12-01",

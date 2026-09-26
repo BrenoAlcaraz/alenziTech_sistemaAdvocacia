@@ -35,7 +35,7 @@ class HonorarioSucumbencialBase(TenantTestCase):
         )
         self.client.force_login(self.user)
         self.cliente = Cliente.objects.create(nome_razao_social="CLIENTE H", tipo="PF", responsavel=self.user)
-        self.processo = Processo.objects.create(responsavel=self.user, titulo="Proc H")
+        self.processo = Processo.objects.create(criado_por=self.user, titulo="Proc H")
         self.processo.clientes.add(self.cliente)
         self.hoje = timezone.localdate()
 

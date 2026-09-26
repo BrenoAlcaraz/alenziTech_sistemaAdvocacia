@@ -35,7 +35,7 @@ from .models import (
     Processo,
 )
 from .movimentos_tpu import classificar, normalizado
-from .services import recalcular_prazo_proximo
+from .services import destinatarios_do_processo, recalcular_prazo_proximo
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ def processos_acompanhados():
         Processo.objects.exclude(status="arquivado")
         .filter(segredo_justica=False)
         .exclude(numero="")
-        .select_related("responsavel")
+        .select_related("criado_por")
     )
     return [processo for processo in candidatos if numero_cnj_valido(processo.numero)]
 
@@ -134,6 +134,13 @@ def _unicos(valores):
 
 def _notificar(destinatario, mensagem):
     Notificacao.objects.create(destinatario=destinatario, mensagem=mensagem[:_TAMANHO_NOTIFICACAO])
+
+
+def _notificar_processo(processo, mensagem):
+    """Avisa todos os responsáveis do processo (ou quem criou, sem
+    nenhum responsável ativo) — PDR-0039."""
+    for destinatario in destinatarios_do_processo(processo):
+        _notificar(destinatario, mensagem)
 
 
 def _dono_do_prazo(advogados, oabs):
@@ -239,8 +246,8 @@ def _avisar_cancelamentos(processo, comunicacoes, hoje):
         avisadas.setdefault(registro.chave_grupo, registro)
     novas.update(cancelada_em=hoje)
     for registro in avisadas.values():
-        _notificar(
-            processo.responsavel,
+        _notificar_processo(
+            processo,
             f"Publicação de {registro.data_disponibilizacao:%d/%m/%Y} foi cancelada no DJEN no processo {processo} "
             "— nada foi apagado; confira o andamento",
         )
@@ -253,7 +260,7 @@ def _avisar_andamento_sugerido(processo, andamento):
         situacao = f"prazo da outra parte em {andamento.data_prazo:%d/%m}"
     else:
         situacao = f"prazo sugerido para {andamento.data_prazo:%d/%m}"
-    _notificar(processo.responsavel, f"Intimação sugerida (DJEN) no processo {processo}: {situacao} — confira")
+    _notificar_processo(processo, f"Intimação sugerida (DJEN) no processo {processo}: {situacao} — confira")
 
 
 def _primeira_consulta(processo, hoje, buscar):
@@ -264,8 +271,8 @@ def _primeira_consulta(processo, hoje, buscar):
             _registrar(processo, grupo, chave, anterior=True)
         AcompanhamentoProcesso.objects.update_or_create(processo=processo, defaults={"djen_consultado_ate": hoje})
         if grupos:
-            _notificar(
-                processo.responsavel,
+            _notificar_processo(
+                processo,
                 f"Houve publicação no DJEN antes do acompanhamento do processo {processo} — confira na aba de andamentos",
             )
 
@@ -356,8 +363,8 @@ def _atualizar_dados_do_processo(processo, acompanhamento, atual):
             mudancas.append(f"instância: {instancia}")
     if alterados:
         processo.save(update_fields=alterados)
-        _notificar(
-            processo.responsavel,
+        _notificar_processo(
+            processo,
             f"Dados do processo {processo} alterados no tribunal (DataJud) — {'; '.join(mudancas)} — confirme ou edite",
         )
 
@@ -392,8 +399,8 @@ def sincronizar_datajud(processo, *, buscar=buscar_processo):
                 _ponto_de_partida_datajud(processo, acompanhamento, registros, atual)
         acompanhamento.save()
         if criados:
-            _notificar(
-                processo.responsavel,
+            _notificar_processo(
+                processo,
                 f"{criados} andamento(s) sugerido(s) (DataJud) no processo {processo} — traga o documento e confira",
             )
     return criados
@@ -409,15 +416,15 @@ def cobrar_prazos_a_definir(hoje):
     """Aviso diário ao responsável de cada "prazo a definir" ainda não
     resolvido (sem data informada e não rejeitado)."""
     pendentes = (
-        MovimentacaoProcessual.objects.filter(prazo_a_definir=True, processo__responsavel__isnull=False)
+        MovimentacaoProcessual.objects.filter(prazo_a_definir=True)
         .exclude(processo__status="arquivado")
         .filter(Q(prazo_a_definir_avisado_em__isnull=True) | Q(prazo_a_definir_avisado_em__lt=hoje))
-        .select_related("processo__responsavel")
+        .select_related("processo__criado_por")
     )
     for andamento in pendentes:
         with transaction.atomic():
-            _notificar(
-                andamento.processo.responsavel,
+            _notificar_processo(
+                andamento.processo,
                 f"Prazo a definir no processo {andamento.processo} (intimação de {timezone.localtime(andamento.data):%d/%m/%Y}) "
                 "— informe a data do prazo",
             )

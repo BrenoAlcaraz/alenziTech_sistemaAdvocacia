@@ -83,12 +83,12 @@ class TestConversaoPapelUnico(TenantTestCase):
     def test_quem_perde_processos_tem_processos_transferidos(self):
         multi = self._user("multi_processos", self.papel_a, self.papel_b)
         unico = self._user("unico_processos", self.papel_a)
-        do_multi = Processo.objects.create(responsavel=multi, titulo="Do multi")
-        do_unico = Processo.objects.create(responsavel=unico, titulo="Do unico")
+        do_multi = Processo.objects.create(criado_por=multi, titulo="Do multi")
+        do_unico = Processo.objects.create(criado_por=unico, titulo="Do unico")
+        do_multi.responsaveis.add(multi)
+        do_unico.responsaveis.add(unico)
 
         migracao.unificar_papeis(django_apps, None)
 
-        do_multi.refresh_from_db()
-        do_unico.refresh_from_db()
-        self.assertEqual(do_multi.responsavel_id, self.admin.pk)
-        self.assertEqual(do_unico.responsavel_id, unico.pk)
+        self.assertEqual(list(do_multi.responsaveis.all()), [self.admin])
+        self.assertEqual(list(do_unico.responsaveis.all()), [unico])

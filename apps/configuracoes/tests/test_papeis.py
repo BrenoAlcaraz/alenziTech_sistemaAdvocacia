@@ -231,7 +231,8 @@ class TestPapeisAutorizado(PapeisGerirBase):
             papel=anterior, modulo=MODULO_PROCESSOS, ativo=True, nivel="todos"
         )
         UsuarioPapel.objects.create(usuario=alvo, papel=anterior, ativo=True)
-        processo = Processo.objects.create(responsavel=alvo, titulo="Processo do alvo")
+        processo = Processo.objects.create(criado_por=alvo, titulo="Processo do alvo")
+        processo.responsaveis.add(alvo)
 
         r = self.client.post(
             f"/configuracoes/papeis/{self.papel.pk}/usuarios/",
@@ -240,7 +241,7 @@ class TestPapeisAutorizado(PapeisGerirBase):
         )
         self.assertEqual(r.status_code, 302)
         processo.refresh_from_db()
-        self.assertEqual(processo.responsavel_id, administrador.pk)
+        self.assertEqual(list(processo.responsaveis.values_list("pk", flat=True)), [administrador.pk])
 
     def test_reatribuir_usuario_removido_reativa_mesmo_vinculo(self):
         alvo = self._user("alvo_reatribuir")

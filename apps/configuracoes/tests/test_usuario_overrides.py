@@ -209,8 +209,10 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         self.assertTrue(tem_permissao_modulo(self.alvo, MODULO_PROCESSOS))
 
         processo = Processo.objects.create(
-            responsavel=self.alvo, titulo="Processo do Alvo"
+            criado_por=self.alvo, titulo="Processo do Alvo"
         )
+
+        processo.responsaveis.add(self.alvo)
 
         r = self.client.post(
             f"/configuracoes/usuarios/{self.alvo.pk}/permissoes/",
@@ -221,7 +223,7 @@ class TestUsuarioOverridesAutorizado(UsuarioOverridesBase):
         self.assertFalse(tem_permissao_modulo(self.alvo, MODULO_PROCESSOS))
 
         processo.refresh_from_db()
-        self.assertEqual(processo.responsavel_id, administrador.pk)
+        self.assertEqual(list(processo.responsaveis.values_list("pk", flat=True)), [administrador.pk])
 
     def test_estado_efetivo_de_usuario_sem_papel_e_tudo_desligado(self):
         r = self.client.get(

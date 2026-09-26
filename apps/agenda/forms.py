@@ -121,8 +121,12 @@ class ItemAgendaForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, processo_fixo=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.processo_fixo = processo_fixo
+        if processo_fixo is not None:
+            self._fixar_processo(processo_fixo)
+            return
         cliente_id = self.data.get("cliente") or self.initial.get("cliente") or getattr(self.instance, "cliente_id", None)
         qs = Processo.objects.prefetch_related("clientes").exclude(status="arquivado")
         if cliente_id:
@@ -135,6 +139,19 @@ class ItemAgendaForm(forms.ModelForm):
             # `disabled` faz o Django ignorar o POST e manter o valor atual.
             for nome in _CAMPOS_TRAVADOS_NO_PRAZO_GERADO:
                 self.fields[nome].disabled = True
+
+    def _fixar_processo(self, processo):
+        """Aberto pelo processo: processo e clientes vêm dele e não mudam
+        (`disabled` ignora o POST). Grava o 1º cliente, como o cadastro
+        manual; o item aparece para todos os clientes do processo pelo
+        vínculo com o processo."""
+        self.clientes_do_processo = list(processo.clientes.all())
+        self.fields["processo"].queryset = Processo.objects.filter(pk=processo.pk)
+        self.fields["processo"].initial = processo
+        self.fields["cliente"].initial = self.clientes_do_processo[0] if self.clientes_do_processo else None
+        self.fields["prioridade"].required = False
+        for nome in ("processo", "cliente"):
+            self.fields[nome].disabled = True
 
     def clean(self):
         cleaned = super().clean()

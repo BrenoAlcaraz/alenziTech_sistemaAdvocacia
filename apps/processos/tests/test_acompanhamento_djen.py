@@ -62,7 +62,7 @@ class AcompanhamentoBase(TenantTestCase):
         self.http_host = dominio.domain if dominio else "localhost"
         self.dono = User.objects.create_user("dono_djen", password="testpass")
         PerfilUsuario.objects.filter(user=self.dono).update(oab_numero="123.456", oab_uf="sp")
-        self.processo = Processo.objects.create(responsavel=self.dono, titulo="Processo DJEN", numero=NUMERO)
+        self.processo = Processo.objects.create(criado_por=self.dono, titulo="Processo DJEN", numero=NUMERO)
 
     def _ja_acompanhado(self, processo=None, desde=date(2026, 9, 30)):
         AcompanhamentoProcesso.objects.create(processo=processo or self.processo, djen_consultado_ate=desde)
@@ -81,10 +81,10 @@ class TestSelecaoDeProcessos(AcompanhamentoBase):
         return "djen_selecao"
 
     def test_acompanha_so_numero_cnj_valido_fora_de_arquivado_e_segredo(self):
-        Processo.objects.create(responsavel=self.dono, titulo="Arq", numero=NUMERO, status="arquivado")
-        Processo.objects.create(responsavel=self.dono, titulo="Seg", numero=NUMERO, segredo_justica=True)
-        Processo.objects.create(responsavel=self.dono, titulo="Inválido", numero="123")
-        suspenso = Processo.objects.create(responsavel=self.dono, titulo="Susp", numero=NUMERO, status="suspenso")
+        Processo.objects.create(criado_por=self.dono, titulo="Arq", numero=NUMERO, status="arquivado")
+        Processo.objects.create(criado_por=self.dono, titulo="Seg", numero=NUMERO, segredo_justica=True)
+        Processo.objects.create(criado_por=self.dono, titulo="Inválido", numero="123")
+        suspenso = Processo.objects.create(criado_por=self.dono, titulo="Susp", numero=NUMERO, status="suspenso")
 
         self.assertEqual(set(processos_acompanhados()), {self.processo, suspenso})
 
@@ -155,7 +155,7 @@ class TestPublicacaoViraAndamentoSugerido(AcompanhamentoBase):
 
     def test_casos_de_prazo_a_definir_sem_item_na_agenda(self):
         penal = Processo.objects.create(
-            responsavel=self.dono, titulo="Penal", numero="0000001-68.2026.8.26.0100", area_direito="CRIMINAL",
+            criado_por=self.dono, titulo="Penal", numero="0000001-68.2026.8.26.0100", area_direito="CRIMINAL",
         )
         self._ja_acompanhado()
         self._ja_acompanhado(penal)
@@ -239,7 +239,7 @@ class TestIdempotenciaEIsolamento(AcompanhamentoBase):
         self.assertFalse(self._andamentos().exists())
 
     def test_falha_num_processo_nao_interrompe_os_demais_e_aparece_na_faixa(self):
-        outro = Processo.objects.create(responsavel=self.dono, titulo="Outro", numero="0000001-68.2026.8.26.0100")
+        outro = Processo.objects.create(criado_por=self.dono, titulo="Outro", numero="0000001-68.2026.8.26.0100")
         self._ja_acompanhado()
         self._ja_acompanhado(outro)
 

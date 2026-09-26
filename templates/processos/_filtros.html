@@ -39,6 +39,18 @@
 </div>
 
 <div class="barra-filtros-campo">
+  <label for="responsabilidade" class="label">Responsabilidade</label>
+  <select id="responsabilidade" name="responsabilidade" class="select">
+    <option value="">Todas</option>
+    <option value="minha" {% if filtro_responsabilidade == "minha" %}selected{% endif %}>Atribuídos a mim</option>
+    <option value="nenhum" {% if filtro_responsabilidade == "nenhum" %}selected{% endif %}>Sem responsável</option>
+    {% for usuario in responsaveis_filtro %}
+      <option value="{{ usuario.pk }}" {% if filtro_responsabilidade == usuario.pk|stringformat:"s" %}selected{% endif %}>{{ usuario.get_full_name|default:usuario.username }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="barra-filtros-campo">
   <label for="equipe" class="label">Equipe</label>
   <select id="equipe" name="equipe" class="select">
     <option value="">Todas</option>

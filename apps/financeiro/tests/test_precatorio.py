@@ -69,7 +69,7 @@ class TestAbaPrecatorio(HonorarioSucumbencialBase):
     def test_lista_so_sucumbencia_contra_ente_publico(self):
         contra_ente = self._honorario()
         self._parte_publica("federal")
-        outro_processo = self.processo.__class__.objects.create(responsavel=self.user, titulo="Privado")
+        outro_processo = self.processo.__class__.objects.create(criado_por=self.user, titulo="Privado")
         self._honorario(processo=outro_processo)
         Honorario.objects.create(tipo="contratual", valor_estimado=Decimal("10"), processo=self.processo)
         self._honorario(status="cancelado")

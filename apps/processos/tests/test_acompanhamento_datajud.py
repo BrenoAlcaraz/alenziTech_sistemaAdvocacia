@@ -89,7 +89,7 @@ class DatajudBase(TenantTestCase):
         super().setUp()
         self.dono = User.objects.create_user("dono_datajud", password="testpass")
         self.processo = Processo.objects.create(
-            responsavel=self.dono, titulo="Processo DataJud", numero=NUMERO, vara="1a vara civel",
+            criado_por=self.dono, titulo="Processo DataJud", numero=NUMERO, vara="1a vara civel",
         )
 
     def _sincronizar(self, *registros):

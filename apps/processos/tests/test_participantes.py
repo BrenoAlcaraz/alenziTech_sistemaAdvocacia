@@ -62,7 +62,6 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
     def test_entidades_do_modelo_antigo_nao_existem_mais(self):
         for nome_modelo in (
             "AutoridadeProcessual",
-            "RepresentanteParte",
             "HistoricoClassificacaoParte",
         ):
             with self.subTest(modelo=nome_modelo):
@@ -86,7 +85,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
             HTTP_HOST=self.http_host,
         )
         self.assertEqual(resposta.status_code, 302)
-        processo = Processo.objects.get(titulo="Processo criado por HTTP")
+        processo = Processo.objects.get(titulo="PROCESSO CRIADO POR HTTP")
         self.assertEqual(processo.partes.count(), 0)
 
     def test_cada_papel_cria_parte_no_grupo_visual_correto(self):
@@ -275,7 +274,7 @@ class TestParticipantesProcessuais(ProcessosEscopoBase):
     def test_form_adicionar_parte_nao_oferece_reaproveitar_sem_cliente_no_processo(self):
         processo_sem_cliente = Processo.objects.create(
             titulo="Processo sem cliente",
-            responsavel=self.user,
+            criado_por=self.user,
         )
         resposta = self.client.get(
             f"/processos/{processo_sem_cliente.pk}/",

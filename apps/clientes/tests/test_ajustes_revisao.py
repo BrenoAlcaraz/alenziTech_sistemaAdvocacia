@@ -77,7 +77,7 @@ class TestClientesRelacionadosPorProcesso(TenantTestCase):
 
     def test_clientes_no_mesmo_processo_sao_relacionados(self):
         a, b, c = self._cliente("A"), self._cliente("B"), self._cliente("C")
-        processo = Processo.objects.create(responsavel=self.user, titulo="Processo Teste")
+        processo = Processo.objects.create(criado_por=self.user, titulo="Processo Teste")
         processo.clientes.add(a, b)
         self.assertEqual(clientes_relacionados(a), [b])
         self.assertEqual(clientes_relacionados(b), [a])
@@ -85,7 +85,7 @@ class TestClientesRelacionadosPorProcesso(TenantTestCase):
 
     def test_base_restringe_o_universo_visivel(self):
         a, b = self._cliente("A"), self._cliente("B")
-        processo = Processo.objects.create(responsavel=self.user, titulo="Processo Teste")
+        processo = Processo.objects.create(criado_por=self.user, titulo="Processo Teste")
         processo.clientes.add(a, b)
         self.assertEqual(
             clientes_relacionados(a, base=Cliente.objects.filter(pk=a.pk)), [],

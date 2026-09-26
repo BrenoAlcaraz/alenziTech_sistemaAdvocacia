@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from apps.clientes.models import Cliente
 from apps.notificacoes.models import Notificacao
+from apps.processos.services import destinatarios_do_processo
 
 from .models import (
     CustaJudicial, Honorario, LancamentoFinanceiro, MembroGrupoCustas, SolicitacaoFinanceira,
@@ -676,14 +677,16 @@ def gerar_lancamentos_do_honorario(honorario, *, responsavel=None):
 
 
 def notificar_recebimento_de_honorario(honorario, usuario):
-    """Todo recebimento de honorário avisa o advogado responsável pelo
-    processo — nunca quem registrou (PDR-0007)."""
-    responsavel_id = honorario.processo.responsavel_id if honorario.processo_id else None
-    if responsavel_id and responsavel_id != usuario.id:
-        Notificacao.objects.create(
-            destinatario=honorario.processo.responsavel,
-            mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
-        )
+    """Todo recebimento de honorário avisa os responsáveis pelo processo
+    — nunca quem registrou (PDR-0007, PDR-0039)."""
+    if not honorario.processo_id:
+        return
+    for destinatario in destinatarios_do_processo(honorario.processo):
+        if destinatario.pk != usuario.pk:
+            Notificacao.objects.create(
+                destinatario=destinatario,
+                mensagem=f"Honorário recebido: \"{honorario.get_tipo_display()}\" — {honorario.processo}",
+            )
 
 
 def registrar_recebimento_honorario(honorario, *, valor_efetivo, valor, data, comprovante, usuario):

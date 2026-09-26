@@ -23,7 +23,7 @@ class TestPatrocinioDoProcesso(TenantTestCase):
 
     def _processo(self, cliente=None):
         processo = Processo.objects.create(
-            titulo="Processo teste", responsavel=self.responsavel
+            titulo="Processo teste", criado_por=self.responsavel
         )
         if cliente is not None:
             processo.clientes.add(cliente)

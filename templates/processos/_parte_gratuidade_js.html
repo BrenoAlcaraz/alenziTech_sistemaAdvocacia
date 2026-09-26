@@ -1,0 +1,24 @@
+<script>
+(function () {
+  "use strict";
+
+  // Gratuidade só existe para polo ativo, polo passivo e terceiro
+  // interessado; o backend descarta a marcação nos demais papéis.
+  var dataEl = document.getElementById("papeis-com-gratuidade-data");
+  if (!dataEl) return;
+  var papeis = JSON.parse(dataEl.textContent);
+
+  document.querySelectorAll("form").forEach(function (form) {
+    var papel = form.querySelector('select[name="papel"]');
+    var campo = form.querySelector("[data-gratuidade]");
+    if (!papel || !campo) return;
+    function atualizar() {
+      var permitido = papeis.indexOf(papel.value) !== -1;
+      campo.classList.toggle("hidden", !permitido);
+      if (!permitido) campo.querySelector("input").checked = false;
+    }
+    papel.addEventListener("change", atualizar);
+    atualizar();
+  });
+})();
+</script>

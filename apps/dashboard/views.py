@@ -36,7 +36,11 @@ from apps.accounts.permissoes_constants import (
 from apps.clientes.models import Cliente
 from apps.processos.acompanhamento import situacao_do_acompanhamento
 from apps.processos.models import Intimacao, MovimentacaoProcessual, Processo
-from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
+from apps.processos.services import (
+    filtrar_processos_do_usuario,
+    patrocinio_do_processo,
+    responsaveis_elegiveis,
+)
 from apps.agenda.models import (
     STATUS_A_FAZER,
     STATUS_ENCERRADOS,
@@ -130,7 +134,7 @@ def _processos_escopo_ativos(user, escopo):
     """Processos não arquivados no escopo somente_seus/todos do usuário."""
     qs = Processo.objects.exclude(status="arquivado").prefetch_related("clientes")
     if escopo == NIVEL_SOMENTE_SEUS:
-        qs = qs.filter(responsavel=user)
+        qs = filtrar_processos_do_usuario(qs, user)
     return qs
 
 
@@ -306,7 +310,7 @@ def painel(request):
     if acesso_processos:
         qs_processos = Processo.objects.filter(status="ativo")
         if escopo_processos == NIVEL_SOMENTE_SEUS:
-            qs_processos = qs_processos.filter(responsavel=request.user)
+            qs_processos = filtrar_processos_do_usuario(qs_processos, request.user)
         resumo["processos_ativos"] = qs_processos.count()
 
     afazeres_pendentes = (
@@ -475,11 +479,11 @@ def analise(request):
     else:
         escopo = nivel_maximo
 
-    processos_qs = Processo.objects.select_related("equipe", "responsavel").prefetch_related(
+    processos_qs = Processo.objects.select_related("equipe").prefetch_related(
         "partes", "movimentacoes", "clientes"
     )
     if escopo == NIVEL_SOMENTE_SEUS:
-        processos_qs = processos_qs.filter(responsavel=request.user)
+        processos_qs = filtrar_processos_do_usuario(processos_qs, request.user)
 
     cliente_id = request.GET.get("cliente") or ""
     equipe_id = request.GET.get("equipe") or ""
@@ -491,7 +495,9 @@ def analise(request):
     if equipe_id:
         processos_qs = processos_qs.filter(equipe_id=equipe_id)
     if mostrar_filtro_usuario and usuario_id:
-        processos_qs = processos_qs.filter(responsavel_id=usuario_id)
+        processos_qs = processos_qs.filter(
+            pk__in=Processo.responsaveis.through.objects.filter(usuario_id=usuario_id).values("processo_id")
+        )
 
     processos = list(processos_qs)
     total = len(processos)

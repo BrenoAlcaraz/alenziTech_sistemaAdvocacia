@@ -33,6 +33,7 @@ from apps.modelos.services import gerar_peca_procuracao
 from .models import Cliente, Documento
 from .forms import ClienteForm, ClienteResponsavelForm, DocumentoForm
 from apps.processos.models import Processo
+from apps.processos.services import filtrar_processos_do_usuario
 from .services import clientes_relacionados, filtrar_clientes_por_busca, processos_em_comum
 from config.listagem import ordenar, paginar
 
@@ -97,10 +98,10 @@ def _clientes_no_escopo(request, escopo, *, ativo):
 def _processos_visiveis(user):
     """Processos que o usuário pode ler — mesma regra do detalhe do
     Processo (nível máximo do módulo Processos; `somente_seus` restringe
-    ao responsável)."""
+    a quem criou ou é responsável)."""
     qs = Processo.objects.all()
     if nivel_acesso_modulo(user, MODULO_PROCESSOS) != NIVEL_TODOS:
-        qs = qs.filter(responsavel=user)
+        qs = filtrar_processos_do_usuario(qs, user)
     return qs
 
 

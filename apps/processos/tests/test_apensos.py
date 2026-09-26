@@ -30,6 +30,7 @@ class TestApensosProcessos(ProcessosEscopoBase):
         self.cliente_b = self._cliente(self.outro, "Cliente B")
         self.a = self._processo(self.user, self.cliente_a, "Processo A")
         self.b = self._processo(self.outro, self.cliente_b, "Processo B")
+        self.b.responsaveis.add(self.outro)
         self.c = self._processo(self.user, self.cliente_a, "Processo C")
         Processo.objects.filter(pk=self.b.pk).update(
             numero="0000002-00.2026.8.00.0002",
@@ -294,7 +295,7 @@ class TestApensosTenantIsolation(ProcessosEscopoBase):
                 for indice in range(20):
                     remoto = Processo.objects.create(
                         titulo=f"Processo remoto secreto {indice}",
-                        responsavel=remoto_user,
+                        criado_por=remoto_user,
                     )
                     remoto.clientes.add(remoto_cliente)
                 remoto_pk = remoto.pk

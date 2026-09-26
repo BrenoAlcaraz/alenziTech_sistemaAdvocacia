@@ -218,7 +218,8 @@ class TestExcluirUsuario(ConfigBase):
 
     def test_inativa_o_usuario_e_passa_os_processos_ao_administrador(self):
         alvo = User.objects.create_user("alvo_cfg", password="testpass")
-        processo = Processo.objects.create(responsavel=alvo, titulo="Do alvo")
+        processo = Processo.objects.create(criado_por=alvo, titulo="Do alvo")
+        processo.responsaveis.add(alvo)
         equipe = Equipe.objects.create(nome="Equipe Exclusao")
         MembroEquipe.objects.create(usuario=alvo, equipe=equipe, ativo=True)
         r = self._excluir(alvo)
@@ -226,7 +227,7 @@ class TestExcluirUsuario(ConfigBase):
         alvo.refresh_from_db()
         self.assertFalse(alvo.is_active)
         processo.refresh_from_db()
-        self.assertEqual(processo.responsavel_id, self.admin.pk)
+        self.assertEqual(list(processo.responsaveis.values_list("pk", flat=True)), [self.admin.pk])
         self.assertFalse(MembroEquipe.objects.filter(usuario=alvo).exists())
 
     def test_sem_senha_nao_exclui(self):

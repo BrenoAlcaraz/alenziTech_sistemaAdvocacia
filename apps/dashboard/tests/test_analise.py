@@ -42,7 +42,7 @@ class AnaliseBase(TenantTestCase):
 
     def _processo(self, titulo, *, responsavel=None, cliente=None, **extra):
         processo = Processo.objects.create(
-            titulo=titulo, responsavel=responsavel or self.usuario, **extra
+            titulo=titulo, criado_por=responsavel or self.usuario, **extra
         )
         if cliente is not None:
             processo.clientes.add(cliente)

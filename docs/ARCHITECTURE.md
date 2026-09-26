@@ -154,19 +154,22 @@ transfere processos na mesma transação).
 qualquer código que grave `PermissaoPapel`/`HabilitacaoPapel` ou `PermissaoUsuario`/`HabilitacaoUsuario`
 (override individual) e que possa remover acesso ao módulo Processos
 deve chamar `transferir_processos_de_usuarios_sem_acesso`
-(`apps/processos/services.py`) na mesma transação — sem isso, o
-`responsavel` de um Processo fica "órfão" (aponta para alguém sem
-`tem_permissao_modulo`). Referência: `apps/configuracoes/views.py::_salvar_permissoes`/`usuario_overrides`.
+(`apps/processos/services.py`) na mesma transação — sem isso, um
+responsável de Processo fica "órfão" (alguém sem
+`tem_permissao_modulo`); a função o retira dos responsáveis e, se o
+processo ficar sem nenhum, atribui ao Administrador. Referência: `apps/configuracoes/views.py::_salvar_permissoes`/`usuario_overrides`.
 
 **Padrão de escopo de dados** (referência: `apps/clientes/views.py`,
 `apps/processos/views.py`): leitura e mutação usam `QuerySet`s
 distintos.
 - Leitura (`lista`/`detalhe`) filtra pelo escopo efetivo do usuário
-  (`somente_seus` → `responsavel == request.user`; `todos` → sem
-  filtro adicional). Escopo nunca amplia acima do nível máximo
+  (`somente_seus` → `responsavel == request.user`; em Processos, quem
+  criou ou é responsável — `filtrar_processos_do_usuario`, PDR-0039;
+  `todos` → sem filtro adicional). Escopo nunca amplia acima do nível máximo
   autorizado do usuário.
 - Mutação (`editar`/`desativar`/etc.) usa um `QuerySet` **separado**,
-  restrito ao Administrador ou a `responsavel == request.user` — um
+  restrito ao Administrador ou à posse do registro (mesma regra do
+  `somente_seus`) — um
   nível de leitura `todos` nunca autoriza mutação fora da própria
   responsabilidade.
 - Objeto é carregado já dentro do `QuerySet` autorizado

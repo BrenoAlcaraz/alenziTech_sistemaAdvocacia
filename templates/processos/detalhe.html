@@ -4,6 +4,14 @@
 
 {% block content %}
 
+{# Link fixo para a lista: o Voltar global segue o histórico, que as abas do processo também alimentam. #}
+<a href="{% url 'processos:lista' %}" class="inline-flex items-center gap-1 mb-3 text-sm text-gray-600 hover:text-gray-900" data-voltar-lista>
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+  </svg>
+  Voltar para processos
+</a>
+
 {# ── Cabeçalho do processo ──────────────────────────────────────────────────── #}
 <div class="card p-6 mb-4">
   <div class="flex items-start justify-between mb-3">
@@ -78,8 +86,14 @@
       </p>
     </div>
     <div class="texto-quebra">
-      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Responsável</p>
-      <p class="text-sm font-medium text-gray-900">{{ processo.responsavel }}</p>
+      <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Responsáve{{ responsaveis|length|pluralize:"l,is" }}</p>
+      <p class="flex flex-wrap gap-1" data-responsaveis>
+        {% for r in responsaveis %}
+          {% include "processos/_etiqueta_responsavel.html" with usuario=r.usuario %}
+        {% empty %}
+          <span class="text-sm text-gray-500">Sem responsável</span>
+        {% endfor %}
+      </p>
     </div>
     {% if parte_contraria %}
     <div class="texto-quebra">
@@ -170,6 +184,34 @@
     </div>
   </div>
 
+  {% if pode_atribuir_responsabilidade %}
+  <div class="card p-5" data-card-atribuir-responsabilidade>
+    <h2 class="text-sm font-semibold text-gray-700 mb-3">Atribuir responsabilidade</h2>
+    <form method="post" action="{% url 'processos:atribuir_responsabilidade' processo.pk %}" class="mb-3">
+      {% csrf_token %}
+      <label class="label" for="{{ form_atribuir_responsaveis.usuarios.id_for_label }}">{{ form_atribuir_responsaveis.usuarios.label }}</label>
+      {{ form_atribuir_responsaveis.usuarios }}
+      <p class="text-xs text-gray-500 mt-1">{{ form_atribuir_responsaveis.usuarios.help_text }} Segure Ctrl (ou Cmd) para selecionar mais de uma.</p>
+      <button type="submit" class="btn-secondary mt-2" {% if not form_atribuir_responsaveis.usuarios.field.queryset.exists %}disabled{% endif %}>Atribuir</button>
+    </form>
+    <div class="flex flex-col gap-2">
+      {% for r in responsaveis %}
+        <div class="flex items-center justify-between gap-3 py-1.5 border-b border-gray-50 last:border-0">
+          <p class="text-sm text-gray-900 truncate">{{ r.usuario.get_full_name|default:r.usuario.username }}</p>
+          {% if r.pode_remover %}
+          <form method="post" action="{% url 'processos:remover_responsabilidade' processo.pk r.usuario.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-red-600 hover:text-red-700">Remover</button>
+          </form>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-xs text-gray-500">Nenhum responsável atribuído.</p>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if agenda_do_processo %}
     {% include "agenda/_card_vinculo.html" with titulo="Agenda do processo" agenda=agenda_do_processo vinculo="processo" vinculo_pk=processo.pk vazio="Nenhum item em aberto na agenda deste processo." %}
   {% endif %}
@@ -212,7 +254,7 @@
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71m2.25 5.82a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
       </svg>
-      Apensos <span class="text-gray-500">({{ apensos_total }})</span>
+      Apensos e relacionados <span class="text-gray-500">({{ apensos_total }})</span>
     </a>
     <a href="?aba=custas"
        class="flex items-center gap-1.5 pb-3 text-sm {% if aba_ativa == 'custas' %}tab-active{% else %}tab-inactive{% endif %}"{% if aba_ativa == 'custas' %} aria-current="page"{% endif %}>
@@ -344,6 +386,7 @@
       <div>{{ form_parte.cpf_cnpj }}</div>
       <div>{{ form_parte.ente_publico }}</div>
       <div><label class="flex items-center gap-2 text-sm text-gray-700">{{ form_parte.prazo_em_dobro }} Prazo em dobro</label></div>
+      <div data-gratuidade><label class="flex items-center gap-2 text-sm text-gray-700">{{ form_parte.gratuidade_justica }} Gratuidade de justiça</label></div>
       <div>{{ form_parte.advogado_nome }}</div>
       <div>{{ form_parte.advogado_oab }}</div>
     </div>
@@ -376,6 +419,7 @@
       <div>{{ form_parte_contraparte.cpf_cnpj }}</div>
       <div>{{ form_parte_contraparte.ente_publico }}</div>
       <div><label class="flex items-center gap-2 text-sm text-gray-700">{{ form_parte_contraparte.prazo_em_dobro }} Prazo em dobro</label></div>
+      <div data-gratuidade><label class="flex items-center gap-2 text-sm text-gray-700">{{ form_parte_contraparte.gratuidade_justica }} Gratuidade de justiça</label></div>
       <div>{{ form_parte_contraparte.advogado_nome }}</div>
       <div>{{ form_parte_contraparte.advogado_oab }}</div>
     </div>
@@ -424,6 +468,10 @@
   </div>
   {% else %}
     {% include "components/empty_state.html" with mensagem="Nenhuma parte cadastrada." %}
+  {% endif %}
+  {% if pode_modificar %}
+  {{ papeis_com_gratuidade|json_script:"papeis-com-gratuidade-data" }}
+  {% include "processos/_parte_gratuidade_js.html" %}
   {% endif %}
 
 {% elif aba_ativa == "documentos" %}
@@ -605,7 +653,7 @@
           {% if item.processo.numero %}<p class="text-xs text-gray-500 mt-0.5">{{ item.processo.numero }}</p>{% endif %}
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 mt-3 text-xs">
             <div class="min-w-0"><dt class="text-gray-500">Cliente</dt><dd class="text-gray-700 truncate" title="{{ item.processo.clientes.all|join:", "|default:"—" }}">{{ item.processo.clientes.all|join:", "|default:"—" }}</dd></div>
-            <div class="min-w-0"><dt class="text-gray-500">Responsável</dt><dd class="text-gray-700 truncate" title="{{ item.processo.responsavel }}">{{ item.processo.responsavel }}</dd></div>
+            <div class="min-w-0"><dt class="text-gray-500">Responsáveis</dt><dd class="text-gray-700 truncate" title="{{ item.processo.responsaveis.all|join:", "|default:"—" }}">{{ item.processo.responsaveis.all|join:", "|default:"—" }}</dd></div>
             <div><dt class="text-gray-500">Fase</dt><dd class="text-gray-700">{{ item.processo.get_fase_display }}</dd></div>
             <div class="min-w-0"><dt class="text-gray-500">Vara/Comarca</dt><dd class="text-gray-700 truncate" title="{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}">{{ item.processo.vara|default:"—" }}{% if item.processo.vara and item.processo.comarca %} / {% endif %}{{ item.processo.comarca }}</dd></div>
           </dl>

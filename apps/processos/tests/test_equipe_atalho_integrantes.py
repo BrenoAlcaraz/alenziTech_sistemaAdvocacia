@@ -87,7 +87,7 @@ class TestAdicionarEquipeComoAtalho(EquipeAtalhoIntegrantesBase):
         self.caio = self._user("caio_atalho")
         self.equipe = self._equipe("Contabilidade", self.ana, self.beto)
         self.processo = Processo.objects.create(
-            titulo="Processo Atalho", responsavel=self.responsavel, status="ativo"
+            titulo="Processo Atalho", criado_por=self.responsavel, status="ativo"
         )
         self.client.force_login(self.gestor)
 
@@ -125,10 +125,9 @@ class TestAdicionarEquipeComoAtalho(EquipeAtalhoIntegrantesBase):
         )
         self.assertEqual(list(self.processo.integrantes_habilitados.all()), [self.beto])
 
-    def test_nao_altera_responsavel_principal(self):
+    def test_nao_altera_responsaveis(self):
         self._adicionar(self.processo, self.equipe, [self.ana])
-        self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.responsavel.pk)
+        self.assertFalse(self.processo.responsaveis.exists())
 
     def test_sem_selecao_nao_faz_nada(self):
         r = self._adicionar(self.processo, self.equipe, [])
@@ -182,7 +181,7 @@ class TestDetalheIntegrantesEquipeAtalho(EquipeAtalhoIntegrantesBase):
         self.gestor = self._gestor("gestor_detalhe_atalho")
         self.ana = self._user("ana_detalhe_atalho")
         self.processo = Processo.objects.create(
-            titulo="Processo Detalhe Atalho", responsavel=self.responsavel, status="ativo"
+            titulo="Processo Detalhe Atalho", criado_por=self.responsavel, status="ativo"
         )
         self.client.force_login(self.gestor)
 

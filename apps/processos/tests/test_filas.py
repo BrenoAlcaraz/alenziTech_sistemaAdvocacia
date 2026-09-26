@@ -1,5 +1,5 @@
 """Filas automáticas da lista de Processos: Parados, Prazo em 7 dias e
-Responsável inativo (docs/modules/processos.md)."""
+Sem responsável ativo (docs/modules/processos.md)."""
 
 from datetime import datetime, time, timedelta
 
@@ -25,7 +25,8 @@ class TestFilasProcessos(ProcessosEscopoBase):
         self._autorizar(self.user, NIVEL_SOMENTE_SEUS)
 
     def _processo(self, titulo, responsavel=None, **campos):
-        processo = Processo.objects.create(titulo=titulo, responsavel=responsavel or self.user)
+        processo = Processo.objects.create(titulo=titulo, criado_por=responsavel or self.user)
+        processo.responsaveis.add(responsavel or self.user)
         # update() evita o recálculo de prazo_proximo feito no save/andamento.
         if campos:
             Processo.objects.filter(pk=processo.pk).update(**campos)
@@ -71,17 +72,18 @@ class TestFilasProcessos(ProcessosEscopoBase):
         self.assertEqual(titulos, ["Prazo em 7 dias", "Prazo hoje"])
         self.assertEqual(contagem["prazo_7dias"], 2)
 
-    def test_responsavel_inativo(self):
+    def test_sem_responsavel_ativo(self):
         admin = self._admin()
         inativo = self._user("filas_inativo", is_active=False)
         self._processo("De usuário inativo", responsavel=inativo)
         self._processo("De usuário ativo", responsavel=admin)
+        self._processo("Sem responsável", responsavel=admin).responsaveis.clear()
         self.client.force_login(admin)
 
-        titulos, contagem = self._fila("responsavel_inativo")
+        titulos, contagem = self._fila("sem_responsavel")
 
-        self.assertEqual(titulos, ["De usuário inativo"])
-        self.assertEqual(contagem["responsavel_inativo"], 1)
+        self.assertEqual(titulos, ["De usuário inativo", "Sem responsável"])
+        self.assertEqual(contagem["sem_responsavel"], 2)
 
     def test_somente_seus_ve_so_os_proprios_em_cada_fila(self):
         self._processo("Meu parado", data_distribuicao=self.hoje - timedelta(days=60))
@@ -95,7 +97,7 @@ class TestFilasProcessos(ProcessosEscopoBase):
 
         self.assertEqual(parados, ["Meu parado"])
         self.assertEqual(prazos, ["Meu prazo"])
-        self.assertEqual(contagem, {"": None, "parados": 1, "prazo_7dias": 1, "responsavel_inativo": 0})
+        self.assertEqual(contagem, {"": None, "parados": 1, "prazo_7dias": 1, "sem_responsavel": 0})
 
     def test_fila_combina_com_busca_e_contagem_acompanha(self):
         self._processo("Trabalhista parado", data_distribuicao=self.hoje - timedelta(days=60))

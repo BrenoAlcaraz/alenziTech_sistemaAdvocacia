@@ -121,7 +121,17 @@ class Processo(models.Model):
     )
     data_distribuicao = models.DateField(null=True, blank=True)
     clientes = models.ManyToManyField(Cliente, blank=True, related_name="processos")
-    responsavel = models.ForeignKey(User, on_delete=models.PROTECT, related_name="processos")
+    # Quem cadastrou (antes "responsável principal", PDR-0039); não é
+    # exibido nem editável e não precisa ser um dos responsáveis.
+    criado_por = models.ForeignKey(User, on_delete=models.PROTECT, related_name="processos_criados")
+    responsaveis = models.ManyToManyField(
+        User,
+        through="ResponsavelProcesso",
+        through_fields=("processo", "usuario"),
+        blank=True,
+        related_name="processos_responsavel",
+        verbose_name="Responsáveis",
+    )
     equipe = models.ForeignKey(
         "accounts.Equipe",
         on_delete=models.SET_NULL,
@@ -177,6 +187,29 @@ class Processo(models.Model):
         if self.numero_interno is None:
             self.numero_interno = SequenciaCodigoInterno.proximo(SequenciaCodigoInterno.PROCESSO)
         super().save(*args, **kwargs)
+
+
+class ResponsavelProcesso(models.Model):
+    """Responsabilidade atribuída a um usuário no processo (PDR-0039)."""
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="atribuicoes_responsavel")
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name="atribuicoes_responsavel")
+    atribuido_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    atribuido_em = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Responsável do processo"
+        verbose_name_plural = "Responsáveis do processo"
+        # A ordem define o "1º responsável" — dono do Prazo gerado na Agenda.
+        ordering = ["atribuido_em", "pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["processo", "usuario"], name="processos_responsavel_unico"),
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} — {self.processo}"
 
 
 class Documento(models.Model):
@@ -627,6 +660,12 @@ class ParteProcesso(models.Model):
     # Fazenda Pública, Ministério Público, Defensoria, núcleo de prática
     # jurídica — marcação manual; dobra o prazo sugerido pelo DJEN.
     prazo_em_dobro = models.BooleanField(default=False, verbose_name="Prazo em dobro")
+    gratuidade_justica = models.BooleanField(default=False, verbose_name="Gratuidade de justiça")
+
+    PAPEIS_COM_GRATUIDADE = frozenset(
+        [papel for papel, grupo in GRUPO_POR_PAPEL.items() if grupo != "outros"]
+        + ["terceiro_interessado"]
+    )
 
     class Meta:
         verbose_name = "Parte do Processo"
@@ -643,10 +682,40 @@ class ParteProcesso(models.Model):
         super().clean()
         if not self.nome.strip():
             raise ValidationError({"nome": "Informe o nome da parte."})
+        if self.papel not in self.PAPEIS_COM_GRATUIDADE:
+            self.gratuidade_justica = False
 
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class RepresentanteParte(models.Model):
+    """Quem representa uma parte (sócio da PJ, pais do menor, curador do
+    incapaz) — não é parte do processo; aparece dentro da parte, como o
+    advogado."""
+
+    QUALIFICACAO_CHOICES = [
+        ("socio_administrador", "Sócio/Administrador"),
+        ("pai_mae", "Pai/Mãe"),
+        ("tutor", "Tutor"),
+        ("curador", "Curador"),
+        ("outro", "Outro"),
+    ]
+
+    parte = models.ForeignKey(ParteProcesso, on_delete=models.CASCADE, related_name="representantes")
+    nome = models.CharField(max_length=255)
+    cpf = models.CharField(max_length=14, blank=True, verbose_name="CPF")
+    qualificacao = models.CharField(max_length=30, choices=QUALIFICACAO_CHOICES, verbose_name="Qualificação")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Representante da parte"
+        verbose_name_plural = "Representantes da parte"
+        ordering = ["criado_em"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_qualificacao_display()}) — {self.parte.nome}"
 
 
 class Intimacao(models.Model):

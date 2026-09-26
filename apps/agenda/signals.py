@@ -1,9 +1,9 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
 from apps.processos.models import MovimentacaoProcessual, Processo
 
-from .services import sincronizar_prazo_do_andamento, transferir_prazos_gerados
+from .services import sincronizar_prazo_do_andamento, sincronizar_responsaveis_dos_prazos
 
 
 @receiver(post_save, sender=MovimentacaoProcessual)
@@ -16,21 +16,12 @@ def sincronizar_prazo(sender, instance, raw=False, **kwargs):
     sincronizar_prazo_do_andamento(instance)
 
 
-@receiver(pre_save, sender=Processo)
-def guardar_responsavel_anterior(sender, instance, raw=False, update_fields=None, **kwargs):
-    instance._responsavel_anterior_id = None
-    if raw or instance.pk is None:
+@receiver(m2m_changed, sender=Processo.responsaveis.through)
+def acompanhar_responsaveis_do_processo(sender, instance, action, reverse=False, **kwargs):
+    """Qualquer mudança nos responsáveis (card, formulário, perda de
+    acesso) reflete nos Prazos gerados em aberto."""
+    if action not in {"post_add", "post_remove", "post_clear"}:
         return
-    if update_fields is not None and "responsavel" not in update_fields:
-        return
-    instance._responsavel_anterior_id = (
-        Processo.objects.filter(pk=instance.pk).values_list("responsavel_id", flat=True).first()
-    )
-
-
-@receiver(post_save, sender=Processo)
-def transferir_prazos_ao_trocar_responsavel(sender, instance, raw=False, **kwargs):
-    anterior = getattr(instance, "_responsavel_anterior_id", None)
-    if raw or anterior is None or anterior == instance.responsavel_id:
-        return
-    transferir_prazos_gerados(instance, instance.responsavel)
+    processos = [instance] if not reverse else Processo.objects.filter(pk__in=kwargs.get("pk_set") or [])
+    for processo in processos:
+        sincronizar_responsaveis_dos_prazos(processo)

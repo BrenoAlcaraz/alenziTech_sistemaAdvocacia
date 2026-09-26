@@ -48,22 +48,29 @@ def avisar_convite(item, convite):
     )
 
 
+def _responsaveis_do_prazo_gerado(item):
+    """Prazo gerado pelo processo: o responsável do item e os demais
+    responsáveis do processo, que entram como participantes (PDR-0039)."""
+    usuarios = [item.responsavel] if item.responsavel_id else []
+    return usuarios + [p.usuario for p in item.participacoes.select_related("usuario")]
+
+
 def avisar_prazo_gerado(item):
-    if item.responsavel_id is None:
-        return
-    notificar(
-        item.responsavel,
-        f"Novo prazo no processo {item.processo}: {_rotulo(item)} — fatal {item.data_fatal:%d/%m}",
-    )
+    for usuario in _responsaveis_do_prazo_gerado(item):
+        notificar(
+            usuario,
+            f"Novo prazo no processo {item.processo}: {_rotulo(item)} — fatal {item.data_fatal:%d/%m}",
+        )
 
 
 def avisar_fatal_alterada(item, fatal_anterior):
-    if item.status in STATUS_ENCERRADOS or item.responsavel_id is None:
+    if item.status in STATUS_ENCERRADOS:
         return
-    notificar(
-        item.responsavel,
-        f"Data fatal alterada de {fatal_anterior:%d/%m} para {item.data_fatal:%d/%m}: {_rotulo(item)}",
-    )
+    for usuario in _responsaveis_do_prazo_gerado(item):
+        notificar(
+            usuario,
+            f"Data fatal alterada de {fatal_anterior:%d/%m} para {item.data_fatal:%d/%m}: {_rotulo(item)}",
+        )
 
 
 def _avisar_uma_vez(item, motivo, referencia, mensagem):

@@ -40,7 +40,7 @@
 {% url 'processos:lista' as url_ativos %}{% url 'processos:arquivados' as url_arquivados %}
 {% include "components/alternar_visao.html" with rotulo_a="Ativos" url_a=url_ativos rotulo_b="Arquivados" url_b=url_arquivados ativa="a" query="escopo="|add:escopo_atual %}
 
-{% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}{% url 'processos:lista' as limpar_url %}{% endif %}
+{% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe or filtro_responsabilidade %}{% url 'processos:lista' as limpar_url %}{% endif %}
 {% include "components/barra_filtros.html" with campos="processos/_filtros.html" limpar_query=query_limpar %}
 
 {# Filas automáticas: recorte sobre a mesma busca/filtros; a contagem é o total de linhas da fila #}
@@ -62,7 +62,7 @@
         {% include "components/th_ordenavel.html" with chave="numero" rotulo="Número" classe="w-2/5 md:w-auto" %}
         <th scope="col" class="hidden md:table-cell">Cliente</th>
         {% include "components/th_ordenavel.html" with chave="area" rotulo="Área" classe="hidden lg:table-cell w-32" %}
-        {% include "components/th_ordenavel.html" with chave="responsavel" rotulo="Responsável" classe="hidden xl:table-cell" %}
+        <th scope="col" class="hidden xl:table-cell">Responsáveis</th>
         {% include "components/th_ordenavel.html" with chave="movimentacao" rotulo="Última movimentação" classe="hidden lg:table-cell w-44" %}
         {% include "components/th_ordenavel.html" with chave="prazo" rotulo="Próximo prazo" classe="w-36" %}
         {% include "components/th_ordenavel.html" with chave="status" rotulo="Status" classe="hidden sm:table-cell w-28" %}
@@ -72,7 +72,10 @@
       {% for p in processos %}
         <tr class="tabela-linha">
           <td>
-            <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="tabela-link block truncate" title="{{ p.numero|default:p.codigo }}">{{ p.numero|default:p.codigo }}</a>
+            <a href="{% url 'processos:detalhe' p.id %}?escopo={{ escopo_atual }}" class="tabela-link flex items-center gap-1.5 min-w-0" title="{{ p.numero|default:p.codigo }}">
+              {% if p.sou_responsavel %}{% include "processos/_bandeira_responsavel.html" %}{% endif %}
+              <span class="truncate">{{ p.numero|default:p.codigo }}</span>
+            </a>
             <p class="text-xs text-gray-500 truncate" title="{{ p }}">{{ p }}</p>
           </td>
           <td class="hidden md:table-cell">
@@ -80,7 +83,7 @@
           </td>
           <td class="hidden lg:table-cell"><span class="badge-area max-w-full truncate">{{ p.get_area_direito_display }}</span></td>
           <td class="hidden xl:table-cell">
-            <p class="truncate" title="{{ p.responsavel.get_full_name|default:p.responsavel.username }}">{{ p.responsavel.get_full_name|default:p.responsavel.username }}</p>
+            <p class="truncate" title="{{ p.responsaveis.all|join:", "|default:"—" }}">{{ p.responsaveis.all|join:", "|default:"—" }}</p>
           </td>
           <td class="hidden lg:table-cell text-gray-500">{{ p.ultima_movimentacao|date:"d/m/Y"|default:"—" }}</td>
           <td>
@@ -100,7 +103,7 @@
 </div>
 {% include "components/paginacao.html" with pagina=processos rotulo="processos" %}
 {% else %}
-  {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe %}
+  {% if filtro_busca or filtro_materia or filtro_status or filtro_cliente or filtro_equipe or filtro_responsabilidade %}
     {% include "components/empty_state.html" with mensagem="Nenhum processo encontrado com esses filtros." %}
   {% elif fila_atual %}
     {% include "components/empty_state.html" with mensagem="Nenhum processo nesta fila." %}

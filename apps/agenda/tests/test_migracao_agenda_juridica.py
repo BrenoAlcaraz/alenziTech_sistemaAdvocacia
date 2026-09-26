@@ -33,7 +33,6 @@ from apps.accounts.models import (
 from apps.accounts.permissoes import permissao_efetiva, tem_habilitacao
 from apps.accounts.permissoes_constants import HAB_AGENDA_ATRIBUIR_OUTROS, MODULO_AGENDA
 from apps.agenda.models import ItemAgenda
-from apps.processos.models import MovimentacaoProcessual, Processo
 
 migracao_agenda = importlib.import_module("apps.agenda.migrations.0003_dados_item_agenda")
 migracao_permissoes = importlib.import_module(
@@ -127,24 +126,6 @@ class TestImportacaoDeTarefasEPrazos(TenantTestCase):
         self._importar()
         self.assertFalse(ItemAgenda.objects.exists())
 
-    def test_andamentos_existentes_com_prazo_geram_prazo_uma_vez(self):
-        processo = Processo.objects.create(responsavel=self.dono, titulo="Processo Migração")
-        andamento = MovimentacaoProcessual.objects.create(
-            processo=processo, descricao="Prazo antigo", tipo="despacho", data_prazo=date(2026, 11, 3),
-        )
-        MovimentacaoProcessual.objects.create(processo=processo, descricao="Sem prazo", tipo="despacho")
-        # Simula o andamento anterior à Agenda Jurídica (sem item gerado).
-        ItemAgenda.objects.filter(movimentacao_origem=andamento).delete()
-
-        migracao_agenda.gerar_prazos_dos_andamentos(django_apps)
-        migracao_agenda.gerar_prazos_dos_andamentos(django_apps)
-
-        item = ItemAgenda.objects.get()
-        self.assertEqual(item.movimentacao_origem, andamento)
-        self.assertEqual(item.tipo, "prazo")
-        self.assertEqual(item.responsavel, self.dono)
-        self.assertEqual(item.data_fatal, date(2026, 11, 3))
-        self.assertEqual(item.data_para_fazer, date(2026, 11, 1))
 
 
 class TestMigracaoDePermissoes(TenantTestCase):

@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -35,7 +36,7 @@ from apps.accounts.equipe_atalho import SelecionarMembrosEquipeForm, dados_para_
 
 from . import visoes
 from .avisos import avisar_atribuicao, avisar_convite
-from .services import itens_mutaveis_por, ordenar_por_data, restringir_ao_usuario
+from .services import filtrar_itens_do_cliente, itens_mutaveis_por, ordenar_por_data, restringir_ao_usuario
 from .models import (
     NATUREZA_AFAZER,
     NATUREZA_EVENTO,
@@ -195,7 +196,7 @@ def _aplicar_filtros(qs, filtros):
     if filtros["processo"]:
         qs = qs.filter(processo_id=filtros["processo"])
     if filtros["cliente"]:
-        qs = qs.filter(cliente_id=filtros["cliente"])
+        qs = filtrar_itens_do_cliente(qs, filtros["cliente"])
     return qs
 
 
@@ -204,7 +205,14 @@ def _opcoes_de_vinculo(visiveis):
     itens que o usuário já enxerga — o seletor não expõe o cadastro."""
     return (
         list(Processo.objects.filter(pk__in=visiveis.values("processo_id")).order_by("titulo")),
-        list(Cliente.objects.filter(pk__in=visiveis.values("cliente_id")).order_by("nome_razao_social")),
+        list(
+            Cliente.objects.filter(
+                Q(pk__in=visiveis.values("cliente_id"))
+                | Q(pk__in=Processo.clientes.through.objects.filter(
+                    processo_id__in=visiveis.values("processo_id")
+                ).values("cliente_id"))
+            ).order_by("nome_razao_social")
+        ),
     )
 
 
@@ -606,14 +614,28 @@ def _usuario_travado(request):
     return get_object_or_404(User, pk=para_usuario_id, is_active=True)
 
 
+def _processo_fixo(request):
+    """Atalho "+ Novo" do card do processo (`?processo=`): o formulário
+    trava processo e clientes. Mesmo universo do seletor de processo do
+    formulário (não arquivados); id inválido abre o formulário comum."""
+    try:
+        pk = int(request.GET.get("processo") or 0)
+    except ValueError:
+        return None
+    if pk <= 0:
+        return None
+    return Processo.objects.exclude(status="arquivado").prefetch_related("clientes").filter(pk=pk).first()
+
+
 @login_required
 def novo(request):
     if not tem_permissao_modulo(request.user, MODULO_AGENDA):
         raise PermissionDenied
     usuario_travado = _usuario_travado(request)
 
+    processo_fixo = _processo_fixo(request)
     if request.method == "POST":
-        form = ItemAgendaForm(request.POST)
+        form = ItemAgendaForm(request.POST, processo_fixo=processo_fixo)
         if usuario_travado:
             form.fields["responsavel"].disabled = True
             form.fields["responsavel"].initial = usuario_travado
@@ -656,7 +678,7 @@ def novo(request):
         for campo in ("tipo", "processo", "cliente"):
             if request.GET.get(campo):
                 initial[campo] = request.GET[campo]
-        form = ItemAgendaForm(initial=initial)
+        form = ItemAgendaForm(initial=initial, processo_fixo=processo_fixo)
         if usuario_travado:
             form.fields["responsavel"].disabled = True
     return render(request, "agenda/form.html", {

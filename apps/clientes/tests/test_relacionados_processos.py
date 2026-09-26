@@ -49,7 +49,7 @@ class RelacionadosProcessosBase(TenantTestCase):
 
     def _processo(self, titulo, *, responsavel=None, **kw):
         return Processo.objects.create(
-            titulo=titulo, responsavel=responsavel or self.user, **kw
+            titulo=titulo, criado_por=responsavel or self.user, **kw
         )
 
     def _aba_relacionados(self, cliente):

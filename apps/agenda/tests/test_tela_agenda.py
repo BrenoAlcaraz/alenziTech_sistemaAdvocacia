@@ -161,7 +161,7 @@ class TestVisoesEFiltros(TelaAgendaBase):
 
     def test_filtros_de_tipo_natureza_e_origem_valem_em_todas_as_visoes(self):
         u = self.user
-        processo = Processo.objects.create(responsavel=u, titulo="Processo Tela")
+        processo = Processo.objects.create(criado_por=u, titulo="Processo Tela")
         MovimentacaoProcessual.objects.create(
             processo=processo, descricao="Intimação", tipo="despacho", data_prazo=self.hoje + timedelta(days=4),
         )
@@ -186,7 +186,7 @@ class TestVisoesEFiltros(TelaAgendaBase):
     def test_filtro_de_processo_e_cliente_vale_em_todas_as_visoes_e_segue_nos_links(self):
         u = self.user
         cliente = Cliente.objects.create(nome_razao_social="Cliente Tela", tipo="PF", responsavel=u)
-        processo = Processo.objects.create(responsavel=u, titulo="Processo Filtro")
+        processo = Processo.objects.create(criado_por=u, titulo="Processo Filtro")
         processo.clientes.add(cliente)
         amanha = self.hoje + timedelta(days=1)
         self._afazer("Do processo", responsavel=u, processo=processo, cliente=cliente, data_para_fazer=amanha)
@@ -213,7 +213,7 @@ class TestVisoesEFiltros(TelaAgendaBase):
         self.assertContains(r, "/agenda/cancelados/")
 
     def test_novo_oferece_os_tipos_e_repassa_processo_do_filtro(self):
-        processo = Processo.objects.create(responsavel=self.user, titulo="Processo Novo")
+        processo = Processo.objects.create(criado_por=self.user, titulo="Processo Novo")
         r = self._get(f"?processo={processo.pk}")
         self.assertContains(r, f"/agenda/novo/?tipo=audiencia&processo={processo.pk}")
         self.assertContains(r, f"/agenda/novo/?tipo=prazo&processo={processo.pk}")

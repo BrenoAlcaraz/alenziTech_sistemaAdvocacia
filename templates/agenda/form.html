@@ -135,6 +135,19 @@
       </div>
 
       {# Cliente | Processo — cliente filtra as opções de processo, por isso vem primeiro #}
+      {% if form.processo_fixo %}
+      {# Aberto pelo processo: vínculo fixo, todos os clientes do processo. #}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-vinculo-fixo>
+        <div>
+          <p class="label">Cliente{{ form.clientes_do_processo|length|pluralize }}</p>
+          <p class="input bg-gray-50 text-gray-600">{{ form.clientes_do_processo|join:", "|default:"—" }}</p>
+        </div>
+        <div>
+          <p class="label">Processo vinculado</p>
+          <p class="input bg-gray-50 text-gray-600 truncate">{{ form.processo_fixo.titulo }}{% if form.processo_fixo.numero %} — {{ form.processo_fixo.numero }}{% endif %}</p>
+        </div>
+      </div>
+      {% else %}
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="label" for="{{ form.cliente.id_for_label }}">Cliente <span class="text-gray-500 font-normal">(opcional)</span></label>
@@ -151,6 +164,7 @@
           {% endif %}
         </div>
       </div>
+      {% endif %}
 
       {% if modo != "editar" %}
       {# Atribuir a — só na criação: além do responsável, os demais atribuídos entram como participantes (em Evento, confirmam presença). Na edição, a gestão fica na seção dedicada abaixo. #}

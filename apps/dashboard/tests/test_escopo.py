@@ -92,13 +92,13 @@ class TestPainelEscopoSomenteSeus(DashboardEscopoBase):
             titulo="Processo Próprio",
             numero="0000001-00.2026.8.26.0100",
             status="ativo",
-            responsavel=self.usuario,
+            criado_por=self.usuario,
         )
         Processo.objects.create(
             titulo="Processo Alheio",
             numero="0000002-00.2026.8.26.0100",
             status="ativo",
-            responsavel=self.outro,
+            criado_por=self.outro,
         )
 
         ItemAgenda.objects.create(

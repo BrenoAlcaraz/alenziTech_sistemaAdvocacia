@@ -135,17 +135,16 @@
         {% endif %}
       </div>
 
+      {% if form.atribuir_responsaveis %}
       <div>
-        <label class="label" for="{{ form.responsavel.id_for_label }}">Responsável</label>
-        {% if pode_atribuir_responsavel %}
-          {{ form.responsavel }}
-        {% else %}
-          <p class="input bg-gray-50 text-gray-600">{{ responsavel_exibido }}</p>
-        {% endif %}
-        {% if form.responsavel.errors %}
-          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.responsavel.errors|join:", " }}</p>
+        <label class="label" for="{{ form.atribuir_responsaveis.id_for_label }}">{{ form.atribuir_responsaveis.label }}</label>
+        {{ form.atribuir_responsaveis }}
+        <p class="text-xs text-gray-500 mt-1">{{ form.atribuir_responsaveis.help_text }} Segure Ctrl (ou Cmd) para selecionar mais de uma.</p>
+        {% if form.atribuir_responsaveis.errors %}
+          <p class="erro-campo text-xs text-red-600 mt-1">{{ form.atribuir_responsaveis.errors|join:", " }}</p>
         {% endif %}
       </div>
+      {% endif %}
 
       <div>
         <label class="label" for="{{ form.data_distribuicao.id_for_label }}">Data de distribuição</label>

@@ -5,7 +5,7 @@ documentos, andamentos, vínculos, prazos, apensos. Arquivo próprio por
 volume real de decisão (PDR-0001, 0010, 0012, 0013, 0014, 0023, 0024) —
 ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
-## Autorização e responsabilidade (PDR-0010, PDR-0014, PDR-0017)
+## Autorização e responsabilidade (PDR-0010, PDR-0014, PDR-0017, PDR-0039)
 
 - Módulo `processos` habilitado é pré-requisito para todas as
   operações existentes. Além disso, `processos_criar`,
@@ -20,18 +20,30 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   continua sem nenhum ponto de aplicação (PDR-0010, PDR-0008); arquivar,
   reabrir, apensos e partes seguem regidos apenas pela autorização de
   módulo.
-- Escopo por `Processo.responsavel` (`somente_seus`/`todos`) e
-  responsabilidade obrigatória são a direção vigente. Equipe não
-  concede acesso nem filtra Processos.
-- Cada processo tem um único responsável principal obrigatório —
-  responsável pelos Prazos gerados na Agenda Jurídica (e quem os recebe
-  quando o responsável muda) e referência dos indicadores. Pode ter N
-  integrantes habilitados além dele, que não recebem prazos
-  automaticamente.
-- Atribuir/reatribuir responsável exige a habilitação
-  `processos_atribuir_responsavel` ou a autoridade do Administrador do
-  escritório. Gerenciar integrantes habilitados exige
-  `gerir_habilitar_usuario_processos`.
+- `criado_por` é quem cadastrou o processo (não exibido, não editável).
+  **Responsáveis** são N usuários atribuídos (PDR-0039), na ordem da
+  atribuição; quem criou não precisa ser um deles.
+- Escopo `somente_seus` e edição (fora o Administrador): processos que
+  o usuário criou ou pelos quais é responsável. Equipe não concede
+  acesso nem filtra Processos.
+- Quem atribui/retira responsabilidade: Administrador e habilitação
+  `processos_atribuir_responsavel` (qualquer usuário com acesso a
+  Processos); gerente de equipe (só os membros ativos não-gerentes das
+  equipes que gerencia, e só retira quem poderia atribuir). Pelo card
+  "Atribuir responsabilidade" do detalhe ou pelo campo "Atribuir
+  responsável(is)" do formulário — ambos só para quem pode atribuir; no
+  formulário, responsáveis fora do conjunto de quem edita são
+  preservados.
+- Responsáveis aparecem como etiqueta no detalhe (para todos) e com uma
+  bandeira na lista só para o próprio atribuído; a lista filtra por
+  "Responsabilidade" (atribuídos a mim, sem responsável, um usuário).
+- Avisos do acompanhamento e de honorário vão para todos os
+  responsáveis ativos; sem nenhum, para quem criou. Prazo gerado pelo
+  andamento: o 1º responsável é o responsável do item e os demais
+  participantes (sem responsável, quem criou); mudança nos responsáveis
+  reflete nos prazos em aberto.
+- Integrantes habilitados (N) não recebem prazos automaticamente.
+  Gerenciar integrantes exige `gerir_habilitar_usuario_processos`.
 - Equipe serve só de atalho para selecionar integrantes habilitados
   (ver "Equipe como atalho de seleção" em [PRODUCT.md](../PRODUCT.md),
   PDR-0028): só as pessoas ficam gravadas — não é o mesmo mecanismo
@@ -75,6 +87,14 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   a parte bate com um dos Clientes por CPF/CNPJ.
 - Advogado é texto livre (nome + OAB) associado à parte, no máximo um
   por parte — nunca uma parte em si do processo.
+- Representante (PDR-0040): quem representa a parte — sócio/
+  administrador da PJ, pai/mãe, tutor, curador, outro — com nome e CPF
+  opcional, N por parte, exibido dentro da parte como o advogado. Não é
+  parte: não entra em polo, contagem, parte contrária, busca nem dobra
+  de prazo.
+- Gratuidade de justiça marcada por parte, só em Polo Ativo, Polo
+  Passivo e Terceiro Interessado (nos demais papéis é descartada).
+  Independente do status da gratuidade do processo.
 - Parte pode ser marcada como ente público, por esfera (Federal,
   Estadual/DF, Municipal; autarquias e fundações seguem o ente a que
   pertencem). Opcional e manual, sem inferência por nome/CNPJ. Usado
@@ -82,7 +102,15 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 - PDR-0013 substitui PDR-0001/PDR-0011 (modelo de três dimensões:
   vínculo/posição estrutural/qualificação processual, representantes
   normalizados, histórico de classificação). O modelo antigo não deve
-  ser reintroduzido.
+  ser reintroduzido — o representante do PDR-0040 é texto simples
+  dentro da parte, não esse modelo.
+
+## Cadastro
+
+- Título do processo gravado sempre em maiúsculas.
+- Número do processo é único no escritório (arquivados incluídos),
+  comparando só os dígitos — com ou sem máscara é o mesmo número. Vazio
+  continua permitido.
 
 ## Clientes
 
@@ -119,7 +147,8 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 ## Exclusão definitiva (PDR-0024)
 
 - Distinta de Arquivar. Exige a habilitação `processos_excluir` mais o
-  mesmo escopo de mutação de Arquivar (Administrador ou responsável).
+  mesmo escopo de mutação de Arquivar (Administrador, quem criou ou
+  responsável).
 - Remove o Processo e o que é intrínseco a ele — Documentos, Partes,
   Andamentos, vínculos de Apenso, Intimações (cascata já existente no
   modelo) — e, com os Andamentos, os Prazos que eles geraram na Agenda
@@ -144,8 +173,12 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   filtrada para quem só o enxerga; "Ver todos" filtra a agenda por este
   processo (`agenda:index?processo=<id>`); "+ Novo" escolhe o tipo e
   abre o formulário padrão (`agenda:novo`) com o Processo
-  pré-preenchido, sem travar o campo. O detalhe do Cliente tem o mesmo
-  card ("Agenda do cliente").
+  pré-preenchido e travado junto com os clientes do processo (todos
+  exibidos). O item grava o 1º cliente e aparece para todos os clientes
+  do processo (card "Agenda do cliente" e filtro por cliente da agenda
+  incluem os itens dos processos do cliente). O detalhe do Cliente tem
+  o mesmo card ("Agenda do cliente").
+- O detalhe tem um link fixo "Voltar para processos" para a lista.
 
 ## Custas Judiciais (aba do processo)
 
@@ -184,9 +217,11 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
 
 ## Apensos (PDR-0012)
 
+- Aba "Apensos e relacionados".
+
 - Relação simétrica entre dois Processos existentes, sem hierarquia.
 - Ambos mantêm identidade própria; nada é copiado, fundido, herdado ou
-  propagado (cliente, responsável, equipe, status, fase, participantes,
+  propagado (cliente, responsáveis, equipe, status, fase, participantes,
   andamentos, prazos, documentos).
 - Remover a relação não exclui nenhum processo. A↔B e B↔C não inferem
   A↔C. "Menor"/"maior" na persistência é só normalização técnica do
@@ -299,7 +334,7 @@ acompanhado.
   repetido, nova execução ou andamento rejeitado não geram de novo.
 - Baixa e arquivamento só geram andamento; o status nunca muda sozinho.
 - Vara/órgão julgador ou grau diferente do último valor informado pelo
-  DataJud atualiza `vara`/`instancia` e avisa o responsável; diferença
+  DataJud atualiza `vara`/`instancia` e avisa os responsáveis; diferença
   só de escrita não conta, e o que o usuário digitou não é comparado.
 - Primeira vez encontrado: só ponto de partida. Não encontrado: nota na
   aba de andamentos com os motivos possíveis; a busca continua.
@@ -311,11 +346,11 @@ acompanhado.
 Rodam no mesmo job diário; nova execução no dia não repete aviso.
 
 - "Prazo a definir" não resolvido (sem data informada e não rejeitado —
-  confirmar sem data não resolve) gera novo aviso ao responsável 1× por
+  confirmar sem data não resolve) gera novo aviso aos responsáveis 1× por
   dia; o dia da importação já conta como avisado. Processo arquivado
   deixa de ser cobrado.
 - Publicação do DJEN cancelada depois de importada não apaga nada: avisa
-  o responsável uma vez (por publicação agrupada) e marca o andamento
+  os responsáveis uma vez (por publicação agrupada) e marca o andamento
   como "publicação cancelada". Para enxergar o cancelamento, a consulta
   ao DJEN volta 30 dias; só publicação a partir do último dia consultado
   vira andamento. Cancelada nunca importada é ignorada.
@@ -338,9 +373,8 @@ com contagem calculada sobre a mesma busca/filtros/escopo da tabela
   configurável pelo escritório.
 - **Prazo em 7 dias**: `prazo_proximo` (dos andamentos) de hoje a
   hoje+7. Não depende do módulo Agenda Jurídica.
-- **Responsável inativo**: responsável é um usuário desativado —
-  carteira a redistribuir. Não existe processo sem responsável
-  (campo obrigatório).
+- **Sem responsável ativo**: nenhum responsável atribuído ativo (sem
+  responsável ou só com usuários desativados) — carteira a distribuir.
 
 Filas criadas pelo usuário (filtros salvos) e alertas das filas estão
 fora de escopo.
@@ -358,7 +392,7 @@ fora de escopo.
   catálogo de categorias de Modelos (`CategoriaModeloPeca`, PDR-0018).
 - Visualizar/baixar segue o mesmo escopo de leitura do detalhe do
   processo (`somente_seus`/`todos`); anexar e excluir exigem estar no
-  escopo de mutação (Administrador ou responsável do processo) mais
+  escopo de mutação (Administrador, quem criou ou responsável) mais
   habilitação granular própria — `processos_documento_adicionar` e
   `processos_documento_excluir`, respectivamente.
 - Excluir um documento é definitivo nesta versão — sem histórico de
@@ -423,4 +457,6 @@ fora de escopo.
 - [PDR-0027](../decisions/PDR-0027-sugestao-contraparte-e-papeis-outros.md)
 - [PDR-0037](../decisions/PDR-0037-prazo-sugerido-a-partir-da-intimacao.md)
 - [PDR-0038](../decisions/PDR-0038-movimento-datajud-como-sugestao.md)
+- [PDR-0039](../decisions/PDR-0039-responsabilidade-atribuida-processos.md)
+- [PDR-0040](../decisions/PDR-0040-representante-da-parte.md)
 - [STATUS.md](../STATUS.md#processos) para o estado real de implementação

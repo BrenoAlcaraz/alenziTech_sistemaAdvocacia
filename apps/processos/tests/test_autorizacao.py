@@ -88,7 +88,7 @@ class ProcessosAutorizacaoBase(TenantTestCase):
     def _processo(self, *, responsavel, cliente=None, **kwargs):
         defaults = {"titulo": "Processo Teste"}
         defaults.update(kwargs)
-        processo = Processo.objects.create(responsavel=responsavel, **defaults)
+        processo = Processo.objects.create(criado_por=responsavel, **defaults)
         if cliente is not None:
             processo.clientes.add(cliente)
         return processo
@@ -279,8 +279,8 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 302)
         self.assertEqual(Processo.objects.count(), antes + 1)
-        criado = Processo.objects.get(titulo="Processo Novo Autorizado")
-        self.assertEqual(criado.responsavel, self.user)
+        criado = Processo.objects.get(titulo="PROCESSO NOVO AUTORIZADO")
+        self.assertEqual(criado.criado_por, self.user)
 
     def test_editar_get_autorizado(self):
         r = self.client.get(f"/processos/{self.processo.pk}/editar/", HTTP_HOST=self.http_host)
@@ -297,7 +297,7 @@ class TestProcessosAutorizacaoModuloConcedido(ProcessosAutorizacaoBase):
             r, f"/processos/{self.processo.pk}/", fetch_redirect_response=False
         )
         self.processo.refresh_from_db()
-        self.assertEqual(self.processo.titulo, "Titulo Alterado Autorizado")
+        self.assertEqual(self.processo.titulo, "TITULO ALTERADO AUTORIZADO")
 
     def test_arquivar_post_autorizado_arquiva_processo(self):
         r = self.client.post(f"/processos/{self.processo.pk}/arquivar/", HTTP_HOST=self.http_host)
@@ -536,7 +536,7 @@ class TestProcessosAutorizacaoAdministrador(ProcessosAutorizacaoBase):
         )
         self.assertEqual(r.status_code, 302)
         self.processo.refresh_from_db()
-        self.assertEqual(self.processo.titulo, "Titulo Alterado Admin")
+        self.assertEqual(self.processo.titulo, "TITULO ALTERADO ADMIN")
 
     def test_adicionar_movimentacao_post_autorizado_para_admin_sem_habilitacao(self):
         antes = self.processo.movimentacoes.count()

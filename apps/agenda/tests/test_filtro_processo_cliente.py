@@ -38,7 +38,7 @@ class FiltroProcessoClienteAgendaBase(TenantTestCase):
 
     def _processo(self, titulo, *, cliente, responsavel, status="ativo"):
         processo = Processo.objects.create(
-            titulo=titulo, responsavel=responsavel, status=status
+            titulo=titulo, criado_por=responsavel, status=status
         )
         if cliente is not None:
             processo.clientes.add(cliente)

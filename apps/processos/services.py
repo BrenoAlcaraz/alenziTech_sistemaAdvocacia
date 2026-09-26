@@ -7,8 +7,10 @@ from django.db.models import Max, Q, Subquery
 from django.utils import timezone
 
 from apps.accounts.codigo_interno import numero_do_codigo
-from apps.accounts.permissoes import tem_permissao_modulo
-from apps.accounts.permissoes_constants import MODULO_PROCESSOS
+from apps.accounts.escopo import equipes_gerenciadas_pelo_usuario
+from apps.accounts.models import MembroEquipe
+from apps.accounts.permissoes import tem_habilitacao, tem_permissao_modulo
+from apps.accounts.permissoes_constants import HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL, MODULO_PROCESSOS
 from config.listagem import digitos_da_busca, somente_digitos
 
 from .models import (
@@ -171,6 +173,18 @@ def filtrar_processos_por_busca(processos, busca):
     return processos.filter(condicao)
 
 
+def numero_ja_cadastrado(numero, exceto=None):
+    """Número de processo já usado no escritório (arquivados incluídos),
+    comparando só os dígitos — com ou sem máscara é o mesmo número."""
+    digitos = normalizar_documento(numero)
+    if not digitos:
+        return False
+    qs = Processo.objects.alias(numero_digitos=somente_digitos("numero")).filter(numero_digitos=digitos)
+    if exceto is not None:
+        qs = qs.exclude(pk=exceto)
+    return qs.exists()
+
+
 def processos_do_cliente(cliente_id):
     """Processos ativos vinculados a um cliente, para seletores dependentes."""
     try:
@@ -234,6 +248,64 @@ def ids_processos_apensos_do(processo):
     return ids_menores.union(ids_maiores)
 
 
+# ── Responsabilidade (PDR-0039) ─────────────────────────────────────────────
+
+def filtrar_processos_do_usuario(processos, user):
+    """Escopo "somente seus": processos que o usuário criou ou pelos quais
+    é responsável. Subconsulta, e não join, para não duplicar linhas."""
+    return processos.filter(
+        Q(criado_por=user)
+        | Q(pk__in=Processo.responsaveis.through.objects.filter(usuario=user).values("processo_id"))
+    )
+
+
+def usuarios_atribuiveis_por(user):
+    """Para quem `user` pode atribuir (ou retirar) responsabilidade:
+    Administrador e habilitação `processos_atribuir_responsavel` → todos os
+    elegíveis; gerente de equipe → membros ativos não-gerentes das equipes
+    que gerencia; demais → ninguém."""
+    elegiveis = responsaveis_elegiveis()
+    if tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL):
+        return elegiveis
+    subordinados = MembroEquipe.objects.filter(
+        equipe__in=equipes_gerenciadas_pelo_usuario(user), ativo=True, eh_gerente=False,
+    ).values("usuario_id")
+    return elegiveis.filter(pk__in=subordinados).exclude(pk=user.pk)
+
+
+def pode_atribuir_responsabilidade(user):
+    return usuarios_atribuiveis_por(user).exists()
+
+
+def atribuir_responsaveis(processo, usuarios, por):
+    """Adiciona os usuários ainda não responsáveis, na ordem recebida —
+    a ordem de atribuição define o 1º responsável."""
+    ja_responsaveis = set(processo.responsaveis.values_list("pk", flat=True))
+    novos = [usuario for usuario in usuarios if usuario.pk not in ja_responsaveis]
+    for usuario in novos:
+        processo.responsaveis.add(usuario, through_defaults={"atribuido_por": por})
+    return novos
+
+
+def remover_responsaveis(processo, usuarios):
+    usuarios = [u for u in usuarios if processo.responsaveis.filter(pk=u.pk).exists()]
+    if usuarios:
+        processo.responsaveis.remove(*usuarios)
+    return usuarios
+
+
+def responsaveis_do_processo(processo):
+    """Responsáveis na ordem de atribuição."""
+    return [atribuicao.usuario for atribuicao in processo.atribuicoes_responsavel.select_related("usuario")]
+
+
+def destinatarios_do_processo(processo):
+    """Quem responde pelo processo nos avisos e prazos: os responsáveis
+    ativos, na ordem de atribuição; sem nenhum, quem criou."""
+    ativos = [usuario for usuario in responsaveis_do_processo(processo) if usuario.is_active]
+    return ativos or [processo.criado_por]
+
+
 class AdministradorResponsavelIndisponivel(RuntimeError):
     """Não há um único Administrador ativo para receber os processos."""
 
@@ -284,16 +356,18 @@ def transferir_processos_de_usuarios_sem_acesso(usuario_ids):
         if tem_permissao_modulo(usuario, MODULO_PROCESSOS):
             continue
 
-        processos = list(Processo.objects.select_for_update().filter(responsavel=usuario))
+        processos = list(Processo.objects.select_for_update().filter(responsaveis=usuario))
         if not processos:
             continue
 
         administrador = _administrador_ativo()
-        # save() por processo (não update()) para os signals de quem
-        # acompanha o responsável — ex.: Prazos gerados na Agenda.
+        # Pelo gerenciador da relação (não delete() no through) para o
+        # m2m_changed de quem acompanha os responsáveis — ex.: Prazos
+        # gerados na Agenda.
         for processo in processos:
-            processo.responsavel = administrador
-            processo.save(update_fields=["responsavel"])
+            processo.responsaveis.remove(usuario)
+            if not processo.responsaveis.exists():
+                processo.responsaveis.add(administrador)
         transferidos += len(processos)
     return transferidos
 
@@ -333,12 +407,12 @@ def processos_prazo_proximo(processos, hoje):
     )
 
 
-def processos_responsavel_inativo(processos, hoje):
-    return processos.filter(responsavel__is_active=False)
+def processos_sem_responsavel_ativo(processos, hoje):
+    return processos.exclude(pk__in=Processo.objects.filter(responsaveis__is_active=True).values("pk"))
 
 
 FILAS_PROCESSOS = {
     "parados": ("Parados", processos_parados),
     "prazo_7dias": ("Prazo em 7 dias", processos_prazo_proximo),
-    "responsavel_inativo": ("Responsável inativo", processos_responsavel_inativo),
+    "sem_responsavel": ("Sem responsável ativo", processos_sem_responsavel_ativo),
 }

@@ -99,7 +99,7 @@ class DocumentosBase(TenantTestCase):
     def _processo(self, *, responsavel, cliente=None, **kwargs):
         defaults = {"titulo": "Processo Teste Documentos"}
         defaults.update(kwargs)
-        processo = Processo.objects.create(responsavel=responsavel, **defaults)
+        processo = Processo.objects.create(criado_por=responsavel, **defaults)
         if cliente is not None:
             processo.clientes.add(cliente)
         return processo

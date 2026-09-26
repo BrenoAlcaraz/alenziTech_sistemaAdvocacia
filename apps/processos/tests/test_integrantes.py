@@ -76,7 +76,7 @@ class IntegrantesBase(TenantTestCase):
 
     def _processo(self, responsavel, cliente, titulo="Processo Integrantes"):
         processo = Processo.objects.create(
-            titulo=titulo, responsavel=responsavel, status="ativo"
+            titulo=titulo, criado_por=responsavel, status="ativo"
         )
         if cliente is not None:
             processo.clientes.add(cliente)
@@ -113,14 +113,13 @@ class TestGerenciarIntegrantesComHabilitacao(IntegrantesBase):
         )
         self.assertIn(self.candidato, self.processo.integrantes_habilitados.all())
 
-    def test_adicionar_integrante_nao_altera_responsavel_principal(self):
+    def test_adicionar_integrante_nao_altera_responsaveis(self):
         self.client.post(
             f"/processos/{self.processo.pk}/integrantes/adicionar/",
             {"usuario": self.candidato.pk},
             HTTP_HOST=self.http_host,
         )
-        self.processo.refresh_from_db()
-        self.assertEqual(self.processo.responsavel_id, self.responsavel.pk)
+        self.assertFalse(self.processo.responsaveis.exists())
 
     def test_remove_integrante(self):
         self.processo.integrantes_habilitados.add(self.candidato)

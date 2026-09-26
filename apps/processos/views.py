@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.urls import reverse
 from django.utils import timezone
@@ -15,7 +16,6 @@ from apps.accounts.permissoes import nivel_acesso_modulo, tem_habilitacao, tem_p
 from apps.accounts.permissoes_constants import (
     HAB_GERIR_HABILITAR_USUARIO_PROCESSOS,
     HAB_PROCESSOS_ANDAMENTO_ADICIONAR,
-    HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL,
     HAB_PROCESSOS_CRIAR,
     HAB_PROCESSOS_DOCUMENTO_ADICIONAR,
     HAB_PROCESSOS_DOCUMENTO_EXCLUIR,
@@ -35,7 +35,15 @@ from apps.financeiro.models import SolicitacaoFinanceira
 from apps.saas_tenants.storage import resposta_de_arquivo
 from config.listagem import ordenar, paginar
 from .acompanhamento import numeros_citados_nao_cadastrados, situacao_do_acompanhamento
-from .models import AcompanhamentoProcesso, Documento, Intimacao, ParteProcesso, Processo
+from .models import (
+    AcompanhamentoProcesso,
+    Documento,
+    Intimacao,
+    ParteProcesso,
+    Processo,
+    RepresentanteParte,
+    ResponsavelProcesso,
+)
 from .forms import (
     AdicionarApensoForm,
     AndamentoSugeridoForm,
@@ -46,6 +54,8 @@ from .forms import (
     ParteProcessoForm,
     ProcessoForm,
     ProcessoResponsavelForm,
+    RepresentanteParteForm,
+    AtribuirResponsaveisForm,
 )
 from .services import (
     FILAS_PROCESSOS,
@@ -56,7 +66,12 @@ from .services import (
     nome_exibicao_usuario,
     parte_contraria_do_processo,
     recalcular_prazo_proximo,
+    atribuir_responsaveis,
+    filtrar_processos_do_usuario,
+    remover_responsaveis,
+    responsaveis_do_processo,
     responsaveis_elegiveis,
+    usuarios_atribuiveis_por,
     vincular_processos_apensos,
     vinculos_apensos_do,
 )
@@ -71,18 +86,10 @@ _COLUNAS_LISTA = {
     "criado": ("criado_em",),
     "numero": ("numero",),
     "area": ("area_direito",),
-    "responsavel": ("responsavel__first_name", "responsavel__last_name", "responsavel__username"),
     "movimentacao": ("ultima_movimentacao",),
     "prazo": ("prazo_proximo",),
     "status": ("status",),
 }
-
-
-def _pode_atribuir_responsavel(user):
-    # tem_habilitacao já concede automaticamente ao Administrador do
-    # escritório (bypass interno do kernel), independentemente desta
-    # habilitação — ver apps/accounts/permissoes.py.
-    return tem_habilitacao(user, MODULO_PROCESSOS, HAB_PROCESSOS_ATRIBUIR_RESPONSAVEL)
 
 
 def _pode_gerenciar_integrantes(user):
@@ -117,9 +124,9 @@ def _resolver_escopo(request):
 
 
 def _processos_no_escopo(request, escopo):
-    qs = Processo.objects.select_related("responsavel").prefetch_related("clientes")
+    qs = Processo.objects.prefetch_related("clientes", "responsaveis")
     if escopo == NIVEL_SOMENTE_SEUS:
-        qs = qs.filter(responsavel=request.user)
+        qs = filtrar_processos_do_usuario(qs, request.user)
     return qs
 
 
@@ -130,7 +137,7 @@ def _rotulo_trilha(processo):
 def _processos_mutaveis(request):
     qs = Processo.objects.all()
     if not usuario_admin_escritorio(request.user):
-        qs = qs.filter(responsavel=request.user)
+        qs = filtrar_processos_do_usuario(qs, request.user)
     return qs
 
 
@@ -170,6 +177,13 @@ def lista(request):
         processos = processos.filter(equipe__isnull=True)
     elif equipe_id:
         processos = processos.filter(equipe_id=equipe_id)
+    responsabilidade = request.GET.get("responsabilidade") or ""
+    processos = _filtrar_por_responsabilidade(processos, responsabilidade, request.user)
+    processos = processos.annotate(
+        sou_responsavel=Exists(
+            ResponsavelProcesso.objects.filter(processo=OuterRef("pk"), usuario=request.user)
+        )
+    )
 
     processos = anotar_ultima_movimentacao(processos)
     fila = request.GET.get("fila") or ""
@@ -198,11 +212,26 @@ def lista(request):
         "filtro_status": status,
         "filtro_cliente": cliente_id,
         "filtro_equipe": equipe_id,
+        "filtro_responsabilidade": responsabilidade,
+        "responsaveis_filtro": responsaveis_elegiveis(),
         "areas_choices": Processo.AREAS_CHOICES,
         "status_choices": Processo.STATUS_CHOICES,
         "clientes_filtro": Cliente.objects.filter(ativo=True).order_by("nome_razao_social"),
         "equipes_filtro": Equipe.objects.filter(ativo=True).order_by("nome"),
     })
+
+
+def _filtrar_por_responsabilidade(processos, valor, user):
+    """`?responsabilidade=`: "minha", "nenhum" (sem responsável) ou o id
+    de um usuário; qualquer outro valor não filtra."""
+    atribuicoes = ResponsavelProcesso.objects.values("processo_id")
+    if valor == "minha":
+        return processos.filter(pk__in=atribuicoes.filter(usuario=user))
+    if valor == "nenhum":
+        return processos.exclude(pk__in=atribuicoes)
+    if valor.isdigit():
+        return processos.filter(pk__in=atribuicoes.filter(usuario_id=int(valor)))
+    return processos
 
 
 def _filas_da_lista(request, processos, fila_atual):
@@ -243,16 +272,17 @@ def detalhe(request, pk):
     escopo, _ = _resolver_escopo(request)
     processo = get_object_or_404(
         _processos_no_escopo(request, escopo).prefetch_related(
-            "partes",
+            "partes__representantes",
             "movimentacoes",
             "integrantes_habilitados",
         ),
         pk=pk,
     )
-    pode_modificar = (
-        usuario_admin_escritorio(request.user)
-        or processo.responsavel_id == request.user.pk
-    )
+    pode_modificar = _processos_mutaveis(request).filter(pk=processo.pk).exists()
+    responsaveis = responsaveis_do_processo(processo)
+    atribuiveis = usuarios_atribuiveis_por(request.user)
+    pode_atribuir = atribuiveis.exists()
+    ids_atribuiveis = set(atribuiveis.values_list("pk", flat=True)) if pode_atribuir else set()
     pode_gerenciar_integrantes = _pode_gerenciar_integrantes(request.user)
     pode_adicionar_documento = pode_modificar and _pode_adicionar_documento(request.user)
     pode_excluir_documento = pode_modificar and _pode_excluir_documento(request.user)
@@ -266,11 +296,13 @@ def detalhe(request, pk):
             processo,
             processos_visiveis=_processos_no_escopo(request, escopo),
         ).select_related(
-            "processo_menor__responsavel",
-            "processo_maior__responsavel",
+            "processo_menor",
+            "processo_maior",
         ).prefetch_related(
             "processo_menor__clientes",
             "processo_maior__clientes",
+            "processo_menor__responsaveis",
+            "processo_maior__responsaveis",
         )
     )
     processos_apensos = [
@@ -367,6 +399,8 @@ def detalhe(request, pk):
         "pode_gerenciar_integrantes": pode_gerenciar_integrantes,
         "equipe_atalho": equipe_atalho,
         "form_parte": ParteProcessoForm(processo=processo),
+        "form_representante": RepresentanteParteForm(auto_id=False),
+        "papeis_com_gratuidade": sorted(ParteProcesso.PAPEIS_COM_GRATUIDADE),
         "form_parte_contraparte": ParteProcessoForm(processo=processo, auto_id="id_contraparte_%s"),
         "papel_contraparte": ParteProcesso.PAPEL_CONTRAPARTE,
         "papeis_cadastrados": [parte.papel for parte in partes],
@@ -381,6 +415,14 @@ def detalhe(request, pk):
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
         "pode_modificar": pode_modificar,
+        "responsaveis": [
+            {"usuario": usuario, "pode_remover": usuario.pk in ids_atribuiveis}
+            for usuario in responsaveis
+        ],
+        "pode_atribuir_responsabilidade": pode_atribuir,
+        "form_atribuir_responsaveis": AtribuirResponsaveisForm(
+            usuarios_queryset=atribuiveis.exclude(pk__in=[u.pk for u in responsaveis])
+        ) if pode_atribuir else None,
     })
 
 
@@ -510,31 +552,27 @@ def novo(request):
         raise PermissionDenied
     if not tem_habilitacao(request.user, MODULO_PROCESSOS, HAB_PROCESSOS_CRIAR):
         raise PermissionDenied
-    pode_atribuir_responsavel = _pode_atribuir_responsavel(request.user)
-    FormClass = ProcessoResponsavelForm if pode_atribuir_responsavel else ProcessoForm
-    form_kwargs = (
-        {"responsaveis_queryset": responsaveis_elegiveis()}
-        if pode_atribuir_responsavel else {}
-    )
+    FormClass, form_kwargs = _form_do_processo(request.user)
     if request.method == "POST":
         form = FormClass(request.POST, **form_kwargs)
         if form.is_valid():
-            processo = form.save(commit=False)
-            if not pode_atribuir_responsavel:
-                processo.responsavel = request.user
-            processo.status = "ativo"
-            if not processo.equipe:
-                processo.equipe = equipe_padrao_para_usuario(request.user)
-            processo.save()
-            form.save_m2m()
-            registrar_atividade(
-                request.user, "processo_criado",
-                f"Criou o processo {processo}",
-                processo=processo,
-            )
+            with transaction.atomic():
+                processo = form.save(commit=False)
+                processo.criado_por = request.user
+                processo.status = "ativo"
+                if not processo.equipe:
+                    processo.equipe = equipe_padrao_para_usuario(request.user)
+                processo.save()
+                form.save_m2m()
+                registrar_atividade(
+                    request.user, "processo_criado",
+                    f"Criou o processo {processo}",
+                    processo=processo,
+                )
+                _aplicar_responsaveis_do_formulario(request.user, processo, form)
             return redirect("processos:detalhe", pk=processo.pk)
     else:
-        initial = {"responsavel": request.user.pk} if pode_atribuir_responsavel else {}
+        initial = {}
         cliente_id = request.GET.get("cliente")
         if cliente_id and Cliente.objects.filter(pk=cliente_id, ativo=True).exists():
             # Criação cruzada a partir da aba Processos do Cliente
@@ -551,8 +589,6 @@ def novo(request):
         "modo": "novo",
         "form": form,
         "item_ativo": "processos",
-        "pode_atribuir_responsavel": pode_atribuir_responsavel,
-        "responsavel_exibido": request.user,
     })
 
 
@@ -564,21 +600,18 @@ def editar(request, pk):
         raise PermissionDenied
     _resolver_escopo(request)
     processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
-    pode_atribuir_responsavel = _pode_atribuir_responsavel(request.user)
-    FormClass = ProcessoResponsavelForm if pode_atribuir_responsavel else ProcessoForm
-    form_kwargs = (
-        {"responsaveis_queryset": responsaveis_elegiveis()}
-        if pode_atribuir_responsavel else {}
-    )
+    FormClass, form_kwargs = _form_do_processo(request.user)
     if request.method == "POST":
         form = FormClass(request.POST, instance=processo, **form_kwargs)
         if form.is_valid():
-            form.save()
-            registrar_atividade(
-                request.user, "processo_editado",
-                f"Editou o processo {processo}",
-                processo=processo,
-            )
+            with transaction.atomic():
+                form.save()
+                registrar_atividade(
+                    request.user, "processo_editado",
+                    f"Editou o processo {processo}",
+                    processo=processo,
+                )
+                _aplicar_responsaveis_do_formulario(request.user, processo, form)
             return redirect("processos:detalhe", pk=processo.pk)
     else:
         form = FormClass(instance=processo, **form_kwargs)
@@ -591,9 +624,86 @@ def editar(request, pk):
         "modo": "editar",
         "form": form,
         "item_ativo": "processos",
-        "pode_atribuir_responsavel": pode_atribuir_responsavel,
-        "responsavel_exibido": processo.responsavel,
     })
+
+
+def _form_do_processo(user):
+    """Quem pode atribuir responsabilidade vê o campo, limitado a quem
+    pode receber dele (PDR-0039)."""
+    atribuiveis = usuarios_atribuiveis_por(user)
+    if atribuiveis.exists():
+        return ProcessoResponsavelForm, {"responsaveis_queryset": atribuiveis}
+    return ProcessoForm, {}
+
+
+def _aplicar_responsaveis_do_formulario(user, processo, form):
+    """Diferença só dentro do conjunto de quem edita: responsável que ele
+    não poderia atribuir não é removido pelo formulário."""
+    campo = form.fields.get("atribuir_responsaveis")
+    if campo is None:
+        return
+    selecionados = list(form.cleaned_data.get("atribuir_responsaveis") or [])
+    ids_selecionados = {u.pk for u in selecionados}
+    retirados = [
+        u for u in campo.queryset.filter(pk__in=processo.responsaveis.values("pk"))
+        if u.pk not in ids_selecionados
+    ]
+    _registrar_atribuicoes(
+        user, processo,
+        atribuidos=atribuir_responsaveis(processo, selecionados, por=user),
+        removidos=remover_responsaveis(processo, retirados),
+    )
+
+
+def _registrar_atribuicoes(user, processo, *, atribuidos=(), removidos=()):
+    for usuario in atribuidos:
+        registrar_atividade(
+            user, "processo_responsavel_atribuido",
+            f"Atribuiu a responsabilidade do processo {processo} a {nome_exibicao_usuario(usuario)}",
+            processo=processo,
+        )
+    for usuario in removidos:
+        registrar_atividade(
+            user, "processo_responsavel_removido",
+            f"Retirou a responsabilidade de {nome_exibicao_usuario(usuario)} no processo {processo}",
+            processo=processo,
+        )
+
+
+def _processo_para_atribuir(request, pk):
+    """Card "Atribuir responsabilidade": quem pode atribuir, sobre um
+    processo que enxerga."""
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    atribuiveis = usuarios_atribuiveis_por(request.user)
+    if not atribuiveis.exists():
+        raise PermissionDenied
+    escopo, _ = _resolver_escopo(request)
+    return get_object_or_404(_processos_no_escopo(request, escopo), pk=pk), atribuiveis
+
+
+@login_required
+@require_POST
+def atribuir_responsabilidade(request, pk):
+    processo, atribuiveis = _processo_para_atribuir(request, pk)
+    form = AtribuirResponsaveisForm(request.POST, usuarios_queryset=atribuiveis)
+    if not form.is_valid():
+        raise PermissionDenied
+    with transaction.atomic():
+        atribuidos = atribuir_responsaveis(processo, list(form.cleaned_data["usuarios"]), por=request.user)
+        _registrar_atribuicoes(request.user, processo, atribuidos=atribuidos)
+    return redirect("processos:detalhe", pk=pk)
+
+
+@login_required
+@require_POST
+def remover_responsabilidade(request, pk, usuario_pk):
+    processo, atribuiveis = _processo_para_atribuir(request, pk)
+    usuario = get_object_or_404(atribuiveis.filter(pk__in=processo.responsaveis.values("pk")), pk=usuario_pk)
+    with transaction.atomic():
+        removidos = remover_responsaveis(processo, [usuario])
+        _registrar_atribuicoes(request.user, processo, removidos=removidos)
+    return redirect("processos:detalhe", pk=pk)
 
 
 @login_required
@@ -608,7 +718,9 @@ def arquivados(request):
         "item_ativo": "processos",
         "escopo_atual": escopo,
         "escopo_maximo": escopo_maximo,
-        "usuario_e_admin": usuario_admin_escritorio(request.user),
+        "ids_mutaveis": set(
+            _processos_mutaveis(request).filter(status="arquivado").values_list("pk", flat=True)
+        ),
     })
 
 
@@ -823,6 +935,47 @@ def editar_parte(request, pk, parte_pk):
                 f"Editou parte ({parte.get_papel_display()}) no processo {processo}",
                 processo=processo,
             )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
+
+
+@login_required
+@require_POST
+def adicionar_representante(request, pk, parte_pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    parte = get_object_or_404(processo.partes, pk=parte_pk)
+    form = RepresentanteParteForm(request.POST)
+    if form.is_valid():
+        representante = form.save(commit=False)
+        representante.parte = parte
+        representante.save()
+        registrar_atividade(
+            request.user, "processo_representante_adicionado",
+            f"Adicionou representante de {parte.nome} no processo {processo}",
+            processo=processo,
+        )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
+
+
+@login_required
+@require_POST
+def remover_representante(request, pk, representante_pk):
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    representante = get_object_or_404(
+        RepresentanteParte.objects.filter(parte__processo=processo), pk=representante_pk
+    )
+    nome_parte = representante.parte.nome
+    representante.delete()
+    registrar_atividade(
+        request.user, "processo_representante_removido",
+        f"Removeu representante de {nome_parte} no processo {processo}",
+        processo=processo,
+    )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=partes")
 
 

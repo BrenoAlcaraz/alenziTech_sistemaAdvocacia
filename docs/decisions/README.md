@@ -65,3 +65,5 @@ serem efetivamente decididas.
 | PDR-0036 | Um papel de acesso por usuário | accepted | [PDR-0036-um-papel-de-acesso-por-usuario.md](PDR-0036-um-papel-de-acesso-por-usuario.md) |
 | PDR-0037 | Prazo sugerido a partir do texto da intimação | accepted | [PDR-0037-prazo-sugerido-a-partir-da-intimacao.md](PDR-0037-prazo-sugerido-a-partir-da-intimacao.md) |
 | PDR-0038 | Movimento do DataJud como sugestão e dados do processo pelo tribunal | accepted | [PDR-0038-movimento-datajud-como-sugestao.md](PDR-0038-movimento-datajud-como-sugestao.md) |
+| PDR-0039 | Responsabilidade atribuída a vários usuários no Processo | accepted | [PDR-0039-responsabilidade-atribuida-processos.md](PDR-0039-responsabilidade-atribuida-processos.md) |
+| PDR-0040 | Representante da parte | accepted | [PDR-0040-representante-da-parte.md](PDR-0040-representante-da-parte.md) |

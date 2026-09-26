@@ -43,7 +43,7 @@ class DashboardProcessosBase(TenantTestCase):
 
     def _processo(self, titulo, *, status="ativo", **extra):
         return Processo.objects.create(
-            titulo=titulo, responsavel=self.usuario, status=status, **extra
+            titulo=titulo, criado_por=self.usuario, status=status, **extra
         )
 
     def _get(self):

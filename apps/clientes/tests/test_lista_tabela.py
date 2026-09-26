@@ -62,6 +62,6 @@ class TestListaClientesTabela(ClientesEscopoBase):
     def test_processos_ativos_ignora_arquivados(self):
         cliente = Cliente.objects.create(nome_razao_social="Com processos", tipo="PF", responsavel=self.user)
         for status in ("ativo", "suspenso", "arquivado"):
-            Processo.objects.create(titulo=status, responsavel=self.user, status=status).clientes.add(cliente)
+            Processo.objects.create(titulo=status, criado_por=self.user, status=status).clientes.add(cliente)
         linha = self._get().context["clientes"][0]
         self.assertEqual(linha.processos_ativos, 2)

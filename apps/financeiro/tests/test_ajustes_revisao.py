@@ -208,8 +208,8 @@ class TestReembolsoDeCustaAdiantada(FinanceiroBase):
         self.assertEqual(r.status_code, 404)
 
     def test_extrato_filtra_por_processo_e_pago_por(self):
-        p1 = Processo.objects.create(responsavel=self.user, titulo="Proc 1")
-        p2 = Processo.objects.create(responsavel=self.user, titulo="Proc 2")
+        p1 = Processo.objects.create(criado_por=self.user, titulo="Proc 1")
+        p2 = Processo.objects.create(criado_por=self.user, titulo="Proc 2")
         p1.clientes.add(self.cliente)
         p2.clientes.add(self.cliente)
         self._custa(descricao="No P1", processo=p1)
@@ -276,7 +276,7 @@ class TestTotaisEAnalise(FinanceiroBase):
         self.assertEqual(self._totais(incluir_custas=False)["pago"], Decimal("0"))
 
     def test_analise_de_dados_fontes_area_e_cliente(self):
-        processo = Processo.objects.create(responsavel=self.user, titulo="P", area_direito="TRABALHISTA")
+        processo = Processo.objects.create(criado_por=self.user, titulo="P", area_direito="TRABALHISTA")
         self._lancamento(valor=Decimal("700"), status="pago", data_pagamento=self.hoje,
                          cliente=self.cliente, processo=processo)
         outro = Cliente.objects.create(nome_razao_social="OUTRO", tipo="PF", responsavel=self.user)

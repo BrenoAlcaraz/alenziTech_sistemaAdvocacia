@@ -189,7 +189,7 @@ class TestSeloApareceEmProcessoVinculado(SeloPrioridadeViewBase):
             responsavel=self.user, tipo="PF", nome_razao_social="Cliente Menor",
             data_nascimento=_data_com_idade(10),
         )
-        self.processo = Processo.objects.create(responsavel=self.user, titulo="Processo Teste Selo")
+        self.processo = Processo.objects.create(criado_por=self.user, titulo="Processo Teste Selo")
         self.processo.clientes.add(self.menor)
 
     def test_processo_detalhe_mostra_selo_do_cliente_vinculado(self):

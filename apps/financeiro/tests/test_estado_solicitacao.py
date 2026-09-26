@@ -106,7 +106,7 @@ class TestCoresDoEstadoNasTelas(SolicitacaoFinanceiraBase):
         cliente = Cliente.objects.create(
             responsavel=self.user, nome_razao_social="Cliente Cores", tipo="PF"
         )
-        self.processo = Processo.objects.create(responsavel=self.user, titulo="Processo Cores")
+        self.processo = Processo.objects.create(criado_por=self.user, titulo="Processo Cores")
         self.processo.clientes.add(cliente)
         self.cliente = cliente
 

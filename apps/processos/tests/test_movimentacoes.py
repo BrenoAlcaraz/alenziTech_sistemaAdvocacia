@@ -55,7 +55,7 @@ class MovimentacoesBase(TenantTestCase):
     def _processo(self, *, responsavel, **kwargs):
         defaults = {"titulo": "Processo Teste Movimentações"}
         defaults.update(kwargs)
-        return Processo.objects.create(responsavel=responsavel, **defaults)
+        return Processo.objects.create(criado_por=responsavel, **defaults)
 
 
 class TestCatalogoPorArea(MovimentacoesBase):

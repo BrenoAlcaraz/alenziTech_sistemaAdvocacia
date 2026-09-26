@@ -7,10 +7,13 @@ from .models import (
     MovimentacaoProcessual,
     ParteProcesso,
     Processo,
+    RepresentanteParte,
 )
 from .services import (
     cliente_do_processo_corresponde_documento,
+    destinatarios_do_processo,
     nome_exibicao_usuario,
+    numero_ja_cadastrado,
     rotulo_processo,
 )
 from apps.clientes.models import Cliente
@@ -105,6 +108,15 @@ class ProcessoForm(forms.ModelForm):
     def _maiusculas(self, campo):
         return (self.cleaned_data.get(campo) or "").strip().upper()
 
+    def clean_titulo(self):
+        return self._maiusculas("titulo")
+
+    def clean_numero(self):
+        numero = (self.cleaned_data.get("numero") or "").strip()
+        if numero and numero_ja_cadastrado(numero, exceto=self.instance.pk):
+            raise forms.ValidationError("Já existe processo cadastrado com este número.")
+        return numero
+
     def clean_cidade(self):
         return self._maiusculas("cidade")
 
@@ -120,24 +132,41 @@ class ResponsavelProcessoChoiceField(forms.ModelChoiceField):
         return rotulo_usuario(obj)
 
 
-class ProcessoResponsavelForm(ProcessoForm):
-    """Variante com reatribuição explícita de responsável — Administrador
-    ou usuário com a habilitação `processos_atribuir_responsavel`."""
+class ResponsaveisProcessoField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        return rotulo_usuario(obj)
 
-    responsavel = ResponsavelProcessoChoiceField(
-        queryset=User.objects.none(),
-        required=True,
-        label="Responsável",
-        widget=forms.Select(attrs={"class": "select"}),
+
+def campo_atribuir_responsaveis(queryset):
+    return ResponsaveisProcessoField(
+        queryset=queryset,
+        required=False,
+        label="Atribuir responsável(is)",
+        help_text="As pessoas selecionadas ficam responsáveis pelo processo.",
+        widget=forms.SelectMultiple(attrs={"class": "select", "size": "5"}),
     )
 
-    class Meta(ProcessoForm.Meta):
-        fields = ProcessoForm.Meta.fields + ["responsavel"]
 
-    def __init__(self, *args, responsaveis_queryset=None, **kwargs):
+class ProcessoResponsavelForm(ProcessoForm):
+    """Variante para quem pode atribuir responsabilidade (PDR-0039). O
+    campo não é o M2M do modelo: a view aplica a diferença só dentro do
+    conjunto de quem está editando, preservando os demais responsáveis."""
+
+    def __init__(self, *args, responsaveis_queryset, **kwargs):
         super().__init__(*args, **kwargs)
-        if responsaveis_queryset is not None:
-            self.fields["responsavel"].queryset = responsaveis_queryset
+        self.fields["atribuir_responsaveis"] = campo_atribuir_responsaveis(responsaveis_queryset)
+        if self.instance.pk and not self.is_bound:
+            self.initial["atribuir_responsaveis"] = list(
+                responsaveis_queryset.filter(pk__in=self.instance.responsaveis.values("pk"))
+                .values_list("pk", flat=True)
+            )
+
+
+class AtribuirResponsaveisForm(forms.Form):
+    def __init__(self, *args, usuarios_queryset, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["usuarios"] = campo_atribuir_responsaveis(usuarios_queryset)
+        self.fields["usuarios"].required = True
 
 
 class ProcessoChoiceField(forms.ModelChoiceField):
@@ -230,7 +259,10 @@ class ParteProcessoForm(forms.ModelForm):
 
     class Meta:
         model = ParteProcesso
-        fields = ["papel", "nome", "cpf_cnpj", "ente_publico", "prazo_em_dobro", "advogado_nome", "advogado_oab"]
+        fields = [
+            "papel", "nome", "cpf_cnpj", "ente_publico", "prazo_em_dobro", "gratuidade_justica",
+            "advogado_nome", "advogado_oab",
+        ]
         widgets = {
             "ente_publico": forms.Select(attrs={
                 "class": "select",
@@ -256,6 +288,7 @@ class ParteProcessoForm(forms.ModelForm):
                 "class": "checkbox",
                 "title": "Fazenda Pública, Ministério Público, Defensoria ou núcleo de prática jurídica.",
             }),
+            "gratuidade_justica": forms.CheckboxInput(attrs={"class": "checkbox"}),
         }
 
     def __init__(self, *args, processo=None, **kwargs):
@@ -271,9 +304,26 @@ class ParteProcessoForm(forms.ModelForm):
             )
             if cliente is not None:
                 cleaned["advogado_nome"] = nome_exibicao_usuario(
-                    self._processo.responsavel
+                    destinatarios_do_processo(self._processo)[0]
                 )
         return cleaned
+
+
+class RepresentanteParteForm(forms.ModelForm):
+    class Meta:
+        model = RepresentanteParte
+        fields = ["qualificacao", "nome", "cpf"]
+        widgets = {
+            "qualificacao": forms.Select(attrs={"class": "select"}),
+            "nome": forms.TextInput(attrs={"class": "input", "placeholder": "Nome do representante"}),
+            "cpf": forms.TextInput(attrs={"class": "input", "placeholder": "CPF (opcional)"}),
+        }
+
+    def clean_nome(self):
+        nome = (self.cleaned_data.get("nome") or "").strip()
+        if not nome:
+            raise forms.ValidationError("Informe o nome do representante.")
+        return nome
 
 
 class DocumentoForm(forms.ModelForm):

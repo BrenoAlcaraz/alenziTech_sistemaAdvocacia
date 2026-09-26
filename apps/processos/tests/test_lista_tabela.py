@@ -26,7 +26,7 @@ class TestListaProcessosTabela(ProcessosEscopoBase):
                 titulo=f"Processo {inicio + i:04d}",
                 numero=f"{inicio + i:07d}-00.2024.8.26.0100",
                 numero_interno=90000 + inicio + i,
-                responsavel=responsavel,
+                criado_por=responsavel,
                 **campos,
             )
             for i in range(quantidade)
@@ -82,7 +82,7 @@ class TestListaProcessosTabela(ProcessosEscopoBase):
         self.assertContains(primeira, "de 60 processos")
         segunda = self._get("?busca=2024.8.26&pagina=2").context["processos"]
         self.assertEqual(len(segunda), 10)
-        vistos = {p.responsavel_id for p in list(pagina) + list(segunda)}
+        vistos = {p.criado_por_id for p in list(pagina) + list(segunda)}
         self.assertEqual(vistos, {self.user.pk})
 
         # Página além do fim cai na última, ainda só com os próprios.

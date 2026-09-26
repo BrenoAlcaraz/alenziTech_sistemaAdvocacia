@@ -45,6 +45,26 @@ urlpatterns = [
         name="editar_parte",
     ),
     path(
+        "processos/<int:pk>/partes/<int:parte_pk>/representantes/novo/",
+        views.adicionar_representante,
+        name="adicionar_representante",
+    ),
+    path(
+        "processos/<int:pk>/representantes/<int:representante_pk>/remover/",
+        views.remover_representante,
+        name="remover_representante",
+    ),
+    path(
+        "processos/<int:pk>/responsaveis/atribuir/",
+        views.atribuir_responsabilidade,
+        name="atribuir_responsabilidade",
+    ),
+    path(
+        "processos/<int:pk>/responsaveis/<int:usuario_pk>/remover/",
+        views.remover_responsabilidade,
+        name="remover_responsabilidade",
+    ),
+    path(
         "processos/<int:pk>/integrantes/adicionar/",
         views.adicionar_integrante,
         name="adicionar_integrante",

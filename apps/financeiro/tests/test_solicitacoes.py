@@ -289,7 +289,7 @@ class TestSolicitacoesEscopoNivelSolicitacoes(SolicitacaoFinanceiraBase):
 
         cliente = Cliente.objects.create(nome_razao_social="Cliente Teste", responsavel=self.user)
         processo = Processo.objects.create(
-            titulo="Processo Teste", responsavel=self.user,
+            titulo="Processo Teste", criado_por=self.user,
         )
         processo.clientes.add(cliente)
         antes = SolicitacaoFinanceira.objects.count()
@@ -701,7 +701,7 @@ class TestPagamentoDeCustaJudicial(SolicitacaoFinanceiraBase):
         self._conceder_modulo(self.solicitante, nivel=NIVEL_SOLICITACOES)
 
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Custa", responsavel=self.solicitante)
-        self.processo = Processo.objects.create(titulo="Processo Custa", responsavel=self.solicitante)
+        self.processo = Processo.objects.create(titulo="Processo Custa", criado_por=self.solicitante)
         self.processo.clientes.add(self.cliente)
 
         self.solicitacao = self._solicitacao(
@@ -842,7 +842,7 @@ class TestNovaSolicitacaoAPartirDoProcesso(SolicitacaoFinanceiraBase):
         self.client.force_login(self.user)
 
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
-        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", criado_por=self.user)
         self.processo.clientes.add(self.cliente)
 
     def test_form_vem_travado_em_pagamento_processo_e_cliente(self):
@@ -933,7 +933,7 @@ class TestNovaSolicitacaoRetornoAoProcesso(SolicitacaoFinanceiraBase):
         self.client.force_login(self.user)
 
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
-        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", criado_por=self.user)
         self.processo.clientes.add(self.cliente)
         self.origem = f"/processos/{self.processo.pk}/?aba=custas"
 
@@ -1034,7 +1034,7 @@ class TestEditarSolicitacao(SolicitacaoFinanceiraBase):
         self._conceder_modulo(self.outro, nivel=NIVEL_SOLICITACOES)
 
         self.cliente = Cliente.objects.create(nome_razao_social="Cliente Único", responsavel=self.user)
-        self.processo = Processo.objects.create(titulo="Processo Único", responsavel=self.user)
+        self.processo = Processo.objects.create(titulo="Processo Único", criado_por=self.user)
         self.processo.clientes.add(self.cliente)
 
     def _url(self, solicitacao):
@@ -1133,7 +1133,7 @@ class TestEditarSolicitacao(SolicitacaoFinanceiraBase):
     def test_editar_pagamento_nao_permite_trocar_processo(self):
         s = self._pagamento()
         outro_cliente = Cliente.objects.create(nome_razao_social="Outro Cliente", responsavel=self.user)
-        outro_processo = Processo.objects.create(titulo="Outro Processo", responsavel=self.user)
+        outro_processo = Processo.objects.create(titulo="Outro Processo", criado_por=self.user)
         outro_processo.clientes.add(outro_cliente)
 
         r = self.client.post(

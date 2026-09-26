@@ -45,7 +45,7 @@ class HonorariosBase(TenantTestCase):
 
     def _processo(self, *, responsavel):
         cliente = Cliente.objects.create(nome_razao_social="Cliente Teste", responsavel=responsavel)
-        processo = Processo.objects.create(titulo="Processo Teste", responsavel=responsavel)
+        processo = Processo.objects.create(titulo="Processo Teste", criado_por=responsavel)
         processo.clientes.add(cliente)
         return processo
 

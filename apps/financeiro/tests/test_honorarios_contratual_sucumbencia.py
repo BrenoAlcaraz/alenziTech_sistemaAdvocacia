@@ -490,7 +490,7 @@ class TestAvisoDeExito(ContratualBase):
         self.assertEqual(calculo["exito"], Decimal("26500.00"))
 
     def test_pela_economia_cancelado_e_outro_processo_ficam_de_fora(self):
-        outro = Processo.objects.create(responsavel=self.user, titulo="Outro")
+        outro = Processo.objects.create(criado_por=self.user, titulo="Outro")
         outro.clientes.add(self.cliente)
         self._exito(exito_base="economia")
         self._exito(status="cancelado")

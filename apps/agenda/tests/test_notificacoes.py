@@ -165,7 +165,7 @@ class TestAvisosDeAcao(NotificacoesBase):
         self.assertEqual(self._avisos(self.responsavel, "atribuiu a você").count(), 1)
 
     def test_alterar_data_fatal_no_andamento_avisa_o_responsavel_do_prazo(self):
-        processo = Processo.objects.create(responsavel=self.responsavel, titulo="Processo avisos")
+        processo = Processo.objects.create(criado_por=self.responsavel, titulo="Processo avisos")
         fatal = self.hoje + timedelta(days=20)
         andamento = MovimentacaoProcessual.objects.create(
             processo=processo, descricao="Intimação", tipo="despacho", data_prazo=fatal,
@@ -184,7 +184,7 @@ class TestAvisosDeAcao(NotificacoesBase):
         self.assertEqual(self._avisos(self.responsavel, "Data fatal alterada").count(), 1)
 
     def test_prazo_gerado_pelo_andamento_avisa_o_responsavel_do_processo_uma_vez(self):
-        processo = Processo.objects.create(responsavel=self.responsavel, titulo="Processo novo prazo")
+        processo = Processo.objects.create(criado_por=self.responsavel, titulo="Processo novo prazo")
         fatal = self.hoje + timedelta(days=15)
         andamento = MovimentacaoProcessual.objects.create(
             processo=processo, descricao="Intimação", tipo="despacho", data_prazo=fatal,
@@ -200,12 +200,11 @@ class TestAvisosDeAcao(NotificacoesBase):
         self.assertEqual(Notificacao.objects.count(), 1)
 
     def test_troca_de_responsavel_do_processo_avisa_quem_recebe_o_prazo(self):
-        processo = Processo.objects.create(responsavel=self.responsavel, titulo="Processo troca")
+        processo = Processo.objects.create(criado_por=self.responsavel, titulo="Processo troca")
         MovimentacaoProcessual.objects.create(
             processo=processo, descricao="Intimação", tipo="despacho", data_prazo=self.hoje + timedelta(days=20),
         )
 
-        processo.responsavel = self.autor
-        processo.save()
+        processo.responsaveis.add(self.autor)
 
         self.assertEqual(self._avisos(self.autor, "pelo processo").count(), 1)
