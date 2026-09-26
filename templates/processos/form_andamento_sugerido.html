@@ -1,0 +1,46 @@
+{% extends "base/base_auth.html" %}
+{% block title %}Editar andamento sugerido{% endblock %}
+
+{% block content %}
+{% url 'processos:detalhe' processo.pk as url_processo %}
+<div class="mb-6">
+  <h1 class="text-xl font-bold text-gray-900">Editar andamento sugerido</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Continua "Sugerido" até ser confirmado.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="card p-6 lg:col-span-2">
+    <form method="post">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        {% for campo in form %}
+        <div class="{% if campo.name == 'descricao' %}md:col-span-2{% endif %}">
+          <label class="label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% if campo.name == "data_prazo" %}<p class="text-xs text-gray-500 mt-1">Vazio = prazo a definir.</p>{% endif %}
+          {% if campo.name == "prazo_de" %}<p class="text-xs text-gray-500 mt-1">Só prazo de nosso cliente vai para a Agenda do responsável.</p>{% endif %}
+          {% if campo.errors %}<p class="erro-campo mt-1 text-xs text-red-600">{{ campo.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="btn-primary">Salvar</button>
+        <a href="{{ url_processo }}?aba=andamentos#andamento-{{ andamento.pk }}" class="btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  {% if form_documento %}
+  <div class="card p-6 self-start">
+    <h2 class="text-sm font-semibold text-gray-900 mb-3">Anexar o documento real</h2>
+    <form method="post" action="{% url 'processos:adicionar_documento' processo.pk %}" enctype="multipart/form-data" class="flex flex-col gap-3">
+      {% csrf_token %}
+      {{ form_documento.arquivo }}
+      {{ form_documento.tipo }}
+      {{ form_documento.descricao }}
+      <button type="submit" class="btn-secondary self-start">Anexar</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

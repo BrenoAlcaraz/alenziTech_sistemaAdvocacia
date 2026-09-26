@@ -54,7 +54,7 @@ class ProcessoForm(forms.ModelForm):
         fields = [
             "titulo", "numero", "clientes", "area_direito", "fase",
             "instancia", "vara", "comarca", "estado", "cidade", "valor_causa",
-            "data_distribuicao", "gratuidade_justica_status",
+            "data_distribuicao", "gratuidade_justica_status", "segredo_justica",
         ]
         widgets = {
             "titulo": forms.TextInput(attrs={
@@ -91,6 +91,7 @@ class ProcessoForm(forms.ModelForm):
                 "type": "date",
             }, format="%Y-%m-%d"),
             "gratuidade_justica_status": forms.Select(attrs={"class": "select"}),
+            "segredo_justica": forms.CheckboxInput(attrs={"class": "checkbox"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -229,7 +230,7 @@ class ParteProcessoForm(forms.ModelForm):
 
     class Meta:
         model = ParteProcesso
-        fields = ["papel", "nome", "cpf_cnpj", "ente_publico", "advogado_nome", "advogado_oab"]
+        fields = ["papel", "nome", "cpf_cnpj", "ente_publico", "prazo_em_dobro", "advogado_nome", "advogado_oab"]
         widgets = {
             "ente_publico": forms.Select(attrs={
                 "class": "select",
@@ -250,6 +251,10 @@ class ParteProcessoForm(forms.ModelForm):
             "advogado_oab": forms.TextInput(attrs={
                 "class": "input",
                 "placeholder": "OAB (opcional)",
+            }),
+            "prazo_em_dobro": forms.CheckboxInput(attrs={
+                "class": "checkbox",
+                "title": "Fazenda Pública, Ministério Público, Defensoria ou núcleo de prática jurídica.",
             }),
         }
 
@@ -356,6 +361,37 @@ class MovimentacaoProcessualForm(forms.ModelForm):
         self.fields["tipo"].choices = MovimentacaoProcessual.catalogo_por_area(processo)
         self.fields["origem_prazo"].queryset = processo.movimentacoes.order_by("-data")
         self.fields["origem_prazo"].empty_label = "Nenhum (opcional)"
+
+
+class AndamentoSugeridoForm(forms.ModelForm):
+    """Edição do andamento sugerido pelo acompanhamento automático: ajusta
+    os dados e reclassifica de quem é o prazo. Continua sugerido até ser
+    confirmado."""
+
+    class Meta:
+        model = MovimentacaoProcessual
+        fields = ["tipo", "descricao", "data_prazo", "prazo_de"]
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "select"}),
+            "descricao": forms.Textarea(attrs={"class": "input h-48"}),
+            "data_prazo": forms.DateInput(attrs={"class": "input", "type": "date"}, format="%Y-%m-%d"),
+            "prazo_de": forms.Select(attrs={"class": "select"}),
+        }
+
+    def __init__(self, *args, processo, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tipo"].choices = MovimentacaoProcessual.catalogo_por_area(processo)
+
+    def save(self, commit=True):
+        andamento = super().save(commit=False)
+        if "data_prazo" in self.changed_data:
+            # Data informada à mão deixa de ser cálculo automático.
+            andamento.prazo_calculado = False
+            andamento.prazo_dobrado = False
+        andamento.prazo_a_definir = andamento.data_prazo is None
+        if commit:
+            andamento.save()
+        return andamento
 
 
 class IntimacaoForm(forms.ModelForm):

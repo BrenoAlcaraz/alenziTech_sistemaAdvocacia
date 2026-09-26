@@ -1,0 +1,14 @@
+{# Prazo de um andamento: data, de quem é e, quando automático, os avisos de conferência (PDR-0037). #}
+{% if mov.data_prazo %}
+  <p class="text-xs {% if mov.prazo_vencido %}text-red-600{% else %}text-gray-500{% endif %} mt-0.5">
+    Prazo: {{ mov.data_prazo|date:"d/m/Y" }}{% if mov.prazo_vencido %} (vencido){% endif %}{% if mov.fonte %} · {{ mov.get_prazo_de_display }}{% endif %}
+  </p>
+  {% if mov.prazo_dobrado %}
+    <p class="text-xs text-amber-700 mt-0.5">Dobrado automaticamente ({{ mov.prazo_dias }} → {{ mov.prazo_dias_dobrado }}) — confirme.</p>
+  {% endif %}
+  {% if mov.prazo_calculado %}
+    <p class="text-xs text-amber-700 mt-0.5">Calculado automaticamente, sem considerar feriado local ou suspensão do tribunal — confirme.</p>
+  {% endif %}
+{% elif mov.prazo_a_definir %}
+  <p class="text-xs font-medium text-amber-700 mt-0.5">Prazo a definir{% if mov.fonte %} · {{ mov.get_prazo_de_display }}{% endif %}</p>
+{% endif %}

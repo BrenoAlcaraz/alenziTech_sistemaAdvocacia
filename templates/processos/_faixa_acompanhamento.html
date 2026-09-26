@@ -1,0 +1,8 @@
+{# Faixa do acompanhamento automático (DJEN) — visível a todos; some antes da primeira execução. #}
+{% if acompanhamento %}
+<div class="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-2 text-xs {% if acompanhamento.falhou_hoje %}border-red-200 bg-red-50 text-red-800{% else %}border-gray-200 bg-gray-50 text-gray-600{% endif %}"
+     role="status" data-faixa-acompanhamento>
+  <span>Acompanhamento automático · Última atualização: {% if acompanhamento.ultima_atualizacao %}{{ acompanhamento.ultima_atualizacao|date:"d/m/Y H:i" }}{% else %}—{% endif %}</span>
+  {% if acompanhamento.falhou_hoje %}<span class="font-semibold">Falhou hoje — acompanhe manualmente</span>{% endif %}
+</div>
+{% endif %}

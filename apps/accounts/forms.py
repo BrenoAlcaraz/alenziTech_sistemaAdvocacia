@@ -273,6 +273,8 @@ class PerfilUsuarioForm(forms.ModelForm):
         fields = [
             "nome_completo",
             "cargo",
+            "oab_numero",
+            "oab_uf",
             "avatar",
         ]
         widgets = {
@@ -288,5 +290,10 @@ class PerfilUsuarioForm(forms.ModelForm):
                     "placeholder": "Ex.: Advogado, Sócio, Administrativo",
                 }
             ),
+            "oab_numero": forms.TextInput(attrs={"class": "input", "placeholder": "Ex.: 123456"}),
+            "oab_uf": forms.TextInput(attrs={"class": "input uppercase", "placeholder": "UF", "maxlength": "2"}),
             "avatar": forms.ClearableFileInput(attrs={"class": "input"}),
         }
+
+    def clean_oab_uf(self):
+        return self.cleaned_data["oab_uf"].strip().upper()

@@ -137,6 +137,8 @@ class Processo(models.Model):
         verbose_name="Integrantes habilitados",
     )
     prazo_proximo = models.DateField(null=True, blank=True)
+    # Marcado à mão; tira o processo do acompanhamento automático.
+    segredo_justica = models.BooleanField(default=False, verbose_name="Segredo de justiça")
     numero_interno = models.PositiveIntegerField(unique=True, editable=False)
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -437,6 +439,32 @@ class MovimentacaoProcessual(models.Model):
         verbose_name="Andamento de origem do prazo",
     )
 
+    # Acompanhamento automático (PDR-0037): o andamento nasce "Sugerido"
+    # até alguém confirmar, rejeitar (apagar) ou editar.
+    FONTE_DJEN = "djen"
+    FONTE_DATAJUD = "datajud"
+    FONTE_CHOICES = [(FONTE_DJEN, "DJEN"), (FONTE_DATAJUD, "DataJud")]
+    PRAZO_DE_NOSSO_CLIENTE = "nosso_cliente"
+    PRAZO_DE_OUTRA_PARTE = "outra_parte"
+    PRAZO_DE_CHOICES = [
+        (PRAZO_DE_NOSSO_CLIENTE, "Nosso cliente"),
+        (PRAZO_DE_OUTRA_PARTE, "Outra parte"),
+    ]
+
+    sugerido = models.BooleanField(default=False)
+    fonte = models.CharField(max_length=10, choices=FONTE_CHOICES, blank=True)
+    prazo_de = models.CharField(
+        max_length=20, choices=PRAZO_DE_CHOICES, default=PRAZO_DE_NOSSO_CLIENTE,
+        verbose_name="Prazo de",
+    )
+    prazo_a_definir = models.BooleanField(default=False)
+    prazo_calculado = models.BooleanField(default=False)
+    # Dias escritos na intimação, antes da dobra.
+    prazo_dias = models.PositiveSmallIntegerField(null=True, blank=True)
+    prazo_dobrado = models.BooleanField(default=False)
+    link = models.URLField(max_length=1000, blank=True)
+    destinatarios = models.TextField(blank=True)
+
     class Meta:
         verbose_name = "Movimentação"
         verbose_name_plural = "Movimentações"
@@ -450,6 +478,15 @@ class MovimentacaoProcessual(models.Model):
         if not self.data_prazo:
             return False
         return self.data_prazo < timezone.localdate()
+
+    @property
+    def gera_prazo_na_agenda(self):
+        """Só prazo de nosso cliente vira item na Agenda (PDR-0037)."""
+        return self.data_prazo is not None and self.prazo_de == self.PRAZO_DE_NOSSO_CLIENTE
+
+    @property
+    def prazo_dias_dobrado(self):
+        return self.prazo_dias * 2 if self.prazo_dias else None
 
     @classmethod
     def catalogo_por_area(cls, processo):
@@ -584,6 +621,9 @@ class ParteProcesso(models.Model):
         max_length=10, choices=ENTE_PUBLICO_CHOICES, blank=True,
         verbose_name="Ente público",
     )
+    # Fazenda Pública, Ministério Público, Defensoria, núcleo de prática
+    # jurídica — marcação manual; dobra o prazo sugerido pelo DJEN.
+    prazo_em_dobro = models.BooleanField(default=False, verbose_name="Prazo em dobro")
 
     class Meta:
         verbose_name = "Parte do Processo"
@@ -639,3 +679,71 @@ class Intimacao(models.Model):
 
     def __str__(self):
         return f"{self.processo.titulo} — {self.motivo}"
+
+
+class AcompanhamentoProcesso(models.Model):
+    """Ponto de partida do acompanhamento automático de um processo: até
+    que data o DJEN já foi consultado. Ausente = processo nunca
+    consultado (a primeira consulta não importa histórico)."""
+
+    processo = models.OneToOneField(Processo, on_delete=models.CASCADE, related_name="acompanhamento")
+    djen_consultado_ate = models.DateField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Acompanhamento de processo"
+        verbose_name_plural = "Acompanhamentos de processo"
+
+    def __str__(self):
+        return f"{self.processo} — DJEN até {self.djen_consultado_ate:%d/%m/%Y}"
+
+
+class ComunicacaoDjen(models.Model):
+    """Comunicação do DJEN já vista — garante que rodar o job de novo não
+    duplica nada, nem recria um andamento rejeitado (a comunicação fica,
+    o andamento vira nulo). Publicações iguais por destinatário
+    compartilham a `chave_grupo` e o mesmo andamento."""
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="comunicacoes_djen")
+    hash = models.CharField(max_length=100, unique=True)
+    comunicacao_id = models.BigIntegerField()
+    chave_grupo = models.CharField(max_length=64)
+    data_disponibilizacao = models.DateField()
+    link = models.URLField(max_length=1000, blank=True)
+    movimentacao = models.ForeignKey(
+        MovimentacaoProcessual, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="comunicacoes_djen",
+    )
+    # Publicada antes de o processo passar a ser acompanhado: só aviso.
+    anterior_ao_acompanhamento = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Comunicação do DJEN"
+        verbose_name_plural = "Comunicações do DJEN"
+        ordering = ["-data_disponibilizacao"]
+
+    def __str__(self):
+        return f"{self.processo} — {self.data_disponibilizacao:%d/%m/%Y} ({self.comunicacao_id})"
+
+
+class ExecucaoAcompanhamento(models.Model):
+    """Uma execução do job no escritório — alimenta a faixa "Última
+    atualização" / "Falhou hoje"."""
+
+    iniciada_em = models.DateTimeField(default=timezone.now)
+    concluida_em = models.DateTimeField(null=True, blank=True)
+    falhas = models.PositiveIntegerField(default=0)
+    erro = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Execução do acompanhamento"
+        verbose_name_plural = "Execuções do acompanhamento"
+        ordering = ["-iniciada_em"]
+
+    def __str__(self):
+        return f"{self.iniciada_em:%d/%m/%Y %H:%M} ({self.falhas} falhas)"
+
+    @property
+    def falhou(self):
+        return self.concluida_em is None or self.falhas > 0

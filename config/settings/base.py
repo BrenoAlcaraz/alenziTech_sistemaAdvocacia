@@ -158,3 +158,14 @@ MEDIA_URL = os.getenv("MEDIA_URL", "/media/")
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ─── Acompanhamento de processos (DataJud + DJEN) ──────────────────────────────
+DJEN_URL = os.getenv("DJEN_URL", "https://comunicaapi.pje.jus.br/api/v1/comunicacao")
+# Dias não úteis do cálculo de prazo (padrão provisório — spec J9): feriados
+# nacionais fixos ("DD/MM"), datas avulsas ("AAAA-MM-DD") e recesso forense.
+# A Sexta-feira Santa é móvel e entra sempre, calculada pela Páscoa.
+FERIADOS_NACIONAIS = os.getenv(
+    "FERIADOS_NACIONAIS", "01/01,21/04,01/05,07/09,12/10,02/11,15/11,20/11,25/12"
+).split(",")
+FERIADOS_AVULSOS = [d for d in os.getenv("FERIADOS_AVULSOS", "").split(",") if d]
+RECESSO_FORENSE = os.getenv("RECESSO_FORENSE", "20/12-20/01")

@@ -121,12 +121,13 @@ def recalcular_prazo_proximo(processo, movimentacoes=None):
     """`Processo.prazo_proximo` automático (não mais editado manualmente):
     o `data_prazo` ainda não vencido mais próximo entre os andamentos do
     processo ou, se todos já venceram, o vencido mais recente. `None`
-    quando nenhum andamento tem `data_prazo`."""
+    quando nenhum andamento tem `data_prazo`. Prazo da outra parte não
+    conta — é só acompanhamento (PDR-0037)."""
     movimentacoes = (
         processo.movimentacoes.all() if movimentacoes is None else movimentacoes
     )
     datas_prazo = sorted(
-        mov.data_prazo for mov in movimentacoes if mov.data_prazo is not None
+        mov.data_prazo for mov in movimentacoes if mov.gera_prazo_na_agenda
     )
     if not datas_prazo:
         return None

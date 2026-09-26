@@ -1,0 +1,24 @@
+{# Dados e ações de um andamento trazido pelo acompanhamento automático. #}
+{% if mov.link or mov.destinatarios %}
+<details class="mt-1 text-xs text-gray-600">
+  <summary class="cursor-pointer text-juridico-verde">Destinatários e link</summary>
+  {% if mov.destinatarios %}<p class="mt-1 whitespace-pre-line">{{ mov.destinatarios }}</p>{% endif %}
+  {% if mov.link %}<a href="{{ mov.link }}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-block text-juridico-verde hover:underline">Abrir publicação ↗</a>{% endif %}
+</details>
+{% endif %}
+{% if mov.sugerido and pode_modificar %}
+<div class="mt-2 flex flex-wrap items-center gap-2">
+  <form method="post" action="{% url 'processos:confirmar_sugestao' processo.pk mov.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn-secondary text-xs">Confirmar</button>
+  </form>
+  <a href="{% url 'processos:editar_sugestao' processo.pk mov.pk %}" class="btn-secondary text-xs">Editar</a>
+  <form method="post" action="{% url 'processos:rejeitar_sugestao' processo.pk mov.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="text-xs text-red-700 hover:underline"
+            data-confirmar="Rejeitar este andamento sugerido?" data-confirmar-texto="O andamento, o prazo e o item da Agenda Jurídica gerados por ele serão apagados." data-confirmar-acao="Rejeitar">
+      Rejeitar
+    </button>
+  </form>
+</div>
+{% endif %}

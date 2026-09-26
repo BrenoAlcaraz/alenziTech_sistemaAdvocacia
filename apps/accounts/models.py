@@ -101,6 +101,9 @@ class PerfilUsuario(models.Model):
         null=True, blank=True, unique=True, editable=False,
         help_text="Número do código interno U. Vazio para o Administrador (ADM).",
     )
+    # Identifica as intimações do DJEN dirigidas ao escritório.
+    oab_numero = models.CharField("Número da OAB", max_length=20, blank=True)
+    oab_uf = models.CharField("UF da OAB", max_length=2, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

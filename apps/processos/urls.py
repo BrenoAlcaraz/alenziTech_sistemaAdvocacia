@@ -13,6 +13,21 @@ urlpatterns = [
     path("processos/<int:pk>/reabrir/", views.reabrir, name="reabrir"),
     path("processos/<int:pk>/excluir/", views.excluir, name="excluir"),
     path("processos/<int:pk>/movimentacoes/nova/", views.adicionar_movimentacao, name="adicionar_movimentacao"),
+    path(
+        "processos/<int:pk>/andamentos/<int:andamento_pk>/confirmar/",
+        views.confirmar_sugestao,
+        name="confirmar_sugestao",
+    ),
+    path(
+        "processos/<int:pk>/andamentos/<int:andamento_pk>/rejeitar/",
+        views.rejeitar_sugestao,
+        name="rejeitar_sugestao",
+    ),
+    path(
+        "processos/<int:pk>/andamentos/<int:andamento_pk>/editar/",
+        views.editar_sugestao,
+        name="editar_sugestao",
+    ),
     path("processos/<int:pk>/partes/nova/", views.adicionar_parte, name="adicionar_parte"),
     path(
         "processos/<int:pk>/apensos/adicionar/",

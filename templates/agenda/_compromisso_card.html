@@ -71,6 +71,7 @@
     {% endif %}
     {% if c.gerado_pelo_processo %}
       <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-stone-100 text-stone-600" title="Gerado pelo andamento do processo">Processo</span>
+      {% if c.sugerido %}<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-800" title="Trazido pelo acompanhamento automático — confirme no processo">Sugerido</span>{% endif %}
     {% endif %}
     {% endif %}
 

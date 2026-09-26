@@ -34,9 +34,11 @@ from apps.clientes.models import Cliente
 from apps.financeiro.models import SolicitacaoFinanceira
 from apps.saas_tenants.storage import resposta_de_arquivo
 from config.listagem import ordenar, paginar
+from .acompanhamento import situacao_do_acompanhamento
 from .models import Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
+    AndamentoSugeridoForm,
     AdicionarIntegranteForm,
     DocumentoForm,
     IntimacaoForm,
@@ -316,6 +318,7 @@ def detalhe(request, pk):
         (mov for mov in movimentacoes if mov.data_prazo),
         key=lambda mov: mov.data_prazo,
     )
+    prazos_a_definir = [mov for mov in movimentacoes if mov.prazo_a_definir]
     agenda_do_processo = agenda_do_vinculo(request.user, processo=processo)
     _anexar_item_do_prazo(request.user, prazos)
     custas_financeiras = list(
@@ -328,6 +331,8 @@ def detalhe(request, pk):
         "processo": processo,
         "movimentacoes": movimentacoes,
         "prazos": prazos,
+        "prazos_a_definir": prazos_a_definir,
+        "prazos_total": len(prazos) + len(prazos_a_definir),
         "parte_contraria": parte_contraria_do_processo(processo, partes=partes),
         "faixa_status": faixa_status_do_processo(processo, movimentacoes=movimentacoes),
         "agenda_do_processo": agenda_do_processo,
@@ -360,6 +365,8 @@ def detalhe(request, pk):
         "papel_contraparte": ParteProcesso.PAPEL_CONTRAPARTE,
         "papeis_cadastrados": [parte.papel for parte in partes],
         "form_movimentacao": MovimentacaoProcessualForm(processo=processo),
+        "acompanhamento": situacao_do_acompanhamento(),
+        "publicacoes_anteriores": processo.comunicacoes_djen.filter(anterior_ao_acompanhamento=True),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
         "pode_modificar": pode_modificar,
@@ -688,6 +695,81 @@ def adicionar_movimentacao(request, pk):
                 processo=processo,
             )
     return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos")
+
+
+def _andamento_sugerido_mutavel(request, pk, andamento_pk):
+    """Sugerido do acompanhamento automático: mesma regra de mutação do
+    processo (Administrador ou responsável)."""
+    if not tem_permissao_modulo(request.user, MODULO_PROCESSOS):
+        raise PermissionDenied
+    _resolver_escopo(request)
+    processo = get_object_or_404(_processos_mutaveis(request), pk=pk)
+    andamento = get_object_or_404(processo.movimentacoes, pk=andamento_pk, sugerido=True)
+    return processo, andamento
+
+
+def _atualizar_prazo_proximo(processo):
+    processo.prazo_proximo = recalcular_prazo_proximo(processo)
+    processo.save(update_fields=["prazo_proximo"])
+
+
+@login_required
+@require_POST
+def confirmar_sugestao(request, pk, andamento_pk):
+    processo, andamento = _andamento_sugerido_mutavel(request, pk, andamento_pk)
+    andamento.sugerido = False
+    andamento.save(update_fields=["sugerido"])
+    registrar_atividade(
+        request.user, "processo_sugestao_confirmada",
+        f"Confirmou andamento sugerido ({andamento.get_tipo_display()}) no processo {processo}",
+        processo=processo,
+    )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos")
+
+
+@login_required
+@require_POST
+def rejeitar_sugestao(request, pk, andamento_pk):
+    processo, andamento = _andamento_sugerido_mutavel(request, pk, andamento_pk)
+    rotulo = andamento.get_tipo_display()
+    with transaction.atomic():
+        # O Prazo gerado na Agenda some junto (CASCADE).
+        andamento.delete()
+        _atualizar_prazo_proximo(processo)
+        registrar_atividade(
+            request.user, "processo_sugestao_rejeitada",
+            f"Rejeitou andamento sugerido ({rotulo}) no processo {processo}",
+            processo=processo,
+        )
+    return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos")
+
+
+@login_required
+def editar_sugestao(request, pk, andamento_pk):
+    processo, andamento = _andamento_sugerido_mutavel(request, pk, andamento_pk)
+    form = AndamentoSugeridoForm(request.POST or None, instance=andamento, processo=processo)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            form.save()
+            _atualizar_prazo_proximo(processo)
+            registrar_atividade(
+                request.user, "processo_sugestao_editada",
+                f"Editou andamento sugerido ({andamento.get_tipo_display()}) no processo {processo}",
+                processo=processo,
+            )
+        return redirect(f"{reverse('processos:detalhe', args=[pk])}?aba=andamentos#andamento-{andamento.pk}")
+    return render(request, "processos/form_andamento_sugerido.html", {
+        "trilha": [
+            ("Processos", reverse("processos:lista")),
+            (_rotulo_trilha(processo), reverse("processos:detalhe", args=[pk])),
+            ("Editar sugerido", None),
+        ],
+        "processo": processo,
+        "andamento": andamento,
+        "form": form,
+        "form_documento": DocumentoForm() if _pode_adicionar_documento(request.user) else None,
+        "item_ativo": "processos",
+    })
 
 
 @login_required

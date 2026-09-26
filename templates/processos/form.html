@@ -66,6 +66,11 @@
       </div>
 
       <div>
+        <label class="flex items-center gap-2 text-sm text-gray-700 mt-6">{{ form.segredo_justica }} Segredo de justiça</label>
+        <p class="text-xs text-gray-500 mt-1">Marcado, o processo não é acompanhado automaticamente.</p>
+      </div>
+
+      <div>
         <label class="label" for="{{ form.instancia.id_for_label }}">Instância</label>
         {{ form.instancia }}
         {% if form.instancia.errors %}

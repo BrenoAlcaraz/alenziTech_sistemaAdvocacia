@@ -138,6 +138,12 @@ class ItemAgenda(models.Model):
         return self.movimentacao_origem_id is not None
 
     @property
+    def sugerido(self):
+        """Prazo de andamento trazido pelo acompanhamento automático e
+        ainda não confirmado (PDR-0037)."""
+        return self.gerado_pelo_processo and self.movimentacao_origem.sugerido
+
+    @property
     def data_referencia(self):
         """Dia em que o item cai na agenda: início (evento), data para
         fazer ou, sem ela, a fatal (afazer); None em afazer sem data."""

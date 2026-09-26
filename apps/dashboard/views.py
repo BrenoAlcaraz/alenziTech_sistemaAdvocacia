@@ -34,6 +34,7 @@ from apps.accounts.permissoes_constants import (
     NIVEL_TODOS,
 )
 from apps.clientes.models import Cliente
+from apps.processos.acompanhamento import situacao_do_acompanhamento
 from apps.processos.models import Intimacao, MovimentacaoProcessual, Processo
 from apps.processos.services import patrocinio_do_processo, responsaveis_elegiveis
 from apps.agenda.models import (
@@ -395,6 +396,7 @@ def painel(request):
         "acesso_financeiro_solicitacoes": acesso_financeiro_solicitacoes,
         "acesso_usuarios_ativos": acesso_usuarios_ativos,
         "acesso_gestor": _pode_ver_painel_gestor(request.user),
+        "acompanhamento": situacao_do_acompanhamento(),
         "item_ativo": "painel",
         "aba_ativa": "geral",
     })

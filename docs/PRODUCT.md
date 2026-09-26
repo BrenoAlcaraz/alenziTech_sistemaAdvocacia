@@ -278,9 +278,10 @@ reservado ao log de atividade.
 
 **Prazo gerado pelo processo:**
 
-- Todo andamento com `data_prazo` (manual ou, no futuro, por API) gera
-  exatamente um item Prazo para o responsável do processo, sem convite,
-  vinculado ao andamento, processo e cliente.
+- Todo andamento com `data_prazo` de *nosso cliente* (manual ou sugerido
+  pelo acompanhamento DJEN) gera exatamente um item Prazo para o
+  responsável do processo, sem convite, vinculado ao andamento, processo
+  e cliente; prazo da *outra parte* fica só no processo (PDR-0037).
 - Data fatal = `data_prazo`, editável só no andamento; data para fazer
   padrão = fatal − 2 dias corridos, editável. Alterar a data no
   andamento atualiza o item e avisa o responsável; remover o prazo ou

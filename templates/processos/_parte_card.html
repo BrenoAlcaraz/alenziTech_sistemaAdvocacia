@@ -4,6 +4,7 @@
       <p class="font-medium text-gray-900 truncate" title="{{ parte.nome }}">{{ parte.nome }}</p>
       {% if parte.cpf_cnpj %}<p class="text-xs text-gray-500">{{ parte.cpf_cnpj }}</p>{% endif %}
       {% if parte.ente_publico %}<p class="text-xs text-amber-700">Ente público — {{ parte.get_ente_publico_display }}</p>{% endif %}
+      {% if parte.prazo_em_dobro %}<p class="text-xs text-gray-500" title="O prazo sugerido pelo DJEN para esta parte é dobrado.">Prazo em dobro</p>{% endif %}
     </div>
     <span class="badge-area">{{ parte.get_papel_display }}</span>
   </div>
@@ -27,6 +28,7 @@
       {{ parte.form_editar.nome }}
       {{ parte.form_editar.cpf_cnpj }}
       {{ parte.form_editar.ente_publico }}
+      <label class="flex items-center gap-2 text-sm text-gray-700">{{ parte.form_editar.prazo_em_dobro }} Prazo em dobro</label>
       {{ parte.form_editar.advogado_nome }}
       {{ parte.form_editar.advogado_oab }}
       <button type="submit" class="btn-secondary text-sm self-start">Salvar</button>

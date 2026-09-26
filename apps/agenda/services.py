@@ -26,11 +26,11 @@ def titulo_prazo_do_andamento(andamento):
 
 
 def sincronizar_prazo_do_andamento(andamento):
-    """Mantém exatamente um Prazo por andamento com `data_prazo`
-    (PDR-0034): cria, acompanha a data fatal ou remove. Retorna o item
-    (ou None quando o andamento não tem prazo)."""
+    """Mantém exatamente um Prazo por andamento com prazo de nosso
+    cliente (PDR-0034, PDR-0037): cria, acompanha a data fatal ou remove.
+    Retorna o item (ou None quando o andamento não gera prazo)."""
     item = ItemAgenda.objects.filter(movimentacao_origem=andamento).first()
-    if andamento.data_prazo is None:
+    if not andamento.gera_prazo_na_agenda:
         if item is not None:
             item.delete()
         return None

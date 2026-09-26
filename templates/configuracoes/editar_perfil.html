@@ -48,12 +48,29 @@
       {% endif %}
     </div>
 
-    <div class="mb-6">
+    <div class="mb-4">
       <label for="{{ form.cargo.id_for_label }}" class="label">Cargo</label>
       {{ form.cargo }}
       {% if form.cargo.errors %}
         <p class="erro-campo mt-1 text-xs text-red-600">{{ form.cargo.errors.0 }}</p>
       {% endif %}
+    </div>
+
+    <div class="mb-6">
+      <div class="grid grid-cols-[1fr_5rem] gap-3">
+        <div>
+          <label for="{{ form.oab_numero.id_for_label }}" class="label">Número da OAB</label>
+          {{ form.oab_numero }}
+        </div>
+        <div>
+          <label for="{{ form.oab_uf.id_for_label }}" class="label">UF</label>
+          {{ form.oab_uf }}
+        </div>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">Identifica as intimações do DJEN dirigidas a você.</p>
+      {% for erro in form.oab_numero.errors|add:form.oab_uf.errors %}
+        <p class="erro-campo mt-1 text-xs text-red-600">{{ erro }}</p>
+      {% endfor %}
     </div>
 
     <div class="flex items-center gap-3">
