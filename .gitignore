@@ -63,7 +63,8 @@ yarn-error.log*
 # =========================
 # Claude local
 # =========================
-.claude/
+.claude/*
+!.claude/agents/
 
 # =========================
 # Sistema / editor
