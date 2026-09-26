@@ -286,6 +286,26 @@ ver [PRODUCT.md](../PRODUCT.md) para o padrão dos módulos mais simples.
   Jurídica quando ele está no escopo do usuário. O prazo também aparece (discreto) na aba
   "Andamentos", sem ser o foco ali.
 
+## Acompanhamento automático — DataJud (PDR-0038)
+
+Roda no mesmo job diário do DJEN (PDR-0037), em cada processo
+acompanhado.
+
+- Movimento com código TPU da lista relevante vira andamento
+  "Sugerido", fonte DataJud, sem prazo, com "traga o documento"; o tipo
+  é o equivalente do catálogo da área, senão "Andamento". Julgamento é
+  Sentença no 1º grau/juizado e Acórdão nos demais.
+- Código fora da lista ou de publicação (DJe) não gera nada; movimento
+  repetido, nova execução ou andamento rejeitado não geram de novo.
+- Baixa e arquivamento só geram andamento; o status nunca muda sozinho.
+- Vara/órgão julgador ou grau diferente do último valor informado pelo
+  DataJud atualiza `vara`/`instancia` e avisa o responsável; diferença
+  só de escrita não conta, e o que o usuário digitou não é comparado.
+- Primeira vez encontrado: só ponto de partida. Não encontrado: nota na
+  aba de andamentos com os motivos possíveis; a busca continua.
+- Ações do job não entram no log de atividade (sem autor humano);
+  confirmar/rejeitar/editar entram.
+
 ## Filas automáticas (lista de Processos)
 
 Abas acima da tabela de processos ativos — "Todos" e as filas, cada uma
@@ -349,7 +369,8 @@ fora de escopo.
 ## Fora de escopo imediato
 
 - Assistente/Laboratório (condicionado a PDR-0008);
-- OCR de documentos, integração com API de tribunal;
+- OCR de documentos; integração com tribunal além do acompanhamento
+  DataJud + DJEN (PDR-0037/PDR-0038);
 - determinação automática de status por IA.
 
 ## Pontos em aberto
@@ -365,6 +386,11 @@ fora de escopo.
   fluxo manual de adicionar parte, com nome/CPF-CNPJ reaproveitáveis
   por atalho no formulário, sem criação automática.
 
+- Lista de códigos TPU relevantes do DataJud é provisória (PDR-0038):
+  citação realizada e penhora sem código conferido (fora da lista);
+  audiência e expedição de alvará entram como "Andamento" por falta de
+  tipo equivalente no catálogo — aguardando validação do sócio.
+
 ## Referências
 
 - [PDR-0001](../decisions/PDR-0001-participantes-processuais.md) (parcialmente substituído)
@@ -376,4 +402,6 @@ fora de escopo.
 - [PDR-0023](../decisions/PDR-0023-partes-catalogo-pares-por-tipo-acao.md)
 - [PDR-0024](../decisions/PDR-0024-exclusao-definitiva-processo.md)
 - [PDR-0027](../decisions/PDR-0027-sugestao-contraparte-e-papeis-outros.md)
+- [PDR-0037](../decisions/PDR-0037-prazo-sugerido-a-partir-da-intimacao.md)
+- [PDR-0038](../decisions/PDR-0038-movimento-datajud-como-sugestao.md)
 - [STATUS.md](../STATUS.md#processos) para o estado real de implementação

@@ -1,4 +1,7 @@
 {# Dados e ações de um andamento trazido pelo acompanhamento automático. #}
+{% if mov.sugerido and mov.fonte == "datajud" %}
+<p class="mt-1 text-xs text-amber-700">Movimento do tribunal sem texto — traga o documento.</p>
+{% endif %}
 {% if mov.link or mov.destinatarios %}
 <details class="mt-1 text-xs text-gray-600">
   <summary class="cursor-pointer text-juridico-verde">Destinatários e link</summary>

@@ -35,7 +35,7 @@ from apps.financeiro.models import SolicitacaoFinanceira
 from apps.saas_tenants.storage import resposta_de_arquivo
 from config.listagem import ordenar, paginar
 from .acompanhamento import situacao_do_acompanhamento
-from .models import Documento, Intimacao, ParteProcesso, Processo
+from .models import AcompanhamentoProcesso, Documento, Intimacao, ParteProcesso, Processo
 from .forms import (
     AdicionarApensoForm,
     AndamentoSugeridoForm,
@@ -367,6 +367,9 @@ def detalhe(request, pk):
         "form_movimentacao": MovimentacaoProcessualForm(processo=processo),
         "acompanhamento": situacao_do_acompanhamento(),
         "publicacoes_anteriores": processo.comunicacoes_djen.filter(anterior_ao_acompanhamento=True),
+        "datajud_nao_encontrado": AcompanhamentoProcesso.objects.filter(
+            processo=processo, datajud_consultado_em__isnull=False, datajud_encontrado=False,
+        ).exists(),
         "aba_ativa": request.GET.get("aba", "andamentos"),
         "item_ativo": "processos",
         "pode_modificar": pode_modificar,

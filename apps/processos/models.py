@@ -682,20 +682,31 @@ class Intimacao(models.Model):
 
 
 class AcompanhamentoProcesso(models.Model):
-    """Ponto de partida do acompanhamento automático de um processo: até
-    que data o DJEN já foi consultado. Ausente = processo nunca
-    consultado (a primeira consulta não importa histórico)."""
+    """Ponto de partida do acompanhamento automático de um processo, por
+    fonte: até que data o DJEN já foi consultado (nulo = nunca) e se o
+    DataJud já encontrou o processo. A primeira consulta de cada fonte
+    não importa histórico."""
 
     processo = models.OneToOneField(Processo, on_delete=models.CASCADE, related_name="acompanhamento")
-    djen_consultado_ate = models.DateField()
+    djen_consultado_ate = models.DateField(null=True, blank=True)
+    datajud_consultado_em = models.DateTimeField(null=True, blank=True)
+    datajud_encontrado = models.BooleanField(default=False)
+    # Último valor informado pelo próprio DataJud — base da detecção de
+    # mudança, nunca o que o usuário digitou no processo.
+    datajud_orgao_julgador = models.CharField(max_length=255, blank=True)
+    datajud_grau = models.CharField(max_length=10, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def datajud_nao_encontrado(self):
+        return self.datajud_consultado_em is not None and not self.datajud_encontrado
 
     class Meta:
         verbose_name = "Acompanhamento de processo"
         verbose_name_plural = "Acompanhamentos de processo"
 
     def __str__(self):
-        return f"{self.processo} — DJEN até {self.djen_consultado_ate:%d/%m/%Y}"
+        return f"Acompanhamento de {self.processo}"
 
 
 class ComunicacaoDjen(models.Model):
@@ -725,6 +736,29 @@ class ComunicacaoDjen(models.Model):
 
     def __str__(self):
         return f"{self.processo} — {self.data_disponibilizacao:%d/%m/%Y} ({self.comunicacao_id})"
+
+
+class MovimentoDatajud(models.Model):
+    """Movimento do DataJud já visto (relevante ou não) — rodar o job de
+    novo não duplica nada nem recria andamento rejeitado."""
+
+    processo = models.ForeignKey(Processo, on_delete=models.CASCADE, related_name="movimentos_datajud")
+    chave = models.CharField(max_length=100)
+    movimentacao = models.ForeignKey(
+        MovimentacaoProcessual, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="movimentos_datajud",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Movimento do DataJud"
+        verbose_name_plural = "Movimentos do DataJud"
+        constraints = [
+            models.UniqueConstraint(fields=["processo", "chave"], name="movimento_datajud_unico_por_processo"),
+        ]
+
+    def __str__(self):
+        return f"{self.processo} — {self.chave}"
 
 
 class ExecucaoAcompanhamento(models.Model):

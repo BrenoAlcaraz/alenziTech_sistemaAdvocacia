@@ -380,7 +380,13 @@ class AndamentoSugeridoForm(forms.ModelForm):
 
     def __init__(self, *args, processo, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["tipo"].choices = MovimentacaoProcessual.catalogo_por_area(processo)
+        catalogo = MovimentacaoProcessual.catalogo_por_area(processo)
+        tipo_atual = self.instance.tipo
+        if tipo_atual not in {valor for _, opcoes in catalogo for valor, _ in opcoes}:
+            # Movimento do DataJud sem equivalente no catálogo entra como
+            # "Andamento" (fora do catálogo); precisa continuar válido.
+            catalogo = [("Atual", [(tipo_atual, self.instance.get_tipo_display())]), *catalogo]
+        self.fields["tipo"].choices = catalogo
 
     def save(self, commit=True):
         andamento = super().save(commit=False)
@@ -388,7 +394,10 @@ class AndamentoSugeridoForm(forms.ModelForm):
             # Data informada à mão deixa de ser cálculo automático.
             andamento.prazo_calculado = False
             andamento.prazo_dobrado = False
-        andamento.prazo_a_definir = andamento.data_prazo is None
+        # Movimento do DataJud não tem prazo a definir: nasce sem prazo.
+        andamento.prazo_a_definir = (
+            andamento.data_prazo is None and andamento.fonte == MovimentacaoProcessual.FONTE_DJEN
+        )
         if commit:
             andamento.save()
         return andamento

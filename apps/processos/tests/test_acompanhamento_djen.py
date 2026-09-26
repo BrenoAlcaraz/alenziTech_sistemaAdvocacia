@@ -40,6 +40,11 @@ NOSSA_OAB = Advogado(nome="Dono", oab="0123456", uf="SP")
 OAB_ALHEIA = Advogado(nome="Outro", oab="999999", uf="RJ")
 
 
+def sem_datajud(numero):
+    """DataJud fora destes testes (coberto em test_acompanhamento_datajud)."""
+    return None
+
+
 def comunicacao(id, *, texto=TEXTO_15_DIAS, data=date(2026, 10, 1), destinatarios=("FULANO",),
                 advogados=(NOSSA_OAB,), ativo=True):
     return Comunicacao(
@@ -64,7 +69,7 @@ class AcompanhamentoBase(TenantTestCase):
 
     def _rodar(self, comunicacoes, hoje=HOJE):
         buscar = mock.Mock(return_value=list(comunicacoes))
-        return executar_acompanhamento(hoje, buscar=buscar), buscar
+        return executar_acompanhamento(hoje, buscar=buscar, buscar_datajud=sem_datajud), buscar
 
     def _andamentos(self):
         return MovimentacaoProcessual.objects.filter(processo=self.processo, sugerido=True)
@@ -166,7 +171,7 @@ class TestPublicacaoViraAndamentoSugerido(AcompanhamentoBase):
         buscar = mock.Mock(side_effect=lambda numero, *_: next(
             v for p, v in casos.items() if p.numero.replace("-", "").replace(".", "") == numero
         ))
-        executar_acompanhamento(HOJE, buscar=buscar)
+        executar_acompanhamento(HOJE, buscar=buscar, buscar_datajud=sem_datajud)
 
         andamentos = MovimentacaoProcessual.objects.filter(sugerido=True)
         self.assertEqual(andamentos.count(), 5)
@@ -242,7 +247,7 @@ class TestIdempotenciaEIsolamento(AcompanhamentoBase):
                 raise ErroDjen("fora do ar")
             return [comunicacao(9)]
 
-        execucao = executar_acompanhamento(HOJE, buscar=buscar)
+        execucao = executar_acompanhamento(HOJE, buscar=buscar, buscar_datajud=sem_datajud)
 
         self.assertEqual(execucao.falhas, 1)
         self.assertTrue(MovimentacaoProcessual.objects.filter(processo=outro, sugerido=True).exists())

@@ -230,6 +230,13 @@
 
   {% include "processos/_faixa_acompanhamento.html" %}
 
+  {% if datajud_nao_encontrado %}
+  <div class="card px-5 py-4 mb-4 border-amber-200 bg-amber-50 text-sm text-amber-900" role="note" data-datajud-nao-encontrado>
+    <p class="font-medium">Processo não encontrado no DataJud.</p>
+    <p class="mt-1 text-xs">Possíveis motivos: processo recém-distribuído (o DataJud tem atraso de dias), segredo de justiça ou número errado. A busca continua nos dias seguintes.</p>
+  </div>
+  {% endif %}
+
   {% if publicacoes_anteriores %}
   <div class="card px-5 py-4 mb-4 border-amber-200 bg-amber-50" data-publicacoes-anteriores>
     <p class="text-sm font-medium text-amber-900">Houve publicação no DJEN antes do acompanhamento deste processo — confira.</p>

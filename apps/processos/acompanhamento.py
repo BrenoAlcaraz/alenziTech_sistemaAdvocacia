@@ -1,16 +1,16 @@
 """
-Acompanhamento automático de processos pelo DJEN (PDR-0037): cada
-publicação de um processo acompanhado vira andamento "Intimação"
-sugerido, com o prazo calculado a partir do texto quando possível. Roda
-dentro do schema do escritório corrente (ver o comando
-`acompanhar_processos`).
+Acompanhamento automático de processos (PDR-0037): cada publicação do
+DJEN de um processo acompanhado vira andamento "Intimação" sugerido, com
+o prazo calculado a partir do texto quando possível; cada movimento
+relevante do DataJud vira andamento sugerido sem prazo, e mudança de
+vara/grau no tribunal atualiza o processo. Roda dentro do schema do
+escritório corrente (ver o comando `acompanhar_processos`).
 """
 
 import hashlib
 import logging
 import re
-import unicodedata
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone as dt_timezone
 
 from django.db import transaction
 from django.utils import timezone
@@ -18,6 +18,7 @@ from django.utils import timezone
 from apps.accounts.models import PerfilUsuario
 from apps.notificacoes.models import Notificacao
 
+from .datajud import buscar_processo
 from .dias_uteis import vencimento_intimacao_djen
 from .djen import buscar_comunicacoes
 from .extracao_prazo import extrair_prazo, texto_da_intimacao
@@ -26,8 +27,10 @@ from .models import (
     ComunicacaoDjen,
     ExecucaoAcompanhamento,
     MovimentacaoProcessual,
+    MovimentoDatajud,
     Processo,
 )
+from .movimentos_tpu import classificar, normalizado
 from .services import recalcular_prazo_proximo
 
 logger = logging.getLogger(__name__)
@@ -78,11 +81,6 @@ def oabs_do_escritorio():
     }
 
 
-def _nome_normalizado(nome):
-    sem_acento = unicodedata.normalize("NFKD", nome).encode("ascii", "ignore").decode()
-    return " ".join(sem_acento.casefold().split())
-
-
 def _chave_grupo(comunicacao):
     texto = texto_da_intimacao(comunicacao.texto)
     base = f"{comunicacao.data_disponibilizacao.isoformat()}|{texto}"
@@ -109,10 +107,10 @@ def _dono_do_prazo(advogados, oabs):
 
 def _destinatario_tem_prazo_em_dobro(processo, destinatarios):
     beneficiarias = {
-        _nome_normalizado(nome)
+        normalizado(nome)
         for nome in processo.partes.filter(prazo_em_dobro=True).values_list("nome", flat=True)
     }
-    return any(_nome_normalizado(nome) in beneficiarias for nome in destinatarios)
+    return any(normalizado(nome) in beneficiarias for nome in destinatarios)
 
 
 def _descricao(comunicacao, texto):
@@ -202,7 +200,7 @@ def _primeira_consulta(processo, hoje, buscar):
     with transaction.atomic():
         for chave, grupo in grupos.items():
             _registrar(processo, grupo, chave, anterior=True)
-        AcompanhamentoProcesso.objects.create(processo=processo, djen_consultado_ate=hoje)
+        AcompanhamentoProcesso.objects.update_or_create(processo=processo, defaults={"djen_consultado_ate": hoje})
         if grupos:
             _notificar(
                 processo.responsavel,
@@ -214,7 +212,7 @@ def sincronizar_djen(processo, hoje, *, oabs, buscar=buscar_comunicacoes):
     """Traz as publicações novas do processo como andamento sugerido.
     Retorna quantos andamentos foram criados."""
     acompanhamento = AcompanhamentoProcesso.objects.filter(processo=processo).first()
-    if acompanhamento is None:
+    if acompanhamento is None or acompanhamento.djen_consultado_ate is None:
         _primeira_consulta(processo, hoje, buscar)
         return 0
     # A janela reabre o último dia consultado: publicação disponibilizada
@@ -239,18 +237,120 @@ def sincronizar_djen(processo, hoje, *, oabs, buscar=buscar_comunicacoes):
     return criados
 
 
-def executar_acompanhamento(hoje, *, buscar=buscar_comunicacoes):
-    """Execução do dia no escritório corrente. Falha num processo não
-    interrompe os demais; fica contada na execução."""
+# Grau do DataJud → instância do cadastro; grau sem equivalente não
+# altera a instância.
+INSTANCIA_POR_GRAU = {"G1": "1ª Instância", "JE": "1ª Instância", "G2": "2ª Instância", "TR": "2ª Instância"}
+_SEM_MOVIMENTO = datetime.min.replace(tzinfo=dt_timezone.utc)
+
+
+def _registro_atual(registros):
+    """Onde o processo tramita agora: o registro (grau/órgão) com o
+    movimento mais recente."""
+    return max(registros, key=lambda r: max((m.data_hora for m in r.movimentos), default=_SEM_MOVIMENTO))
+
+
+def _importar_movimentos(processo, registros):
+    vistas = set(processo.movimentos_datajud.values_list("chave", flat=True))
+    movimentos = sorted(((m, r.grau) for r in registros for m in r.movimentos), key=lambda par: par[0].data_hora)
+    criados = 0
+    for movimento, grau in movimentos:
+        if movimento.chave in vistas:
+            continue
+        vistas.add(movimento.chave)
+        andamento = None
+        classificacao = classificar(movimento, grau, processo)
+        if classificacao is not None:
+            tipo, descricao = classificacao
+            andamento = MovimentacaoProcessual.objects.create(
+                processo=processo, tipo=tipo, data=movimento.data_hora, descricao=descricao,
+                sugerido=True, fonte=MovimentacaoProcessual.FONTE_DATAJUD,
+            )
+            criados += 1
+        MovimentoDatajud.objects.create(processo=processo, chave=movimento.chave, movimentacao=andamento)
+    return criados
+
+
+def _atualizar_dados_do_processo(processo, acompanhamento, atual):
+    """Mudança de vara/órgão julgador ou grau em relação ao último valor
+    informado pelo DataJud atualiza o processo e avisa o responsável."""
+    alterados, mudancas = [], []
+    if atual.orgao_julgador and normalizado(atual.orgao_julgador) != normalizado(acompanhamento.datajud_orgao_julgador):
+        acompanhamento.datajud_orgao_julgador = atual.orgao_julgador
+        processo.vara = atual.orgao_julgador[:255]
+        alterados.append("vara")
+        mudancas.append(f"vara/órgão julgador: {processo.vara}")
+    if atual.grau and atual.grau != acompanhamento.datajud_grau:
+        acompanhamento.datajud_grau = atual.grau
+        instancia = INSTANCIA_POR_GRAU.get(atual.grau)
+        if instancia and instancia != processo.instancia:
+            processo.instancia = instancia
+            alterados.append("instancia")
+            mudancas.append(f"instância: {instancia}")
+    if alterados:
+        processo.save(update_fields=alterados)
+        _notificar(
+            processo.responsavel,
+            f"Dados do processo {processo} alterados no tribunal (DataJud) — {'; '.join(mudancas)} — confirme ou edite",
+        )
+
+
+def _ponto_de_partida_datajud(processo, acompanhamento, registros, atual):
+    MovimentoDatajud.objects.bulk_create(
+        [MovimentoDatajud(processo=processo, chave=m.chave) for r in registros for m in r.movimentos],
+        ignore_conflicts=True,
+    )
+    acompanhamento.datajud_encontrado = True
+    acompanhamento.datajud_orgao_julgador = atual.orgao_julgador
+    acompanhamento.datajud_grau = atual.grau
+
+
+def sincronizar_datajud(processo, *, buscar=buscar_processo):
+    """Traz os movimentos relevantes novos do processo como andamento
+    sugerido sem prazo. A primeira vez que o DataJud encontra o processo
+    só registra o ponto de partida. Retorna quantos andamentos criou."""
+    registros = buscar(digitos(processo.numero))
+    if registros is None:
+        return 0  # tribunal sem índice no DataJud
+    criados = 0
+    with transaction.atomic():
+        acompanhamento, _ = AcompanhamentoProcesso.objects.get_or_create(processo=processo)
+        acompanhamento.datajud_consultado_em = timezone.now()
+        if registros:
+            atual = _registro_atual(registros)
+            if acompanhamento.datajud_encontrado:
+                criados = _importar_movimentos(processo, registros)
+                _atualizar_dados_do_processo(processo, acompanhamento, atual)
+            else:
+                _ponto_de_partida_datajud(processo, acompanhamento, registros, atual)
+        acompanhamento.save()
+        if criados:
+            _notificar(
+                processo.responsavel,
+                f"{criados} andamento(s) sugerido(s) (DataJud) no processo {processo} — traga o documento e confira",
+            )
+    return criados
+
+
+def _registrar_falha(execucao, processo, fonte, erro):
+    logger.exception("Acompanhamento %s falhou no processo %s", fonte, processo.pk)
+    execucao.falhas += 1
+    execucao.erro = f"{execucao.erro}\nProcesso {processo.pk} ({fonte}): {erro}".strip()
+
+
+def executar_acompanhamento(hoje, *, buscar=buscar_comunicacoes, buscar_datajud=buscar_processo):
+    """Execução do dia no escritório corrente. Falha num processo ou numa
+    fonte não interrompe as demais; fica contada na execução."""
     execucao = ExecucaoAcompanhamento.objects.create()
     oabs = oabs_do_escritorio()
     for processo in processos_acompanhados():
         try:
             sincronizar_djen(processo, hoje, oabs=oabs, buscar=buscar)
-        except Exception as erro:  # noqa: BLE001 — isolamento por processo
-            logger.exception("Acompanhamento DJEN falhou no processo %s", processo.pk)
-            execucao.falhas += 1
-            execucao.erro = f"{execucao.erro}\nProcesso {processo.pk}: {erro}".strip()
+        except Exception as erro:  # noqa: BLE001 — isolamento por processo e fonte
+            _registrar_falha(execucao, processo, "DJEN", erro)
+        try:
+            sincronizar_datajud(processo, buscar=buscar_datajud)
+        except Exception as erro:  # noqa: BLE001 — isolamento por processo e fonte
+            _registrar_falha(execucao, processo, "DataJud", erro)
     execucao.concluida_em = timezone.now()
     execucao.save(update_fields=["falhas", "erro", "concluida_em"])
     return execucao

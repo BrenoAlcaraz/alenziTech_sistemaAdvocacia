@@ -203,6 +203,7 @@ validar; mudar a resposta troca a regra, não a estrutura.
   feriados.
 - Publicação anterior ao cadastro: só aviso.
 - Movimento do DataJud sem texto: andamento sugerido.
+- Lista de códigos TPU relevantes do DataJud (PDR-0038).
 - J5 — publicação sem advogado identificado: nosso cliente + prazo a
   definir.
 - Quem confirma/rejeita/edita: regras atuais.

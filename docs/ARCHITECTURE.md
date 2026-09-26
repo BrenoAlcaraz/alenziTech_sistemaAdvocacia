@@ -617,7 +617,7 @@ não podem estourar o layout nem invadir a coluna vizinha em grade
   iterando `Escritorio` ativo e entrando no schema de cada um com
   `schema_context`; disparo periódico real (cron do SO, Task Scheduler)
   é externo ao código. Reutilizar esse padrão antes de criar um novo
-  para qualquer próximo job por tenant — o acompanhamento DJEN
+  para qualquer próximo job por tenant — o acompanhamento DataJud + DJEN
   (`python manage.py acompanhar_processos`, diário antes das 7h) segue
   o mesmo padrão, com falha isolada por escritório e por processo.
 - Channel layer do WebSocket (Chat) roda em `InMemoryChannelLayer` —

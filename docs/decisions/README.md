@@ -64,3 +64,4 @@ serem efetivamente decididas.
 | PDR-0035 | Honorários — ciclo de recebimento | accepted | [PDR-0035-honorarios-ciclo-de-recebimento.md](PDR-0035-honorarios-ciclo-de-recebimento.md) |
 | PDR-0036 | Um papel de acesso por usuário | accepted | [PDR-0036-um-papel-de-acesso-por-usuario.md](PDR-0036-um-papel-de-acesso-por-usuario.md) |
 | PDR-0037 | Prazo sugerido a partir do texto da intimação | accepted | [PDR-0037-prazo-sugerido-a-partir-da-intimacao.md](PDR-0037-prazo-sugerido-a-partir-da-intimacao.md) |
+| PDR-0038 | Movimento do DataJud como sugestão e dados do processo pelo tribunal | accepted | [PDR-0038-movimento-datajud-como-sugestao.md](PDR-0038-movimento-datajud-como-sugestao.md) |

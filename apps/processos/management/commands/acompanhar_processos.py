@@ -1,8 +1,8 @@
 """
-Job diário do acompanhamento automático (DJEN): em cada escritório
-ativo, dentro do próprio schema, traz as publicações dos processos
-acompanhados como andamento sugerido. Deve rodar uma vez por dia antes
-das 7h; o disparo (cron do SO, Task Scheduler) é externo a este
+Job diário do acompanhamento automático (DataJud + DJEN): em cada
+escritório ativo, dentro do próprio schema, traz as publicações e os
+movimentos relevantes dos processos acompanhados como andamento
+sugerido. Deve rodar uma vez por dia antes das 7h; o disparo (cron do SO, Task Scheduler) é externo a este
 comando. Rodar de novo não duplica nada.
 """
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Acompanha no DJEN os processos de cada escritório e traz andamentos e prazos sugeridos."
+    help = "Acompanha no DataJud e no DJEN os processos de cada escritório e traz andamentos e prazos sugeridos."
 
     def handle(self, *args, **options):
         hoje = timezone.localdate()

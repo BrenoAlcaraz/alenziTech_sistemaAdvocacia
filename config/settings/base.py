@@ -161,6 +161,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ─── Acompanhamento de processos (DataJud + DJEN) ──────────────────────────────
 DJEN_URL = os.getenv("DJEN_URL", "https://comunicaapi.pje.jus.br/api/v1/comunicacao")
+DATAJUD_URL = os.getenv("DATAJUD_URL", "https://api-publica.datajud.cnj.jus.br")
+# Chave pública publicada na wiki do CNJ; o CNJ pode trocá-la a qualquer
+# momento, por isso vem só do ambiente.
+DATAJUD_API_KEY = os.getenv("DATAJUD_API_KEY", "")
 # Dias não úteis do cálculo de prazo (padrão provisório — spec J9): feriados
 # nacionais fixos ("DD/MM"), datas avulsas ("AAAA-MM-DD") e recesso forense.
 # A Sexta-feira Santa é móvel e entra sempre, calculada pela Páscoa.
